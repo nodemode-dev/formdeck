@@ -639,7 +639,24 @@ def compile_slide(ctx: Ctx, spec: dict, index: int, total: int) -> dict:
     slide["review"] = {"status": "draft"}
     slide["spec"] = {k: v for k, v in spec.items() if k not in ("notes",)}
     slide["spec"]["layout"] = semantic
+    _freeze_assets(ctx, slide["spec"])
     return slide
+
+
+def _freeze_assets(ctx: Ctx, spec: dict) -> None:
+    def fix(ref):
+        src = (ref.get("src") or ref.get("id") or ref.get("media")) if isinstance(ref, dict) else ref
+        asset = ctx.assets.get(str(src))
+        if not asset or not asset.get("media"):
+            return ref
+        alt = (ref.get("alt") if isinstance(ref, dict) else None) or asset.get("alt") or Path(asset.get("name") or "").stem
+        return {**(ref if isinstance(ref, dict) else {}), "src": asset["media"], "alt": alt}
+    if spec.get("image"):
+        spec["image"] = fix(spec["image"])
+    if isinstance(spec.get("images"), list):
+        spec["images"] = [fix(r) for r in spec["images"]]
+    if isinstance(spec.get("people"), list):
+        spec["people"] = [{**p, "image": fix(p["image"])} if isinstance(p, dict) and p.get("image") else p for p in spec["people"]]
 
 
 def compile_into(deck: dict, slides_spec: list[dict], *, intake: dict | None = None, base_dir: str | None = None, start_index: int | None = None, media=None) -> tuple[list[dict], list[str]]:

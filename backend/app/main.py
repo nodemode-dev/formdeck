@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core import config
-from app.routers import decks, live, media, system
+from app.routers import decks, exports, intake, live, mcp, media, system
 
 
 def _write_discovery() -> None:
@@ -41,7 +41,15 @@ app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins(), allow_me
 app.include_router(system.router, prefix="/api")
 app.include_router(decks.router, prefix="/api")
 app.include_router(media.router, prefix="/api")
+app.include_router(intake.router, prefix="/api")
+app.include_router(exports.router, prefix="/api")
+try:
+    from app.routers import pdf as pdf_router
+    app.include_router(pdf_router.router, prefix="/api")
+except ImportError:
+    pass
 app.include_router(live.router)
+app.include_router(mcp.router)
 
 _dist = config.dist_dir()
 if _dist is not None:
