@@ -54,7 +54,7 @@ export interface ShapeElement extends ElementBase {
 }
 export interface ImageElement extends ElementBase {
   type: 'image'; src: string; crop?: { l: number; t: number; r: number; b: number }; fit?: 'cover' | 'contain' | 'stretch';
-  focus?: [number, number]; mask?: string; line?: Line | null; effects?: Effects;
+  focus?: [number, number]; mask?: string; adj?: Record<string, number>; line?: Line | null; effects?: Effects;
   adjust?: { brightness?: number; contrast?: number; saturation?: number; grayscale?: boolean; blur?: number };
 }
 export interface TableCell {
