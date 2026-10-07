@@ -1,0 +1,475 @@
+import { api } from '../io/api';
+import { el, escapeHtml, patchList, q, setClass, setDisabled, setHidden, setHtml, setText, setValue } from '../ui/dom';
+import { icon } from '../ui/icons';
+import { toast } from '../ui/toast';
+import { KIND_LABEL, type Annotator, type Tool } from './annotate';
+import { pdfApi, type Annot, type Derived, type ImageItem, type PdfInfo, type TableItem } from './api';
+import { SignaturePad, typedSignature, type Fields } from './fill';
+import type { Organizer } from './organize';
+import type { Viewer } from './viewer';
+
+export type Tab = 'view' | 'comment' | 'fill' | 'organize' | 'extract' | 'protect' | 'convert';
+export interface Doc { id: string; name: string; info: PdfInfo; key: string }
+export interface Ctx {
+  viewer: Viewer; annot: Annotator; fields: Fields; organizer: Organizer;
+  doc(): Doc | null;
+  run<T>(label: string, fn: () => Promise<T>): Promise<T | undefined>;
+  commit(res: Derived, label: string): Promise<void>;
+  flush(): Promise<string | null>;
+  deliver(data: Blob | string, name: string): Promise<void>;
+  tool(t: Tool): void;
+  toDeck(id: string): void;
+  done(): void;
+  addImages?: (items: ImageItem[]) => boolean;
+  pickPdfs(multiple: boolean): Promise<File[]>;
+  remember(id: string, password: string): void;
+  insertPdfs(files: File[], at: number): Promise<void>;
+  applyOrganize(): Promise<void>;
+}
+
+const stem = (name: string): string => name.replace(/\.pdf$/i, '');
+const fmtBytes = (n: number): string => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const csvCell = (s: string): string => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+const toCsv = (t: TableItem): string => [t.header, ...t.rows].map((r) => r.map(csvCell).join(',')).join('\n');
+const sec = (title: string, body: string, extra = ''): string => `<section class="fs-pdfwb-sec" ${extra}><h3 class="fs-pdfwb-sec-title">${title}</h3>${body}</section>`;
+const row = (label: string, ctl: string): string => `<div class="fs-prop-row"><span class="fs-prop-label">${label}</span><div class="fs-prop-ctl">${ctl}</div></div>`;
+const PAPER: Array<[string, number, number]> = [['Letter', 612, 792], ['Legal', 612, 1008], ['A4', 595, 842], ['A3', 842, 1191], ['A5', 420, 595], ['Tabloid', 792, 1224]];
+
+function paperName(w: number, h: number): string {
+  const [a, b] = w < h ? [w, h] : [h, w];
+  const hit = PAPER.find(([, pw, ph]) => Math.abs(pw - a) < 3 && Math.abs(ph - b) < 3);
+  const dims = `${(w / 72 * 25.4).toFixed(0)} × ${(h / 72 * 25.4).toFixed(0)} mm`;
+  return hit ? `${hit[0]}${w > h ? ' landscape' : ''} · ${dims}` : dims;
+}
+
+function dateText(v?: string | null): string {
+  if (!v) return '';
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleString();
+}
+
+export class Panes {
+  readonly root: HTMLElement;
+  private readonly pad = new SignaturePad();
+  private sigMode: 'draw' | 'type' = 'draw';
+  private sigColor = '#1E2A78';
+  private images: ImageItem[] = [];
+  private picked = new Set<string>();
+  private tables: TableItem[] = [];
+  private templatesLoaded = false;
+  private deckMode: 'pages' | 'rebuild' = 'pages';
+  private metaFor = '';
+
+  constructor(private readonly ctx: Ctx) {
+    this.root = el(`<div class="fs-pdfwb-panes">
+<div class="fs-pdfwb-pane" data-for="view">
+${sec('Document', '<dl class="fs-kv fs-pdfwb-props"></dl>')}
+${sec('Find', `<label class="fs-search">${icon('search', 14)}<input type="search" class="fs-pdfwb-findq" placeholder="Search this PDF" spellcheck="false"></label><p class="fs-note fs-pdfwb-findnote">Press ${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+F anywhere in the workbench.</p>`)}
+</div>
+<div class="fs-pdfwb-pane" data-for="comment" hidden>
+${sec(`Comments <span class="fs-badge is-count fs-pdfwb-ncount">0</span>`, `<label class="fs-check"><input type="checkbox" data-a="flatten-comments">Flatten into the page</label><p class="fs-note">Comments stay editable in other PDF readers unless flattened. They are written into the PDF when you save or apply.</p><div class="fs-list fs-pdfwb-annots"></div><div class="fs-empty fs-pdfwb-annots-empty"><span class="fs-empty-icon">${icon('comment', 18)}</span><span class="fs-empty-title">No comments yet</span><span class="fs-empty-note">Choose a tool above, then select text or draw on a page.</span></div><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="apply-annots">${icon('check', 14)}Apply to PDF</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="clear-annots">Discard all</button></div>`)}
+</div>
+<div class="fs-pdfwb-pane" data-for="fill" hidden>
+${sec('Form fields', `<p class="fs-note fs-pdfwb-fieldnote">Looking for form fields…</p><label class="fs-check"><input type="checkbox" data-a="flatten-fields">Flatten fields (no longer editable)</label><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="apply-fields">${icon('check', 14)}Apply to form</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="discard-fields">Discard</button></div>`)}
+${sec('Signature', `<div class="fs-seg fs-pdfwb-sigmode"><button type="button" data-a="sig-draw" class="is-on">Draw</button><button type="button" data-a="sig-type">Type</button></div><div class="fs-pdfwb-sigdraw"></div><div class="fs-pdfwb-sigtype" hidden><input class="fs-input" type="text" data-a="sig-text" placeholder="Type your name" spellcheck="false"><div class="fs-pdfwb-sigpreview"></div></div><div class="fs-pdfwb-sigrow"><span class="fs-swatch is-chosen" data-a="sig-color" data-c="#1E2A78" style="background:#1E2A78" title="Blue ink"></span><span class="fs-swatch" data-a="sig-color" data-c="#111111" style="background:#111111" title="Black ink"></span><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="sig-clear">Clear</button><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="sig-place">${icon('signature', 14)}Place</button></div><p class="fs-note">Then click the page where the signature goes. Signatures are stamped into the page.</p>`)}
+${sec('Stamps', `<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-date">${icon('stamp', 14)}Date</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-check">✓ Check</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-cross">✕ Cross</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-text">${icon('textBox', 14)}Text</button></div>`)}
+</div>
+<div class="fs-pdfwb-pane" data-for="organize" hidden>
+${sec('Pages', `<p class="fs-note fs-pdfwb-orgnote"></p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="org-left">${icon('undo', 14)}Rotate left</button><button class="fs-btn fs-btn-sm" type="button" data-a="org-right">${icon('redo', 14)}Rotate right</button><button class="fs-btn fs-btn-sm" type="button" data-a="org-delete">${icon('delete', 14)}Delete</button><button class="fs-btn fs-btn-sm" type="button" data-a="org-blank">${icon('pageInsert', 14)}Blank page</button><button class="fs-btn fs-btn-sm" type="button" data-a="org-insert">${icon('upload', 14)}Insert from PDF</button><button class="fs-btn fs-btn-sm" type="button" data-a="org-extract">${icon('pageExtract', 14)}Extract selected</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="org-all">Select all</button></div><p class="fs-note">Drag pages to reorder them. Drop a PDF on the grid to insert its pages there.</p>`)}
+${sec('Split', `${row('Ranges', '<input class="fs-input" type="text" data-a="split-ranges" placeholder="1-3, 4-6, 7-">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="split">${icon('split', 14)}Split into files</button></div>`)}
+${sec('Merge', `<p class="fs-note">Append whole PDFs to the end, keeping their bookmarks.</p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="merge">${icon('merge', 14)}Merge PDFs…</button></div>`)}
+</div>
+<div class="fs-pdfwb-pane" data-for="extract" hidden>
+${sec('Pages', `${row('From', '<input class="fs-input" type="text" data-a="ex-pages" placeholder="All pages, or 1-3, 5">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="ex-current">This page</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="ex-all">All pages</button></div>`)}
+${sec('Text', `<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="ex-text">${icon('fileText', 14)}Extract text</button></div><textarea class="fs-input fs-pdfwb-text" readonly hidden spellcheck="false"></textarea><div class="fs-pdfwb-btns fs-pdfwb-textbtns" hidden><button class="fs-btn fs-btn-sm" type="button" data-a="text-copy">Copy</button><button class="fs-btn fs-btn-sm" type="button" data-a="text-txt">${icon('download', 14)}.txt</button><button class="fs-btn fs-btn-sm" type="button" data-a="text-md">${icon('download', 14)}.md</button></div>`)}
+${sec('Images', `<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="ex-images">${icon('image', 14)}Extract images</button></div><div class="fs-asset-grid fs-pdfwb-images"></div><div class="fs-pdfwb-btns fs-pdfwb-imgbtns" hidden><button class="fs-btn fs-btn-sm" type="button" data-a="img-download">${icon('download', 14)}Download</button><button class="fs-btn fs-btn-sm" type="button" data-a="img-deck">${icon('slideAdd', 14)}Add to deck</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="img-all">Select all</button></div>`)}
+${sec('Tables', `<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="ex-tables">${icon('table', 14)}Extract tables</button><button class="fs-btn fs-btn-sm" type="button" data-a="tables-xlsx" hidden>${icon('download', 14)}.xlsx</button></div><div class="fs-pdfwb-tables"></div>`)}
+</div>
+<div class="fs-pdfwb-pane" data-for="protect" hidden>
+${sec('Password', `${row('Password', '<input class="fs-input" type="password" data-a="pw1" autocomplete="new-password">')}${row('Confirm', '<input class="fs-input" type="password" data-a="pw2" autocomplete="new-password">')}${row('Owner', '<input class="fs-input" type="password" data-a="pw-owner" placeholder="Optional" autocomplete="new-password">')}<div class="fs-pdfwb-perms"><label class="fs-check"><input type="checkbox" data-perm="print" checked>Printing</label><label class="fs-check"><input type="checkbox" data-perm="copy" checked>Copying text</label><label class="fs-check"><input type="checkbox" data-perm="modify" checked>Editing</label><label class="fs-check"><input type="checkbox" data-perm="annotate" checked>Comments</label><label class="fs-check"><input type="checkbox" data-perm="fill" checked>Filling forms</label><label class="fs-check"><input type="checkbox" data-perm="assemble" checked>Page changes</label></div><p class="fs-note">AES-256. Readers need the password to open the file; the owner password unlocks the restrictions.</p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="protect">${icon('lockFile', 14)}Protect</button></div>`)}
+${sec('Remove password', `${row('Password', '<input class="fs-input" type="password" data-a="unlock-pw" autocomplete="current-password">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="unlock">${icon('unlock', 14)}Remove protection</button></div>`, 'data-part="unlock"')}
+${sec('Redact', `<p class="fs-note fs-pdfwb-redactnote">Mark areas to black out, then apply.</p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="redact-tool">${icon('eraser', 14)}Mark areas</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="redact-clear">Clear</button></div><p class="fs-pdfwb-warn">${icon('warning', 14)}<span>Redaction is permanent: every page with a marked area is turned into an image, so its text can no longer be selected, searched or copied.</span></p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-danger" type="button" data-a="redact-apply">Apply redactions</button></div>`)}
+${sec('Metadata', `${row('Title', '<input class="fs-input" type="text" data-m="title">')}${row('Author', '<input class="fs-input" type="text" data-m="author">')}${row('Subject', '<input class="fs-input" type="text" data-m="subject">')}${row('Keywords', '<input class="fs-input" type="text" data-m="keywords">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="meta-save">${icon('check', 14)}Save metadata</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="meta-strip">Remove all</button></div>`)}
+</div>
+<div class="fs-pdfwb-pane" data-for="convert" hidden>
+${sec('PDF to deck', `<div class="fs-seg fs-pdfwb-deckmode"><button type="button" data-a="deck-pages" class="is-on">Pages as slides</button><button type="button" data-a="deck-rebuild">Rebuild editable</button></div><p class="fs-note fs-pdfwb-decknote">Every page becomes a slide picture; the page text goes into the speaker notes.</p>${row('Title', '<input class="fs-input" type="text" data-a="deck-title">')}${row('Template', '<select class="fs-pdfwb-tpl" aria-label="Template"><option value="">Default</option></select>')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="deck-make">${icon('slides', 14)}Create deck</button></div>`)}
+${sec('Compress', `${row('Quality', '<input class="fs-slider" type="range" min="20" max="95" value="70" data-a="cq"><span class="fs-unit fs-pdfwb-cqv">70</span>')}<p class="fs-note fs-pdfwb-cnote">Recompresses large pictures and removes duplicate objects.</p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="compress">Compress</button></div>`)}
+${sec('Page numbers', `${row('Position', '<select data-a="pn-pos" aria-label="Position"><option value="bottom-center">Bottom centre</option><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-center">Top centre</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select>')}${row('Format', '<select data-a="pn-fmt" aria-label="Format"><option value="{n}">1</option><option value="Page {n}">Page 1</option><option value="Page {n} of {total}">Page 1 of 9</option><option value="{n} / {total}">1 / 9</option></select>')}${row('Start at', '<div class="fs-num"><input type="number" min="0" value="1" data-a="pn-start"></div>')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="numbers">Add page numbers</button></div>`)}
+${sec('Watermark', `${row('Text', '<input class="fs-input" type="text" data-a="wm-text" value="CONFIDENTIAL">')}${row('Opacity', '<input class="fs-slider" type="range" min="5" max="100" value="18" data-a="wm-op"><span class="fs-unit fs-pdfwb-wmv">18%</span>')}${row('Angle', '<div class="fs-num"><input type="number" value="45" min="-180" max="180" data-a="wm-angle"><span class="fs-unit">°</span></div>')}${row('Size', '<div class="fs-num"><input type="number" value="64" min="6" max="400" data-a="wm-size"><span class="fs-unit">pt</span></div>')}${row('Colour', '<input type="color" class="fs-pdfwb-color" value="#888888" data-a="wm-color">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="watermark">Add watermark</button></div>`)}
+${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria-label="Scale"><option value="1">72 dpi</option><option value="2" selected>144 dpi</option><option value="3">216 dpi</option><option value="4.1667">300 dpi</option></select>')}${row('Pages', '<input class="fs-input" type="text" data-a="png-pages" placeholder="All pages">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="png-zip">${icon('fileImage', 14)}Download PNG zip</button></div>`)}
+</div>
+</div>`);
+    q(this.root, '.fs-pdfwb-sigdraw').appendChild(this.pad.root);
+    this.pad.onChange = () => this.syncSig();
+    this.root.addEventListener('click', (e) => this.click(e));
+    this.root.addEventListener('input', (e) => this.input(e));
+    this.root.addEventListener('change', (e) => this.input(e));
+    q<HTMLInputElement>(this.root, '[data-a="flatten-comments"]').checked = false;
+  }
+
+  show(tab: Tab): void {
+    for (const p of Array.from(this.root.querySelectorAll<HTMLElement>('.fs-pdfwb-pane'))) setHidden(p, p.dataset.for !== tab);
+    if (tab === 'fill') requestAnimationFrame(() => this.pad.paint());
+    if (tab === 'convert') void this.loadTemplates();
+  }
+
+  private $<T extends HTMLElement = HTMLElement>(sel: string): T { return q<T>(this.root, sel); }
+  private val(a: string): string { return this.$<HTMLInputElement>(`[data-a="${a}"]`).value; }
+
+  syncDoc(): void {
+    const d = this.ctx.doc();
+    const props = this.$('.fs-pdfwb-props');
+    if (!d) { setHtmlSafe(props, ''); return; }
+    const i = d.info, n = this.ctx.viewer.currentPage(), s = i.sizes[n - 1];
+    const pairs: Array<[string, string]> = [
+      ['File', d.name], ['Pages', String(i.pages)], ['Page size', s ? paperName(s.rotate % 180 ? s.h : s.w, s.rotate % 180 ? s.w : s.h) : ''], ['File size', fmtBytes(i.bytes)],
+      ['PDF', i.version ?? ''], ['Title', i.title ?? ''], ['Author', i.author ?? ''], ['Subject', i.subject ?? ''], ['Keywords', i.keywords ?? ''],
+      ['Created', dateText(i.created)], ['Modified', dateText(i.modified)], ['Creator', i.creator ?? ''], ['Producer', i.producer ?? ''],
+      ['Form fields', String(i.fields || 'None')], ['Security', i.encrypted ? 'Password protected' : 'None'],
+    ];
+    const html = pairs.filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd title="${escapeHtml(v)}">${escapeHtml(v)}</dd>`).join('');
+    setHtmlSafe(props, html);
+    if (this.metaFor !== d.id) {
+      this.metaFor = d.id;
+      for (const m of ['title', 'author', 'subject', 'keywords'] as const) setValue(this.$<HTMLInputElement>(`[data-m="${m}"]`), i[m] ?? '');
+      setValue(this.$<HTMLInputElement>('[data-a="deck-title"]'), i.title || stem(d.name));
+      setHidden(this.$('[data-part="unlock"]'), !i.encrypted);
+    }
+    this.syncFields();
+    this.syncOrganize();
+    this.syncAreas();
+  }
+
+  syncAnnots(): void {
+    const items = this.ctx.annot.items;
+    setText(this.$('.fs-pdfwb-ncount'), String(items.length));
+    setHidden(this.$('.fs-pdfwb-annots-empty'), items.length > 0);
+    setDisabled(this.$<HTMLButtonElement>('[data-a="apply-annots"]'), !items.length);
+    setDisabled(this.$<HTMLButtonElement>('[data-a="clear-annots"]'), !items.length);
+    const sel = this.ctx.annot.selected;
+    const update = (n: HTMLElement, a: Annot): void => {
+      setClass(n, 'is-selected', a.id === sel);
+      setText(n.querySelector('.fs-row-title'), `Page ${a.page} · ${KIND_LABEL[a.kind]}`);
+      setText(n.querySelector('.fs-row-sub'), a.text || a.quote || (a.flatten ? 'Stamped into the page' : 'Comment'));
+      const sw = n.querySelector('.fs-pdfwb-dot') as HTMLElement;
+      if (sw.style.background !== a.color) sw.style.background = a.color;
+    };
+    patchList(this.$('.fs-pdfwb-annots'), items, {
+      key: (a) => a.id,
+      create: (a) => { const n = el(`<div class="fs-row fs-pdfwb-arow" data-id="${escapeHtml(a.id)}"><span class="fs-row-icon"><span class="fs-pdfwb-dot"></span></span><span class="fs-row-main"><span class="fs-row-title"></span><span class="fs-row-sub"></span></span><button class="fs-icon-btn is-sm" type="button" data-a="annot-del" title="Delete">${icon('delete', 14)}</button></div>`); update(n, a); return n; },
+      update,
+    });
+  }
+
+  syncFields(): void {
+    const f = this.ctx.fields;
+    const d = this.ctx.doc();
+    const count = new Set(f.fields.map((x) => x.name)).size;
+    setText(this.$('.fs-pdfwb-fieldnote'), !d ? '' : f.loadedFor !== d.id ? 'Looking for form fields…' : count ? `${count} field${count === 1 ? '' : 's'} in this PDF${f.dirty ? ` · ${f.values.size} changed` : ''}. Type straight into the page.` : 'This PDF has no form fields. Use the stamps below to fill it in.');
+    setDisabled(this.$<HTMLButtonElement>('[data-a="apply-fields"]'), !f.dirty && !(count && this.$<HTMLInputElement>('[data-a="flatten-fields"]').checked));
+    setDisabled(this.$<HTMLButtonElement>('[data-a="discard-fields"]'), !f.dirty);
+  }
+
+  syncOrganize(): void {
+    const o = this.ctx.organizer, sel = o.selected.size;
+    setText(this.$('.fs-pdfwb-orgnote'), `${o.items.length} page${o.items.length === 1 ? '' : 's'}${sel ? ` · ${sel} selected` : ''}${o.dirty ? ' · not applied yet' : ''}`);
+    for (const a of ['org-delete', 'org-extract']) setDisabled(this.$<HTMLButtonElement>(`[data-a="${a}"]`), !sel);
+  }
+
+  syncAreas(): void {
+    const areas = this.ctx.annot.areas, pages = new Set(areas.map((a) => a.page)).size;
+    setText(this.$('.fs-pdfwb-redactnote'), areas.length ? `${areas.length} area${areas.length === 1 ? '' : 's'} marked on ${pages} page${pages === 1 ? '' : 's'}.` : 'Mark areas to black out, then apply.');
+    setDisabled(this.$<HTMLButtonElement>('[data-a="redact-apply"]'), !areas.length);
+    setDisabled(this.$<HTMLButtonElement>('[data-a="redact-clear"]'), !areas.length);
+    setClass(this.$('[data-a="redact-tool"]'), 'is-on', this.ctx.annot.tool === 'redact');
+  }
+
+  private syncSig(): void {
+    const ready = this.sigMode === 'draw' ? !this.pad.empty : this.val('sig-text').trim().length > 0;
+    setDisabled(this.$<HTMLButtonElement>('[data-a="sig-place"]'), !ready);
+  }
+
+  private async loadTemplates(): Promise<void> {
+    if (this.templatesLoaded) return;
+    this.templatesLoaded = true;
+    try {
+      const res = await api.templates();
+      const sel = this.$<HTMLSelectElement>('.fs-pdfwb-tpl');
+      for (const t of res.templates) { const o = document.createElement('option'); o.value = t.id; o.textContent = t.name; sel.appendChild(o); }
+      if (res.default) sel.value = res.default;
+    } catch { this.templatesLoaded = false; }
+  }
+
+  private pagesSpec(): string { return this.val('ex-pages').trim(); }
+
+  private input(e: Event): void {
+    const t = e.target as HTMLInputElement;
+    const a = t.dataset.a;
+    if (a === 'flatten-comments') this.ctx.annot.flattenComments = t.checked;
+    else if (a === 'flatten-fields') this.syncFields();
+    else if (a === 'sig-text') void this.preview();
+    else if (a === 'cq') setText(this.$('.fs-pdfwb-cqv'), t.value);
+    else if (a === 'wm-op') setText(this.$('.fs-pdfwb-wmv'), `${t.value}%`);
+  }
+
+  private async preview(): Promise<void> {
+    const host = this.$('.fs-pdfwb-sigpreview');
+    const text = this.val('sig-text');
+    host.style.color = this.sigColor;
+    setText(host, text);
+    this.syncSig();
+  }
+
+  private async signatureImage(): Promise<{ url: string; aspect: number } | null> {
+    if (this.sigMode === 'draw') { this.pad.color = this.sigColor; return this.pad.image(); }
+    return typedSignature(this.val('sig-text'), this.sigColor);
+  }
+
+  async placeSignature(at?: { page: number; x: number; y: number; w: number; h: number }): Promise<boolean> {
+    const img = await this.signatureImage();
+    if (!img) { toast('Draw or type your signature first in the Signature panel.'); return false; }
+    if (at) {
+      const pv = this.ctx.viewer.pages[at.page - 1];
+      const rot = pv ? this.ctx.viewer.total(pv) : 0;
+      const [bw, bh] = rot % 180 ? [at.h, at.w] : [at.w, at.h];
+      let w = bw, h = bw / img.aspect;
+      if (h > bh) { h = bh; w = bh * img.aspect; }
+      const [rw, rh] = rot % 180 ? [h, w] : [w, h];
+      this.ctx.annot.add({ id: `a${Date.now().toString(36)}`, page: at.page, kind: 'image', color: '#111111', opacity: 1, rot, x: at.x + (at.w - rw) / 2, y: at.y + (at.h - rh) / 2, w: rw, h: rh, image: img.url, flatten: true }, 'Sign field');
+      return true;
+    }
+    this.ctx.annot.placement = { kind: 'image', image: img.url, aspect: img.aspect, width: 150, label: 'signature' };
+    this.ctx.tool('place');
+    return true;
+  }
+
+  private stamp(text: string, label: string, size = 12): void {
+    this.ctx.annot.placement = { kind: 'freetext', text, size, label };
+    this.ctx.tool('place');
+  }
+
+  private click(e: MouseEvent): void {
+    const t = (e.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
+    if (!t || (t as HTMLButtonElement).disabled) return;
+    const a = t.dataset.a as string;
+    const c = this.ctx;
+    const d = c.doc();
+    switch (a) {
+      case 'annot-del': { const id = t.closest('[data-id]')?.getAttribute('data-id'); if (id) c.annot.remove(id); return; }
+      case 'apply-annots': void c.run('Applying comments', () => c.flush()); return;
+      case 'clear-annots': c.annot.clear(); return;
+      case 'sig-draw': case 'sig-type': {
+        this.sigMode = a === 'sig-draw' ? 'draw' : 'type';
+        for (const b of Array.from(this.$('.fs-pdfwb-sigmode').children)) setClass(b, 'is-on', (b as HTMLElement).dataset.a === a);
+        setHidden(this.$('.fs-pdfwb-sigdraw'), this.sigMode !== 'draw');
+        setHidden(this.$('.fs-pdfwb-sigtype'), this.sigMode !== 'type');
+        if (this.sigMode === 'draw') requestAnimationFrame(() => this.pad.paint());
+        this.syncSig();
+        return;
+      }
+      case 'sig-color': {
+        this.sigColor = t.dataset.c ?? '#1E2A78';
+        for (const s of Array.from(this.root.querySelectorAll('[data-a="sig-color"]'))) setClass(s, 'is-chosen', s === t);
+        this.pad.color = this.sigColor;
+        this.pad.paint();
+        void this.preview();
+        return;
+      }
+      case 'sig-clear': if (this.sigMode === 'draw') this.pad.clear(); else { setValue(this.$<HTMLInputElement>('[data-a="sig-text"]'), ''); void this.preview(); } return;
+      case 'sig-place': void this.placeSignature(); return;
+      case 'stamp-date': this.stamp(new Date().toLocaleDateString(), 'date'); return;
+      case 'stamp-check': this.stamp('✓', 'check mark', 16); return;
+      case 'stamp-cross': this.stamp('✕', 'cross', 16); return;
+      case 'stamp-text': c.tool('freetext'); return;
+    }
+    if (!d) return;
+    switch (a) {
+      case 'apply-fields': void c.run('Filling the form', async () => {
+        const flat = this.$<HTMLInputElement>('[data-a="flatten-fields"]').checked;
+        const res = await pdfApi.fill(d.id, c.fields.pending(), flat);
+        c.fields.discard();
+        await c.commit(res, flat ? 'Fill and flatten form' : 'Fill form');
+      }); return;
+      case 'discard-fields': c.fields.discard(); return;
+      case 'org-left': c.organizer.rotate(-90); return;
+      case 'org-right': c.organizer.rotate(90); return;
+      case 'org-delete': c.organizer.remove(); return;
+      case 'org-blank': c.organizer.blank(); return;
+      case 'org-all': c.organizer.selectAll(); return;
+      case 'org-insert': void c.pickPdfs(true).then((files) => (files.length ? c.insertPdfs(files, c.organizer.insertAt()) : undefined)); return;
+      case 'org-extract': void c.run('Extracting pages', async () => {
+        const sel = c.organizer.selection();
+        if (!sel.length) return;
+        const res = await pdfApi.organize(d.id, c.organizer.payload(sel));
+        await c.deliver(pdfApi.fileUrl(res.id, true), `${stem(d.name)} (extract).pdf`);
+      }); return;
+      case 'split': void c.run('Splitting', async () => {
+        const ranges = this.val('split-ranges').split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+        if (!ranges.length) { toast('Type page ranges such as 1-3, 4-6'); return; }
+        const id = await c.flush() ?? d.id;
+        const res = await pdfApi.split(id, ranges);
+        for (const p of res.parts) await c.deliver(pdfApi.fileUrl(p.id, true), p.name);
+        toast(`Split into ${res.parts.length} file${res.parts.length === 1 ? '' : 's'}`);
+      }); return;
+      case 'merge': void c.pickPdfs(true).then((files) => {
+        if (!files.length) return;
+        return c.run('Merging', async () => {
+          const id = await c.flush() ?? d.id;
+          const others: string[] = [];
+          for (const f of files) others.push((await pdfApi.open(f, f.name)).id);
+          await c.commit(await pdfApi.merge([id, ...others]), `Merge ${files.length} PDF${files.length === 1 ? '' : 's'}`);
+        });
+      }); return;
+      case 'ex-current': setValue(this.$<HTMLInputElement>('[data-a="ex-pages"]'), String(c.viewer.currentPage())); return;
+      case 'ex-all': setValue(this.$<HTMLInputElement>('[data-a="ex-pages"]'), ''); return;
+      case 'ex-text': void c.run('Extracting text', async () => {
+        const res = await pdfApi.text(d.id, this.pagesSpec());
+        const ta = this.$<HTMLTextAreaElement>('.fs-pdfwb-text');
+        ta.value = res.pages.map((p) => p.text).join('\n\n');
+        ta.dataset.md = res.pages.map((p) => `## Page ${p.page}\n\n${p.text}`).join('\n\n');
+        setHidden(ta, false);
+        setHidden(this.$('.fs-pdfwb-textbtns'), false);
+        if (!ta.value.trim()) toast('These pages have no selectable text. Scanned pages need OCR first.');
+      }); return;
+      case 'text-copy': void navigator.clipboard.writeText(this.$<HTMLTextAreaElement>('.fs-pdfwb-text').value).then(() => toast('Text copied')); return;
+      case 'text-txt': void c.deliver(new Blob([this.$<HTMLTextAreaElement>('.fs-pdfwb-text').value], { type: 'text/plain' }), `${stem(d.name)}.txt`); return;
+      case 'text-md': void c.deliver(new Blob([`# ${stem(d.name)}\n\n${this.$<HTMLTextAreaElement>('.fs-pdfwb-text').dataset.md ?? ''}\n`], { type: 'text/markdown' }), `${stem(d.name)}.md`); return;
+      case 'ex-images': void c.run('Extracting images', async () => {
+        this.images = (await pdfApi.images(d.id, this.pagesSpec())).images;
+        this.picked = new Set(this.images.map((i) => i.id));
+        this.syncImages();
+        if (!this.images.length) toast('No pictures found on these pages');
+      }); return;
+      case 'img-pick': { const id = t.dataset.id as string; if (this.picked.has(id)) this.picked.delete(id); else this.picked.add(id); this.syncImages(); return; }
+      case 'img-all': this.picked = this.picked.size === this.images.length ? new Set() : new Set(this.images.map((i) => i.id)); this.syncImages(); return;
+      case 'img-download': void c.run('Saving images', async () => { for (const img of this.images.filter((i) => this.picked.has(i.id))) await c.deliver(img.url, img.name); }); return;
+      case 'img-deck': void c.run('Making a deck', async () => {
+        const items = this.images.filter((i) => this.picked.has(i.id));
+        if (!items.length) return;
+        if (c.addImages?.(items)) { c.done(); return; }
+        const res = await pdfApi.imagesDeck(items.map((i) => i.id), `${stem(d.name)} images`);
+        c.toDeck(res.id);
+        c.done();
+      }); return;
+      case 'ex-tables': void c.run('Finding tables', async () => {
+        this.tables = (await pdfApi.tables(d.id, this.pagesSpec())).tables;
+        this.syncTables();
+        if (!this.tables.length) toast('No tables found on these pages');
+      }); return;
+      case 'tables-xlsx': void c.run('Saving spreadsheet', () => c.deliver(pdfApi.xlsxUrl(d.id, this.pagesSpec()), `${stem(d.name)} tables.xlsx`)); return;
+      case 'table-copy': { const tb = this.tables[Number(t.dataset.i)]; if (tb) void navigator.clipboard.writeText(toCsv(tb)).then(() => toast('Table copied as CSV')); return; }
+      case 'table-csv': { const tb = this.tables[Number(t.dataset.i)]; if (tb) void c.deliver(new Blob([toCsv(tb)], { type: 'text/csv' }), `${stem(d.name)} table ${Number(t.dataset.i) + 1}.csv`); return; }
+      case 'protect': {
+        const pw = this.val('pw1'), pw2 = this.val('pw2'), owner = this.val('pw-owner');
+        if (!pw && !owner) { toast('Type a password'); return; }
+        if (pw !== pw2) { toast('The passwords do not match', 'error'); return; }
+        const permissions: Record<string, boolean> = {};
+        for (const box of Array.from(this.root.querySelectorAll<HTMLInputElement>('[data-perm]'))) permissions[box.dataset.perm as string] = box.checked;
+        void c.run('Protecting', async () => {
+          const id = await c.flush() ?? d.id;
+          const res = await pdfApi.protect(id, { password: pw, owner: owner || undefined, permissions });
+          if (pw) c.remember(res.id, pw);
+          for (const k of ['pw1', 'pw2', 'pw-owner']) this.$<HTMLInputElement>(`[data-a="${k}"]`).value = '';
+          await c.commit(res, 'Protect with password');
+          toast('Protected with AES-256. Save to keep the protected copy.');
+        });
+        return;
+      }
+      case 'unlock': void c.run('Removing protection', async () => {
+        const res = await pdfApi.unlock(d.id, this.val('unlock-pw'));
+        this.$<HTMLInputElement>('[data-a="unlock-pw"]').value = '';
+        await c.commit(res, 'Remove password');
+      }); return;
+      case 'redact-tool': c.tool(c.annot.tool === 'redact' ? 'select' : 'redact'); this.syncAreas(); return;
+      case 'redact-clear': c.annot.setAreas([]); return;
+      case 'redact-apply': void c.run('Redacting', async () => {
+        const id = await c.flush() ?? d.id;
+        const res = await pdfApi.redact(id, c.annot.areas);
+        c.annot.setAreas([]);
+        c.tool('select');
+        await c.commit(res, 'Redact');
+      }); return;
+      case 'meta-save': case 'meta-strip': void c.run('Updating metadata', async () => {
+        const id = await c.flush() ?? d.id;
+        const body = a === 'meta-strip' ? { strip: true } : { title: this.mval('title'), author: this.mval('author'), subject: this.mval('subject'), keywords: this.mval('keywords') };
+        const res = await pdfApi.metadata(id, body);
+        this.metaFor = '';
+        await c.commit(res, a === 'meta-strip' ? 'Remove metadata' : 'Edit metadata');
+      }); return;
+      case 'deck-pages': case 'deck-rebuild': {
+        this.deckMode = a === 'deck-pages' ? 'pages' : 'rebuild';
+        for (const b of Array.from(this.$('.fs-pdfwb-deckmode').children)) setClass(b, 'is-on', (b as HTMLElement).dataset.a === a);
+        setText(this.$('.fs-pdfwb-decknote'), this.deckMode === 'pages' ? 'Every page becomes a slide picture; the page text goes into the speaker notes.' : 'formsld reads the text, tables and pictures and drafts real, editable slides in your template.');
+        return;
+      }
+      case 'deck-make': void c.run('Making the deck', async () => {
+        const id = await c.flush() ?? d.id;
+        const template = this.$<HTMLSelectElement>('.fs-pdfwb-tpl').value || undefined;
+        const title = this.val('deck-title').trim() || undefined;
+        let deckId: string;
+        if (this.deckMode === 'pages') deckId = (await pdfApi.toDeck(id, { mode: 'pages', template, title })).id;
+        else {
+          const blob = await fetch(pdfApi.fileUrl(id)).then((r) => r.blob());
+          deckId = (await pdfApi.intakeDraft(blob, d.name, template, title)).id;
+        }
+        c.toDeck(deckId);
+        c.done();
+      }); return;
+      case 'compress': void c.run('Compressing', async () => {
+        const id = await c.flush() ?? d.id;
+        const res = await pdfApi.compress(id, Number(this.val('cq')));
+        await c.commit(res, 'Compress');
+        const saved = (res.before ?? 0) - (res.after ?? 0);
+        setText(this.$('.fs-pdfwb-cnote'), saved > 0 ? `${fmtBytes(res.before ?? 0)} to ${fmtBytes(res.after ?? 0)}, ${Math.round((saved / Math.max(1, res.before ?? 1)) * 100)}% smaller.` : `Already compact at ${fmtBytes(res.after ?? 0)}.`);
+      }); return;
+      case 'numbers': void c.run('Numbering pages', async () => {
+        const id = await c.flush() ?? d.id;
+        const res = await pdfApi.pageNumbers(id, { position: this.sval('pn-pos'), format: this.sval('pn-fmt'), start: Number(this.val('pn-start')) || 1 });
+        await c.commit(res, 'Add page numbers');
+      }); return;
+      case 'watermark': void c.run('Adding the watermark', async () => {
+        const text = this.val('wm-text').trim();
+        if (!text) { toast('Type the watermark text'); return; }
+        const id = await c.flush() ?? d.id;
+        const res = await pdfApi.watermark(id, { text, opacity: Number(this.val('wm-op')) / 100, angle: Number(this.val('wm-angle')) || 0, size: Number(this.val('wm-size')) || 64, color: this.val('wm-color') });
+        await c.commit(res, 'Add watermark');
+      }); return;
+      case 'png-zip': void c.run('Rendering pages', async () => {
+        const id = await c.flush() ?? d.id;
+        await c.deliver(pdfApi.zipUrl(id, Number(this.sval('png-scale')) || 2, this.val('png-pages')), `${stem(d.name)} pages.zip`);
+      }); return;
+    }
+  }
+
+  private mval(m: string): string { return this.$<HTMLInputElement>(`[data-m="${m}"]`).value; }
+  private sval(a: string): string { return this.$<HTMLSelectElement>(`select[data-a="${a}"]`).value; }
+
+  private syncImages(): void {
+    const grid = this.$('.fs-pdfwb-images');
+    const update = (n: HTMLElement, img: ImageItem): void => { setClass(n, 'is-selected', this.picked.has(img.id)); };
+    patchList(grid, this.images, {
+      key: (i) => i.id,
+      create: (i) => { const n = el(`<button class="fs-asset" type="button" data-a="img-pick" data-id="${escapeHtml(i.id)}" title="Page ${i.page} · ${i.w} × ${i.h}"><img alt="" loading="lazy" decoding="async" src="${escapeHtml(i.url)}"></button>`); update(n, i); return n; },
+      update,
+    });
+    setHidden(this.$('.fs-pdfwb-imgbtns'), !this.images.length);
+    setDisabled(this.$<HTMLButtonElement>('[data-a="img-download"]'), !this.picked.size);
+    setDisabled(this.$<HTMLButtonElement>('[data-a="img-deck"]'), !this.picked.size);
+  }
+
+  private syncTables(): void {
+    const host = this.$('.fs-pdfwb-tables');
+    patchList(host, this.tables.map((t, i) => ({ t, i })), {
+      key: (x) => `${x.i}|${x.t.page}|${x.t.header.join('|')}`,
+      create: (x) => {
+        const rows = [x.t.header, ...x.t.rows.slice(0, 8)];
+        const table = `<div class="fs-pdfwb-tablewrap"><table class="fs-pdfwb-table">${rows.map((r, k) => `<tr>${r.map((cell) => (k ? `<td>${escapeHtml(cell)}</td>` : `<th>${escapeHtml(cell)}</th>`)).join('')}</tr>`).join('')}</table></div>`;
+        return el(`<div class="fs-pdfwb-tableitem"><div class="fs-pdfwb-tablehead"><span>Table ${x.i + 1} · page ${x.t.page} · ${x.t.rows.length} rows</span><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="table-copy" data-i="${x.i}">Copy</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="table-csv" data-i="${x.i}">CSV</button></div>${table}</div>`);
+      },
+      update: () => undefined,
+    });
+    setHidden(this.$('[data-a="tables-xlsx"]'), !this.tables.length);
+  }
+}
+
+function setHtmlSafe(node: HTMLElement, html: string): void { setHtml(node, html, html); }
