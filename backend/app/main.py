@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core import config
-from app.routers import system
+from app.routers import decks, live, media, system
 
 
 def _write_discovery() -> None:
@@ -39,6 +39,9 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title=config.APP_NAME, version=config.VERSION, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins(), allow_methods=["*"], allow_headers=["*"])
 app.include_router(system.router, prefix="/api")
+app.include_router(decks.router, prefix="/api")
+app.include_router(media.router, prefix="/api")
+app.include_router(live.router)
 
 _dist = config.dist_dir()
 if _dist is not None:
