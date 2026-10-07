@@ -101,10 +101,10 @@ def remap(deck: dict, tid: str) -> dict:
     return _remap(deck, template_deck(tid, deck.get("size")))
 
 
-def sample_deck(tid: str, size: dict | None = None) -> dict:
+def sample_deck(tid: str, size: dict | None = None, only: list[str] | None = None) -> dict:
     tpl = template_deck(tid, size)
     deck = model.new_deck(tpl.get("title", tid), tpl["size"], tpl["theme"])
     deck["masters"], deck["layouts"], deck["template"] = tpl["masters"], tpl["layouts"], tpl.get("template")
     deck["meta"]["template"] = tid
-    deck["slides"] = samples.slides_for(deck)
+    deck["slides"] = samples.slides_for(deck, only)
     return model.normalize(deck)

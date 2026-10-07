@@ -268,9 +268,11 @@ def template_list() -> dict:
 
 
 @router.get("/templates/{tid}")
-def template_get(tid: str, w: float = 960, h: float = 540, samples: bool = True) -> dict:
+def template_get(tid: str, w: float = 960, h: float = 540, samples: bool = True, only: str = "") -> dict:
     try:
-        return templates.sample_deck(tid, {"w": w, "h": h}) if samples else templates.template_deck(tid, {"w": w, "h": h})
+        if not samples:
+            return templates.template_deck(tid, {"w": w, "h": h})
+        return templates.sample_deck(tid, {"w": w, "h": h}, [x for x in only.split(",") if x] or None)
     except KeyError:
         raise HTTPException(404, "There is no template with that id.")
 

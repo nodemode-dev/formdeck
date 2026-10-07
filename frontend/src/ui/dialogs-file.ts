@@ -1,0 +1,1824 @@
+import type { AgentBridge } from '../automation/agent-bridge';
+import type { Editor } from '../editor/editor';
+import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
+import { api, type TemplateSummary } from '../io/api';
+import { ensureFonts, fontsOfDeck } from '../render/fonts';
+import { SlideView } from '../render/slide';
+import { VERSION } from '../version';
+import { brandMark } from './brand';
+import { formatKeys, type Command, type Commands } from './commands';
+import { Dialog } from './dialogs';
+import { delayedIndicator, el, escapeHtml, patchList, q, setChecked, setClass, setDisabled, setHidden, setHtml, setText, setValue, type Disposer } from './dom';
+import { mountDeckPreview, templatePreview } from './home';
+import { icon } from './icons';
+import { THEMES, readChoice, setAccent, setTheme, themeSwatchesHtml } from './themes';
+import { toast } from './toast';
+
+type Catalog = { categories: string[]; templates: TemplateSummary[]; default: string };
+type Settings = Record<string, unknown>;
+
+const PX = 96 / 72;
+const isTauri = (): boolean => '__TAURI_INTERNALS__' in window;
+const errText = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+const safeName = (s: string): string => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'deck';
+const withExt = (path: string, ext: string): string => (/\.[a-z0-9]{2,5}$/i.test(path) ? path.replace(/\.[a-z0-9]{2,5}$/i, `.${ext}`) : `${path}.${ext}`);
+const settings = (): Promise<Settings> => api.settings().catch((): Settings => ({}));
+const setAttr = (node: Element, name: string, value: string): void => { if (node.getAttribute(name) !== value) node.setAttribute(name, value); };
+const holdFocus = (d: Dialog): void => {
+  const a = document.activeElement;
+  if (!d.scrim.contains(a) || a instanceof HTMLButtonElement) q<HTMLElement>(d.scrim, '.fs-dialog').focus();
+};
+
+function bytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1048576) return `${Math.round(n / 1024)} KB`;
+  return `${(n / 1048576).toFixed(n < 10485760 ? 1 : 0)} MB`;
+}
+
+function ago(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '';
+  const s = (Date.now() - t) / 1000;
+  if (s < 45) return 'just now';
+  if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  if (s < 172800) return 'yesterday';
+  if (s < 604800) return `${Math.round(s / 86400)} days ago`;
+  const d = new Date(t);
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+}
+
+function download(url: string): void {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  a.rel = 'noopener';
+  a.hidden = true;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+    return ok;
+  }
+}
+
+function actionToast(text: string, label: string, run: () => void): void {
+  const root = document.getElementById('toast-root');
+  if (!root) { toast(text); return; }
+  const node = el('<div class="fs-toast fs-dlg-toast" role="status"><span class="fs-dlg-toast-text"></span><button class="fs-dlg-toast-btn" type="button"></button></div>');
+  setText(q(node, '.fs-dlg-toast-text'), text);
+  const b = q<HTMLButtonElement>(node, 'button');
+  setText(b, label);
+  b.addEventListener('click', () => { run(); node.remove(); });
+  root.appendChild(node);
+  while (root.children.length > 4) root.firstElementChild?.remove();
+  window.setTimeout(() => node.remove(), 9000);
+}
+
+const savedToast = (verb: string, path: string): void => actionToast(`${verb} ${path}`, 'Copy path', () => void copyText(path).then((ok) => toast(ok ? 'Path copied' : 'Could not copy the path', ok ? 'info' : 'error')));
+
+let capsP: Promise<Settings> | null = null;
+function caps(): Promise<Settings> {
+  capsP ??= api.capabilities().catch((): Settings => { capsP = null; return {}; });
+  return capsP;
+}
+
+async function exportPath(title: string, ext: string): Promise<string> {
+  const c = await caps();
+  const dir = str(c.dataDir) || '~/Formsld';
+  const sep = dir.includes('\\') && !dir.includes('/') ? '\\' : '/';
+  return `${dir.replace(/[\\/]+$/, '')}${sep}Exports${sep}${safeName(title)}.${ext}`;
+}
+
+let catalogP: Promise<Catalog> | null = null;
+function catalog(fresh = false): Promise<Catalog> {
+  if (!fresh && catalogP) return catalogP;
+  const p = api.templates();
+  catalogP = p;
+  p.catch(() => { if (catalogP === p) catalogP = null; });
+  return p;
+}
+
+function segSet(seg: HTMLElement, v: string): void {
+  for (const b of Array.from(seg.querySelectorAll<HTMLElement>('button[data-v]'))) {
+    setClass(b, 'is-on', b.dataset.v === v);
+    setAttr(b, 'aria-pressed', String(b.dataset.v === v));
+  }
+}
+
+function segOn(seg: HTMLElement, fn: (v: string) => void): void {
+  seg.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('button[data-v]');
+    if (!b?.dataset.v || (b as HTMLButtonElement).disabled) return;
+    segSet(seg, b.dataset.v);
+    fn(b.dataset.v);
+  });
+}
+
+function flashCopied(btn: HTMLElement, ok: boolean): void {
+  const label = btn.querySelector('.fs-dlg-copy-label');
+  if (!ok) { toast('Could not copy. Select the text and copy it yourself.', 'error'); return; }
+  setText(label, 'Copied');
+  setClass(btn, 'is-done', true);
+  window.clearTimeout(Number(btn.dataset.timer || 0));
+  btn.dataset.timer = String(window.setTimeout(() => { setText(label, 'Copy'); setClass(btn, 'is-done', false); }, 1600));
+}
+
+const copyBtn = (cls = 'fs-btn-ghost'): string => `<button class="fs-btn fs-btn-sm ${cls} fs-dlg-copy" type="button" data-copy>${icon('duplicate', 14)}<span class="fs-dlg-copy-label">Copy</span></button>`;
+
+function wireCopies(root: HTMLElement): void {
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-copy]');
+    const pre = b?.closest('.fs-dlg-code')?.querySelector('.fs-dlg-code-text');
+    if (b && pre) void copyText(pre.textContent ?? '').then((ok) => flashCopied(b, ok));
+  });
+}
+
+class StatusLine {
+  readonly node = el(`<div class="fs-dlg-status" role="status" aria-live="polite"><span class="fs-dlg-spin">${icon('loading', 14)}</span><span class="fs-dlg-status-text"></span></div>`);
+  private readonly label = q(this.node, '.fs-dlg-status-text');
+  private gen = 0;
+  private shown = false;
+  private text = '';
+  private stop: Disposer | null = null;
+
+  busy(text: string): void {
+    this.reset();
+    const g = this.gen;
+    this.text = text;
+    this.stop = delayedIndicator(() => { if (g !== this.gen) return; this.shown = true; this.paint(this.text, 'busy'); }, () => { if (g !== this.gen) return; this.shown = false; this.paint('', ''); });
+  }
+  stage(text: string): void { this.text = text; if (this.shown) setText(this.label, text); }
+  done(): void { this.stop?.(); this.stop = null; }
+  error(text: string): void { this.reset(); this.paint(text, 'error'); }
+  reset(): void { this.done(); this.gen += 1; this.shown = false; this.paint('', ''); }
+  private paint(text: string, kind: '' | 'busy' | 'error'): void {
+    setText(this.label, text);
+    setClass(this.node, 'is-busy', kind === 'busy');
+    setClass(this.node, 'is-error', kind === 'error');
+    setAttr(this.node, 'role', kind === 'error' ? 'alert' : 'status');
+  }
+}
+
+class TemplateGrid {
+  readonly root: HTMLElement;
+  private readonly scroll: HTMLElement;
+  private readonly chips: HTMLElement;
+  private readonly grid: HTMLElement;
+  private readonly empty: HTMLElement;
+  private readonly search: HTMLInputElement;
+  private items: TemplateSummary[] = [];
+  private cats: string[] = ['All'];
+  private cat = 'All';
+  private query = '';
+  selected = '';
+  onPick: ((t: TemplateSummary) => void) | null = null;
+  onChoose: ((t: TemplateSummary) => void) | null = null;
+  private readonly io: IntersectionObserver;
+  private readonly ro: ResizeObserver;
+  private readonly views = new WeakMap<Element, { view: SlideView; deckW: number; w: number }>();
+
+  constructor(private readonly compact: boolean) {
+    this.root = el(`<div class="fs-tplg${compact ? ' is-compact' : ''}"><div class="fs-tplg-bar"><div class="fs-tplg-chips" role="group" aria-label="Template categories"></div><label class="fs-search fs-tplg-search">${icon('search', 14)}<input type="search" placeholder="Search" aria-label="Search templates" spellcheck="false"></label></div><div class="fs-tplg-scroll"><div class="fs-tplg-grid" role="listbox" aria-label="Templates"></div><div class="fs-tplg-empty fs-note" hidden>No template matches that search.</div></div></div>`);
+    this.scroll = q(this.root, '.fs-tplg-scroll');
+    this.chips = q(this.root, '.fs-tplg-chips');
+    this.grid = q(this.root, '.fs-tplg-grid');
+    this.empty = q(this.root, '.fs-tplg-empty');
+    this.search = q<HTMLInputElement>(this.root, 'input');
+    this.io = new IntersectionObserver((entries) => {
+      for (const en of entries) if (en.isIntersecting) this.mount(en.target as HTMLElement);
+    }, { root: this.scroll, rootMargin: '240px 0px' });
+    this.ro = new ResizeObserver((entries) => {
+      for (const en of entries) {
+        const v = this.views.get(en.target);
+        const w = en.contentRect.width;
+        if (v && w > 0 && Math.abs(w - v.w) > 0.5) { v.w = w; v.view.setScale(w / v.deckW); }
+      }
+    });
+    this.root.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const chip = t.closest<HTMLElement>('[data-cat]');
+      if (chip?.dataset.cat) { this.cat = chip.dataset.cat; this.filter(); return; }
+      const card = t.closest<HTMLElement>('[data-tid]');
+      if (card?.dataset.tid) this.pick(card.dataset.tid);
+    });
+    this.grid.addEventListener('dblclick', (e) => {
+      const tpl = this.get((e.target as HTMLElement).closest<HTMLElement>('[data-tid]')?.dataset.tid ?? '');
+      if (tpl) this.onChoose?.(tpl);
+    });
+    this.search.addEventListener('input', () => { this.query = this.search.value.trim().toLowerCase(); this.filter(); });
+  }
+
+  get(id: string): TemplateSummary | undefined { return this.items.find((t) => t.id === id); }
+  get current(): TemplateSummary | undefined { return this.get(this.selected); }
+
+  async load(prefer: Array<string | undefined>, fresh = false): Promise<void> {
+    const c = await catalog(fresh);
+    this.items = c.templates;
+    this.cats = ['All', ...c.categories];
+    this.selected = [...prefer, c.default].find((id): id is string => !!id && this.items.some((t) => t.id === id)) ?? this.items[0]?.id ?? '';
+    patchList(this.chips, this.cats, {
+      key: (c2) => c2,
+      create: (c2) => { const n = el('<button class="fs-chip" type="button"></button>'); n.dataset.cat = c2; setText(n, c2); return n; },
+      update: () => undefined,
+    });
+    patchList(this.grid, this.items, { key: (t) => t.id, create: (t) => this.card(t), update: (n, t) => this.fill(n, t) });
+    this.filter();
+    this.mark();
+  }
+
+  resetFilter(): void {
+    this.cat = 'All';
+    this.query = '';
+    this.search.value = '';
+    this.scroll.scrollTop = 0;
+    this.filter();
+  }
+
+  pick(id: string): void {
+    const t = this.get(id);
+    if (!t) return;
+    this.selected = id;
+    this.mark();
+    this.onPick?.(t);
+  }
+
+  reveal(): void {
+    const card = this.cardFor(this.selected);
+    if (!card || card.hidden) return;
+    const s = this.scroll, top = card.offsetTop, bottom = top + card.offsetHeight;
+    if (top < s.scrollTop || bottom > s.scrollTop + s.clientHeight) s.scrollTop = Math.max(0, top - 8);
+  }
+
+  private cardFor(id: string): HTMLElement | null {
+    return this.grid.querySelector<HTMLElement>(`[data-tid="${CSS.escape(id)}"]`);
+  }
+
+  private card(t: TemplateSummary): HTMLElement {
+    const n = el(`<button class="fs-tplg-card" type="button" role="option" aria-selected="false"><span class="fs-tplg-prev"></span><span class="fs-tplg-name"></span>${this.compact ? '' : '<span class="fs-tplg-meta"></span>'}</button>`);
+    n.dataset.tid = t.id;
+    const prev = q(n, '.fs-tplg-prev');
+    prev.dataset.tpl = t.id;
+    this.fill(n, t);
+    this.io.observe(prev);
+    return n;
+  }
+
+  private fill(n: HTMLElement, t: TemplateSummary): void {
+    setText(n.querySelector('.fs-tplg-name'), t.name);
+    setText(n.querySelector('.fs-tplg-meta'), `${t.category} · ${t.fonts.major}${t.fonts.minor !== t.fonts.major ? ` + ${t.fonts.minor}` : ''}`);
+    if (n.title !== t.description) n.title = t.description;
+  }
+
+  private mount(host: HTMLElement): void {
+    const id = host.dataset.tpl;
+    if (!id) return;
+    this.io.unobserve(host);
+    void templatePreview(id, 'title').then((deck) => {
+      if (host.querySelector('.fs-slide') || !host.isConnected) return;
+      const w = host.clientWidth;
+      if (!w) { this.io.observe(host); return; }
+      const view = mountDeckPreview(host, deck, 0, w);
+      if (view) { this.views.set(host, { view, deckW: deck.size.w, w }); this.ro.observe(host); }
+    }).catch(() => setClass(host, 'is-failed', true));
+  }
+
+  private filter(): void {
+    const qy = this.query;
+    let shown = 0;
+    for (const n of Array.from(this.grid.children) as HTMLElement[]) {
+      const t = this.get(n.dataset.tid ?? '');
+      const ok = !!t && (this.cat === 'All' || t.category === this.cat) && (!qy || `${t.name} ${t.category} ${t.tags.join(' ')} ${t.description}`.toLowerCase().includes(qy));
+      setHidden(n, !ok);
+      if (ok) shown += 1;
+    }
+    for (const c of Array.from(this.chips.children) as HTMLElement[]) setClass(c, 'is-active', c.dataset.cat === this.cat);
+    setHidden(this.empty, shown > 0 || !this.items.length);
+  }
+
+  private mark(): void {
+    for (const n of Array.from(this.grid.children) as HTMLElement[]) {
+      setClass(n, 'is-selected', n.dataset.tid === this.selected);
+      setAttr(n, 'aria-selected', String(n.dataset.tid === this.selected));
+    }
+  }
+}
+
+const describeTemplate = (t: TemplateSummary | undefined): string => (t ? `${t.name} · ${t.category} · headings in ${t.fonts.major}${t.fonts.minor !== t.fonts.major ? `, body in ${t.fonts.minor}` : ''}` : '');
+
+interface IntakeHooks { openDeck: (id: string) => void; agents: () => void }
+interface IntakeResponse { intake: string; digest?: string; sources?: Array<{ id: string; name: string; kind: string; chars: number; pages?: number }>; assets?: Array<{ id: string; name: string; mime: string }>; brief?: string }
+interface DraftResponse { id: string; title?: string; slides: number | unknown[]; warnings?: string[]; script?: string }
+
+const MATERIAL_ACCEPT = '.md,.markdown,.txt,.text,.pdf,.docx,.pptx,.csv,.tsv,.xlsx,.json,.vtt,.srt,.png,.jpg,.jpeg,.gif,.webp,.svg';
+const fileKey = (f: File): string => `${f.name}:${f.size}:${f.lastModified}`;
+
+function fileIcon(f: File): string {
+  const ext = f.name.toLowerCase().split('.').pop() ?? '';
+  if (ext === 'pdf') return 'filePdf';
+  if (['pptx', 'ppt', 'potx', 'key'].includes(ext)) return 'filePptx';
+  if (f.type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return 'fileImage';
+  return 'fileText';
+}
+
+async function postForm<T>(url: string, fd: FormData): Promise<T> {
+  const res = await fetch(url, { method: 'POST', body: fd });
+  if (!res.ok) {
+    let detail = res.statusText || `HTTP ${res.status}`;
+    try { const b = await res.json() as { detail?: unknown }; if (typeof b.detail === 'string') detail = b.detail; } catch { detail = res.statusText || `HTTP ${res.status}`; }
+    throw new Error(detail);
+  }
+  return res.json() as Promise<T>;
+}
+
+function intakePrompt(id: string, tid: string, brief: string, slides: string, size: string): string {
+  const count = slides === 'auto' ? '' : `, about ${slides} slides`;
+  return [
+    `Use the formsld MCP server. Build a deck from intake ${id} with template ${tid || 'the default'}${count}, size ${size}.`,
+    `Brief: ${brief || 'work out the audience, goal and tone from the material.'}`,
+    'Start with get_context, then draft_spec, refine the script, build_deck, then render_slides and lint_deck and fix issues.',
+  ].join('\n');
+}
+
+class IntakeDialog extends Dialog {
+  hooks: IntakeHooks = { openDeck: () => undefined, agents: () => undefined };
+  private files: File[] = [];
+  private readonly form: HTMLElement;
+  private readonly handoff: HTMLElement;
+  private readonly drop: HTMLElement;
+  private readonly dropTitle: HTMLElement;
+  private readonly list: HTMLElement;
+  private readonly picker: HTMLInputElement;
+  private readonly notes: HTMLTextAreaElement;
+  private readonly brief: HTMLTextAreaElement;
+  private readonly count: HTMLSelectElement;
+  private readonly size: HTMLSelectElement;
+  private readonly picked: HTMLElement;
+  private readonly prompt: HTMLElement;
+  private readonly handoffSub: HTMLElement;
+  private readonly grid = new TemplateGrid(true);
+  private readonly status = new StatusLine();
+  private readonly agentBtn: HTMLButtonElement;
+  private readonly draftBtn: HTMLButtonElement;
+  private readonly backBtn: HTMLButtonElement;
+  private readonly doneBtn: HTMLButtonElement;
+  private uploaded: { key: string; id: string } | null = null;
+  private running = false;
+
+  constructor() {
+    super('New deck from files', 860);
+    q(this.scrim, '.fs-dialog').classList.add('fs-intake-dialog');
+    const sizes = ['16:9', '4:3', 'gslides'].map((k) => `<option value="${k}">${escapeHtml(SLIDE_SIZES[k]?.label ?? k)}</option>`).join('');
+    this.form = el(`<div class="fs-intake">
+<div class="fs-intake-col">
+<div class="fs-intake-drop" role="button" tabindex="0" aria-label="Add files"><span class="fs-intake-drop-icon">${icon('upload', 20)}</span><span class="fs-intake-drop-text"><span class="fs-intake-drop-title">Drop files here or click to choose</span><span class="fs-intake-drop-sub">Markdown, PDF, Word, PowerPoint, text, CSV, Excel, pictures and GIFs</span></span></div>
+<div class="fs-intake-files" hidden></div>
+<label class="fs-field is-stack"><span>Notes or meeting transcript</span><textarea class="fs-input fs-intake-notes" rows="5" spellcheck="true" placeholder="Paste notes, a transcript or an outline. A slide script with --- between slides is used as written."></textarea></label>
+<label class="fs-field is-stack"><span>What should this deck do?</span><textarea class="fs-input fs-intake-brief" rows="3" spellcheck="true" placeholder="Audience, goal, tone and length. For example: a ten minute Q3 update for the leadership team, plain and confident."></textarea></label>
+</div>
+<div class="fs-intake-col">
+<div class="fs-intake-label">Template</div>
+<div class="fs-intake-grid"></div>
+<div class="fs-intake-picked fs-note"></div>
+<div class="fs-intake-opts">
+<div class="fs-field is-stack"><span>Slides</span><select class="fs-intake-count" aria-label="Number of slides"><option value="auto">Auto</option><option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="16">16</option><option value="20">20</option></select></div>
+<div class="fs-field is-stack"><span>Size</span><select class="fs-intake-size" aria-label="Slide size">${sizes}</select></div>
+</div>
+</div>
+</div>`);
+    this.handoff = el(`<div class="fs-intake-handoff" hidden>
+<div class="fs-intake-handoff-head"><span class="fs-intake-handoff-icon">${icon('agent', 20)}</span><div><div class="fs-intake-handoff-title">Your material is ready for an agent</div><div class="fs-note fs-intake-handoff-sub"></div></div></div>
+<div class="fs-dlg-code"><div class="fs-dlg-code-head"><span class="fs-dlg-code-title">Prompt</span>${copyBtn('')}</div><pre class="fs-dlg-code-text fs-intake-prompt"></pre></div>
+<ol class="fs-dlg-steps"><li>Open Claude Code, Codex or Cursor with the formsld MCP server connected.</li><li>Paste the prompt. The agent reads your material, writes a slide script and builds the deck in your template.</li><li>Watch the slides land here as it works. Edit &gt; Undo Agent Turn takes back a whole turn.</li></ol>
+<button class="fs-dlg-link" type="button" data-agents>${icon('link2', 14)}<span>Connect an agent to formsld</span></button>
+</div>`);
+    this.body.append(this.form, this.handoff);
+    q(this.form, '.fs-intake-grid').appendChild(this.grid.root);
+    this.drop = q(this.form, '.fs-intake-drop');
+    this.dropTitle = q(this.form, '.fs-intake-drop-title');
+    this.list = q(this.form, '.fs-intake-files');
+    this.notes = q<HTMLTextAreaElement>(this.form, '.fs-intake-notes');
+    this.brief = q<HTMLTextAreaElement>(this.form, '.fs-intake-brief');
+    this.count = q<HTMLSelectElement>(this.form, '.fs-intake-count');
+    this.size = q<HTMLSelectElement>(this.form, '.fs-intake-size');
+    this.picked = q(this.form, '.fs-intake-picked');
+    this.prompt = q(this.handoff, '.fs-intake-prompt');
+    this.handoffSub = q(this.handoff, '.fs-intake-handoff-sub');
+    this.picker = document.createElement('input');
+    this.picker.type = 'file';
+    this.picker.multiple = true;
+    this.picker.accept = MATERIAL_ACCEPT;
+    this.picker.hidden = true;
+    this.picker.addEventListener('change', () => { this.add(Array.from(this.picker.files ?? [])); this.picker.value = ''; });
+    this.form.appendChild(this.picker);
+    this.foot.appendChild(this.status.node);
+    this.backBtn = this.button('Back', 'ghost', () => this.panel('form'));
+    this.agentBtn = this.button('Hand to an agent', '', () => void this.toAgent());
+    this.draftBtn = this.button('Draft the deck', 'primary', () => void this.draft());
+    this.doneBtn = this.button('Done', 'primary', () => this.close());
+    this.grid.onPick = () => setText(this.picked, describeTemplate(this.grid.current));
+    this.wire();
+  }
+
+  private wire(): void {
+    const choose = (): void => { if (!this.running) this.picker.click(); };
+    this.drop.addEventListener('click', choose);
+    this.drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); } });
+    this.list.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('[data-remove]');
+      const key = b?.closest<HTMLElement>('[data-key]')?.dataset.key;
+      if (!key || this.running) return;
+      this.files = this.files.filter((f) => fileKey(f) !== key);
+      this.renderFiles();
+    });
+    this.scrim.addEventListener('dragover', (e) => {
+      if (!e.dataTransfer?.types.includes('Files')) return;
+      e.preventDefault();
+      setClass(this.drop, 'is-over', !this.form.hidden && !this.running);
+    });
+    this.scrim.addEventListener('dragleave', (e) => { if (!e.relatedTarget || !this.scrim.contains(e.relatedTarget as Node)) setClass(this.drop, 'is-over', false); });
+    this.scrim.addEventListener('drop', (e) => {
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      if (!files.length) return;
+      e.preventDefault();
+      setClass(this.drop, 'is-over', false);
+      if (!this.form.hidden && !this.running) this.add(files);
+    });
+    this.scrim.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !this.form.hidden) { e.preventDefault(); void this.draft(); } });
+    wireCopies(this.handoff);
+    q(this.handoff, '[data-agents]').addEventListener('click', () => { this.close(); this.hooks.agents(); });
+  }
+
+  show(files: File[], template: string | undefined, hooks: IntakeHooks): void {
+    this.hooks = hooks;
+    if (this.isOpen) {
+      this.add(files);
+      if (template) this.grid.pick(template);
+      return;
+    }
+    if (files.length) this.files = [];
+    this.add(files);
+    this.panel('form');
+    this.status.reset();
+    this.grid.resetFilter();
+    this.open(this.files.length ? this.brief : this.drop);
+    void settings().then((s) => this.grid.load([template, str(s.defaultTemplate), str(s.lastTemplate)])).then(() => {
+      setText(this.picked, describeTemplate(this.grid.current));
+      this.grid.reveal();
+    }).catch((e) => this.status.error(`Could not load the templates: ${errText(e)}`));
+  }
+
+  private add(files: File[]): void {
+    const have = new Set(this.files.map(fileKey));
+    for (const f of files) if (!have.has(fileKey(f))) { this.files.push(f); have.add(fileKey(f)); }
+    this.renderFiles();
+    if (files.length && this.status.node.classList.contains('is-error')) this.status.reset();
+  }
+
+  private renderFiles(): void {
+    patchList(this.list, this.files, {
+      key: fileKey,
+      create: (f) => {
+        const n = el(`<div class="fs-intake-file"><span class="fs-intake-file-icon">${icon(fileIcon(f), 16)}</span><span class="fs-intake-file-name"></span><span class="fs-intake-file-size"></span><button class="fs-icon-btn is-sm" type="button" data-remove aria-label="Remove" title="Remove">${icon('close', 12)}</button></div>`);
+        setText(q(n, '.fs-intake-file-name'), f.name);
+        setText(q(n, '.fs-intake-file-size'), bytes(f.size));
+        n.title = f.name;
+        return n;
+      },
+      update: () => undefined,
+    });
+    setHidden(this.list, !this.files.length);
+    setText(this.dropTitle, this.files.length ? `${plural(this.files.length, 'file')} · drop or click to add more` : 'Drop files here or click to choose');
+  }
+
+  private panel(p: 'form' | 'handoff'): void {
+    setHidden(this.form, p !== 'form');
+    setHidden(this.handoff, p !== 'handoff');
+    setHidden(this.agentBtn, p !== 'form');
+    setHidden(this.draftBtn, p !== 'form');
+    setHidden(this.backBtn, p !== 'handoff');
+    setHidden(this.doneBtn, p !== 'handoff');
+    this.setTitle(p === 'form' ? 'New deck from files' : 'Hand to an agent');
+    if (p === 'form') this.status.reset();
+  }
+
+  private ready(): boolean {
+    if (this.files.length || this.notes.value.trim() || this.brief.value.trim()) return true;
+    this.status.error('Add a file, paste notes or describe the deck first.');
+    this.drop.focus();
+    return false;
+  }
+
+  private setRunning(on: boolean): void {
+    if (on) holdFocus(this);
+    this.running = on;
+    setDisabled(this.draftBtn, on);
+    setDisabled(this.agentBtn, on);
+    setClass(this.form, 'is-running', on);
+  }
+
+  private async upload(): Promise<string> {
+    const notes = this.notes.value.trim(), brief = this.brief.value.trim();
+    const key = [...this.files.map(fileKey), notes, brief].join('\n\u0001');
+    if (this.uploaded?.key === key) return this.uploaded.id;
+    const fd = new FormData();
+    for (const f of this.files) fd.append('files', f, f.name);
+    if (notes) fd.append('notes', notes);
+    if (brief) fd.append('brief', brief);
+    const r = await postForm<IntakeResponse>('/api/intake', fd);
+    this.uploaded = { key, id: r.intake };
+    return r.intake;
+  }
+
+  private readingText(): string {
+    const n = this.files.length;
+    return n ? `Reading ${plural(n, 'file')}` : 'Reading your notes';
+  }
+
+  private async draft(): Promise<void> {
+    if (this.running || !this.ready()) return;
+    const tpl = this.grid.selected;
+    const count = this.count.value === 'auto' ? undefined : Number(this.count.value);
+    this.setRunning(true);
+    this.status.busy(this.readingText());
+    try {
+      const id = await this.upload();
+      this.status.stage(count ? `Drafting ${count} slides` : 'Drafting the slides');
+      const r = await api.post<DraftResponse>(`/api/intake/${encodeURIComponent(id)}/draft`, { template: tpl || undefined, brief: this.brief.value.trim() || undefined, slides: count, size: this.size.value });
+      this.status.done();
+      if (tpl) void api.setSettings({ lastTemplate: tpl }).catch(() => undefined);
+      const slides = typeof r.slides === 'number' ? r.slides : Array.isArray(r.slides) ? r.slides.length : 0;
+      const warn = r.warnings?.length ?? 0;
+      this.files = [];
+      this.notes.value = '';
+      this.brief.value = '';
+      this.uploaded = null;
+      this.renderFiles();
+      this.close();
+      this.hooks.openDeck(r.id);
+      toast(`Drafted ${plural(slides, 'slide')}${warn ? ` · ${plural(warn, 'warning')} to check` : ''}`);
+    } catch (e) {
+      this.status.error(`Could not draft the deck: ${errText(e)}`);
+      toast(`Could not draft the deck: ${errText(e)}`, 'error');
+    } finally {
+      this.setRunning(false);
+    }
+  }
+
+  private async toAgent(): Promise<void> {
+    if (this.running || !this.ready()) return;
+    this.setRunning(true);
+    this.status.busy(this.files.length ? `Uploading ${plural(this.files.length, 'file')}` : 'Uploading your notes');
+    try {
+      const id = await this.upload();
+      this.status.done();
+      const tpl = this.grid.current;
+      const brief = this.brief.value.trim();
+      setText(this.prompt, intakePrompt(id, tpl?.id ?? '', brief, this.count.value, this.size.value));
+      const parts = [this.files.length ? plural(this.files.length, 'file') : '', this.notes.value.trim() ? 'notes' : '', brief ? 'a brief' : ''].filter(Boolean);
+      setText(this.handoffSub, `Intake ${id} holds ${parts.join(', ')}. Template: ${tpl?.name ?? 'default'}.`);
+      this.panel('handoff');
+      q<HTMLElement>(this.handoff, '[data-copy]').focus();
+    } catch (e) {
+      this.status.error(`Could not upload the material: ${errText(e)}`);
+      toast(`Could not upload the material: ${errText(e)}`, 'error');
+    } finally {
+      this.setRunning(false);
+    }
+  }
+}
+
+let intakeDlg: IntakeDialog | null = null;
+export function intakeDialog(files: File[], template: string | undefined, hooks: { openDeck: (id: string) => void; agents: () => void }): void {
+  intakeDlg ??= new IntakeDialog();
+  intakeDlg.show(files, template, hooks);
+}
+
+class SaveAsDialog extends Dialog {
+  private ed: Editor | null = null;
+  private mode: 'file' | 'library' = 'file';
+  private fmt: 'fsld' | 'pptx' = 'fsld';
+  private touched = false;
+  private running = false;
+  private readonly choices: HTMLElement;
+  private readonly fileOpts: HTMLElement;
+  private readonly fmtSeg: HTMLElement;
+  private readonly path: HTMLInputElement;
+  private readonly status = new StatusLine();
+  private readonly go: HTMLButtonElement;
+
+  constructor() {
+    super('Save a copy', 540);
+    this.choices = el(`<div class="fs-dlg-choices" role="radiogroup" aria-label="Where to save">
+<button class="fs-dlg-choice" type="button" role="radio" data-mode="file"><span class="fs-dlg-choice-icon">${icon('save', 18)}</span><span class="fs-dlg-choice-text"><span class="fs-dlg-choice-title">A file on this computer</span><span class="fs-dlg-choice-sub">.fsld keeps everything for formsld. .pptx opens in PowerPoint, Keynote and Google Slides.</span></span></button>
+<button class="fs-dlg-choice" type="button" role="radio" data-mode="library"><span class="fs-dlg-choice-icon">${icon('duplicate', 18)}</span><span class="fs-dlg-choice-text"><span class="fs-dlg-choice-title">A copy in your library</span><span class="fs-dlg-choice-sub">A separate deck you can change without touching this one.</span></span></button>
+</div>`);
+    this.fileOpts = el(`<div class="fs-dlg-stack">
+<div class="fs-field"><span>Format</span><div class="fs-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fsld">formsld (.fsld)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
+<label class="fs-field fs-dlg-path"><span>Save to</span><input class="fs-input" type="text" spellcheck="false" aria-label="File path"></label>
+<p class="fs-note fs-dlg-browser-note">Your browser saves the file to its downloads folder.</p>
+</div>`);
+    this.body.append(this.choices, this.fileOpts);
+    this.fmtSeg = q(this.fileOpts, '.fs-seg');
+    this.path = q<HTMLInputElement>(this.fileOpts, 'input');
+    this.foot.appendChild(this.status.node);
+    this.button('Cancel', 'ghost', () => this.close());
+    this.go = this.button('Save', 'primary', () => void this.run());
+    this.choices.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-mode]');
+      if (b?.dataset.mode === 'file' || b?.dataset.mode === 'library') { this.mode = b.dataset.mode; this.sync(); }
+    });
+    segOn(this.fmtSeg, (v) => {
+      this.fmt = v === 'pptx' ? 'pptx' : 'fsld';
+      if (this.path.value) this.path.value = withExt(this.path.value, this.fmt);
+      this.sync();
+    });
+    this.path.addEventListener('input', () => { this.touched = true; });
+    this.path.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
+    const browser = !isTauri();
+    setHidden(q(this.fileOpts, '.fs-dlg-path'), browser);
+    setHidden(q(this.fileOpts, '.fs-dlg-browser-note'), !browser);
+  }
+
+  show(ed: Editor): void {
+    this.ed = ed;
+    this.touched = false;
+    this.status.reset();
+    const deck = ed.doc.deck;
+    const linked = deck.meta.file as { path?: string; format?: string } | undefined;
+    this.fmt = linked?.format === 'pptx' ? 'pptx' : 'fsld';
+    this.path.value = '';
+    if (isTauri()) void exportPath(deck.title, this.fmt).then((p) => { if (this.ed === ed && !this.touched) this.path.value = withExt(p, this.fmt); });
+    this.sync();
+    this.open(q<HTMLElement>(this.choices, `[data-mode="${this.mode}"]`));
+  }
+
+  private sync(): void {
+    for (const b of Array.from(this.choices.querySelectorAll<HTMLElement>('[data-mode]'))) {
+      setClass(b, 'is-on', b.dataset.mode === this.mode);
+      setAttr(b, 'aria-checked', String(b.dataset.mode === this.mode));
+    }
+    segSet(this.fmtSeg, this.fmt);
+    setHidden(this.fileOpts, this.mode !== 'file');
+    setText(this.go, this.mode === 'library' ? 'Save copy' : isTauri() ? 'Save' : 'Download');
+  }
+
+  private async run(): Promise<void> {
+    const ed = this.ed;
+    if (!ed || this.running) return;
+    const deck = ed.doc.deck;
+    const tauri = isTauri();
+    const path = this.path.value.trim();
+    if (this.mode === 'file' && tauri && !path) { this.status.error('Type where to save the file.'); this.path.focus(); return; }
+    holdFocus(this);
+    this.running = true;
+    setDisabled(this.go, true);
+    try {
+      if (this.mode === 'library') {
+        this.status.busy('Making a copy');
+        const d = await api.duplicate(deck.id);
+        this.status.done();
+        this.close();
+        toast(`Saved a copy in your library: ${d.title}`);
+      } else if (tauri) {
+        this.status.busy(this.fmt === 'pptx' ? 'Writing the PowerPoint file' : 'Writing the file');
+        const r = await api.save(deck.id, { path, format: this.fmt });
+        this.status.done();
+        this.close();
+        savedToast('Saved to', r.saved);
+      } else {
+        download(api.downloadUrl(deck.id, this.fmt));
+        this.close();
+        toast(`Downloading ${safeName(deck.title)}.${this.fmt}`);
+      }
+    } catch (e) {
+      this.status.error(`Could not save: ${errText(e)}`);
+      toast(`Could not save: ${errText(e)}`, 'error');
+    } finally {
+      this.running = false;
+      setDisabled(this.go, false);
+    }
+  }
+}
+
+let saveAsDlg: SaveAsDialog | null = null;
+export async function saveDialog(ed: Editor, saveAs: boolean): Promise<void> {
+  if (saveAs) {
+    saveAsDlg ??= new SaveAsDialog();
+    saveAsDlg.show(ed);
+    return;
+  }
+  try {
+    const r = await api.save(ed.doc.id);
+    if (r.saved === 'library') toast('Saved to your library');
+    else savedToast('Saved to your library and', r.saved);
+  } catch (e) {
+    toast(`Could not save: ${errText(e)}`, 'error');
+  }
+}
+
+type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fsld';
+const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }> = {
+  pptx: { label: 'PowerPoint', ext: 'pptx', sub: 'Editable slides for PowerPoint, Keynote and Google Slides.' },
+  pdf: { label: 'PDF', ext: 'pdf', sub: 'One page per slide with searchable text and an outline of slide titles.' },
+  png: { label: 'PNG', ext: 'png', sub: 'Sharp pictures of your slides. Several slides arrive together in a .zip.' },
+  jpeg: { label: 'JPEG', ext: 'jpg', sub: 'Smaller pictures of your slides. Several slides arrive together in a .zip.' },
+  potx: { label: 'Template', ext: 'potx', sub: 'A PowerPoint template with this deck’s masters, layouts, colours and fonts.' },
+  fsld: { label: 'formsld', ext: 'fsld', sub: 'One file with every slide, picture and the template, for formsld on any computer.' },
+};
+const isRaster = (f: ExportFormat): f is 'pdf' | 'png' | 'jpeg' => f === 'pdf' || f === 'png' || f === 'jpeg';
+
+function parseRange(text: string, n: number): number[] | null {
+  const parts = text.replace(/\s*-\s*/g, '-').split(/[,;\s]+/).filter(Boolean);
+  if (!parts.length) return null;
+  const out = new Set<number>();
+  for (const p of parts) {
+    const m = /^(\d*)-(\d*)$/.exec(p);
+    if (m) {
+      const a = m[1] ? Number(m[1]) : 1, b = m[2] ? Number(m[2]) : n;
+      if (!m[1] && !m[2]) return null;
+      for (let i = Math.max(1, a); i <= Math.min(n, b); i++) out.add(i - 1);
+    } else if (/^\d+$/.test(p)) {
+      const i = Number(p);
+      if (i >= 1 && i <= n) out.add(i - 1);
+    } else return null;
+  }
+  return [...out].sort((x, y) => x - y);
+}
+
+class ExportDialog extends Dialog {
+  private ed: Editor | null = null;
+  private bridge: AgentBridge | null = null;
+  private fmt: ExportFormat = 'pptx';
+  private range = 'all';
+  private which = 'all';
+  private scale = 2;
+  private touched = false;
+  private running = false;
+  private readonly formats: HTMLElement;
+  private readonly sub: HTMLElement;
+  private readonly groups: Record<'office' | 'fsld' | 'pdf' | 'raster', HTMLElement>;
+  private readonly custom: HTMLInputElement;
+  private readonly quality: HTMLSelectElement;
+  private readonly hidden: HTMLInputElement;
+  private readonly px: HTMLElement;
+  private readonly fonts: HTMLElement;
+  private readonly pathRow: HTMLElement;
+  private readonly path: HTMLInputElement;
+  private readonly status = new StatusLine();
+  private readonly go: HTMLButtonElement;
+
+  constructor() {
+    super('Export', 560);
+    q(this.scrim, '.fs-dialog').classList.add('fs-dlg-export');
+    const ids = Object.keys(EXPORTS) as ExportFormat[];
+    this.formats = el(`<div class="fs-seg fs-dlg-formats" role="group" aria-label="Format">${ids.map((f) => `<button type="button" data-v="${f}">${EXPORTS[f].label}</button>`).join('')}</div>`);
+    this.sub = el('<p class="fs-note fs-dlg-format-sub"></p>');
+    const office = el(`<div class="fs-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. Fonts are not embedded, so the computer that opens the file needs <span class="fs-dlg-fonts"></span> installed or it substitutes a similar font.</div></div>`);
+    const fsld = el(`<div class="fs-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in formsld. Agents can read it too.</div></div>`);
+    const pdf = el(`<div class="fs-dlg-stack">
+<div class="fs-field"><span>Slides</span><div class="fs-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
+<label class="fs-field fs-dlg-custom" hidden><span>Numbers</span><input class="fs-input" type="text" spellcheck="false" placeholder="For example 1-3, 5, 8-" aria-label="Slide numbers"></label>
+<div class="fs-field"><span>Quality</span><select class="fs-dlg-quality" aria-label="Quality"><option value="2">Standard</option><option value="3">High (larger file)</option></select></div>
+<div class="fs-field"><span></span><label class="fs-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label></div>
+</div>`);
+    const raster = el(`<div class="fs-dlg-stack">
+<div class="fs-field"><span>Slides</span><div class="fs-seg is-quiet" data-seg="which"><button type="button" data-v="current">Current slide</button><button type="button" data-v="all">All slides</button></div></div>
+<div class="fs-field"><span>Size</span><div class="fs-seg is-quiet" data-seg="scale"><button type="button" data-v="1">1x</button><button type="button" data-v="2">2x</button><button type="button" data-v="3">3x</button></div></div>
+<div class="fs-field"><span></span><span class="fs-note fs-dlg-px"></span></div>
+</div>`);
+    this.pathRow = el('<label class="fs-field fs-dlg-path"><span>Save to</span><input class="fs-input" type="text" spellcheck="false" aria-label="File path"></label>');
+    this.groups = { office, fsld, pdf, raster };
+    this.body.append(this.formats, this.sub, office, fsld, pdf, raster, this.pathRow);
+    this.custom = q<HTMLInputElement>(pdf, '.fs-dlg-custom input');
+    this.quality = q<HTMLSelectElement>(pdf, '.fs-dlg-quality');
+    this.hidden = q<HTMLInputElement>(pdf, '[data-f="hidden"]');
+    this.px = q(raster, '.fs-dlg-px');
+    this.fonts = q(office, '.fs-dlg-fonts');
+    this.path = q<HTMLInputElement>(this.pathRow, 'input');
+    this.foot.appendChild(this.status.node);
+    this.button('Cancel', 'ghost', () => this.close());
+    this.go = this.button('Export', 'primary', () => void this.run());
+    segOn(this.formats, (v) => { this.fmt = v as ExportFormat; if (!this.running) this.status.reset(); this.sync(); });
+    segOn(q(pdf, '[data-seg="range"]'), (v) => { this.range = v; this.sync(); if (v === 'custom') this.custom.focus(); });
+    segOn(q(raster, '[data-seg="which"]'), (v) => { this.which = v; this.sync(); });
+    segOn(q(raster, '[data-seg="scale"]'), (v) => { this.scale = Number(v); this.sync(); });
+    this.custom.addEventListener('input', () => this.status.reset());
+    this.path.addEventListener('input', () => { this.touched = true; });
+    for (const input of [this.custom, this.path]) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
+    setHidden(this.pathRow, !isTauri());
+  }
+
+  show(ed: Editor, format: string, bridge: AgentBridge): void {
+    this.ed = ed;
+    this.bridge = bridge;
+    this.fmt = format === 'jpg' ? 'jpeg' : format in EXPORTS ? format as ExportFormat : 'pptx';
+    this.range = ed.slideSel.length > 1 ? 'selected' : 'all';
+    this.touched = false;
+    this.status.reset();
+    const deck = ed.doc.deck;
+    const { major, minor } = deck.theme.fonts;
+    setText(this.fonts, major === minor ? major : `${major} and ${minor}`);
+    this.path.value = '';
+    if (isTauri()) void exportPath(deck.title, this.ext()).then((p) => { if (this.ed === ed && !this.touched) this.path.value = withExt(p, this.ext()); });
+    this.sync();
+    this.open(this.go);
+  }
+
+  private ext(): string {
+    const f = this.fmt;
+    if ((f === 'png' || f === 'jpeg') && this.which === 'all' && (this.ed?.doc.deck.slides.length ?? 0) > 1) return 'zip';
+    return EXPORTS[f].ext;
+  }
+
+  private sync(): void {
+    const f = this.fmt;
+    segSet(this.formats, f);
+    setText(this.sub, EXPORTS[f].sub);
+    setHidden(this.groups.office, f !== 'pptx' && f !== 'potx');
+    setHidden(this.groups.fsld, f !== 'fsld');
+    setHidden(this.groups.pdf, f !== 'pdf');
+    setHidden(this.groups.raster, f !== 'png' && f !== 'jpeg');
+    segSet(q(this.groups.pdf, '[data-seg="range"]'), this.range);
+    segSet(q(this.groups.raster, '[data-seg="which"]'), this.which);
+    segSet(q(this.groups.raster, '[data-seg="scale"]'), String(this.scale));
+    setHidden(q(this.groups.pdf, '.fs-dlg-custom'), this.range !== 'custom');
+    const size = this.ed?.doc.deck.size ?? { w: 960, h: 540 };
+    setText(this.px, `About ${Math.round(size.w * this.scale)} × ${Math.round(size.h * this.scale)} pixels per slide`);
+    if (this.path.value) this.path.value = withExt(this.path.value, this.ext());
+    setText(this.go, isTauri() || isRaster(f) ? 'Export' : 'Download');
+  }
+
+  private slideIds(ed: Editor): string[] | null {
+    const deck = ed.doc.deck;
+    const visible = (s: Slide): boolean => this.hidden.checked || !s.hidden;
+    if (this.fmt === 'png' || this.fmt === 'jpeg') return this.which === 'current' ? [ed.current].filter(Boolean) : deck.slides.filter((s) => !s.hidden).map((s) => s.id);
+    if (this.range === 'current') return [ed.current].filter(Boolean);
+    if (this.range === 'selected') { const sel = new Set(ed.slideSel.length ? ed.slideSel : [ed.current]); return deck.slides.filter((s) => sel.has(s.id)).map((s) => s.id); }
+    if (this.range === 'custom') {
+      const idx = parseRange(this.custom.value, deck.slides.length);
+      return idx ? idx.map((i) => deck.slides[i]).filter(visible).map((s) => s.id) : null;
+    }
+    return deck.slides.filter(visible).map((s) => s.id);
+  }
+
+  private async run(): Promise<void> {
+    const ed = this.ed, bridge = this.bridge;
+    if (!ed || !bridge || this.running) return;
+    const deck = ed.doc.deck;
+    const f = this.fmt;
+    const tauri = isTauri();
+    const path = tauri ? this.path.value.trim() : '';
+    if (tauri && !path) { this.status.error('Type where to save the file.'); this.path.focus(); return; }
+    let slides: string[] = [];
+    if (isRaster(f)) {
+      const ids = this.slideIds(ed);
+      if (!ids) { this.status.error('Use slide numbers like 1-3, 5 or 8-'); this.custom.focus(); return; }
+      if (!ids.length) { this.status.error('There are no slides to export with these settings.'); return; }
+      slides = ids;
+    }
+    holdFocus(this);
+    this.running = true;
+    setDisabled(this.go, true);
+    try {
+      if (isRaster(f)) {
+        this.status.busy(`Rendering ${plural(slides.length, 'slide')}`);
+        const r = await bridge.exportRaster(ed, { format: f, slides, scale: f === 'pdf' ? Number(this.quality.value) || 2 : this.scale, path: path || undefined });
+        this.status.done();
+        this.close();
+        if (tauri) savedToast('Exported to', r.path);
+        else { download(r.url); toast(`Exported ${plural(slides.length, 'slide')} as ${EXPORTS[f].label}`); }
+      } else if (tauri) {
+        this.status.busy(f === 'fsld' ? 'Packing the deck' : 'Writing the PowerPoint file');
+        const r = await api.export(deck.id, f, path);
+        this.status.done();
+        this.close();
+        savedToast('Exported to', r.path);
+      } else {
+        download(api.downloadUrl(deck.id, f));
+        this.close();
+        toast(`Downloading ${safeName(deck.title)}.${EXPORTS[f].ext}`);
+      }
+    } catch (e) {
+      this.status.error(`Export failed: ${errText(e)}`);
+      toast(`Export failed: ${errText(e)}`, 'error');
+    } finally {
+      this.running = false;
+      setDisabled(this.go, false);
+    }
+  }
+}
+
+let exportDlg: ExportDialog | null = null;
+export async function exportDialog(ed: Editor, format: string, bridge: AgentBridge): Promise<void> {
+  exportDlg ??= new ExportDialog();
+  exportDlg.show(ed, format, bridge);
+}
+
+type PrintKind = 'slides' | 'notes' | 'outline' | 'h2' | 'h3' | 'h4' | 'h6' | 'h9';
+interface PrintOpts { kind: PrintKind; paper: 'a4' | 'letter'; hidden: boolean; frame: boolean; gray: boolean }
+const PAPER = { a4: { w: 595, h: 842, label: 'A4' }, letter: { w: 612, h: 792, label: 'Letter' } };
+const HANDOUT: Record<string, { cols: number; rows: number }> = { h2: { cols: 1, rows: 2 }, h3: { cols: 1, rows: 3 }, h4: { cols: 2, rows: 2 }, h6: { cols: 2, rows: 3 }, h9: { cols: 3, rows: 3 } };
+
+function printRoot(): HTMLElement {
+  let root = document.getElementById('fs-print-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'fs-print-root';
+    root.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(root);
+  }
+  return root;
+}
+
+function pageStyle(css: string): void {
+  let s = document.getElementById('fs-print-page') as HTMLStyleElement | null;
+  if (!s) { s = document.createElement('style'); s.id = 'fs-print-page'; document.head.appendChild(s); }
+  if (s.textContent !== css) s.textContent = css;
+}
+
+function textLines(els: SlideElement[], out: Array<{ t: string; lvl: number }>, keep: (e: SlideElement) => boolean): void {
+  for (const e of els) {
+    if (e.type === 'group') { textLines(e.children, out, keep); continue; }
+    if (e.type !== 'shape' || !e.text || e.hidden || !keep(e)) continue;
+    for (const p of e.text.paras) { const t = p.runs.map((r) => r.t).join('').trim(); if (t) out.push({ t, lvl: p.lvl ?? 0 }); }
+  }
+}
+const isTitle = (e: SlideElement): boolean => e.ph?.type === 'title' || e.ph?.type === 'ctrTitle';
+function slideTitle(s: Slide): string {
+  const out: Array<{ t: string; lvl: number }> = [];
+  textLines(s.elements, out, isTitle);
+  return out.map((x) => x.t).join(' ') || s.name || '';
+}
+
+const frames = (): Promise<void> => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => ok())));
+
+async function renderPrint(ed: Editor, o: PrintOpts): Promise<number> {
+  const getDeck = (): Deck => ed.doc.deck;
+  const deck = getDeck();
+  const slides = deck.slides.filter((s) => o.hidden || !s.hidden);
+  await ensureFonts(fontsOfDeck(deck));
+  const root = printRoot();
+  root.replaceChildren();
+  root.className = `is-${o.kind.startsWith('h') ? 'handouts' : o.kind}${o.gray ? ' is-gray' : ''}${o.frame ? ' is-framed' : ''}`;
+  const views: SlideView[] = [];
+  const shot = (s: Slide, wPt: number): HTMLElement => {
+    const v = new SlideView(getDeck, s.id, 'print');
+    v.setScale((wPt * PX) / deck.size.w);
+    v.update();
+    views.push(v);
+    return v.el;
+  };
+  const page = (w: number, h: number, cls: string): HTMLElement => {
+    const p = document.createElement('div');
+    p.className = `fs-print-page ${cls}`;
+    p.style.width = `${w}pt`;
+    p.style.height = `${h}pt`;
+    root.appendChild(p);
+    return p;
+  };
+  const div = (cls: string, text = ''): HTMLElement => { const d = document.createElement('div'); d.className = cls; d.textContent = text; return d; };
+  const paper = PAPER[o.paper];
+  const aspect = deck.size.w / deck.size.h;
+  let pages = 0;
+  if (o.kind === 'slides') {
+    pageStyle(`@page { size: ${deck.size.w}pt ${deck.size.h}pt; margin: 0 }`);
+    for (const s of slides) page(deck.size.w, deck.size.h, 'is-slide').appendChild(shot(s, deck.size.w));
+    pages = slides.length;
+  } else if (o.kind === 'notes') {
+    pageStyle(`@page { size: ${paper.w}pt ${paper.h}pt; margin: 0 }`);
+    const pad = 40, cw = paper.w - pad * 2;
+    slides.forEach((s) => {
+      const p = page(paper.w, paper.h, 'is-notes');
+      p.style.padding = `${pad}pt`;
+      const box = div('fs-print-shot');
+      box.appendChild(shot(s, Math.min(cw, (paper.h * 0.42) * aspect)));
+      const notes = (s.notes ?? '').trim();
+      const n = div('fs-print-notes', notes);
+      if (notes.length > 1600) n.classList.add('is-long');
+      const foot = div('fs-print-foot');
+      foot.append(div('', deck.title), div('', String(deck.slides.indexOf(s) + 1)));
+      p.append(box, n, foot);
+    });
+    pages = slides.length;
+  } else if (o.kind === 'outline') {
+    pageStyle(`@page { size: ${paper.w}pt ${paper.h}pt; margin: 54pt 60pt }`);
+    const doc = div('fs-print-outline');
+    doc.appendChild(div('fs-print-ol-title', deck.title));
+    for (const s of slides) {
+      const row = div('fs-print-ol-slide');
+      const main = div('fs-print-ol-main');
+      const lines: Array<{ t: string; lvl: number }> = [];
+      textLines(s.elements, lines, (e) => !isTitle(e));
+      main.appendChild(div('fs-print-ol-head', slideTitle(s) || lines.shift()?.t || 'Untitled slide'));
+      for (const l of lines) { const li = div('fs-print-ol-line', l.t); li.style.marginLeft = `${l.lvl * 14}pt`; main.appendChild(li); }
+      row.append(div('fs-print-ol-num', String(deck.slides.indexOf(s) + 1)), main);
+      doc.appendChild(row);
+    }
+    root.appendChild(doc);
+    pages = 0;
+  } else {
+    pageStyle(`@page { size: ${paper.w}pt ${paper.h}pt; margin: 0 }`);
+    const { cols, rows } = HANDOUT[o.kind];
+    const per = cols * rows, lined = o.kind === 'h3';
+    const pad = 36, head = 24, gap = 14;
+    const cw = paper.w - pad * 2, ch = paper.h - pad * 2 - head;
+    const cellW = (cw - (cols - 1) * gap) / cols, cellH = (ch - (rows - 1) * gap) / rows;
+    const sw = Math.min(lined ? cw * 0.52 : cellW, cellH * aspect);
+    pages = Math.ceil(slides.length / per);
+    for (let i = 0; i < pages; i++) {
+      const p = page(paper.w, paper.h, 'is-handout');
+      p.style.padding = `${pad}pt`;
+      const top = div('fs-print-head');
+      top.append(div('', deck.title), div('', `${i + 1} / ${pages}`));
+      const grid = div('fs-print-grid');
+      grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      grid.style.gridAutoRows = `${cellH}pt`;
+      grid.style.gap = `${gap}pt`;
+      for (const s of slides.slice(i * per, i * per + per)) {
+        const cell = div(`fs-print-cell${lined ? ' is-lined' : ''}`);
+        cell.appendChild(shot(s, sw));
+        if (lined) { const l = div('fs-print-lines'); l.style.height = `${sw / aspect}pt`; cell.appendChild(l); }
+        grid.appendChild(cell);
+      }
+      p.append(top, grid);
+    }
+  }
+  for (const v of views) v.fitAll();
+  await Promise.all(Array.from(root.querySelectorAll('img')).map((i) => i.decode().catch(() => undefined)));
+  await frames();
+  return pages;
+}
+
+function clearPrint(): void {
+  document.getElementById('fs-print-root')?.replaceChildren();
+  pageStyle('');
+}
+
+async function sendToPrinter(): Promise<void> {
+  window.addEventListener('afterprint', clearPrint, { once: true });
+  let printed = false;
+  try {
+    if (typeof window.print === 'function') { window.print(); printed = true; }
+  } catch {
+    printed = false;
+  }
+  if (!printed && isTauri()) await import('@tauri-apps/api/core').then((m) => m.invoke('print_window', { label: 'main' }));
+}
+
+class PrintDialog extends Dialog {
+  private ed: Editor | null = null;
+  private paper: 'a4' | 'letter' = /^(en-US|en-CA|es-MX|fr-CA|es-US)$/i.test(navigator.language) ? 'letter' : 'a4';
+  private gray = false;
+  private running = false;
+  private readonly kind: HTMLSelectElement;
+  private readonly hidden: HTMLInputElement;
+  private readonly frame: HTMLInputElement;
+  private readonly paperRow: HTMLElement;
+  private readonly summary: HTMLElement;
+  private readonly status = new StatusLine();
+  private readonly go: HTMLButtonElement;
+
+  constructor() {
+    super('Print', 480);
+    const box = el(`<div class="fs-dlg-stack">
+<div class="fs-field"><span>Print</span><select class="fs-dlg-print-kind" aria-label="What to print"><option value="slides">Full page slides</option><option value="notes">Notes pages</option><option value="outline">Outline</option><optgroup label="Handouts"><option value="h2">Handouts, 2 slides per page</option><option value="h3">Handouts, 3 slides with lines for notes</option><option value="h4">Handouts, 4 slides per page</option><option value="h6">Handouts, 6 slides per page</option><option value="h9">Handouts, 9 slides per page</option></optgroup></select></div>
+<div class="fs-field fs-dlg-paper"><span>Paper</span><div class="fs-seg is-quiet" data-seg="paper"><button type="button" data-v="a4">A4</button><button type="button" data-v="letter">Letter</button></div></div>
+<div class="fs-field"><span>Colour</span><div class="fs-seg is-quiet" data-seg="color"><button type="button" data-v="color">Colour</button><button type="button" data-v="gray">Grayscale</button></div></div>
+<div class="fs-field"><span></span><div class="fs-dlg-checks"><label class="fs-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label><label class="fs-check"><input type="checkbox" data-f="frame"><span>Frame slides</span></label></div></div>
+<div class="fs-field"><span></span><span class="fs-note fs-dlg-print-sum"></span></div>
+</div>`);
+    this.body.append(box, el('<p class="fs-note">Choose Save as PDF in the print window for a quick PDF. File &gt; Export &gt; PDF gives searchable text and a slide outline.</p>'));
+    this.kind = q<HTMLSelectElement>(box, '.fs-dlg-print-kind');
+    this.hidden = q<HTMLInputElement>(box, '[data-f="hidden"]');
+    this.frame = q<HTMLInputElement>(box, '[data-f="frame"]');
+    this.paperRow = q(box, '.fs-dlg-paper');
+    this.summary = q(box, '.fs-dlg-print-sum');
+    this.foot.appendChild(this.status.node);
+    this.button('Cancel', 'ghost', () => this.close());
+    this.go = this.button('Print', 'primary', () => void this.run());
+    segOn(q(box, '[data-seg="paper"]'), (v) => { this.paper = v === 'letter' ? 'letter' : 'a4'; this.sync(); });
+    segOn(q(box, '[data-seg="color"]'), (v) => { this.gray = v === 'gray'; this.sync(); });
+    this.kind.addEventListener('change', () => this.sync());
+    this.hidden.addEventListener('change', () => this.sync());
+  }
+
+  show(ed: Editor): void {
+    this.ed = ed;
+    this.status.reset();
+    this.sync();
+    this.open(this.go);
+  }
+
+  private opts(): PrintOpts {
+    return { kind: (this.kind.value || 'slides') as PrintKind, paper: this.paper, hidden: this.hidden.checked, frame: this.frame.checked, gray: this.gray };
+  }
+
+  private sync(): void {
+    const o = this.opts();
+    segSet(q(this.body, '[data-seg="paper"]'), o.paper);
+    segSet(q(this.body, '[data-seg="color"]'), o.gray ? 'gray' : 'color');
+    setHidden(this.paperRow, o.kind === 'slides');
+    const deck = this.ed?.doc.deck;
+    const n = deck ? deck.slides.filter((s) => o.hidden || !s.hidden).length : 0;
+    const paper = `${PAPER[o.paper].label} paper`;
+    const text = o.kind === 'slides' ? `${plural(n, 'page')}, each the size of a slide`
+      : o.kind === 'notes' ? `${plural(n, 'page')} on ${paper}, slide above its notes`
+      : o.kind === 'outline' ? `Titles and text of ${plural(n, 'slide')} on ${paper}`
+      : `${plural(Math.ceil(n / (HANDOUT[o.kind].cols * HANDOUT[o.kind].rows)), 'page')} on ${paper}`;
+    setText(this.summary, text);
+  }
+
+  private async run(): Promise<void> {
+    const ed = this.ed;
+    if (!ed || this.running) return;
+    const o = this.opts();
+    if (!ed.doc.deck.slides.some((s) => o.hidden || !s.hidden)) { this.status.error('There are no slides to print.'); return; }
+    holdFocus(this);
+    this.running = true;
+    setDisabled(this.go, true);
+    this.status.busy('Preparing the pages');
+    try {
+      await renderPrint(ed, o);
+      this.status.done();
+      this.close();
+      await sendToPrinter();
+    } catch (e) {
+      clearPrint();
+      this.status.error(`Could not print: ${errText(e)}`);
+      toast(`Could not print: ${errText(e)}`, 'error');
+    } finally {
+      this.running = false;
+      setDisabled(this.go, false);
+    }
+  }
+}
+
+let printDlg: PrintDialog | null = null;
+export async function printDeck(ed: Editor): Promise<void> {
+  printDlg ??= new PrintDialog();
+  printDlg.show(ed);
+}
+
+const deckTemplateId = (deck: Deck): string => deck.template?.id ?? str(deck.meta.template);
+
+class TemplatePickerDialog extends Dialog {
+  private ed: Editor | null = null;
+  private running = false;
+  private readonly grid = new TemplateGrid(false);
+  private readonly info: HTMLElement;
+  private readonly dl: HTMLButtonElement;
+  private readonly status = new StatusLine();
+  private readonly apply: HTMLButtonElement;
+  private readonly picker: HTMLInputElement;
+
+  constructor() {
+    super('Change template', 920);
+    q(this.scrim, '.fs-dialog').classList.add('fs-dlg-picker');
+    const infoRow = el(`<div class="fs-dlg-tpl-info"><span class="fs-note fs-dlg-tpl-desc"></span><button class="fs-dlg-link" type="button">${icon('download', 14)}<span>Download as .pptx</span></button></div>`);
+    this.body.append(el('<p class="fs-note">Restyles every slide with the template’s layouts, colours and fonts. Your text, pictures, charts and notes stay. Undo takes it back in one step.</p>'), this.grid.root, infoRow);
+    this.info = q(infoRow, '.fs-dlg-tpl-desc');
+    this.dl = q<HTMLButtonElement>(infoRow, 'button');
+    this.picker = document.createElement('input');
+    this.picker.type = 'file';
+    this.picker.accept = '.pptx,.potx';
+    this.picker.hidden = true;
+    this.body.appendChild(this.picker);
+    this.button('Import a .pptx or .potx', 'ghost', () => { if (!this.running) this.picker.click(); });
+    this.foot.appendChild(this.status.node);
+    this.button('Cancel', 'ghost', () => this.close());
+    this.apply = this.button('Apply template', 'primary', () => void this.run());
+    this.grid.onPick = () => this.sync();
+    this.grid.onChoose = () => void this.run();
+    this.dl.addEventListener('click', () => { const t = this.grid.current; if (t) download(api.templateDownloadUrl(t.id, 'pptx')); });
+    this.picker.addEventListener('change', () => { const f = this.picker.files?.[0]; this.picker.value = ''; if (f) void this.importTemplate(f); });
+  }
+
+  show(ed: Editor): void {
+    this.ed = ed;
+    this.status.reset();
+    this.grid.resetFilter();
+    this.sync();
+    this.open(this.apply);
+    void this.grid.load([deckTemplateId(ed.doc.deck)]).then(() => { this.sync(); this.grid.reveal(); }).catch((e) => this.status.error(`Could not load the templates: ${errText(e)}`));
+  }
+
+  private sync(): void {
+    const t = this.grid.current;
+    const same = !!t && !!this.ed && t.id === deckTemplateId(this.ed.doc.deck);
+    setText(this.info, t ? `${describeTemplate(t)}${t.layouts ? ` · ${plural(t.layouts, 'layout')}` : ''}` : '');
+    setHidden(this.dl, !t);
+    setText(this.apply, same ? 'Current template' : 'Apply template');
+    setDisabled(this.apply, !t || same || this.running);
+  }
+
+  private async run(): Promise<void> {
+    const ed = this.ed, t = this.grid.current;
+    if (!ed || !t || this.running || t.id === deckTemplateId(ed.doc.deck)) return;
+    holdFocus(this);
+    this.running = true;
+    this.sync();
+    this.status.busy(`Applying ${t.name}`);
+    try {
+      await api.applyTemplate(ed.doc.id, t.id, ed.live.clientId);
+      this.status.done();
+      this.close();
+      toast(`Template applied · Undo with ${formatKeys('Mod+Z')}`);
+    } catch (e) {
+      this.status.error(`Could not apply ${t.name}: ${errText(e)}`);
+      toast(`Could not apply ${t.name}: ${errText(e)}`, 'error');
+    } finally {
+      this.running = false;
+      this.sync();
+    }
+  }
+
+  private async importTemplate(f: File): Promise<void> {
+    holdFocus(this);
+    this.running = true;
+    this.sync();
+    this.status.busy(`Importing ${f.name}`);
+    try {
+      const r = await api.importFile(f, true);
+      const tid = str(r.template);
+      this.grid.resetFilter();
+      await this.grid.load([tid], true);
+      this.status.done();
+      this.grid.reveal();
+      toast(`Imported ${f.name} as a template`);
+    } catch (e) {
+      this.status.error(`Could not import ${f.name}: ${errText(e)}`);
+      toast(`Could not import ${f.name}: ${errText(e)}`, 'error');
+    } finally {
+      this.running = false;
+      this.sync();
+    }
+  }
+}
+
+let pickerDlg: TemplatePickerDialog | null = null;
+export async function templatePicker(ed: Editor): Promise<void> {
+  pickerDlg ??= new TemplatePickerDialog();
+  pickerDlg.show(ed);
+}
+
+interface VersionInfo { n: number; name: string; at: string; slides: number }
+
+class VersionsDialog extends Dialog {
+  private ed: Editor | null = null;
+  private versions: VersionInfo[] = [];
+  private readonly name: HTMLInputElement;
+  private readonly saveBtn: HTMLButtonElement;
+  private readonly list: HTMLElement;
+  private readonly empty: HTMLElement;
+  private readonly status = new StatusLine();
+  private readonly armed = new Map<HTMLElement, number>();
+  private busy = false;
+
+  constructor() {
+    super('Version history', 540);
+    const row = el(`<div class="fs-dlg-inline"><input class="fs-input" type="text" spellcheck="false" placeholder="Name this version, for example Before the board review" aria-label="Version name"><button class="fs-btn" type="button">${icon('save', 14)}<span>Save a version</span></button></div>`);
+    this.list = el('<div class="fs-list fs-dlg-versions"></div>');
+    this.empty = el(`<div class="fs-empty" hidden><span class="fs-empty-icon">${icon('history', 20)}</span><div class="fs-empty-title">No saved versions yet</div><div class="fs-empty-note">formsld saves every change as you work. Save a named version before big edits so you can come back to it.</div></div>`);
+    const box = el('<div class="fs-dlg-versions-box"></div>');
+    box.append(this.list, this.empty);
+    this.body.append(row, el('<p class="fs-note">Restoring brings back the slides, template and comments of that version as one step you can undo.</p>'), box);
+    this.name = q<HTMLInputElement>(row, 'input');
+    this.saveBtn = q<HTMLButtonElement>(row, 'button');
+    this.foot.appendChild(this.status.node);
+    this.button('Close', 'ghost', () => this.close());
+    this.saveBtn.addEventListener('click', () => void this.save());
+    this.name.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.save(); } });
+    this.list.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-restore]');
+      const key = b?.closest<HTMLElement>('[data-key]')?.dataset.key;
+      const v = this.versions.find((x) => `${this.ed?.doc.id}:${x.n}` === key);
+      if (b && v) void this.restore(b, v);
+    });
+    this.onClose = () => { for (const [b, t] of this.armed) { window.clearTimeout(t); this.disarm(b); } this.armed.clear(); };
+  }
+
+  show(ed: Editor): void {
+    if (this.ed !== ed) { this.versions = []; this.list.replaceChildren(); }
+    this.ed = ed;
+    this.name.value = '';
+    this.status.reset();
+    this.open(this.name);
+    void this.load();
+  }
+
+  private async load(): Promise<void> {
+    const ed = this.ed;
+    if (!ed) return;
+    this.status.busy('Loading versions');
+    try {
+      const r = await api.versions(ed.doc.id);
+      if (this.ed !== ed) return;
+      this.status.done();
+      this.versions = [...r.versions].reverse();
+      this.render();
+    } catch (e) {
+      this.status.error(`Could not load versions: ${errText(e)}`);
+    }
+  }
+
+  private render(): void {
+    const id = this.ed?.doc.id ?? '';
+    patchList(this.list, this.versions, {
+      key: (v) => `${id}:${v.n}`,
+      create: (v) => {
+        const n = el(`<div class="fs-row"><span class="fs-row-icon">${icon('history', 16)}</span><span class="fs-row-main"><span class="fs-row-title"></span><span class="fs-row-sub"></span></span><button class="fs-btn fs-btn-sm fs-dlg-restore" type="button" data-restore>Restore</button></div>`);
+        this.fillRow(n, v);
+        return n;
+      },
+      update: (n, v) => this.fillRow(n, v),
+    });
+    setHidden(this.empty, this.versions.length > 0);
+    setHidden(this.list, !this.versions.length);
+  }
+
+  private fillRow(n: HTMLElement, v: VersionInfo): void {
+    setText(n.querySelector('.fs-row-title'), v.name || `Version ${v.n}`);
+    setText(n.querySelector('.fs-row-sub'), `${ago(v.at)} · ${plural(v.slides, 'slide')}`);
+    const t = Date.parse(v.at);
+    if (!Number.isNaN(t)) n.title = new Date(t).toLocaleString();
+  }
+
+  private async save(): Promise<void> {
+    const ed = this.ed;
+    if (!ed || this.busy) return;
+    const name = this.name.value.trim();
+    holdFocus(this);
+    this.busy = true;
+    setDisabled(this.saveBtn, true);
+    this.status.busy('Saving a version');
+    try {
+      const r = await api.saveVersion(ed.doc.id, name);
+      this.status.done();
+      this.name.value = '';
+      await this.load();
+      toast(`Saved ${name || `version ${r.n}`}`);
+    } catch (e) {
+      this.status.error(`Could not save a version: ${errText(e)}`);
+    } finally {
+      this.busy = false;
+      setDisabled(this.saveBtn, false);
+    }
+  }
+
+  private disarm(b: HTMLElement): void {
+    setText(b, 'Restore');
+    setClass(b, 'is-armed', false);
+  }
+
+  private async restore(b: HTMLButtonElement, v: VersionInfo): Promise<void> {
+    const ed = this.ed;
+    if (!ed || this.busy) return;
+    if (!this.armed.has(b)) {
+      setText(b, 'Confirm restore');
+      setClass(b, 'is-armed', true);
+      this.armed.set(b, window.setTimeout(() => { this.armed.delete(b); this.disarm(b); }, 4000));
+      return;
+    }
+    window.clearTimeout(this.armed.get(b));
+    this.armed.delete(b);
+    this.disarm(b);
+    holdFocus(this);
+    this.busy = true;
+    setDisabled(b, true);
+    this.status.busy(`Restoring ${v.name}`);
+    try {
+      await api.restoreVersion(ed.doc.id, v.n);
+      this.status.done();
+      this.close();
+      toast(`Restored ${v.name || `version ${v.n}`} · Undo with ${formatKeys('Mod+Z')}`);
+    } catch (e) {
+      this.status.error(`Could not restore: ${errText(e)}`);
+    } finally {
+      this.busy = false;
+      setDisabled(b, false);
+    }
+  }
+}
+
+let versionsDlg: VersionsDialog | null = null;
+export async function versionsDialog(ed: Editor): Promise<void> {
+  versionsDlg ??= new VersionsDialog();
+  versionsDlg.show(ed);
+}
+
+class SaveTemplateDialog extends Dialog {
+  private ed: Editor | null = null;
+  private running = false;
+  private readonly name = el<HTMLInputElement>('<input class="fs-input" type="text" spellcheck="false" aria-label="Template name">');
+  private readonly status = new StatusLine();
+  private readonly go: HTMLButtonElement;
+
+  constructor() {
+    super('Save as template', 460);
+    this.field('Name', this.name);
+    this.body.appendChild(el('<p class="fs-note">Saves this deck’s masters, layouts, colours and fonts as a template. Slides are not included. It appears under Imported when you change templates or start a deck.</p>'));
+    this.foot.appendChild(this.status.node);
+    this.button('Cancel', 'ghost', () => this.close());
+    this.go = this.button('Save template', 'primary', () => void this.run());
+    this.name.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
+  }
+
+  show(ed: Editor): void {
+    this.ed = ed;
+    this.status.reset();
+    this.name.value = ed.doc.deck.title;
+    this.open(this.name);
+    this.name.select();
+  }
+
+  private async run(): Promise<void> {
+    const ed = this.ed;
+    const name = this.name.value.trim();
+    if (!ed || this.running) return;
+    if (!name) { this.status.error('Give the template a name.'); this.name.focus(); return; }
+    holdFocus(this);
+    this.running = true;
+    setDisabled(this.go, true);
+    this.status.busy('Saving the template');
+    try {
+      await api.saveTemplate(ed.doc.id, name);
+      catalogP = null;
+      this.status.done();
+      this.close();
+      toast(`Saved ${name} as a template`);
+    } catch (e) {
+      this.status.error(`Could not save the template: ${errText(e)}`);
+    } finally {
+      this.running = false;
+      setDisabled(this.go, false);
+    }
+  }
+}
+
+let saveTplDlg: SaveTemplateDialog | null = null;
+export async function saveTemplateDialog(ed: Editor): Promise<void> {
+  saveTplDlg ??= new SaveTemplateDialog();
+  saveTplDlg.show(ed);
+}
+
+interface AgentHooks { agentsAllowed: () => boolean; setAgents: (on: boolean) => void }
+const ACCENTS = ['#f97316', '#ef4444', '#ec4899', '#a855f7', '#6366f1', '#3b82f6', '#14b8a6', '#22c55e', '#eab308'];
+
+class PreferencesDialog extends Dialog {
+  private h: AgentHooks | null = null;
+  private readonly themes: HTMLElement;
+  private readonly themeName: HTMLElement;
+  private readonly accents: HTMLElement;
+  private readonly color: HTMLInputElement;
+  private readonly tpl: HTMLSelectElement;
+  private readonly author: HTMLInputElement;
+  private readonly units: HTMLElement;
+  private readonly autosave: HTMLInputElement;
+  private readonly agents: HTMLInputElement;
+
+  constructor() {
+    super('Preferences', 560);
+    const c = readChoice();
+    const box = el(`<div class="fs-dlg-stack">
+<section class="fs-dlg-section"><div class="fs-dlg-section-title">Appearance</div>
+<div class="fs-field is-top"><span>Theme</span><div><div class="nm-theme-grid fs-dlg-themes">${themeSwatchesHtml(c.theme, c.accentColor)}</div><div class="fs-note fs-dlg-theme-name"></div></div></div>
+<div class="fs-field"><span>Accent</span><div class="fs-dlg-accents">${ACCENTS.map((a) => `<button class="fs-swatch" type="button" data-accent="${a}" style="--swatch:${a}" aria-label="Accent ${a}" title="${a}"></button>`).join('')}<label class="fs-dlg-color" title="Custom accent">${icon('palette', 14)}<input type="color" aria-label="Custom accent colour"></label></div></div>
+</section>
+<section class="fs-dlg-section"><div class="fs-dlg-section-title">New decks</div>
+<div class="fs-field"><span>Template</span><select class="fs-dlg-pref-tpl" aria-label="Default template"></select></div>
+<label class="fs-field"><span>Author</span><input class="fs-input fs-dlg-pref-author" type="text" spellcheck="false" placeholder="Your name, written into exported files"></label>
+</section>
+<section class="fs-dlg-section"><div class="fs-dlg-section-title">Editing</div>
+<div class="fs-field"><span>Units</span><div class="fs-seg is-quiet" data-seg="units"><button type="button" data-v="pt">Points</button><button type="button" data-v="in">Inches</button><button type="button" data-v="cm">Centimetres</button><button type="button" data-v="px">Pixels</button></div></div>
+<div class="fs-field"><span>Saving</span><label class="fs-check"><input type="checkbox" data-f="autosave"><span>Save to the library as you work</span></label></div>
+</section>
+<section class="fs-dlg-section"><div class="fs-dlg-section-title">Agents</div>
+<div class="fs-field"><span>Access</span><label class="fs-check"><input type="checkbox" data-f="agents"><span>Let Claude Code, Codex and Cursor read and edit decks</span></label></div>
+</section>
+</div>`);
+    this.body.appendChild(box);
+    this.themes = q(box, '.fs-dlg-themes');
+    this.themeName = q(box, '.fs-dlg-theme-name');
+    this.accents = q(box, '.fs-dlg-accents');
+    this.color = q<HTMLInputElement>(box, 'input[type="color"]');
+    this.tpl = q<HTMLSelectElement>(box, '.fs-dlg-pref-tpl');
+    this.author = q<HTMLInputElement>(box, '.fs-dlg-pref-author');
+    this.units = q(box, '[data-seg="units"]');
+    this.autosave = q<HTMLInputElement>(box, '[data-f="autosave"]');
+    this.agents = q<HTMLInputElement>(box, '[data-f="agents"]');
+    for (const b of Array.from(this.themes.querySelectorAll<HTMLElement>('[data-theme-id]'))) { b.setAttribute('type', 'button'); b.setAttribute('aria-label', b.title); }
+    this.button('Done', 'primary', () => this.close());
+    this.themes.addEventListener('click', (e) => {
+      const id = (e.target as HTMLElement).closest<HTMLElement>('[data-theme-id]')?.dataset.themeId;
+      if (id && THEMES[id]) { setTheme(id); this.syncLook(); }
+    });
+    this.accents.addEventListener('click', (e) => {
+      const a = (e.target as HTMLElement).closest<HTMLElement>('[data-accent]')?.dataset.accent;
+      if (a) { setAccent(a); this.syncLook(); }
+    });
+    this.color.addEventListener('input', () => { setAccent(this.color.value); this.syncLook(); });
+    this.tpl.addEventListener('change', () => this.persist({ defaultTemplate: this.tpl.value }));
+    this.author.addEventListener('change', () => this.persist({ author: this.author.value.trim() }));
+    segOn(this.units, (v) => this.persist({ units: v }));
+    this.autosave.addEventListener('change', () => this.persist({ autosave: this.autosave.checked }));
+    this.agents.addEventListener('change', () => this.h?.setAgents(this.agents.checked));
+  }
+
+  private persist(patch: Settings): void {
+    void api.setSettings(patch).catch((e) => toast(`Could not save the preference: ${errText(e)}`, 'error'));
+  }
+
+  private syncLook(): void {
+    const c = readChoice();
+    for (const b of Array.from(this.themes.querySelectorAll<HTMLElement>('[data-theme-id]'))) {
+      const id = b.dataset.themeId ?? '';
+      const on = id === c.theme;
+      setClass(b, 'is-active', on);
+      setAttr(b, 'aria-pressed', String(on));
+      const border = on ? c.accentColor : THEMES[id]?.vars['--border-color'] ?? '';
+      if (b.style.borderColor !== border) b.style.borderColor = border;
+    }
+    setText(this.themeName, THEMES[c.theme]?.label ?? '');
+    for (const b of Array.from(this.accents.querySelectorAll<HTMLElement>('[data-accent]'))) setClass(b, 'is-chosen', b.dataset.accent?.toLowerCase() === c.accentColor.toLowerCase());
+    if (/^#[0-9a-f]{6}$/i.test(c.accentColor)) setValue(this.color, c.accentColor);
+  }
+
+  show(h: AgentHooks): void {
+    this.h = h;
+    this.syncLook();
+    setChecked(this.agents, h.agentsAllowed());
+    this.open(this.themes.querySelector<HTMLElement>('.is-active'));
+    void Promise.all([settings(), catalog().catch((): Catalog => ({ categories: [], templates: [], default: '' }))]).then(([s, c]) => {
+      patchList(this.tpl, [{ id: '', name: 'Last used' }, ...c.templates.map((t) => ({ id: t.id, name: `${t.name} · ${t.category}` }))], {
+        key: (t) => t.id || '_last',
+        create: (t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.name; return o; },
+        update: (n, t) => setText(n, t.name),
+      });
+      setValue(this.tpl, str(s.defaultTemplate));
+      setValue(this.author, str(s.author));
+      segSet(this.units, str(s.units) || 'pt');
+      setChecked(this.autosave, s.autosave !== false);
+    });
+  }
+}
+
+let prefsDlg: PreferencesDialog | null = null;
+export function preferencesDialog(h: { agentsAllowed: () => boolean; setAgents: (on: boolean) => void }): void {
+  prefsDlg ??= new PreferencesDialog();
+  prefsDlg.show(h);
+}
+
+const SETUP: Array<{ id: string; tab: string; title: string; note: string; text: (url: string) => string }> = [
+  { id: 'install', tab: 'All at once', title: 'In the formsld folder', note: 'Writes the Claude Code, Codex and Cursor configs and installs the formsld skill, so agents know the deck format and tools.', text: () => './formsld agents install' },
+  { id: 'claude', tab: 'Claude Code', title: 'In a terminal', note: 'Run once. Then ask Claude Code to build or edit a deck.', text: (u) => `claude mcp add --transport http formsld ${u}` },
+  { id: 'codex', tab: 'Codex', title: '~/.codex/config.toml', note: 'Add this table, then restart Codex.', text: (u) => `[mcp_servers.formsld]\nurl = "${u}"` },
+  { id: 'cursor', tab: 'Cursor', title: '~/.cursor/mcp.json', note: 'Or .cursor/mcp.json inside a project. Cursor picks it up on the next chat.', text: (u) => `{\n  "mcpServers": {\n    "formsld": { "url": "${u}" }\n  }\n}` },
+  { id: 'desktop', tab: 'Claude Desktop', title: 'claude_desktop_config.json', note: 'Claude Desktop starts local servers over stdio: ./formsld mcp runs the same tools. Use the full path to your formsld folder.', text: () => '{\n  "mcpServers": {\n    "formsld": { "command": "/path/to/formsld/formsld", "args": ["mcp"] }\n  }\n}' },
+];
+
+class AgentsDialog extends Dialog {
+  private h: (AgentHooks & { deck: () => Deck | null }) | null = null;
+  private port = location.port && location.port !== '5197' ? location.port : '8197';
+  private tab = 'install';
+  private readonly allow: HTMLInputElement;
+  private readonly badge: HTMLElement;
+  private readonly url: HTMLElement;
+  private readonly engine: HTMLElement;
+  private readonly tabs: HTMLElement;
+  private readonly blocks: HTMLElement[] = [];
+  private readonly promptLabel: HTMLElement;
+
+  constructor() {
+    super('Agents', 640);
+    const card = el(`<div class="fs-dlg-card">
+<div class="fs-dlg-card-row"><label class="fs-check"><input type="checkbox" data-f="allow"><span>Let agents read and edit decks</span></label><span class="fs-badge fs-dlg-agent-badge"></span></div>
+<dl class="fs-kv"><dt>MCP server</dt><dd class="fs-dlg-mcp-url"></dd><dt>Engine</dt><dd class="fs-dlg-engine"></dd></dl>
+</div>`);
+    this.tabs = el(`<div class="fs-seg is-quiet fs-dlg-tabs" role="group" aria-label="Set up">${SETUP.map((s) => `<button type="button" data-v="${s.id}">${s.tab}</button>`).join('')}</div>`);
+    const blocks = SETUP.map((s) => {
+      const b = el(`<div class="fs-dlg-code" hidden><div class="fs-dlg-code-head"><span class="fs-dlg-code-title"></span>${copyBtn()}</div><pre class="fs-dlg-code-text"></pre><p class="fs-note"></p></div>`);
+      b.dataset.tab = s.id;
+      setText(q(b, '.fs-dlg-code-title'), s.title);
+      setText(q(b, '.fs-note'), s.note);
+      this.blocks.push(b);
+      return b;
+    });
+    const promptBtn = el<HTMLButtonElement>(`<button class="fs-btn fs-dlg-prompt-btn" type="button">${icon('agent', 14)}<span></span></button>`);
+    const how = el(`<div class="fs-dlg-section"><div class="fs-dlg-section-title">How agents work here</div><ul class="fs-dlg-steps is-bullets">
+<li>Agents see the same deck you do, live. Their edits land on your slides as they work, and you can keep editing.</li>
+<li>Every agent turn undoes as one step: Edit &gt; Undo Agent Turn.</li>
+<li>Review status and comments live in the Review panel. Agents read and set them too.</li>
+<li>The MCP server listens on 127.0.0.1 only. Nothing leaves this computer unless your agent sends it.</li>
+</ul></div>`);
+    this.body.append(card, this.tabs, ...blocks, promptBtn, how);
+    this.allow = q<HTMLInputElement>(card, '[data-f="allow"]');
+    this.badge = q(card, '.fs-dlg-agent-badge');
+    this.url = q(card, '.fs-dlg-mcp-url');
+    this.engine = q(card, '.fs-dlg-engine');
+    this.promptLabel = q(promptBtn, 'span:not(.icon)');
+    this.button('Done', 'primary', () => this.close());
+    wireCopies(this.body);
+    segOn(this.tabs, (v) => { this.tab = v; this.syncTabs(); });
+    this.allow.addEventListener('change', () => { this.h?.setAgents(this.allow.checked); this.syncAllow(); });
+    promptBtn.addEventListener('click', () => copyAgentPrompt(this.h?.deck() ?? null));
+  }
+
+  show(h: AgentHooks & { deck: () => Deck | null }): void {
+    this.h = h;
+    setChecked(this.allow, h.agentsAllowed());
+    this.syncAllow();
+    this.syncPort();
+    this.syncTabs();
+    const deck = h.deck();
+    setText(this.promptLabel, deck ? 'Copy a starter prompt for this deck' : 'Copy a starter prompt');
+    this.open(this.allow);
+    void caps().then((c) => {
+      if (typeof c.port === 'number' || typeof c.port === 'string') { this.port = String(c.port); this.syncPort(); }
+      const dir = str(c.dataDir);
+      setText(this.engine, `formsld ${VERSION} on port ${this.port}${dir ? ` · library in ${dir}` : ''}`);
+      if (dir) this.engine.title = dir;
+    });
+  }
+
+  private syncAllow(): void {
+    const on = this.allow.checked;
+    setText(this.badge, on ? 'Allowed' : 'Off');
+    setClass(this.badge, 'is-approved', on);
+    setClass(this.badge, 'is-draft', !on);
+  }
+
+  private syncPort(): void {
+    const url = `http://127.0.0.1:${this.port}/mcp`;
+    setText(this.url, url);
+    setText(this.engine, `formsld ${VERSION} on port ${this.port}`);
+    SETUP.forEach((s, i) => setText(q(this.blocks[i], '.fs-dlg-code-text'), s.text(url)));
+  }
+
+  private syncTabs(): void {
+    segSet(this.tabs, this.tab);
+    for (const b of this.blocks) setHidden(b, b.dataset.tab !== this.tab);
+  }
+}
+
+let agentsDlg: AgentsDialog | null = null;
+export function agentsDialog(h: { agentsAllowed: () => boolean; setAgents: (on: boolean) => void; deck: () => Deck | null }): void {
+  agentsDlg ??= new AgentsDialog();
+  agentsDlg.show(h);
+}
+
+export function copyAgentPrompt(deck: Deck | null): void {
+  const text = deck
+    ? [
+      `In formsld, deck ${deck.id} "${deck.title}" (${plural(deck.slides.length, 'slide')}, template ${deck.template?.name ?? (str(deck.meta.template) || 'custom')}) is open.`,
+      'Use the formsld MCP tools: get_deck (outline) to read it, then make the changes I ask for in small, clearly named steps.',
+      'After each change run render_slides on the slides you touched and lint_deck, and fix what they find.',
+      'Set slides you finish to review status Review, and leave a comment where you need my input.',
+      'My request: ',
+    ].join('\n')
+    : [
+      'Use the formsld MCP server to make a deck.',
+      'Call ingest with the files below, then get_context, draft_spec, refine the script, build_deck, then render_slides and lint_deck and fix issues.',
+      'Brief: ',
+      'Files: ',
+    ].join('\n');
+  void copyText(text).then((ok) => toast(ok ? 'Prompt copied' : 'Could not copy the prompt', ok ? 'info' : 'error'));
+}
+
+class HelpDialog extends Dialog {
+  constructor() {
+    super('formsld Help', 560);
+    this.body.appendChild(el(`<div class="fs-dlg-stack">
+<div class="fs-dlg-about">${brandMark(36)}<div><div class="fs-dlg-about-name">formsld</div><div class="fs-note">Version ${escapeHtml(VERSION)} · presentations, decks and PDFs in the form family</div></div></div>
+<section class="fs-dlg-section"><div class="fs-dlg-section-title">Quick start</div><ol class="fs-dlg-steps">
+<li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck on Home and formsld drafts the slides in your template.</li>
+<li><strong>Pick a template.</strong> Change it any time with Slide &gt; Apply Template. Your content follows.</li>
+<li><strong>Edit on the slide.</strong> Double-click to type, drop pictures anywhere, and use the panel on the right for layout, colours and review status.</li>
+<li><strong>Bring in your agent.</strong> Connect Claude Code, Codex or Cursor from Review &gt; Agents. It edits the same deck live and every turn undoes as one step.</li>
+<li><strong>Present and share.</strong> Present from the title bar, export .pptx for PowerPoint and Google Slides, or PDF and pictures.</li>
+</ol></section>
+<section class="fs-dlg-section"><div class="fs-dlg-section-title">Learn more</div>
+<p class="fs-dlg-text">The full manual is docs/MANUAL.md in your formsld folder. The deck format agents and tools read is described in docs/FORMAT.md.</p>
+<p class="fs-dlg-text">Your decks, templates and pictures stay on this computer, in the Formsld folder in your home folder.</p>
+<p class="fs-dlg-text">Press <kbd class="fs-key">${escapeHtml(formatKeys('Mod+/'))}</kbd> to see every keyboard shortcut, or open Help &gt; Keyboard Shortcuts.</p>
+</section>
+</div>`));
+    this.button('Close', 'primary', () => this.close());
+  }
+}
+
+let helpDlg: HelpDialog | null = null;
+export function helpDialog(): void {
+  helpDlg ??= new HelpDialog();
+  helpDlg.open();
+}
+
+const KEY_GROUPS: Array<[string, RegExp]> = [
+  ['File', /^(home|new-deck|open|save|save-as|save-version|save-template|export-.+|print|pdf-tools|delete-deck)$/],
+  ['Edit', /^(undo|redo|undo-agent|cut|copy|paste|duplicate|delete|select-all|find)$/],
+  ['View', /^(view-.+|zoom-.+|toggle-.+)$/],
+  ['Slide', /^(new-slide|duplicate-slide|delete-slide|hide-slide|reset-slide|add-section|rename-section|format-background|slide-size|apply-template)$/],
+  ['Insert', /^(insert-.+|edit-chart|replace-image)$/],
+  ['Format', /^(bold|italic|underline|strike|grow-font|shrink-font|clear-format|text-color|highlight|fill-color|line-color|bullets|numbering|indent|outdent|text-align-.+|anchor-.+|alt-text)$/],
+  ['Arrange', /^(bring-.+|send-.+|align-.+|distribute-.+|group|ungroup|lock)$/],
+  ['Review', /^(review-.+|add-comment|intake|agents)$/],
+  ['Present', /^(present-.+|presenter-view)$/],
+  ['Help', /^(help|shortcuts|preferences)$/],
+];
+const groupOf = (id: string): string => KEY_GROUPS.find(([, re]) => re.test(id))?.[0] ?? 'Other';
+
+type KeyItem = { key: string; group: string; cmd: Command | null };
+
+class ShortcutsDialog extends Dialog {
+  private commands: Commands | null = null;
+  private readonly search: HTMLInputElement;
+  private readonly table: HTMLElement;
+  private readonly empty: HTMLElement;
+
+  constructor() {
+    super('Keyboard shortcuts', 620);
+    q(this.scrim, '.fs-dialog').classList.add('fs-dlg-keys-dialog');
+    const bar = el(`<label class="fs-search">${icon('search', 14)}<input type="search" placeholder="Search commands and keys" aria-label="Search shortcuts" spellcheck="false"></label>`);
+    this.table = el('<div class="fs-dlg-keys" role="table" aria-label="Keyboard shortcuts"></div>');
+    this.empty = el('<p class="fs-note fs-dlg-keys-empty" hidden>No command matches that search.</p>');
+    this.body.append(bar, this.table, this.empty);
+    this.search = q<HTMLInputElement>(bar, 'input');
+    this.search.addEventListener('input', () => this.filter());
+    this.button('Close', 'primary', () => this.close());
+  }
+
+  show(commands: Commands): void {
+    this.commands = commands;
+    const cmds = commands.all().filter((c) => !c.id.startsWith('layout:'));
+    const order = [...KEY_GROUPS.map(([g]) => g), 'Other'];
+    const items: KeyItem[] = [];
+    for (const g of order) {
+      const inGroup = cmds.filter((c) => groupOf(c.id) === g);
+      if (!inGroup.length) continue;
+      items.push({ key: `g:${g}`, group: g, cmd: null });
+      for (const c of inGroup) items.push({ key: `c:${c.id}`, group: g, cmd: c });
+    }
+    patchList(this.table, items, {
+      key: (i) => i.key,
+      create: (i) => {
+        const n = i.cmd ? el('<div class="fs-dlg-key-row" role="row"><span class="fs-dlg-key-icon" role="cell"></span><span class="fs-dlg-key-label" role="cell"></span><span class="fs-dlg-key-combos" role="cell"></span></div>') : el('<div class="fs-dlg-key-head" role="row"></div>');
+        this.fillRow(n, i);
+        return n;
+      },
+      update: (n, i) => this.fillRow(n, i),
+    });
+    this.search.value = '';
+    this.filter();
+    this.open(this.search);
+  }
+
+  private fillRow(n: HTMLElement, i: KeyItem): void {
+    n.dataset.group = i.group;
+    if (!i.cmd) { setText(n, i.group); return; }
+    const label = this.commands?.label(i.cmd) ?? i.cmd.id;
+    const keys = i.cmd.keys ?? [];
+    setHtml(q(n, '.fs-dlg-key-icon'), i.cmd.icon ? icon(i.cmd.icon, 14) : '', i.cmd.icon ?? '');
+    setText(q(n, '.fs-dlg-key-label'), label.replace(/\.\.\.$/, ''));
+    const shown = keys.map(formatKeys);
+    setHtml(q(n, '.fs-dlg-key-combos'), shown.map((k) => `<kbd class="fs-key">${escapeHtml(k)}</kbd>`).join(''), shown.join('|'));
+    setClass(n, 'is-unbound', !keys.length);
+    n.dataset.search = `${label} ${i.cmd.id} ${i.group} ${shown.join(' ')} ${keys.join(' ')}`.toLowerCase();
+  }
+
+  private filter(): void {
+    const qy = this.search.value.trim().toLowerCase();
+    const visible = new Map<string, number>();
+    for (const n of Array.from(this.table.children) as HTMLElement[]) {
+      if (!n.classList.contains('fs-dlg-key-row')) continue;
+      const ok = !qy || (n.dataset.search ?? '').includes(qy);
+      setHidden(n, !ok);
+      if (ok) visible.set(n.dataset.group ?? '', (visible.get(n.dataset.group ?? '') ?? 0) + 1);
+    }
+    for (const n of Array.from(this.table.children) as HTMLElement[]) if (n.classList.contains('fs-dlg-key-head')) setHidden(n, !visible.get(n.dataset.group ?? ''));
+    setHidden(this.empty, visible.size > 0);
+  }
+}
+
+let keysDlg: ShortcutsDialog | null = null;
+export function shortcutsDialog(commands: Commands): void {
+  keysDlg ??= new ShortcutsDialog();
+  keysDlg.show(commands);
+}
