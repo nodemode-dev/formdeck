@@ -50,6 +50,10 @@ async def live(ws: WebSocket) -> None:
             STORE.close_if_idle(deck_id)
 
 
+def snapshot_message(deck_id: str, snap: dict) -> dict:
+    return {"t": "snapshot", "deck": deck_id, "data": snap["deck"], "rev": snap["rev"], "canUndo": snap["canUndo"], "canRedo": snap["canRedo"]}
+
+
 async def handle(client: Client, msg: dict) -> None:
     t = msg.get("t")
     deck_id = msg.get("deck")
@@ -73,7 +77,7 @@ async def handle(client: Client, msg: dict) -> None:
             await client.send({"t": "error", "deck": deck_id, "error": "There is no deck with that id."})
             return
         client.decks.add(deck_id)
-        await client.send({"t": "snapshot", "deck": deck_id, **snap})
+        await client.send(snapshot_message(deck_id, snap))
         return
     if t == "unsub":
         client.decks.discard(deck_id)
@@ -85,7 +89,7 @@ async def handle(client: Client, msg: dict) -> None:
         except (opsmod.OpError, KeyError, TypeError, IndexError) as exc:
             await client.send({"t": "reject", "deck": deck_id, "id": msg.get("id"), "error": str(exc)})
             try:
-                await client.send({"t": "snapshot", "deck": deck_id, **STORE.snapshot(deck_id)})
+                await client.send(snapshot_message(deck_id, STORE.snapshot(deck_id)))
             except KeyError:
                 pass
         return
@@ -102,4 +106,5 @@ async def handle(client: Client, msg: dict) -> None:
             await client.send({"t": "notice", "kind": "info", "text": f"Nothing to {t}."})
         return
     if t == "presence":
+        client.focus = (deck_id, msg.get("slide"))
         await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "name": client.name, "slide": msg.get("slide"), "sel": msg.get("sel")}, skip=client.id)

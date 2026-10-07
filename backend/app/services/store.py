@@ -176,7 +176,7 @@ class Store:
                 del s.undo[:-HISTORY_LIMIT]
             s.redo.clear()
             s.deck.setdefault("meta", {})["modified"] = model.now_iso()
-            message = {"t": "ops", "deck": deck_id, "rev": s.rev, "ops": ops, "client": client, "step": sid, "label": label, "origin": origin}
+            message = {"t": "ops", "deck": deck_id, "rev": s.rev, "ops": ops, "client": client, "step": sid, "label": label, "origin": origin, "canUndo": True, "canRedo": False}
         await self.broadcast(deck_id, message)
         self._schedule_save(deck_id)
         return {"rev": s.rev, "step": sid}
@@ -209,7 +209,8 @@ class Store:
                 target.append(st)
             s.rev += 1
             label = ("Undo " if back else "Redo ") + batch[0].label
-            message = {"t": "ops", "deck": deck_id, "rev": s.rev, "ops": applied, "client": client, "step": f"k{next(self._steps)}", "label": label, "origin": "history"}
+            message = {"t": "ops", "deck": deck_id, "rev": s.rev, "ops": applied, "client": client, "step": f"k{next(self._steps)}", "label": label, "origin": "history",
+                       "canUndo": bool(s.undo), "canRedo": bool(s.redo)}
         await self.broadcast(deck_id, message)
         self._schedule_save(deck_id)
         return {"rev": s.rev, "label": label, "count": len(batch)}
