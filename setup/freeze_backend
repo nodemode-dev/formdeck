@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+fs_venv
+python -c "import PyInstaller" 2>/dev/null || fs_die "PyInstaller missing, run ./formsld install-desktop"
+triple="$(fs_target_triple)" || fs_die "rustc not found; install Rust or set FORMSLD_TARGET"
+[ -f "$FORMSLD_ROOT/frontend/dist/index.html" ] || "$FORMSLD_ROOT/setup/build_frontend"
+cd "$FORMSLD_ROOT/backend"
+sep=":"
+[ "$(fs_os)" = windows ] && sep=";"
+ext="$(fs_exe)"
+extra=()
+if [ -d "$FORMSLD_ROOT/backend/app/fonts" ]; then extra+=(--add-data "$FORMSLD_ROOT/backend/app/fonts${sep}fonts"); fi
+rm -rf build/pyinstaller dist-engine
+pyinstaller --noconfirm --clean --onefile --name formsld-engine \
+  --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \
+  --add-data "$FORMSLD_ROOT/frontend/dist${sep}frontend_dist" \
+  --collect-submodules app --collect-submodules uvicorn \
+  --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 \
+  "${extra[@]}" \
+  "$FORMSLD_ROOT/backend/formsld_engine.py"
+mkdir -p "$FORMSLD_ROOT/src-tauri/binaries"
+out="$FORMSLD_ROOT/src-tauri/binaries/formsld-engine-${triple}${ext}"
+cp "dist-engine/formsld-engine${ext}" "$out"
+"$out" --selfcheck
+fs_say "sidecar ready: $out"

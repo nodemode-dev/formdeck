@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "formsld",
+  "version": "0.1.0",
+  "identifier": "ai.nodemode.formsld",
+  "build": {
+    "frontendDist": "../frontend/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "splash",
+        "title": "formsld",
+        "url": "splash.html",
+        "width": 360,
+        "height": 180,
+        "resizable": false,
+        "decorations": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "Presentations, decks and PDFs",
+    "longDescription": "formsld is a presentation editor in the NodeMode design system: slides, layouts, masters and templates in its own .fsld decks, PowerPoint and Google Slides exchange through .pptx, PDF reading and export, and agent automation that builds and edits decks in plain language.",
+    "copyright": "Copyright 2026 nodemode-ai.",
+    "externalBin": ["binaries/formsld-engine"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.plist"
+    },
+    "fileAssociations": [
+      { "ext": ["fsld"], "name": "formsld Deck", "description": "formsld presentation deck", "role": "Editor", "mimeType": "application/x-formsld" },
+      { "ext": ["pptx"], "name": "PowerPoint Presentation", "description": "PowerPoint presentation", "role": "Editor", "rank": "Alternate", "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+      { "ext": ["pdf"], "name": "PDF Document", "description": "PDF document", "role": "Viewer", "rank": "Alternate", "mimeType": "application/pdf" }
+    ],
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": ["https://github.com/nodemode-ai/formsld/releases/latest/download/latest.json"]
+    }
+  }
+}

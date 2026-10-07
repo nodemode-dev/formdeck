@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -e
+FORMSLD_CALLER_DIR="$PWD"
+export FORMSLD_CALLER_DIR
+cd "$(dirname "$0")"
+usage() {
+  printf 'formsld %s · presentation editor\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
+  cat << 'EOF'
+
+usage: ./formsld [command] [options]
+
+  (none) | boot       boot backend (8197) and frontend (5197) together
+  install [--lite]    install backend and frontend
+  install-desktop     install PyInstaller and check the Rust and Tauri toolchain
+  backend             boot the backend only
+  frontend            boot the frontend only
+  build               production build of the frontend into frontend/dist
+  serve               serve the built frontend from the backend on 127.0.0.1:8197
+  freeze              freeze the backend into the Tauri sidecar binary
+  desktop dev|build   run or bundle the desktop app
+  doctor              check the toolchain, installs and ports
+  mcp                 formsld over MCP's stdio transport, for Claude Desktop and other MCP clients
+  agents install|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
+  build-deck [args]   build a deck from files headlessly, without the window
+  templates export [dir]  write the built-in templates as .pptx files
+  clean [--all]       remove build output (--all also venv and node_modules)
+  help                this text
+EOF
+}
+cmd="${1:-boot}"
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  boot|dev) exec setup/boot_all "$@" ;;
+  install) exec setup/install_all "$@" ;;
+  install-desktop) exec setup/install_desktop "$@" ;;
+  backend) exec setup/boot_backend "$@" ;;
+  frontend) exec setup/boot_frontend "$@" ;;
+  build) exec setup/build_frontend "$@" ;;
+  serve) exec setup/serve "$@" ;;
+  freeze) exec setup/freeze_backend "$@" ;;
+  desktop)
+    sub="${1:-dev}"
+    [ $# -gt 0 ] && shift
+    case "$sub" in
+      dev) exec setup/desktop_dev "$@" ;;
+      build) exec setup/desktop_build "$@" ;;
+      *) usage; exit 2 ;;
+    esac ;;
+  doctor) exec setup/doctor "$@" ;;
+  mcp) exec python3 setup/mcp_stdio.py "$@" ;;
+  agents) exec python3 setup/agents.py "$@" ;;
+  build-deck) exec setup/build_deck "$@" ;;
+  templates) exec setup/templates "$@" ;;
+  clean) exec setup/clean "$@" ;;
+  help|-h|--help) usage ;;
+  *) printf '[formsld] unknown command: %s\n\n' "$cmd"; usage; exit 2 ;;
+esac

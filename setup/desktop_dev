@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+triple="$(fs_target_triple)" || fs_die "rustc not found; run ./formsld install-desktop"
+[ -x "$FORMSLD_ROOT/src-tauri/binaries/formsld-engine-${triple}$(fs_exe)" ] || "$FORMSLD_ROOT/setup/freeze_backend"
+cd "$FORMSLD_ROOT"
+exec frontend/node_modules/.bin/tauri dev "$@"

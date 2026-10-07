@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+FORMSLD_CALLER_DIR="${FORMSLD_CALLER_DIR:-$PWD}"
+export FORMSLD_CALLER_DIR
+fs_venv
+cd "$FORMSLD_ROOT"
+exec python setup/cli.py "$@"
