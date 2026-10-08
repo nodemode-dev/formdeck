@@ -12,7 +12,7 @@ The formsld MCP server is configured in .mcp.json (http://127.0.0.1:8197/mcp). S
 4. render_slides and lint_deck; fix with update_slide, set_text or edit_elements.
 5. Leave slides in review status for the person; never mark them approved yourself.
 
-The full guide is the MCP resource formsld://guide. The deck format is docs/FORMAT.md.
+Load the skill `.claude/skills/formsld-harness` for the full loop, the slide-script syntax with an example per layout, template choice, visual QA and handoff. The MCP resource formsld://guide is the short version; the deck format is docs/FORMAT.md. For work on the codebase itself, load `.claude/skills/formsld-skillset`.
 
 ## Developing formsld
 

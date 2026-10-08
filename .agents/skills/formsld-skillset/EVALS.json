@@ -1,0 +1,123 @@
+{
+  "skill_name": "formsld-skillset",
+  "notes": "Run inside the formsld repository. Expected behaviours are observable in the files read, the edits made and the hand-back.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "add-mcp-tool-duplicate-deck",
+      "prompt": "Add an MCP tool duplicate_deck to formsld so agents can copy a deck before a risky restyle.",
+      "files": [],
+      "expected_behavior": [
+        "Loads mcp-tool-author and reads backend/app/routers/mcp.py before editing",
+        "Adds a _tool entry with argument descriptions and a t_duplicate_deck handler that creates the copy through STORE.create without passing an empty id",
+        "Adds the tool to MUTATING so the consent gate runs",
+        "Checks it against a scratch engine (tools/list, a happy call, a bad id) and keeps the harness out of the repository",
+        "Updates the GUIDE text, the harness references/tools.md and the README tool count"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "agenda-numbers-wrap",
+      "prompt": "On agenda slides the numbers 2, 3, 4 sit on their own line with the period and text below. Fix it.",
+      "files": [],
+      "expected_behavior": [
+        "Loads renderer and finds the .fs-bu inline-block span in render/text.ts and styles/slides.css",
+        "Makes a single-region edit (for example white-space: nowrap or sizing the span to its label), no scripted edit",
+        "Checks edit, thumbnail and raster output agree and runs ui-verification",
+        "Adds a HASHOUT frontend entry"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "stats-semantic-lost-on-pptx-reimport",
+      "prompt": "When I export a formsld deck to pptx and import it as a template, the stats layout disappears. Why, and fix it.",
+      "files": [],
+      "expected_behavior": [
+        "Loads pptx-exchange and templates and traces the Statistics layout name to read_layouts.py STRONG_NAMES matching bigNumber first",
+        "Fixes it in one place (the rule order or pattern, or the generator layout name) and explains the trade-off",
+        "Round-trips a sample deck and shows 21 recognised semantics"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "new-element-property-emphasis-colour",
+      "prompt": "Add a per-element 'emphasis colour' property that the renderer and pptx export both respect.",
+      "files": [],
+      "expected_behavior": [
+        "Loads deck-format first and updates docs/FORMAT.md, engine/model.ts and services/model.py normalize together",
+        "Lists every reader and writer from the format map and updates or explicitly skips each",
+        "Does not add tests to the repository"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "inspector-control-zero-flash",
+      "prompt": "Add a line spacing control to the inspector's text box section.",
+      "files": [],
+      "expected_behavior": [
+        "Loads editor-ui; wires the control through an op builder and ed.apply with a coalesce key",
+        "Mounts the control once and patches its value with setValue; uses tokens and fs- classes; no raw z-index",
+        "Runs ui-verification with a live agent edit and states the verdict in the prescribed words"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "release-commit-shape",
+      "prompt": "Commit the work and bump formsld to 0.2.1.",
+      "files": [],
+      "expected_behavior": [
+        "Uses Conventional Commits type(scope): summary (0.2.1) with a body for each logical change",
+        "Makes the version bump the last commit and changes every version location (package.json and lock, version.ts, app/__init__.py, Cargo.toml, tauri.conf.json, README, HASHOUT headers)",
+        "Writes no emoji and no em dash in commit messages"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "new-intake-file-type",
+      "prompt": "Let ingest read .key files exported as PDF next to them, and plain .rtf notes.",
+      "files": [],
+      "expected_behavior": [
+        "Loads intake; adds detection and a reader returning the common source shape with rollback on failure",
+        "Adds digest lines at every ladder level and keeps the 5,600 character cap",
+        "Updates FORMAT.md source kinds, the ingest tool description and the harness digest reference"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "desktop-file-association-gap",
+      "prompt": "Double-clicking a .fsld file opens formsld but not the file. Fix it.",
+      "files": [],
+      "expected_behavior": [
+        "Loads desktop-shell and identifies that main.rs handles neither RunEvent::Opened nor file arguments",
+        "Proposes passing the path to the page and calling /api/open-path, with a browser-safe fallback",
+        "States whether a desktop build could be run here or names the missing toolchain"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "harness-question-should-route-away",
+      "prompt": "Make me a 10 slide pitch deck from notes.md in formsld.",
+      "files": [],
+      "expected_behavior": [
+        "Does not edit repository code",
+        "Routes to formsld-harness (building decks through the MCP tools)"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    { "query": "add an MCP tool to formsld that duplicates a deck", "should_trigger": true },
+    { "query": "fix the text autofit bug in formsld's renderer", "should_trigger": true },
+    { "query": "the slide sorter rebuilds every thumbnail when an agent edits, fix the flicker", "should_trigger": true },
+    { "query": "pptx import loses the stats layout in formsld", "should_trigger": true },
+    { "query": "add a new template to backend/app/services/templates", "should_trigger": true },
+    { "query": "the formsld sidecar fails to start in the desktop build", "should_trigger": true },
+    { "query": "add a field to docs/FORMAT.md and the TS model", "should_trigger": true },
+    { "query": "write the HASHOUT_LOG entry and commit with the version bump", "should_trigger": true },
+    { "query": "build me a pitch deck from these notes in formsld", "should_trigger": false },
+    { "query": "export my formsld deck to pdf", "should_trigger": false },
+    { "query": "fix the layers panel in formvis", "should_trigger": false },
+    { "query": "write a FastAPI endpoint for a todo app", "should_trigger": false },
+    { "query": "how do I make a Tauri app from scratch", "should_trigger": false },
+    { "query": "merge these two PDFs", "should_trigger": false }
+  ]
+}
