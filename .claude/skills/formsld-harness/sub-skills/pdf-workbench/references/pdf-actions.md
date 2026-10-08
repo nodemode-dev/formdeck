@@ -1,6 +1,6 @@
 # pdf actions
 
-The `pdf` MCP tool, action by action, as checked against formsld 0.3.0. All paths are absolute. Any failure inside an action answers `pdf [action] failed: [reason]` with isError. Locked (password protected) PDFs fail every action; the tool has no password input.
+The `pdf` MCP tool, action by action, as checked against formsld 0.4.0. All paths are absolute. Any failure inside an action answers `pdf [action] failed: [reason]` with isError. Locked (password protected) PDFs fail every action; the tool has no password input.
 
 ## Contents
 
