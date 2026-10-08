@@ -20,7 +20,7 @@ export interface Effects {
   shadow?: { color?: Color; blur?: number; dist?: number; angle?: number } | null;
   glow?: { color?: Color; radius?: number } | null;
   softEdge?: number | null;
-  reflection?: { size?: number; alpha?: number } | null;
+  reflection?: { size?: number; alpha?: number; dist?: number } | null;
 }
 
 export interface Run {
@@ -84,8 +84,8 @@ export type SlideElement = ShapeElement | ImageElement | TableElement | ChartEle
 export type TransitionType = 'none' | 'fade' | 'push' | 'wipe' | 'split' | 'cover' | 'uncover' | 'zoom' | 'reveal' | 'flip' | 'cube' | 'morph';
 export interface Transition { type: TransitionType; duration?: number; dir?: 'l' | 'r' | 'u' | 'd'; advanceOnClick?: boolean; advanceAfter?: number | null }
 export interface Animation {
-  id: string; target: string; effect: string; class: 'entr' | 'emph' | 'exit'; trigger: 'onClick' | 'withPrevious' | 'afterPrevious';
-  duration?: number; delay?: number; byParagraph?: boolean; dir?: 'l' | 'r' | 'u' | 'd';
+  id: string; target: string; effect: string; class: 'entr' | 'emph' | 'exit' | 'path'; trigger: 'onClick' | 'withPrevious' | 'afterPrevious';
+  duration?: number; delay?: number; byParagraph?: boolean; dir?: 'l' | 'r' | 'u' | 'd'; path?: string; rotate?: boolean; reverse?: boolean;
 }
 export type ReviewStatus = 'draft' | 'review' | 'changes' | 'approved';
 export interface Slide {

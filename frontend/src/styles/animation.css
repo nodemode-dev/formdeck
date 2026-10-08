@@ -12,6 +12,21 @@
 .fs-anim-num.is-entr { --fs-anim-cls: var(--ok); }
 .fs-anim-num.is-emph { --fs-anim-cls: var(--warn); }
 .fs-anim-num.is-exit { --fs-anim-cls: var(--danger); }
+.fs-anim-num.is-path { --fs-anim-cls: var(--fs-sel); }
+.fs-anim-edit > .fs-seg button { flex: 1 1 auto; padding: 0 6px; white-space: nowrap; }
+.fs-anim-checks { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+.fs-anim-hint { margin: 0 0 var(--space-2); }
+[data-a="draw"].is-on { background: var(--accent-soft); color: var(--accent-color); }
+.fs-motion-layer { position: absolute; left: 0; top: 0; z-index: var(--z-raised); width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+.fs-motion-layer path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fs-motion-halo { stroke: var(--text-on-accent); stroke-opacity: 0.7; stroke-width: 3.5; }
+.fs-motion-line { stroke: var(--fs-sel); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.fs-motion.is-on .fs-motion-line { stroke-width: 2.25; }
+.fs-motion-start, .fs-motion-end { stroke: var(--text-on-accent); stroke-width: 1.5; }
+.fs-motion-start { fill: var(--ok); }
+.fs-motion-end { fill: var(--danger); }
+.fs-motion.is-draft .fs-motion-line { stroke-dasharray: none; }
+.is-motion-draw .fs-viewport, .is-motion-draw .fs-viewport * { cursor: crosshair; }
 .fs-anim-tools { display: flex; align-items: center; opacity: 0; transition: opacity var(--transition-fast); }
 .fs-anim-row:hover .fs-anim-tools, .fs-anim-row.is-selected .fs-anim-tools, .fs-anim-tools:focus-within { opacity: 1; }
 .fs-anim-empty { margin-top: 2px; }

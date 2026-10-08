@@ -7,12 +7,12 @@ import { mediaUrl, SlideView } from '../render/slide';
 import { el, patchList, q, reserve, setClass, setHidden, setHtml, setStyleVar, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
-import { effectFx, effectName, effectSeconds, HOLD, morph, transitionPlan, type AnimClass, type Box, type Dir } from './effects';
+import { effectFx, effectName, effectSeconds, HOLD, morph, motionFor, transitionPlan, type AnimClass, type Box, type Dir, type Motion } from './effects';
 
 export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void }
 
 interface Unit { id: string; para: number }
-interface Item { unit: Unit; kind: AnimClass; fx: string; dir?: Dir; start: number; dur: number }
+interface Item { unit: Unit; kind: AnimClass; fx: string; dir?: Dir; start: number; dur: number; motion?: Motion }
 type Step = Item[];
 interface Stroke { c: string; w: number; p: number[] }
 type Mode = 'pointer' | 'pen' | 'eraser' | 'laser';
@@ -97,8 +97,9 @@ function mediaOf(list: SlideElement[], out: MediaElement[] = []): MediaElement[]
   return out;
 }
 
-function buildSteps(slide: Slide, paras: (id: string) => number): Step[] {
+function buildSteps(slide: Slide, paras: (id: string) => number, size: { w: number; h: number }): Step[] {
   const steps: Step[] = [[]];
+  const moved = new Map<string, [number, number]>();
   let base = 0, end = 0;
   for (const a of slide.animations ?? []) {
     const fx = effectName(a.effect, a.class);
@@ -109,7 +110,8 @@ function buildSteps(slide: Slide, paras: (id: string) => number): Step[] {
       const delay = i === 0 ? Math.max(0, a.delay ?? 0) * 1000 : 0;
       if (trig === 'onClick') { steps.push([]); base = 0; end = 0; }
       const start = trig === 'withPrevious' ? base + delay : trig === 'afterPrevious' ? end + delay : delay;
-      steps[steps.length - 1].push({ unit: { id: a.target, para: n ? i : -1 }, kind: a.class, fx, dir: a.dir, start, dur });
+      const unit = { id: a.target, para: n ? i : -1 };
+      steps[steps.length - 1].push({ unit, kind: a.class, fx, dir: a.dir, start, dur, motion: motionFor(a, `${unit.para}|${unit.id}`, moved, size.w, size.h) });
       base = start;
       end = Math.max(end, start + dur);
     }
@@ -719,7 +721,7 @@ class Show {
 
   private stepsFor(view: SlideView): Step[] {
     const s = view.slide;
-    return s ? buildSteps(s, (id) => this.paras(view, id).length) : [[]];
+    return s ? buildSteps(s, (id) => this.paras(view, id).length, this.doc.deck.size) : [[]];
   }
 
   private nodeOf(view: SlideView, id: string): HTMLElement | null {
@@ -737,7 +739,7 @@ class Show {
 
   private fxFor(view: SlideView, it: Item, node: HTMLElement): ReturnType<typeof effectFx> {
     const size = this.doc.deck.size;
-    return effectFx(it.fx, it.kind, it.dir, boxOf(node, view.inner), size.w, size.h, it.unit.para < 0 ? natural(node) : 1);
+    return effectFx(it.fx, it.kind, it.dir, boxOf(node, view.inner), size.w, size.h, it.unit.para < 0 ? natural(node) : 1, it.motion);
   }
 
   private applyState(view: SlideView, steps: Step[], upto: number): void {
@@ -752,7 +754,7 @@ class Show {
         if (!v) continue;
         if (it.kind === 'entr') v.on = true;
         else if (it.kind === 'exit') v.on = false;
-        else if (HOLD.has(it.fx)) held.push(it);
+        else if (it.kind === 'path' || HOLD.has(it.fx)) held.push(it);
       }
     }
     for (const n of Array.from(view.el.querySelectorAll('.fs-anim-hidden'))) n.classList.remove('fs-anim-hidden');

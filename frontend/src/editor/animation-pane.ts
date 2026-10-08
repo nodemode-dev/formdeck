@@ -1,7 +1,7 @@
 import type { Animation as Anim, Slide, SlideElement } from '../engine/model';
 import { slidePath, type Op, type PathKey } from '../engine/ops';
 import { chain, frameOf, plainText } from '../engine/resolve';
-import { effectFx, effectName, effectSeconds, type AnimClass, type Box, type Dir } from '../present/effects';
+import { defaultPath, effectFx, effectName, effectSeconds, motionFor, pathEnds, PATH_DIR, type AnimClass, type Box, type Dir, type Motion } from '../present/effects';
 import type { SlideView } from '../render/slide';
 import { el, escapeHtml, patchList, q, setChecked, setClass, setDisabled, setHidden, setHtml, setText, setTitle, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
@@ -12,14 +12,20 @@ type Fields = Omit<Anim, 'id' | 'target'>;
 type DirList = ReadonlyArray<readonly [Dir, string]>;
 interface EffectDef { id: string; label: string; dirs?: DirList }
 interface Unit { id: string; para: number }
-interface Item { unit: Unit; kind: AnimClass; fx: string; dir?: Dir; start: number; dur: number }
+interface Item { unit: Unit; kind: AnimClass; fx: string; dir?: Dir; start: number; dur: number; motion?: Motion }
 interface Playing { anims: Animation[]; holds: Map<HTMLElement, Animation> }
+type Pt = [number, number];
+interface Drawing { ids: string[]; anim: string | null; at: Pt; pts: Pt[]; cursor: Pt | null }
 
 const FROM: DirList = [['d', 'From bottom'], ['l', 'From left'], ['r', 'From right'], ['u', 'From top']];
 const TO: DirList = [['d', 'To bottom'], ['l', 'To left'], ['r', 'To right'], ['u', 'To top']];
 const FLOAT: DirList = [['u', 'Up'], ['d', 'Down']];
 const SPLIT: DirList = [['l', 'Vertical'], ['u', 'Horizontal']];
 const SPIN: DirList = [['r', 'Clockwise'], ['l', 'Counter-clockwise']];
+const LINE: DirList = [['d', 'Down'], ['l', 'Left'], ['r', 'Right'], ['u', 'Up']];
+const TURN: DirList = [['d', 'Down'], ['r', 'Down right'], ['u', 'Up'], ['l', 'Up right']];
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const DRAW_HINT = 'Click points for the path. Enter or double-click to finish, Backspace removes a point, Esc cancels.';
 
 const EFFECTS: Record<AnimClass, EffectDef[]> = {
   entr: [
@@ -36,8 +42,12 @@ const EFFECTS: Record<AnimClass, EffectDef[]> = {
     { id: 'wipeOut', label: 'Wipe', dirs: FROM }, { id: 'splitOut', label: 'Split', dirs: SPLIT }, { id: 'zoomOut', label: 'Zoom' }, { id: 'shrinkTurn', label: 'Shrink and turn' },
     { id: 'swivel', label: 'Swivel' }, { id: 'wheel', label: 'Wheel' },
   ],
+  path: [
+    { id: 'line', label: 'Line', dirs: LINE }, { id: 'arc', label: 'Arc', dirs: LINE }, { id: 'turn', label: 'Turn', dirs: TURN }, { id: 'circle', label: 'Circle' },
+    { id: 'custom', label: 'Custom path' },
+  ],
 };
-const CLASSES: Array<[AnimClass, string]> = [['entr', 'Entrance'], ['emph', 'Emphasis'], ['exit', 'Exit']];
+const CLASSES: Array<[AnimClass, string]> = [['entr', 'Entrance'], ['emph', 'Emphasis'], ['exit', 'Exit'], ['path', 'Motion paths']];
 const TRIGGERS: Array<[Trigger, string]> = [['onClick', 'On click'], ['withPrevious', 'With previous'], ['afterPrevious', 'After previous']];
 const PAIR: Record<string, string> = { fadeIn: 'fadeOut', flyIn: 'flyOut', floatIn: 'floatOut', riseUp: 'floatOut', wipeIn: 'wipeOut', split: 'splitOut', zoomIn: 'zoomOut', growTurn: 'shrinkTurn', appear: 'disappear' };
 const INSTANT = new Set(['appear', 'disappear']);
@@ -58,7 +68,7 @@ function counterpart(effect: string, to: AnimClass): string {
   if (defOf(effect, to)) return effect;
   const back = Object.entries(PAIR).find(([, v]) => v === effect)?.[0];
   const cand = to === 'exit' ? PAIR[effect] : to === 'entr' ? back : undefined;
-  return cand && defOf(cand, to) ? cand : EFFECTS[to][to === 'emph' ? 0 : 1].id;
+  return cand && defOf(cand, to) ? cand : EFFECTS[to][to === 'emph' || to === 'path' ? 0 : 1].id;
 }
 
 function findEl(list: SlideElement[], id: string): SlideElement | undefined {
@@ -93,8 +103,9 @@ function numbering(slide: Slide): string[] {
   });
 }
 
-function buildSteps(slide: Slide, paras: (id: string) => number): Item[][] {
+function buildSteps(slide: Slide, paras: (id: string) => number, size: { w: number; h: number }): Item[][] {
   const steps: Item[][] = [[]];
+  const moved = new Map<string, Pt>();
   let base = 0, end = 0;
   for (const a of slide.animations ?? []) {
     const fx = effectName(a.effect, a.class);
@@ -105,7 +116,8 @@ function buildSteps(slide: Slide, paras: (id: string) => number): Item[][] {
       const delay = i === 0 ? Math.max(0, a.delay ?? 0) * 1000 : 0;
       if (trig === 'onClick') { steps.push([]); base = 0; end = 0; }
       const start = trig === 'withPrevious' ? base + delay : trig === 'afterPrevious' ? end + delay : delay;
-      steps[steps.length - 1].push({ unit: { id: a.target, para: n ? i : -1 }, kind: a.class, fx, dir: a.dir, start, dur });
+      const unit = { id: a.target, para: n ? i : -1 };
+      steps[steps.length - 1].push({ unit, kind: a.class, fx, dir: a.dir, start, dur, motion: motionFor(a, `${unit.para}|${unit.id}`, moved, size.w, size.h) });
       base = start;
       end = Math.max(end, start + dur);
     }
@@ -134,8 +146,23 @@ function tidy<T extends Partial<Anim>>(a: T): T {
   if (!out.delay) delete out.delay;
   if (out.dir === undefined) delete out.dir;
   if (out.duration === undefined) delete out.duration;
+  if (!out.path) delete out.path;
+  if (!out.rotate) delete out.rotate;
+  if (!out.reverse) delete out.reverse;
   return out;
 }
+
+function svgNode<T extends SVGElement>(tag: string, cls: string): T {
+  const n = document.createElementNS(SVG_NS, tag) as T;
+  n.setAttribute('class', cls);
+  return n;
+}
+
+function attr(n: Element, name: string, value: string): void {
+  if (n.getAttribute(name) !== value) n.setAttribute(name, value);
+}
+
+const r1 = (n: number): number => Math.round(n * 10) / 10;
 
 export function hasAnimations(slide: Slide): boolean {
   return (slide.animations ?? []).some((a) => !!findEl(slide.elements, a.target));
@@ -150,9 +177,13 @@ export class AnimationPane {
   private playing: Playing | null = null;
   private run = 0;
   private watched: Element | null = null;
+  private drawing: Drawing | null = null;
+  private drawOffs: Array<() => void> = [];
   private readonly list: HTMLElement;
   private readonly sheet: HTMLStyleElement;
   private readonly ro: ResizeObserver;
+  private readonly layer: SVGSVGElement;
+  private readonly groups = new Map<string, SVGGElement>();
 
   constructor() {
     this.el = el(`<div class="fs-insp fs-anim">
@@ -161,10 +192,13 @@ export class AnimationPane {
 <div class="fs-seg" data-seg="class" role="group" aria-label="Animation type">${CLASSES.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}</div>
 <div class="fs-prop-row"><span class="fs-prop-label">Effect</span><div class="fs-prop-ctl"><select data-f="effect" aria-label="Effect"></select></div></div>
 <div class="fs-prop-row" data-row="dir"><span class="fs-prop-label">Direction</span><div class="fs-prop-ctl"><select data-f="dir" aria-label="Direction"></select></div></div>
+<div class="fs-prop-row" data-row="draw"><span class="fs-prop-label">Path</span><div class="fs-prop-ctl"><button class="fs-btn fs-btn-sm" type="button" data-a="draw" aria-pressed="false">${icon('pen', 14)}<span data-r="draw-text">Draw path</span></button></div></div>
+<div class="fs-note fs-anim-hint" data-r="draw-hint" hidden>${DRAW_HINT}</div>
 <div class="fs-prop-row"><span class="fs-prop-label">Start</span><div class="fs-prop-ctl"><select data-f="trigger" aria-label="Start">${TRIGGERS.map(([v, l]) => optionHtml(v, l)).join('')}</select></div></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Duration</span><div class="fs-prop-ctl">${num('duration', 'Duration in seconds')}</div></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Delay</span><div class="fs-prop-ctl">${num('delay', 'Delay in seconds')}</div></div>
 <div class="fs-prop-row" data-row="para"><span class="fs-prop-label">Text</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="byParagraph"><span>By paragraph</span></label></div></div>
+<div class="fs-prop-row" data-row="motion"><span class="fs-prop-label">Motion</span><div class="fs-prop-ctl fs-anim-checks"><label class="fs-check"><input type="checkbox" data-f="rotate"><span>Orient along path</span></label><label class="fs-check"><input type="checkbox" data-f="reverse"><span>Reverse direction</span></label></div></div>
 <div class="fs-anim-actions"><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="done" hidden>Done</button><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="add">${icon('plus', 14)}Add animation</button></div></div>
 <div class="fs-prop-section fs-anim-order"><div class="fs-panel-head"><span class="fs-panel-title">On this slide</span><span class="fs-badge is-count" data-r="count">0</span><button class="fs-btn fs-btn-sm fs-anim-play" type="button" data-a="preview" aria-pressed="false" title="Play this slide's animations on the stage"><span data-r="play">${icon('play', 14)}</span><span data-r="stop" hidden>${icon('close', 14)}</span><span data-r="play-text">Preview</span></button></div>
 <div class="fs-list fs-anim-list" role="listbox" aria-label="Animations on this slide"></div>
@@ -173,7 +207,14 @@ export class AnimationPane {
     this.list = q(this.el, '.fs-anim-list');
     this.sheet = document.createElement('style');
     this.sheet.dataset.fs = 'anim-marks';
-    this.ro = new ResizeObserver(() => this.syncMarks());
+    this.ro = new ResizeObserver(() => {
+      if (this.drawing && !this.el.getClientRects().length) this.endDraw();
+      this.syncMarks();
+      this.syncPaths();
+    });
+    this.layer = svgNode<SVGSVGElement>('svg', 'fs-motion-layer');
+    this.layer.setAttribute('aria-hidden', 'true');
+    this.layer.style.display = 'none';
     this.wire();
   }
 
@@ -187,10 +228,14 @@ export class AnimationPane {
       ed.on('selection', () => {
         const a = this.current();
         if (a && !ed.selection.includes(a.target)) this.picked = null;
+        if (this.drawing && !this.drawing.ids.every((id) => ed.selection.includes(id))) this.endDraw();
         this.sync();
       }),
-      ed.on('current', () => { this.stop(); this.picked = null; this.sync(); }),
-      ed.on('doc', () => this.sync()),
+      ed.on('current', () => { this.stop(); this.endDraw(); this.picked = null; this.sync(); }),
+      ed.on('doc', () => {
+        if (this.drawing && !this.drawing.ids.every((id) => ed.slide?.elements.some((e) => e.id === id))) this.endDraw();
+        this.sync();
+      }),
       ed.doc.on((e) => { if (this.playing && (e.touched.all || e.touched.slides.has(ed.current))) this.stop(); }),
     );
     this.sync();
@@ -201,9 +246,11 @@ export class AnimationPane {
     this.ro.disconnect();
     this.watched = null;
     this.sheet.remove();
+    this.layer.remove();
   }
 
   private detach(): void {
+    this.endDraw();
     this.stop();
     for (const off of this.offs) off();
     this.offs = [];
@@ -235,8 +282,9 @@ export class AnimationPane {
       }
       if (row) { this.pick(row.dataset.key ?? ''); return; }
       if (act?.dataset.a === 'add') this.add();
-      else if (act?.dataset.a === 'done') { this.picked = null; this.sync(); }
+      else if (act?.dataset.a === 'done') { this.endDraw(); this.picked = null; this.sync(); }
       else if (act?.dataset.a === 'preview') void this.preview();
+      else if (act?.dataset.a === 'draw') { if (this.drawing) this.endDraw(); else this.beginDraw(); }
     });
     this.el.addEventListener('change', (e) => this.fieldChange(e.target as HTMLInputElement | HTMLSelectElement));
   }
@@ -248,8 +296,11 @@ export class AnimationPane {
       const fields: Partial<Fields> = { effect: t.value };
       if (!defOf(t.value, v.class)?.dirs?.some(([d]) => d === v.dir)) fields.dir = undefined;
       if (v.duration === undefined || Math.abs(v.duration - defaultSeconds(v.effect, v.class)) < 1e-6) fields.duration = defaultSeconds(t.value, v.class);
+      if (v.class === 'path') Object.assign(fields, this.pathFields(t.value, 'dir' in fields ? undefined : v.dir));
+      if (this.drawing && t.value !== 'custom') this.endDraw();
       this.patch(fields, 'Animation effect');
-    } else if (f === 'dir') this.patch({ dir: t.value as Dir }, 'Animation direction');
+    } else if (f === 'dir') this.patch({ dir: t.value as Dir, ...(v.class === 'path' ? this.pathFields(v.effect, t.value as Dir) : {}) }, 'Animation direction');
+    else if (f === 'rotate' || f === 'reverse') this.patch({ [f]: (t as HTMLInputElement).checked }, f === 'rotate' ? 'Orient along path' : 'Reverse path');
     else if (f === 'trigger') this.patch({ trigger: t.value as Trigger }, 'Animation start');
     else if (f === 'duration' || f === 'delay') {
       const n = Number(t.value);
@@ -265,7 +316,17 @@ export class AnimationPane {
     const fields: Partial<Fields> = { class: cls, effect };
     if (!defOf(effect, cls)?.dirs?.some(([d]) => d === v.dir)) fields.dir = undefined;
     if (v.duration === undefined || Math.abs(v.duration - defaultSeconds(v.effect, v.class)) < 1e-6) fields.duration = defaultSeconds(effect, cls);
+    if (cls === 'path') Object.assign(fields, this.pathFields(effect, 'dir' in fields ? undefined : v.dir));
+    else if (v.class === 'path') Object.assign(fields, { path: undefined, rotate: undefined, reverse: undefined });
+    this.endDraw();
     this.patch(fields, 'Animation type');
+  }
+
+  private pathFields(effect: string, dir: Dir | undefined): Partial<Fields> {
+    if (effect === 'custom') return {};
+    const d = defOf(effect, 'path')?.dirs ? dir ?? PATH_DIR[effect] : undefined;
+    const size = this.ed?.doc.deck.size ?? { w: 960, h: 540 };
+    return { dir: d, path: defaultPath(effect, d, size.w, size.h) };
   }
 
   private patch(fields: Partial<Fields>, label: string): void {
@@ -273,7 +334,7 @@ export class AnimationPane {
     const s = ed?.slide;
     const a = this.current();
     if (!ed || !s || !a) {
-      this.draft = tidy({ ...this.draft, ...fields });
+      this.draft = tidy({ ...this.draft, ...fields, path: undefined });
       this.sync();
       return;
     }
@@ -282,17 +343,22 @@ export class AnimationPane {
     ed.apply(ops, label);
   }
 
-  private add(): void {
+  private add(drawn?: string): void {
     const ed = this.ed;
     const s = ed?.slide;
     const els = ed?.selected() ?? [];
     if (!ed || !s || !els.length) return;
+    const base: Fields = { ...this.draft, path: undefined };
+    if (base.class === 'path') {
+      if (base.effect === 'custom' && !drawn) { this.beginDraw(); return; }
+      Object.assign(base, drawn ? { path: drawn } : this.pathFields(base.effect, base.dir));
+    }
     const used = ed.doc.usedIds();
     for (const x of ed.doc.deck.slides) for (const a of x.animations ?? []) used.add(a.id);
     const made: Anim[] = els.map((e, i) => {
       const id = ed.doc.nextId('a', used);
       used.add(id);
-      return tidy({ id, target: e.id, ...this.draft, trigger: i ? 'withPrevious' : this.draft.trigger, byParagraph: !!this.draft.byParagraph && textParas(e) > 0 });
+      return tidy({ id, target: e.id, ...base, trigger: i ? 'withPrevious' : base.trigger, byParagraph: !!base.byParagraph && textParas(e) > 0 });
     });
     const path: PathKey[] = [...slidePath(s.id), 'animations'];
     const ops: Op[] = s.animations ? made.map((a) => ({ op: 'ins', path, value: a })) : [{ op: 'set', path, value: made }];
@@ -366,13 +432,25 @@ export class AnimationPane {
     setValue(q<HTMLInputElement>(this.el, '[data-f="delay"]'), String(round2(v.delay ?? 0)));
     setHidden(q(this.el, '[data-row="para"]'), !targets.some((e) => textParas(e) > 0));
     setChecked(q<HTMLInputElement>(this.el, '[data-f="byParagraph"]'), !!v.byParagraph);
+    const isPath = v.class === 'path', custom = isPath && v.effect === 'custom';
+    setHidden(q(this.el, '[data-row="motion"]'), !isPath);
+    setChecked(q<HTMLInputElement>(this.el, '[data-f="rotate"]'), !!v.rotate);
+    setChecked(q<HTMLInputElement>(this.el, '[data-f="reverse"]'), !!v.reverse);
+    setHidden(q(this.el, '[data-row="draw"]'), !custom);
+    const draw = q<HTMLButtonElement>(this.el, '[data-a="draw"]');
+    setText(q(draw, '[data-r="draw-text"]'), this.drawing ? 'Cancel drawing' : cur?.path ? 'Redraw path' : 'Draw path');
+    setDisabled(draw, !this.drawing && (!s || !targets.length));
+    setClass(draw, 'is-on', !!this.drawing);
+    if (draw.getAttribute('aria-pressed') !== String(!!this.drawing)) draw.setAttribute('aria-pressed', String(!!this.drawing));
+    setHidden(q(this.el, '[data-r="draw-hint"]'), !this.drawing);
     const addBtn = q<HTMLButtonElement>(this.el, '[data-a="add"]');
-    setHidden(addBtn, !!cur);
+    setHidden(addBtn, !!cur || custom);
     setDisabled(addBtn, !s || !ed.selection.length);
     setHidden(q(this.el, '[data-a="done"]'), !cur);
     this.syncList(s, anims);
     this.syncPlay(anims.length > 0);
     this.syncMarks();
+    this.syncPaths();
   }
 
   private syncList(s: Slide | undefined, anims: Anim[]): void {
@@ -454,19 +532,161 @@ export class AnimationPane {
     if (this.sheet.textContent !== css) this.sheet.textContent = css;
   }
 
+  private syncPaths(): void {
+    const ed = this.ed;
+    const s = ed?.slide;
+    const host = ed?.stage.view?.el.parentElement ?? null;
+    const live = new Set<string>();
+    if (ed && s && host && this.el.isConnected && this.el.getClientRects().length > 0) {
+      if (this.layer.parentElement !== host) host.appendChild(this.layer);
+      const k = ed.stage.k || 1;
+      const { w, h } = ed.doc.deck.size;
+      const want = new Set(ed.selection);
+      const cur = this.current();
+      if (cur) want.add(cur.target);
+      const moved = new Map<string, Pt>();
+      for (const a of s.animations ?? []) {
+        const m = motionFor(a, a.target, moved, w, h);
+        const e = m && want.has(a.target) && this.drawing?.anim !== a.id ? s.elements.find((x) => x.id === a.target) : undefined;
+        if (!m || !e) continue;
+        const f = ed.stage.frameOf(e);
+        const at: Pt = [f.x + f.w / 2 + (m.from?.[0] ?? 0), f.y + f.h / 2 + (m.from?.[1] ?? 0)];
+        const ends = pathEnds(m.path);
+        this.paintPath(a.id, at, k, m.path, m.reverse ? ends.end : ends.start, m.reverse ? ends.start : ends.end, a.id === this.picked);
+        live.add(a.id);
+      }
+      const d = this.drawing;
+      if (d) {
+        const pts = d.cursor ? [...d.pts, d.cursor] : d.pts;
+        const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'} ${r1(x)} ${r1(y)}`).join(' ');
+        this.paintPath('draft', d.at, k, line, [0, 0], d.pts[d.pts.length - 1], true);
+        live.add('draft');
+      }
+    }
+    for (const [id, g] of this.groups) if (!live.has(id)) { g.remove(); this.groups.delete(id); }
+    const display = live.size ? '' : 'none';
+    if (this.layer.style.display !== display) this.layer.style.display = display;
+  }
+
+  private paintPath(id: string, at: Pt, k: number, d: string, start: Pt, end: Pt, on: boolean): void {
+    let g = this.groups.get(id);
+    if (!g) {
+      g = svgNode<SVGGElement>('g', id === 'draft' ? 'fs-motion is-draft' : 'fs-motion');
+      g.append(svgNode('path', 'fs-motion-halo'), svgNode('path', 'fs-motion-line'), svgNode('circle', 'fs-motion-start'), svgNode('circle', 'fs-motion-end'));
+      this.layer.appendChild(g);
+      this.groups.set(id, g);
+    }
+    setClass(g, 'is-on', on);
+    const [halo, line, a, b] = Array.from(g.children);
+    const tf = `translate(${r1(at[0] * k)} ${r1(at[1] * k)}) scale(${Math.round(k * 10000) / 10000})`;
+    for (const p of [halo, line]) { attr(p, 'd', d); attr(p, 'transform', tf); }
+    const dot = (c: Element, p: Pt): void => { attr(c, 'cx', String(r1((at[0] + p[0]) * k))); attr(c, 'cy', String(r1((at[1] + p[1]) * k))); attr(c, 'r', '4.5'); };
+    dot(a, start);
+    dot(b, end);
+  }
+
+  private startOf(s: Slide, id: string, anim: string | null): Pt {
+    const ed = this.ed;
+    const e = s.elements.find((x) => x.id === id);
+    const f = e && ed ? ed.stage.frameOf(e) : { x: 0, y: 0, w: 0, h: 0 };
+    const moved = new Map<string, Pt>();
+    const { w, h } = ed?.doc.deck.size ?? { w: 960, h: 540 };
+    for (const a of s.animations ?? []) {
+      if (a.id === anim) break;
+      if (a.target === id) motionFor(a, id, moved, w, h);
+    }
+    const o = moved.get(id) ?? [0, 0];
+    return [f.x + f.w / 2 + o[0], f.y + f.h / 2 + o[1]];
+  }
+
+  private slidePoint(e: MouseEvent): Pt {
+    const st = this.ed?.stage;
+    if (!st) return [0, 0];
+    const r = st.root.getBoundingClientRect();
+    return [(e.clientX - r.left - st.ox) / st.k, (e.clientY - r.top - st.oy) / st.k];
+  }
+
+  private beginDraw(): void {
+    const ed = this.ed;
+    const s = ed?.slide;
+    const cur = this.current();
+    const ids = cur ? [cur.target] : (ed?.selected() ?? []).map((e) => e.id);
+    if (!ed || !s || !ed.stage.view || !ids.length) return;
+    this.endDraw();
+    this.stop();
+    if (ed.stage.editing) ed.stage.endEdit();
+    const d: Drawing = { ids, anim: cur?.id ?? null, at: this.startOf(s, ids[0], cur?.id ?? null), pts: [[0, 0]], cursor: null };
+    this.drawing = d;
+    const root = ed.stage.root;
+    const listen = <E extends Event>(t: EventTarget, type: string, fn: (e: E) => void): void => {
+      const h = (e: Event): void => fn(e as E);
+      t.addEventListener(type, h, true);
+      this.drawOffs.push(() => t.removeEventListener(type, h, true));
+    };
+    const rel = (e: MouseEvent): Pt => { const p = this.slidePoint(e); return [p[0] - d.at[0], p[1] - d.at[1]]; };
+    listen<PointerEvent>(root, 'pointerdown', (e) => {
+      if (e.button !== 0 || ed.stage.view === null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const p = rel(e), last = d.pts[d.pts.length - 1];
+      if (Math.hypot(p[0] - last[0], p[1] - last[1]) * ed.stage.k >= 3) d.pts.push(p);
+      this.syncPaths();
+    });
+    listen<MouseEvent>(root, 'dblclick', (e) => { e.preventDefault(); e.stopPropagation(); this.finishDraw(); });
+    listen<MouseEvent>(root, 'contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); });
+    listen<PointerEvent>(root, 'pointermove', (e) => { d.cursor = rel(e); this.syncPaths(); });
+    listen<PointerEvent>(root, 'pointerleave', (e) => { if (e.target === root) { d.cursor = null; this.syncPaths(); } });
+    listen<KeyboardEvent>(window, 'keydown', (e) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      if (e.key === 'Escape') this.endDraw();
+      else if (e.key === 'Enter' && t?.tagName !== 'TEXTAREA') this.finishDraw();
+      else if (!typing && (e.key === 'Backspace' || e.key === 'Delete')) { if (d.pts.length > 1) d.pts.pop(); this.syncPaths(); }
+      else if (typing || !e.key.startsWith('Arrow')) return;
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    setClass(root, 'is-motion-draw', true);
+    ed.stage.setHint(DRAW_HINT);
+    this.sync();
+  }
+
+  private finishDraw(): void {
+    const d = this.drawing;
+    const ed = this.ed;
+    const s = ed?.slide;
+    this.endDraw();
+    if (!d || !ed || !s || d.pts.length < 2) return;
+    const path = `M 0 0 ${d.pts.slice(1).map(([x, y]) => `L ${r1(x)} ${r1(y)}`).join(' ')}`;
+    if (!d.anim) { this.add(path); return; }
+    if (!s.animations?.some((a) => a.id === d.anim)) return;
+    ed.apply([{ op: 'set', path: [...slidePath(s.id), 'animations', { id: d.anim }, 'path'], value: path }], 'Draw motion path');
+  }
+
+  private endDraw(): void {
+    if (!this.drawing) return;
+    this.drawing = null;
+    for (const off of this.drawOffs) off();
+    this.drawOffs = [];
+    const st = this.ed?.stage;
+    if (st) { setClass(st.root, 'is-motion-draw', false); st.setHint(null); }
+    this.sync();
+  }
+
   private async preview(): Promise<void> {
     if (this.playing) { this.stop(); return; }
     const ed = this.ed;
     const view = ed?.stage.view;
     const s = ed?.slide;
     if (!ed || !view || !s?.animations?.length) return;
+    this.endDraw();
     if (ed.stage.editing) ed.stage.endEdit();
     const token = ++this.run;
     const p: Playing = { anims: [], holds: new Map() };
     this.playing = p;
     this.sync();
     const { w: W, h: H } = ed.doc.deck.size;
-    const steps = buildSteps(s, (id) => parasOf(view, id).length);
+    const steps = buildSteps(s, (id) => parasOf(view, id).length, ed.doc.deck.size);
     const hide = (n: HTMLElement): void => { if (!p.holds.has(n)) p.holds.set(n, n.animate([{ visibility: 'hidden' }, { visibility: 'hidden' }], { duration: 0, fill: 'forwards' })); };
     const reveal = (n: HTMLElement): void => { p.holds.get(n)?.cancel(); p.holds.delete(n); };
     const seen = new Set<string>();
@@ -486,7 +706,7 @@ export class AnimationPane {
       for (const it of st) {
         const n = unitNode(view, it.unit);
         if (!n) continue;
-        const fx = effectFx(it.fx, it.kind, it.dir, boxOf(n, view.inner), W, H, it.unit.para < 0 ? natural(n) : 1);
+        const fx = effectFx(it.fx, it.kind, it.dir, boxOf(n, view.inner), W, H, it.unit.para < 0 ? natural(n) : 1, it.motion);
         if (it.kind === 'entr') reveal(n);
         const a = n.animate(fx.frames, { duration: fx.instant ? 1 : Math.max(1, it.dur), delay: it.start, fill: 'both', easing: fx.easing });
         p.anims.push(a);

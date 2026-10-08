@@ -1,11 +1,12 @@
-import type { Deck, Slide, SlideElement } from '../engine/model';
+import type { Animation as Anim, Deck, Slide, SlideElement } from '../engine/model';
 import { chain, frameOf } from '../engine/resolve';
 import type { SlideView } from '../render/slide';
 
 export type Dir = 'l' | 'r' | 'u' | 'd';
-export type AnimClass = 'entr' | 'emph' | 'exit';
+export type AnimClass = 'entr' | 'emph' | 'exit' | 'path';
 export interface Box { x: number; y: number; w: number; h: number }
 export interface Fx { frames: Keyframe[]; easing: string; hold: boolean; instant: boolean }
+export interface Motion { path: string; rotate?: boolean; reverse?: boolean; from?: [number, number] }
 export interface TransitionPlan { from: Keyframe[] | null; to: Keyframe[] | null; fromTop: boolean; easing: string; origins?: [string, string] }
 
 export const EASE_OUT = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
@@ -17,7 +18,7 @@ const FULL = 'inset(-12% -12% -12% -12%)';
 const SHUT: Record<Dir, string> = { d: 'inset(100% -12% -12% -12%)', u: 'inset(-12% -12% 100% -12%)', l: 'inset(-12% 100% -12% -12%)', r: 'inset(-12% -12% -12% 100%)' };
 const WIPE: Record<Dir, string> = { l: 'inset(0% 0% 0% 100%)', r: 'inset(0% 100% 0% 0%)', u: 'inset(100% 0% 0% 0%)', d: 'inset(0% 0% 100% 0%)' };
 const OPEN = 'inset(0% 0% 0% 0%)';
-const DUR: Record<string, number> = { appear: 0, disappear: 0, spin: 2, teeter: 1, bounce: 1.4, swivel: 1.2, wheel: 1, growShrink: 1, colorPulse: 0.8 };
+const DUR: Record<string, number> = { appear: 0, disappear: 0, spin: 2, teeter: 1, bounce: 1.4, swivel: 1.2, wheel: 1, growShrink: 1, colorPulse: 0.8, line: 2, arc: 2, turn: 2, circle: 2, custom: 2 };
 const ALIAS: Record<string, string> = { fadeIn: 'fade', fadeOut: 'fade', wipeIn: 'wipe', wipeOut: 'wipe', zoomIn: 'zoom', zoomOut: 'zoom', splitIn: 'split', splitOut: 'split', riseUp: 'floatIn', sinkDown: 'floatOut', growTurn: 'grow', shrinkTurn: 'shrink', bounceIn: 'bounce', wheelIn: 'wheel', swivelIn: 'swivel' };
 
 const px = (x: number, y: number): string => `${Math.round(x * 10) / 10}px ${Math.round(y * 10) / 10}px`;
@@ -32,6 +33,114 @@ export function effectSeconds(name: string, duration: number | undefined): numbe
   return Math.max(0, duration ?? DUR[name] ?? 0.5);
 }
 
+type Seg = [string, ...number[]];
+type Turn = [number, number, number, number];
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const SHAPES: Record<string, Seg[]> = {
+  line: [['M', 0, 0], ['L', 1, 0]],
+  arc: [['M', 0, 0], ['C', 0.22, 0.3, 0.78, 0.3, 1, 0]],
+  turn: [['M', 0, 0], ['L', 0.5, 0], ['C', 0.724, 0, 1, 0.276, 1, 0.5], ['L', 1, 1]],
+  circle: [['M', 0, 0], ['C', 0.276, 0, 0.5, 0.224, 0.5, 0.5], ['C', 0.5, 0.776, 0.276, 1, 0, 1], ['C', -0.276, 1, -0.5, 0.776, -0.5, 0.5], ['C', -0.5, 0.224, -0.276, 0, 0, 0], ['Z']],
+};
+const TURNS: Record<string, Partial<Record<Dir, Turn>>> = {
+  line: { r: [1, 0, 0, 1], l: [-1, 0, 0, 1], d: [0, 1, 1, 0], u: [0, 1, -1, 0] },
+  arc: { d: [1, 0, 0, 1], u: [1, 0, 0, -1], r: [0, 1, 1, 0], l: [0, -1, 1, 0] },
+  turn: { d: [1, 0, 0, 1], u: [1, 0, 0, -1], r: [0, 1, 1, 0], l: [0, 1, -1, 0] },
+};
+export const PATH_DIR: Record<string, Dir> = { line: 'd', arc: 'd', turn: 'd' };
+const sampled = new Map<string, Array<[number, number]>>();
+let probe: SVGPathElement | null = null;
+
+export function defaultPath(effect: string, dir: Dir | undefined, W: number, H: number): string {
+  const shape = SHAPES[effect];
+  if (!shape) return '';
+  const unit = Math.max(1, Math.round(Math.min(W, H) / 3));
+  const turns = TURNS[effect];
+  const [a, b, c, d]: Turn = (turns && ((dir && turns[dir]) || turns[PATH_DIR[effect]])) || [1, 0, 0, 1];
+  const num = (v: number): string => String(Math.round(v * unit * 10) / 10);
+  return shape.map(([cmd, ...n]) => {
+    const out = [cmd];
+    for (let i = 0; i + 1 < n.length; i += 2) out.push(num(a * n[i] + b * n[i + 1]), num(c * n[i] + d * n[i + 1]));
+    return out.join(' ');
+  }).join(' ');
+}
+
+function probePath(): SVGPathElement {
+  if (probe?.isConnected) return probe;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none';
+  probe = document.createElementNS(SVG_NS, 'path');
+  svg.appendChild(probe);
+  document.body.appendChild(svg);
+  return probe;
+}
+
+export function samplePath(d: string): Array<[number, number]> {
+  const hit = sampled.get(d);
+  if (hit) return hit;
+  const p = probePath();
+  p.setAttribute('d', d);
+  let len = 0;
+  try { len = p.getTotalLength(); } catch { len = 0; }
+  const out: Array<[number, number]> = [];
+  if (len > 0 && Number.isFinite(len)) {
+    const n = Math.max(30, Math.min(60, Math.round(len / 8)));
+    for (let i = 0; i <= n; i++) { const q = p.getPointAtLength((len * i) / n); out.push([q.x, q.y]); }
+  } else out.push([0, 0], [0, 0]);
+  if (sampled.size > 200) sampled.clear();
+  sampled.set(d, out);
+  return out;
+}
+
+export function pathEnds(d: string): { start: [number, number]; end: [number, number] } {
+  const s = samplePath(d);
+  return { start: s[0], end: s[s.length - 1] };
+}
+
+function turning(pts: Array<[number, number]>): number[] {
+  const raw = pts.slice(1).map((p, i): number | null => {
+    const dx = p[0] - pts[i][0], dy = p[1] - pts[i][1];
+    return Math.abs(dx) + Math.abs(dy) > 1e-6 ? (Math.atan2(dy, dx) * 180) / Math.PI : null;
+  });
+  const seg: number[] = [];
+  for (const a of raw) {
+    const last = seg.length ? seg[seg.length - 1] : raw.find((x) => x !== null) ?? 0;
+    let v = a ?? last;
+    while (v - last > 180) v -= 360;
+    while (v - last < -180) v += 360;
+    seg.push(v);
+  }
+  const n = seg.length;
+  const at = (i: number): number => (n < 2 ? seg[0] ?? 0 : i === 0 ? seg[0] - (seg[1] - seg[0]) / 2 : i === n ? seg[n - 1] + (seg[n - 1] - seg[n - 2]) / 2 : (seg[i - 1] + seg[i]) / 2);
+  const a0 = at(0);
+  return pts.map((_, i) => at(i) - a0);
+}
+
+export function pathFx(m: Motion): Fx {
+  const pts = samplePath(m.path).slice();
+  if (m.reverse) pts.reverse();
+  const [fx, fy] = m.from ?? [0, 0];
+  const turns = m.rotate ? turning(pts) : null;
+  const n = pts.length - 1;
+  const frames = pts.map(([x, y], i): Keyframe => {
+    const f: Keyframe = { offset: n ? i / n : 0, translate: px(fx + x, fy + y) };
+    if (turns) f.rotate = `${Math.round(turns[i] * 10) / 10}deg`;
+    return f;
+  });
+  return { frames, easing: EASE_IN_OUT, hold: true, instant: false };
+}
+
+export function motionFor(a: Anim, key: string, moved: Map<string, [number, number]>, W: number, H: number): Motion | undefined {
+  if (a.class !== 'path') return undefined;
+  const path = a.path || defaultPath(a.effect, a.dir, W, H) || 'M 0 0';
+  const from = moved.get(key) ?? [0, 0];
+  const { start, end } = pathEnds(path);
+  const last = a.reverse ? start : end;
+  moved.set(key, [from[0] + last[0], from[1] + last[1]]);
+  return { path, rotate: a.rotate, reverse: a.reverse, from };
+}
+
 function offstage(d: Dir, b: Box, W: number, H: number): string {
   if (d === 'l') return px(-(b.x + b.w) - 4, 0);
   if (d === 'r') return px(W - b.x + 4, 0);
@@ -39,8 +148,9 @@ function offstage(d: Dir, b: Box, W: number, H: number): string {
   return px(0, H - b.y + 4);
 }
 
-export function effectFx(name: string, cls: AnimClass, dir: Dir | undefined, b: Box, W: number, H: number, o: number): Fx {
+export function effectFx(name: string, cls: AnimClass, dir: Dir | undefined, b: Box, W: number, H: number, o: number, motion?: Motion): Fx {
   const fx = (frames: Keyframe[], easing = EASE_OUT, hold = false, instant = false): Fx => ({ frames, easing, hold, instant });
+  if (cls === 'path') return pathFx(motion ?? { path: defaultPath(name, dir, W, H) || 'M 0 0' });
   if (cls === 'emph') {
     if (name === 'spin') return fx([{ rotate: '0deg' }, { rotate: dir === 'l' ? '-360deg' : '360deg' }], EASE_IN_OUT);
     if (name === 'growShrink') return fx([{ scale: '1' }, { scale: '1.5' }], EASE_IN_OUT, true);

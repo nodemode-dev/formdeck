@@ -1,6 +1,8 @@
+import math
+
 from .ooxml import find, findall, int_attr, xpath
 from .read_elements import read_shape_tree
-from .write_anim import INSTANT, LABELS, effect_name
+from .write_anim import INSTANT, LABELS, PATH_OF, effect_name, format_path, path_segments, reverse_segments, slide_size
 
 TRIGGER_OF = {"clickEffect": "onClick", "withEffect": "withPrevious", "afterEffect": "afterPrevious"}
 SIDE_OF = {1: "u", 2: "r", 4: "d", 8: "l", 3: "u", 9: "u", 6: "d", 12: "d"}
@@ -76,6 +78,24 @@ def _direction(effect: str, preset: int, subtype: int, ctn) -> str | None:
     return None
 
 
+def _motion(ctn, preset: int, size: tuple[float, float]) -> dict | None:
+    node = xpath(ctn, ".//p:animMotion[@path]")
+    segs = path_segments(node[0].get("path")) if node else []
+    if not segs:
+        return None
+    w, h = size
+    segs = [(seg[0], *[(p[0] * w, p[1] * h) for p in seg[1:]]) for seg in segs]
+    single = sum(1 for seg in segs if seg[0] == "M") == 1 and not any(seg[0] == "Z" for seg in segs)
+    flipped = single and math.hypot(*segs[0][1]) > 1 and math.hypot(*segs[-1][-1]) <= 1
+    effect, direction = PATH_OF.get(preset, ("custom", None))
+    out = {"effect": effect, "path": format_path(reverse_segments(segs) if flipped else segs)}
+    if direction:
+        out["dir"] = direction
+    if flipped:
+        out["reverse"] = True
+    return out
+
+
 def _effect(cls: str, preset: int, ctx) -> str:
     exact = EXACT[cls].get(preset)
     if exact:
@@ -113,12 +133,10 @@ def read_timing(sld, shape_ids: dict, elements: list, ctx) -> list[dict]:
     out: list[dict] = []
     last: dict | None = None
     skipped = paths = 0
+    size = slide_size(ctx)
     for ctn, trigger in _effects(mains[0]):
         cls = ctn.get("presetClass")
-        if cls == "path":
-            paths += 1
-            continue
-        if cls not in EXACT:
+        if cls not in EXACT and cls != "path":
             continue
         target = xpath(ctn, "./p:childTnLst//p:tgtEl/p:spTgt")
         spid = target[0].get("spid") if target else None
@@ -134,7 +152,11 @@ def read_timing(sld, shape_ids: dict, elements: list, ctx) -> list[dict]:
                 and (trigger == "onClick") == (last["trigger"] == "onClick"):
             last["_para"] = para
             continue
-        effect = _effect(cls, preset, ctx)
+        motion = _motion(ctn, preset, size) if cls == "path" else None
+        if cls == "path" and motion is None:
+            paths += 1
+            continue
+        effect = motion.pop("effect") if motion else _effect(cls, preset, ctx)
         anim = {"id": f"a{len(out) + 1}", "target": el_id, "effect": effect, "class": cls, "trigger": trigger}
         if effect_name(effect, cls) not in INSTANT:
             anim["duration"] = round(_length(ctn) / 1000, 3)
@@ -143,14 +165,16 @@ def read_timing(sld, shape_ids: dict, elements: list, ctx) -> list[dict]:
             anim["delay"] = round(delay / 1000, 3)
         if para is not None:
             anim["byParagraph"] = True
-        direction = _direction(effect, preset, subtype, ctn)
+        direction = None if motion is not None else _direction(effect, preset, subtype, ctn)
         if direction:
             anim["dir"] = direction
+        if motion:
+            anim.update(motion)
         anim["_key"], anim["_para"] = (el_id, grp, cls, preset), para
         out.append(anim)
         last = anim
     if paths:
-        ctx.warn(f"{paths} motion path animation(s) were not imported")
+        ctx.warn(f"{paths} motion path animation(s) without a readable path were not imported")
     if skipped:
         ctx.warn(f"{skipped} animation(s) on objects that were not imported were dropped")
     for anim in out:

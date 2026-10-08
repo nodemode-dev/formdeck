@@ -1,25 +1,33 @@
-from .ooxml import find, make, sub, xpath
+import math
 
-CLASSES = ("entr", "emph", "exit")
+from .geom import parse_svg_path
+from .ooxml import EMU_PER_PT, find, int_attr, make, sub, xpath
+
+CLASSES = ("entr", "emph", "exit", "path")
 TRIGGERS = ("onClick", "withPrevious", "afterPrevious")
 EFFECTS = {
     "entr": ("appear", "fadeIn", "flyIn", "floatIn", "riseUp", "wipeIn", "split", "zoomIn", "growTurn", "swivel", "wheel", "bounce"),
     "emph": ("pulse", "colorPulse", "teeter", "spin", "grow", "transparency"),
     "exit": ("disappear", "fadeOut", "flyOut", "floatOut", "wipeOut", "splitOut", "zoomOut", "shrinkTurn", "swivel", "wheel"),
+    "path": ("line", "arc", "turn", "circle", "custom"),
 }
 LABELS = {
     "appear": "Appear", "fadeIn": "Fade", "flyIn": "Fly in", "floatIn": "Float in", "riseUp": "Rise up", "wipeIn": "Wipe", "split": "Split", "zoomIn": "Zoom",
     "growTurn": "Grow and turn", "swivel": "Swivel", "wheel": "Wheel", "bounce": "Bounce", "pulse": "Pulse", "colorPulse": "Colour pulse", "teeter": "Teeter",
     "spin": "Spin", "grow": "Grow/shrink", "transparency": "Transparency", "disappear": "Disappear", "fadeOut": "Fade", "flyOut": "Fly out", "floatOut": "Float out",
     "wipeOut": "Wipe", "splitOut": "Split", "zoomOut": "Zoom", "shrinkTurn": "Shrink and turn",
+    "line": "Line", "arc": "Arc", "turn": "Turn", "circle": "Circle", "custom": "Custom path",
 }
-DIRECTIONS = {"flyIn": "lrud", "flyOut": "lrud", "wipeIn": "lrud", "wipeOut": "lrud", "floatIn": "ud", "floatOut": "ud", "split": "lu", "splitOut": "lu", "spin": "lr"}
-DEFAULT_DIR = {"flyIn": "d", "flyOut": "d", "wipeIn": "d", "wipeOut": "d", "floatIn": "u", "floatOut": "u", "split": "l", "splitOut": "l", "spin": "r"}
+DIRECTIONS = {"flyIn": "lrud", "flyOut": "lrud", "wipeIn": "lrud", "wipeOut": "lrud", "floatIn": "ud", "floatOut": "ud", "split": "lu", "splitOut": "lu", "spin": "lr",
+              "line": "lrud", "arc": "lrud", "turn": "lrud"}
+DEFAULT_DIR = {"flyIn": "d", "flyOut": "d", "wipeIn": "d", "wipeOut": "d", "floatIn": "u", "floatOut": "u", "split": "l", "splitOut": "l", "spin": "r",
+               "line": "d", "arc": "d", "turn": "d"}
 ALIAS = {
     "fadeIn": "fade", "fadeOut": "fade", "wipeIn": "wipe", "wipeOut": "wipe", "zoomIn": "zoom", "zoomOut": "zoom", "splitIn": "split", "splitOut": "split",
     "riseUp": "floatIn", "sinkDown": "floatOut", "growTurn": "grow", "shrinkTurn": "shrink", "bounceIn": "bounce", "wheelIn": "wheel", "swivelIn": "swivel",
 }
-SECONDS = {"appear": 0.0, "disappear": 0.0, "spin": 2.0, "teeter": 1.0, "bounce": 1.4, "swivel": 1.2, "wheel": 1.0, "growShrink": 1.0, "colorPulse": 0.8}
+SECONDS = {"appear": 0.0, "disappear": 0.0, "spin": 2.0, "teeter": 1.0, "bounce": 1.4, "swivel": 1.2, "wheel": 1.0, "growShrink": 1.0, "colorPulse": 0.8,
+           "line": 2.0, "arc": 2.0, "turn": 2.0, "circle": 2.0, "custom": 2.0}
 INSTANT = {"appear", "disappear"}
 SIDE_SUBTYPE = {"u": 1, "r": 2, "d": 4, "l": 8}
 WIPE_FILTER = {"d": "wipe(up)", "u": "wipe(down)", "l": "wipe(right)", "r": "wipe(left)"}
@@ -43,6 +51,8 @@ def effect_seconds(effect: str, cls: str, duration=None) -> float:
 
 def preset_of(effect: str, cls: str, direction: str | None) -> tuple[int, int]:
     name = effect_name(effect, cls)
+    if cls == "path":
+        return (1 if effect == "circle" else PATH_PRESETS.get(effect, {}).get(direction or "", 0)), 0
     if cls == "emph":
         return {"spin": 8, "growShrink": 6, "transparency": 9, "teeter": 32, "colorPulse": 27}.get(name, 26), 0
     if effect == "riseUp":
@@ -58,6 +68,120 @@ def preset_of(effect: str, cls: str, direction: str | None) -> tuple[int, int]:
         return 16, 42 if direction in ("u", "d") else 37
     fixed = {"appear": (1, 0), "disappear": (1, 0), "zoom": (53, 16), "grow": (31, 0), "shrink": (31, 0), "swivel": (19, 10), "wheel": (21, 1), "bounce": (26, 0)}
     return fixed.get(name, (10, 0))
+
+
+PATH_PRESETS = {"line": {"d": 42, "l": 35, "r": 63, "u": 64}, "arc": {"d": 37, "u": 44, "l": 51, "r": 58}, "turn": {"d": 50, "u": 43, "r": 36, "l": 57}}
+PATH_OF = {pid: (effect, d) for effect, ids in PATH_PRESETS.items() for d, pid in ids.items()} | {1: ("circle", None)}
+PATH_SHAPES = {
+    "line": [("M", 0, 0), ("L", 1, 0)],
+    "arc": [("M", 0, 0), ("C", 0.22, 0.3, 0.78, 0.3, 1, 0)],
+    "turn": [("M", 0, 0), ("L", 0.5, 0), ("C", 0.724, 0, 1, 0.276, 1, 0.5), ("L", 1, 1)],
+    "circle": [("M", 0, 0), ("C", 0.276, 0, 0.5, 0.224, 0.5, 0.5), ("C", 0.5, 0.776, 0.276, 1, 0, 1), ("C", -0.276, 1, -0.5, 0.776, -0.5, 0.5),
+               ("C", -0.5, 0.224, -0.276, 0, 0, 0), ("Z",)],
+}
+PATH_TURNS = {
+    "line": {"r": (1, 0, 0, 1), "l": (-1, 0, 0, 1), "d": (0, 1, 1, 0), "u": (0, 1, -1, 0)},
+    "arc": {"d": (1, 0, 0, 1), "u": (1, 0, 0, -1), "r": (0, 1, 1, 0), "l": (0, -1, 1, 0)},
+    "turn": {"d": (1, 0, 0, 1), "u": (1, 0, 0, -1), "r": (0, 1, 1, 0), "l": (0, 1, -1, 0)},
+}
+
+
+def _num(value: float, places: int) -> str:
+    value = round(value, places) + 0.0
+    return f"{value:.{places}f}".rstrip("0").rstrip(".") if value else "0"
+
+
+def default_path(effect: str, direction: str | None, w: float, h: float) -> str:
+    shape = PATH_SHAPES.get(effect)
+    if not shape:
+        return ""
+    unit = max(1, round(min(float(w), float(h)) / 3))
+    turn = direction if direction and direction in DIRECTIONS.get(effect, "") else DEFAULT_DIR.get(effect)
+    a, b, c, d = PATH_TURNS.get(effect, {}).get(turn or "", (1, 0, 0, 1))
+    parts = []
+    for seg in shape:
+        nums = seg[1:]
+        coords = [_num(v * unit, 1) for i in range(0, len(nums), 2) for v in (a * nums[i] + b * nums[i + 1], c * nums[i] + d * nums[i + 1])]
+        parts.append(" ".join([seg[0], *coords]))
+    return " ".join(parts)
+
+
+def path_segments(text) -> list:
+    try:
+        raw = parse_svg_path(str(text or ""))
+    except (ValueError, IndexError):
+        return []
+    out, cur, start = [], (0.0, 0.0), (0.0, 0.0)
+    for seg in raw:
+        if seg[0] == "Q":
+            ctrl, end = seg[1], seg[2]
+            seg = ("C", (cur[0] + (ctrl[0] - cur[0]) * 2 / 3, cur[1] + (ctrl[1] - cur[1]) * 2 / 3), (end[0] + (ctrl[0] - end[0]) * 2 / 3, end[1] + (ctrl[1] - end[1]) * 2 / 3), end)
+        if seg[0] == "Z":
+            cur = start
+        else:
+            cur = seg[-1]
+            if seg[0] == "M":
+                start = cur
+        out.append(seg)
+    finite = all(math.isfinite(v) for seg in out for p in seg[1:] for v in p)
+    if not out or out[0][0] != "M" or not finite or not any(seg[0] in ("L", "C") for seg in out):
+        return []
+    return out
+
+
+def format_path(segs: list, scale: tuple = (1.0, 1.0), places: int = 1, end: bool = False) -> str:
+    parts = []
+    for seg in segs:
+        parts.append("Z" if seg[0] == "Z" else " ".join([seg[0]] + [_num(v * s, places) for p in seg[1:] for v, s in zip(p, scale)]))
+    if end and segs and segs[-1][0] != "Z":
+        parts.append("E")
+    return " ".join(parts)
+
+
+def normalize_path(text) -> str:
+    return format_path(path_segments(text))
+
+
+def reverse_segments(segs: list) -> list:
+    subs: list[dict] = []
+    for seg in segs:
+        if seg[0] == "M" or not subs:
+            subs.append({"start": seg[1] if seg[0] == "M" else (0.0, 0.0), "segs": [], "closed": False})
+            if seg[0] == "M":
+                continue
+        if seg[0] == "Z":
+            subs[-1]["closed"] = True
+        else:
+            subs[-1]["segs"].append(seg)
+    out: list = []
+    for sp in reversed(subs):
+        pts = [sp["start"]] + [s[-1] for s in sp["segs"]]
+        back = [("L", pts[i]) if s[0] == "L" else ("C", s[2], s[1], pts[i]) for i, s in reversed(list(enumerate(sp["segs"])))]
+        if sp["closed"]:
+            out.append(("M", pts[0]))
+            if pts[-1] != pts[0]:
+                out.append(("L", pts[-1]))
+            out.extend(back)
+            out.append(("Z",))
+        else:
+            out.append(("M", pts[-1]))
+            out.extend(back)
+    return out
+
+
+def ppt_motion(segs: list, w: float, h: float) -> dict:
+    pts = [p for seg in segs for p in seg[1:]]
+    xs, ys = [p[0] / w for p in pts], [p[1] / h for p in pts]
+    centre = (int(round((min(xs) + max(xs)) * 50000)), int(round((min(ys) + max(ys)) * 50000)))
+    return {"path": format_path(segs, (1 / w, 1 / h), 5, True), "pts": "A" * sum(1 for seg in segs if seg[0] != "Z"), "ctr": centre}
+
+
+def slide_size(ctx) -> tuple[float, float]:
+    try:
+        size = find(ctx.part.package.main_document_part._element, "p:sldSz")
+    except AttributeError:
+        size = None
+    return int_attr(size, "cx", 12192000) / EMU_PER_PT, int_attr(size, "cy", 6858000) / EMU_PER_PT
 
 
 class _Ids:
@@ -137,6 +261,12 @@ class _Behaviours:
         sub(sub(el, "p:to"), "a:schemeClr", {"val": "accent2"})
         return el
 
+    def motion(self, motion: dict, dur: int):
+        el = make("p:animMotion", {"origin": "layout", "path": motion["path"], "pathEditMode": "relative", "rAng": 0, "ptsTypes": motion["pts"]})
+        el.append(self._cbhvr({"dur": max(1, dur), "fill": "hold"}, ["ppt_x", "ppt_y"]))
+        sub(el, "p:rCtr", {"x": motion["ctr"][0], "y": motion["ctr"][1]})
+        return el
+
 
 def _size(b: _Behaviours, enter: bool, dur: int) -> list:
     grow = [(0, 0.0), (100000, "#ppt_w")], [(0, 0.0), (100000, "#ppt_h")]
@@ -145,8 +275,10 @@ def _size(b: _Behaviours, enter: bool, dur: int) -> list:
     return [b.prop("ppt_w", w, dur), b.prop("ppt_h", h, dur)]
 
 
-def behaviours(b: _Behaviours, effect: str, cls: str, direction: str | None, dur: int) -> list:
+def behaviours(b: _Behaviours, effect: str, cls: str, direction: str | None, dur: int, motion: dict | None = None) -> list:
     name = effect_name(effect, cls)
+    if cls == "path":
+        return [b.motion(motion, dur)] if motion else []
     if cls == "emph":
         if name == "spin":
             return [b.rotate(-360 * DEG if direction == "l" else 360 * DEG, dur)]
@@ -218,6 +350,7 @@ def _entries(slide: dict, shape_ids: dict, ctx) -> list[dict]:
     elements = slide.get("elements") or []
     groups: dict[int, int] = {}
     out = []
+    size = slide_size(ctx)
     for anim in slide.get("animations") or []:
         if not isinstance(anim, dict):
             continue
@@ -236,6 +369,15 @@ def _entries(slide: dict, shape_ids: dict, ctx) -> list[dict]:
         dur = 0 if name in INSTANT else int(round(effect_seconds(effect, cls, anim.get("duration")) * 1000))
         delay = anim.get("delay") if isinstance(anim.get("delay"), (int, float)) and not isinstance(anim.get("delay"), bool) else 0
         el = _find_el(elements, target)
+        motion = None
+        if cls == "path":
+            segs = path_segments(anim.get("path")) or path_segments(default_path(effect, direction, *size))
+            if effect not in EFFECTS["path"] or not segs:
+                ctx.warn(f"animation {anim.get('id')} has no usable motion path and was skipped")
+                continue
+            if anim.get("rotate"):
+                ctx.warn(f"animation {anim.get('id')}: orient along path is not kept in PowerPoint files")
+            motion = ppt_motion(reverse_segments(segs) if anim.get("reverse") else segs, *size)
         paras = _paragraphs(el) if anim.get("byParagraph") else []
         grp = groups.get(spid, 0)
         groups[spid] = grp + 1
@@ -244,7 +386,7 @@ def _entries(slide: dict, shape_ids: dict, ctx) -> list[dict]:
             out.append({
                 "spid": spid, "para": para, "effect": effect, "cls": cls, "dir": direction, "preset": preset, "subtype": subtype, "dur": dur, "grp": grp,
                 "trigger": trigger if i == 0 else ("onClick" if trigger == "onClick" else "afterPrevious"),
-                "delay": int(round(max(0.0, float(delay)) * 1000)) if i == 0 else 0, "el": el, "byPara": bool(paras),
+                "delay": int(round(max(0.0, float(delay)) * 1000)) if i == 0 else 0, "el": el, "byPara": bool(paras), "motion": motion,
             })
     return out
 
@@ -311,10 +453,11 @@ def timing_element(slide: dict, shape_ids: dict, ctx, first_id: int = 2):
             sctn = _ctn_par(subs, {"id": ids.next(), "fill": "hold"}, at)
             effects = sub(sctn, "p:childTnLst")
             for entry in members:
-                ectn = _ctn_par(effects, {"id": ids.next(), "presetID": entry["preset"], "presetClass": entry["cls"], "presetSubtype": entry["subtype"], "fill": "hold",
-                                          "grpId": entry["grp"], "nodeType": NODE_TYPES[entry["trigger"]]}, entry["delay"])
+                ease = 50000 if entry["motion"] else None
+                ectn = _ctn_par(effects, {"id": ids.next(), "presetID": entry["preset"], "presetClass": entry["cls"], "presetSubtype": entry["subtype"], "accel": ease,
+                                          "decel": ease, "fill": "hold", "grpId": entry["grp"], "nodeType": NODE_TYPES[entry["trigger"]]}, entry["delay"])
                 kids = sub(ectn, "p:childTnLst")
-                for node in behaviours(_Behaviours(ids, entry["spid"], entry["para"]), entry["effect"], entry["cls"], entry["dir"], entry["dur"]):
+                for node in behaviours(_Behaviours(ids, entry["spid"], entry["para"]), entry["effect"], entry["cls"], entry["dir"], entry["dur"], entry["motion"]):
                     kids.append(node)
             at += max(e["delay"] + max(e["dur"], 1) for e in members)
     for tag, evt in (("p:prevCondLst", "onPrev"), ("p:nextCondLst", "onNext")):
