@@ -44,6 +44,8 @@ class ReadContext:
     theme_colors: dict = field(default_factory=dict)
     font_scales: dict = field(default_factory=dict)
     slide_id: str | None = None
+    shape_map: dict = field(default_factory=dict)
+    cxn_links: list = field(default_factory=list)
     _element_count: int = 0
     _media_cache: dict = field(default_factory=dict)
 

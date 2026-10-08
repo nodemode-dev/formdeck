@@ -22,6 +22,8 @@ from .read_slide import clrmap_of, read_notes, read_sections, read_transition
 from .read_style import background_fill
 from .read_table import classify_table_styles
 from .read_text import body_is_empty, read_level
+from .show_props import read_show
+from .guides import read_guides
 
 R_ID = f"{{{NS['r']}}}id"
 TEXT_STYLE_TAGS = (("title", "p:titleStyle"), ("body", "p:bodyStyle"), ("other", "p:otherStyle"))
@@ -113,6 +115,10 @@ class _Importer:
             "media": self.ctx.deck_media,
             "meta": {},
         }
+        deck.update(read_show(self.prs_part, slide_entries))
+        guides = read_guides(self.prs_el)
+        if guides:
+            deck["guides"] = guides
         deck["title"] = self._title(slides)
         deck["meta"] = self._meta()
         if as_template:

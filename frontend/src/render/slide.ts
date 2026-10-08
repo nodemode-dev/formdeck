@@ -2,6 +2,7 @@ import type { ChartElement, Deck, Fill, ImageElement, Layout, MediaElement, Mast
 import { backgroundOf, bodyProps, chain, colorCss, fillOf, fontStack, frameOf, geomOf, adjOf, levelStyle, lineOf, masterOf, showMasterShapes, slideNumber, themeFont, layoutOf, TITLE_KINDS, type Chain, type Frame } from '../engine/resolve';
 import { BODY_PH, displayElement, holderOf, masterHint, masterPlaceholder, type HolderKind } from '../engine/holders';
 import { isLineGeom, presetGeometry } from '../engine/geometry/presets';
+import { scalePath } from '../engine/geometry/path';
 import type { Touched } from '../engine/ops';
 import { chartSvg } from './chart';
 import { cssBackground, cssFilter, svgFill, svgStroke, round } from './paint';
@@ -36,7 +37,7 @@ function shapeSvg(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
   if ((!fill || fill.type === 'none') && (!line || line.type === 'none')) return '';
   const w = Math.max(0.01, f.w), h = Math.max(0.01, f.h);
   let paths: Array<{ d: string; fill: string; stroke: boolean; evenOdd: boolean }>;
-  if (geom === 'custom' && el.path) paths = [{ d: el.path, fill: 'norm', stroke: true, evenOdd: false }];
+  if (geom === 'custom' && el.path) paths = [{ d: customPath(el, f), fill: 'norm', stroke: true, evenOdd: true }];
   else if (geom === 'line' || geom === 'straightConnector1') paths = [{ d: `M0 0L${round(f.w)} ${round(f.h)}`, fill: 'none', stroke: true, evenOdd: false }];
   else paths = presetGeometry(geom, w, h, adjOf(c)).paths;
   const fp = svgFill(fill, theme, mediaUrl, w, h);
@@ -50,9 +51,20 @@ function shapeSvg(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
     body += `<path d="${p.d}" fill="${fillAttr}"${rule} ${p.stroke ? st.attrs : 'stroke="none"'}/>`;
     if (shade && !lineOnly) body += `<path d="${p.d}" fill="${shade}"${rule} stroke="none"/>`;
   }
+  if (ctx.mode === 'edit' && (lineOnly || openPath(el))) for (const p of paths) body += `<path class="fs-hit" d="${p.d}" stroke-width="${round(Math.max(8, st.width + 6))}"/>`;
   const filter = cssFilter(el.effects, theme);
   const bw = lineOnly ? Math.max(1, w) : w, bh = lineOnly ? Math.max(1, h) : h;
   return `<svg class="fs-geom" viewBox="0 0 ${round(bw)} ${round(bh)}" width="${round(bw)}" height="${round(bh)}" preserveAspectRatio="none"${filter ? ` style="filter:${filter}"` : ''}>${fp.defs || st.defs ? `<defs>${fp.defs}${st.defs}</defs>` : ''}${body}</svg>`;
+}
+
+function customPath(el: ShapeElement, f: Frame): string {
+  const ps = el.pathSize, d = el.path ?? '';
+  if (!ps || !(ps[0] > 0) || !(ps[1] > 0) || (Math.abs(ps[0] - f.w) < 0.005 && Math.abs(ps[1] - f.h) < 0.005)) return d;
+  return scalePath(d, f.w / ps[0], f.h / ps[1]);
+}
+
+function openPath(el: ShapeElement): boolean {
+  return !!el.path && !/z/i.test(el.path);
 }
 
 function textBlock(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
@@ -168,9 +180,10 @@ export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: s
       const ch = elementHtml(ctx, child);
       inner += `<div class="fs-el fs-${ch.kind}" data-id="${child.id}" style="${ch.box}">${ch.inner}</div>`;
     }
-    return { box: boxStyle({ x: 0, y: 0, w: ctx.deck.size.w, h: ctx.deck.size.h }, { ...el, rot: 0, flipH: false, flipV: false }), inner, kind };
+    return { box: boxStyle({ x: 0, y: 0, w: ctx.deck.size.w, h: ctx.deck.size.h }, { ...el, rot: 0, flipH: false, flipV: false }), inner, kind: 'grp' };
   }
-  const lineLike = el.type === 'shape' && (isLineGeom(geomOf(c)) || geomOf(c) === 'line');
+  const lineLike = el.type === 'shape' && !el.path && (isLineGeom(geomOf(c)) || geomOf(c) === 'line');
+  if (el.type === 'shape' && kind === 'shape' && (lineLike || openPath(el))) kind = 'line';
   return { box: boxStyle(f, el, lineLike ? 'overflow:visible;' : ''), inner, kind };
 }
 

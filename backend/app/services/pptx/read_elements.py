@@ -60,8 +60,40 @@ def read_ph(ph) -> dict:
     return {"type": ph.get("type", "obj"), "idx": int_attr(ph, "idx", 0)}
 
 
+def _part_key(ctx) -> str:
+    return str(getattr(ctx.part, "partname", "") or id(ctx.part))
+
+
+def _register_shape(ctx, c_nv_pr, el_id: str) -> None:
+    raw = c_nv_pr.get("id") if c_nv_pr is not None else None
+    if raw is None:
+        return
+    key = (_part_key(ctx), str(raw))
+    ctx.shape_map[key] = el_id
+    waiting = []
+    for link in ctx.cxn_links:
+        if link[0] == key:
+            link[1][link[2]] = {"id": el_id, "site": link[3]}
+        else:
+            waiting.append(link)
+    ctx.cxn_links = waiting
+
+
+def _link_end(ctx, conn: dict, which: str, node) -> None:
+    if node is None or node.get("id") is None:
+        return
+    key = (_part_key(ctx), str(node.get("id")))
+    site = max(int_attr(node, "idx", 0) or 0, 0)
+    target = ctx.shape_map.get(key)
+    if target is not None:
+        conn[which] = {"id": target, "site": site}
+    else:
+        ctx.cxn_links.append((key, conn, which, site))
+
+
 def base_element(kind: str, c_nv_pr, ctx) -> dict:
     el = {"id": ctx.element_id(), "type": kind}
+    _register_shape(ctx, c_nv_pr, el["id"])
     if c_nv_pr is None:
         return el
     if c_nv_pr.get("name"):
@@ -128,6 +160,8 @@ def _geometry(el: dict, sp_pr) -> None:
         if path:
             el["geom"] = "custom"
             el["path"] = path
+            if el.get("w") and el.get("h"):
+                el["pathSize"] = [el["w"], el["h"]]
 
 
 def _apply_shape_style(el: dict, sp_pr, style, ctx, placeholder: bool) -> None:
@@ -205,6 +239,14 @@ def read_connector(cxn, ctx, tf: Transform) -> dict:
     _geometry(el, sp_pr)
     el.setdefault("geom", "line")
     _apply_shape_style(el, sp_pr, find(cxn, "p:style"), ctx, False)
+    geom = el.get("geom") or ""
+    kind = "straight" if geom in ("line", "straightConnector1") else "elbow" if geom.startswith("bentConnector") else "curved" if geom.startswith("curvedConnector") else None
+    if kind:
+        conn = {"kind": kind}
+        c_nv = find(nv, "p:cNvCxnSpPr")
+        _link_end(ctx, conn, "start", find(c_nv, "a:stCxn"))
+        _link_end(ctx, conn, "end", find(c_nv, "a:endCxn"))
+        el["conn"] = conn
     return el
 
 

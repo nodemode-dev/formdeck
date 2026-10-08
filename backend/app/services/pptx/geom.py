@@ -336,13 +336,17 @@ def svg_arc_to_cubics(p0, p1, rx, ry, rot_deg, large, sweep) -> list:
     return _ellipse_segments(cx, cy, rx, ry, phi, t0, delta)
 
 
-def svg_to_cust_geom(path_text: str, w_pt: float, h_pt: float):
+def svg_to_cust_geom(path_text: str, w_pt: float, h_pt: float, sites: bool = False):
     segs = parse_svg_path(path_text)
     w_emu = max(int(round(w_pt * 12700)), 1)
     h_emu = max(int(round(h_pt * 12700)), 1)
     geom = make("a:custGeom")
     for tag in ("a:avLst", "a:gdLst", "a:ahLst", "a:cxnLst"):
         sub(geom, tag)
+    if sites:
+        cxn_lst = find(geom, "a:cxnLst")
+        for ang, x, y in (("3cd4", "hc", "t"), ("cd2", "l", "vc"), ("cd4", "hc", "b"), ("0", "r", "vc")):
+            sub(sub(cxn_lst, "a:cxn", {"ang": ang}), "a:pos", {"x": x, "y": y})
     sub(geom, "a:rect", {"l": "l", "t": "t", "r": "r", "b": "b"})
     path_lst = sub(geom, "a:pathLst")
     path = sub(path_lst, "a:path", {"w": w_emu, "h": h_emu})

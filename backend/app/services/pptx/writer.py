@@ -13,6 +13,8 @@ from .ooxml import NS, find, findall, make, parse, pt_emu, sub
 from .write_context import WriteContext
 from .write_elements import ElementWriter
 from .write_anim import insert_timing, write_mapped
+from .show_props import write_show
+from .guides import write_guides
 from .write_slide import append_presentation_ext, insert_transition, sections_element
 from .write_style import background_element
 from .write_text import level_element
@@ -96,6 +98,8 @@ class _Exporter:
             self._fill_slide(slide, pp_slide, number)
         self.ctx.enter(None, "")
         self._write_sections(slides)
+        write_guides(self.prs.part, self.deck)
+        write_show(self.prs.part, self.deck, {str(s.get("id")): self.prs.part.relate_to(p.part, RT.SLIDE) for s, p in slides})
         self._core_properties()
         if template:
             prs.part._content_type = CT.PML_TEMPLATE_MAIN

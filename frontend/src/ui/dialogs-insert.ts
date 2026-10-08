@@ -1,6 +1,8 @@
 import type { Editor } from '../editor/editor';
 import { clone, dirtyOp, resolvedFrame, setProp } from '../editor/actions';
 import { PRESET_GROUPS, presetGeometry } from '../engine/geometry/presets';
+import { parsePath } from '../engine/geometry/path';
+import { LINE_TOOLS, type LineTool } from '../editor/draw-commands';
 import { SLIDE_SIZES, type ChartData, type ChartElement, type ChartKind, type ChartSeries, type Color, type Comment, type Deck, type Fill, type Para, type PhType, type Placeholder, type Slide, type SlideElement, type TableData, type TableElement, type TableStyle, type Theme } from '../engine/model';
 import { elPath, slidePath, type Op, type PathKey } from '../engine/ops';
 import { backgroundOf, chain, colorCss, colorHex, fontStack, frameOf, layoutOf, plainText, themeFont, type Frame } from '../engine/resolve';
@@ -1088,6 +1090,19 @@ function shapeIcon(geom: string): string {
   return `<svg viewBox="-2 -5 28 28" width="24" height="24" aria-hidden="true">${paths}</svg>`;
 }
 
+function toolIcon(t: LineTool): string {
+  const filled = t.mode.kind === 'freeform';
+  let head = '';
+  const sp = parsePath(t.preview)[0];
+  const n = sp?.nodes;
+  if (t.arrow && n && n.length > 1) {
+    const e = n[n.length - 1], from = e.in ?? [n[n.length - 2].x, n[n.length - 2].y];
+    const l = Math.hypot(e.x - from[0], e.y - from[1]) || 1, ux = (e.x - from[0]) / l, uy = (e.y - from[1]) / l;
+    head = `<path d="M${e.x} ${e.y}L${e.x - ux * 5 - uy * 3} ${e.y - uy * 5 + ux * 3}L${e.x - ux * 5 + uy * 3} ${e.y - uy * 5 - ux * 3}Z" fill="currentColor" stroke="none"/>`;
+  }
+  return `<svg viewBox="-2 -5 28 28" width="24" height="24" aria-hidden="true"><path d="${t.preview}" ${filled ? 'fill="currentColor" fill-opacity="0.14"' : 'fill="none"'} stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/>${head}</svg>`;
+}
+
 class ShapesPop {
   readonly pop: HTMLElement;
   private anchor: HTMLElement | null = null;
@@ -1095,13 +1110,16 @@ class ShapesPop {
   constructor(private readonly commands: Commands) {
     let html = '';
     for (const g of PRESET_GROUPS) {
-      const items = g.items.filter((it) => commands.get(`shape:${it.geom}`));
-      if (!items.length) continue;
-      html += `<div class="fs-pop-head">${escapeHtml(g.label)}</div><div class="fs-ins-shapes-grid">${items.map((it) => `<button type="button" class="fs-ins-shape" data-geom="${escapeHtml(it.geom)}" title="${escapeHtml(it.label)}" aria-label="${escapeHtml(it.label)}">${shapeIcon(it.geom)}</button>`).join('')}</div>`;
+      const tools = g.id === 'lines' ? LINE_TOOLS.filter((t) => commands.get(t.id)) : [];
+      const items = tools.length ? [] : g.items.filter((it) => commands.get(`shape:${it.geom}`));
+      if (!items.length && !tools.length) continue;
+      html += `<div class="fs-pop-head">${escapeHtml(g.label)}</div><div class="fs-ins-shapes-grid">${tools.map((t) => `<button type="button" class="fs-ins-shape" data-tool="${escapeHtml(t.id)}" title="${escapeHtml(t.label)}" aria-label="${escapeHtml(t.label)}">${toolIcon(t)}</button>`).join('')}${items.map((it) => `<button type="button" class="fs-ins-shape" data-geom="${escapeHtml(it.geom)}" title="${escapeHtml(it.label)}" aria-label="${escapeHtml(it.label)}">${shapeIcon(it.geom)}</button>`).join('')}</div>`;
     }
     this.pop = el(`<div class="fs-pop fs-ins-shapes" hidden role="dialog" aria-label="Shapes">${html}</div>`);
     document.getElementById('overlay-root')?.appendChild(this.pop);
     this.pop.addEventListener('click', (e) => {
+      const tool = (e.target as HTMLElement).closest<HTMLElement>('[data-tool]');
+      if (tool) { this.close(); this.commands.run(tool.dataset.tool as string); return; }
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-geom]');
       if (!b) return;
       this.close();

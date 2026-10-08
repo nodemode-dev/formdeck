@@ -4,10 +4,11 @@ from pptx.parts.slide import SlidePart
 
 from .colors import angle_60k
 from .geom import CONNECTOR_GEOMS, PRESET_GEOMS, svg_to_cust_geom
-from .ooxml import make, pt_emu, sub
+from .ooxml import find, make, pt_emu, sub
 from .read_layouts import match_layout_ph
 from .write_chart import chart_graphic_data
 from .write_context import NATIVE_IMAGE_MIMES, to_png
+from .write_media import write_audio
 from .write_style import effects_element, fill_element, line_element
 from .write_table import table_graphic_data
 from .write_text import hyperlink_element, text_body_element
@@ -31,6 +32,8 @@ class ElementWriter:
         self.layout_elements = layout_elements or []
         self.master_elements = master_elements or []
         self.layout_part = layout_part
+        self._ids: dict[str, int] = {}
+        self._links: list[tuple] = []
 
     def write_all(self, elements: list, container) -> None:
         for el in elements or []:
@@ -53,9 +56,28 @@ class ElementWriter:
             while len(container) > before:
                 container.remove(container[-1])
             self.ctx.warn(f"element {el.get('id')} skipped ({type(exc).__name__}: {exc})")
+        if self._links:
+            self._resolve_links()
+
+    def _resolve_links(self) -> None:
+        waiting = []
+        for c_nv, tag, target, site in self._links:
+            shape_id = self._ids.get(target)
+            if shape_id is None:
+                waiting.append((c_nv, tag, target, site))
+                continue
+            node = make(tag, {"id": shape_id, "idx": max(int(site), 0)})
+            end = find(c_nv, "a:endCxn")
+            if tag == "a:stCxn" and end is not None:
+                end.addprevious(node)
+            else:
+                c_nv.append(node)
+        self._links = waiting
 
     def _c_nv_pr(self, el: dict, default_name: str):
         shape_id = self.ctx.next_shape_id()
+        if el.get("id"):
+            self._ids[str(el["id"])] = shape_id
         attrs = {"id": shape_id, "name": str(el.get("name") or f"{default_name} {shape_id}")}
         if el.get("alt"):
             attrs["descr"] = str(el["alt"])
@@ -135,9 +157,12 @@ class ElementWriter:
 
     def _geometry(self, el: dict, placeholder: bool):
         geom = el.get("geom")
-        if geom == "custom":
+        if geom == "custom" or (el.get("path") and geom is None):
             if el.get("path") and has_frame(el):
-                return svg_to_cust_geom(str(el["path"]), float(el["w"]), float(el["h"]))
+                size = el.get("pathSize")
+                ok = isinstance(size, (list, tuple)) and len(size) == 2 and all(isinstance(v, (int, float)) and v > 0 for v in size)
+                pw, ph = (float(size[0]), float(size[1])) if ok else (float(el["w"]), float(el["h"]))
+                return svg_to_cust_geom(str(el["path"]), pw, ph, sites=True)
             geom = "rect"
         if geom is None:
             if placeholder:
@@ -186,7 +211,7 @@ class ElementWriter:
 
     def _shape(self, el: dict, container) -> None:
         geom = el.get("geom")
-        if geom in CONNECTOR_GEOMS and not el.get("ph") and not el.get("text"):
+        if (geom in CONNECTOR_GEOMS or (geom == "line" and isinstance(el.get("conn"), dict))) and not el.get("ph") and not el.get("text"):
             self._connector(el, container)
             return
         placeholder = isinstance(el.get("ph"), dict)
@@ -216,6 +241,12 @@ class ElementWriter:
         nv.append(self._c_nv_pr(el, "Connector"))
         c_nv = sub(nv, "p:cNvCxnSpPr")
         self._locks(c_nv, "a:cxnSpLocks", el)
+        conn = el.get("conn") if isinstance(el.get("conn"), dict) else {}
+        for tag, key in (("a:stCxn", "start"), ("a:endCxn", "end")):
+            end = conn.get(key)
+            if isinstance(end, dict) and end.get("id"):
+                site = end.get("site")
+                self._links.append((c_nv, tag, str(end["id"]), int(site) if isinstance(site, (int, float)) else 0))
         nv.append(self._nv_pr(el))
         cxn.append(self._sp_pr(el, False))
 
@@ -324,6 +355,8 @@ class ElementWriter:
         mime = (loaded[1].get("mime") if loaded else "") or ""
         if loaded and el.get("kind", "video") == "video" and mime in MOVIE_MIMES and isinstance(self.ctx.part, SlidePart) and has_frame(el):
             self._movie(el, container, loaded[0], mime)
+            return
+        if loaded and el.get("kind") == "audio" and write_audio(self, el, container, loaded[0], mime):
             return
         if loaded:
             self.ctx.warn(f"{el.get('kind', 'media')} {el.get('src')} ({mime or 'unknown'}) exported as its poster picture")
