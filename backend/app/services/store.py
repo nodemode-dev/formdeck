@@ -77,17 +77,18 @@ class Store:
                 continue
             info = d / "info.json"
             try:
-                out.append(json.loads(info.read_text(encoding="utf-8")))
+                item = json.loads(info.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 deck_file = d / "deck.json"
-                if deck_file.is_file():
-                    try:
-                        deck = json.loads(deck_file.read_text(encoding="utf-8"))
-                        summary = model.summary(deck)
-                        _write_json(info, summary)
-                        out.append(summary)
-                    except (OSError, ValueError):
-                        continue
+                if not deck_file.is_file():
+                    continue
+                try:
+                    item = model.summary(json.loads(deck_file.read_text(encoding="utf-8")))
+                    _write_json(info, item)
+                except (OSError, ValueError):
+                    continue
+            item["thumb"] = (d / "thumb.webp").is_file()
+            out.append(item)
         out.sort(key=lambda x: x.get("modified") or "", reverse=True)
         return out
 

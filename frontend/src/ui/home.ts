@@ -248,7 +248,9 @@ export class Home {
     const card = (d: DeckSummary): HTMLElement => {
       const n = el(`<button class="fs-card" type="button" data-deck="${d.id}"><span class="fs-card-preview"><img alt="" decoding="async" draggable="false"></span><span class="fs-card-body"><span class="fs-card-name"></span><span class="fs-card-meta"></span></span></button>`);
       const img = n.querySelector('img') as HTMLImageElement;
-      img.onerror = () => { img.remove(); (n.querySelector('.fs-card-preview') as HTMLElement).classList.add('is-blank'); (n.querySelector('.fs-card-preview') as HTMLElement).innerHTML = icon('slides', 28); };
+      const blank = (): void => { img.remove(); (n.querySelector('.fs-card-preview') as HTMLElement).classList.add('is-blank'); (n.querySelector('.fs-card-preview') as HTMLElement).innerHTML = icon('slides', 28); };
+      if (d.thumb === false) { blank(); return n; }
+      img.onerror = blank;
       img.src = `/api/decks/${d.id}/thumb?v=${encodeURIComponent(d.modified ?? '')}`;
       return n;
     };
