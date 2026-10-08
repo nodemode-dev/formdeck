@@ -126,14 +126,16 @@ Returns: what changed and the full outline. Duplicates start in draft.
 ### animate
 - deck, slide, action (required); action: list | add | update | remove | move | clear
 - element: add (or retarget on update), a top-level element id or slot (title, body, stat1...); elements inside a group are refused
-- effect: entrance appear, fadeIn, flyIn, floatIn, riseUp, wipeIn, split, zoomIn, growTurn, swivel, wheel, bounce; emphasis pulse, colorPulse, teeter, spin, grow, transparency; exit disappear, fadeOut, flyOut, floatOut, wipeOut, splitOut, zoomOut, shrinkTurn, swivel, wheel. Friendly names work (`fade`, `fly in`, `zoom`); class is inferred when the name is unique, else entrance.
-- class: entr | emph | exit
+- effect: entrance appear, fadeIn, flyIn, floatIn, riseUp, wipeIn, split, zoomIn, growTurn, swivel, wheel, bounce; emphasis pulse, colorPulse, teeter, spin, grow, transparency; exit disappear, fadeOut, flyOut, floatOut, wipeOut, splitOut, zoomOut, shrinkTurn, swivel, wheel; motion paths line, arc, turn, circle, custom. Friendly names work (`fade`, `fly in`, `zoom`, `custom path`); class is inferred when the name is unique, else entrance.
+- class: entr | emph | exit | path
 - trigger: onClick (default) | withPrevious | afterPrevious
-- duration, delay: seconds (0 to 60); the effect's default duration when omitted
-- dir: fly and wipe take l, r, u, d; float u or d; split l (vertical) or u (horizontal); spin r (clockwise) or l
+- duration, delay: seconds (0 to 60); the effect's default duration when omitted (motion paths 2 s)
+- dir: fly and wipe take l, r, u, d; float u or d; split l (vertical) or u (horizontal); spin r (clockwise) or l; line the direction of travel (default d); arc d or u (travels right, bulging down or up), l or r (travels down, bulging left or right); turn d (right then down), u (right then up), r (down then right), l (up then right)
+- path: class path only, SVG path data in slide points relative to the element's centre where the motion starts (`M 0 0 L 240 0` moves it 240 pt right; 16:9 slides are 960 x 540). Required for custom; line, arc, turn and circle get their preset shape (a third of the slide's shorter edge) unless you pass one. M, L, H, V, C, S, Q, T, A and Z are accepted and stored as M, L, C, Z.
+- rotate: class path, turns the element to follow the path (plays in formsld only, not kept in pptx); reverse: travels from the path's end back to its start
 - byParagraph: boolean, text elements only (each paragraph enters on its own click, or one after another)
 - id: the animation id for update, remove, move; to: 1-based position for move (or add)
-Returns: `Slide 3 (s3): 2 animations, 2 clicks` then one line each `1 · a1 · click 1 · entrance fadeIn · 0.5s · e68 [body] First point`. Structured `{slide, animations}`. update replaces only the fields you pass; animations play in the show and export to PowerPoint (pptx) and back.
+Returns: `Slide 3 (s3): 2 animations, 2 clicks` then one line each `1 · a1 · click 1 · entrance fadeIn · 0.5s · e68 [body] First point` (a motion path line reads `motion path line r [M 0 0 L 180 0] · 2s`). Structured `{slide, animations}`. update replaces only the fields you pass (changing a preset's effect or dir redraws its path); animations play in the show and export to PowerPoint (pptx) and back. A motion path leaves the element at its end point until the slide is left, and a second path on the same element starts where the first ended.
 
 ## Style
 
@@ -176,12 +178,16 @@ Returns: `Opened d_... · N slides` with the outline and import notes, or `Saved
 ## PDF
 
 ### pdf
-- action (required): info | text | images | tables | merge | split | to_deck
+- action (required): info | text | images | tables | merge | split | to_deck | header_footer | crop | find | redact
 - path: the PDF; paths: PDFs to merge
-- pages: string, `3`, `1-4`, `2,5`
+- pages: string, `3`, `1-4`, `2,5`, `4-`
 - ranges: array for split, `["1-3", "4-"]`
-- out: output file (merge) or existing folder (split)
+- out: output file (merge; header_footer, crop and redact default to `[stem]-[action].pdf` beside the input) or existing folder (split)
 - template, title: to_deck only
+- header, footer: header_footer, `{left, center, right}` with tokens `<<page>>`, `<<pages>>`, `<<date>>`, `<<file>>`, `<<bates>>`; size, color, font (sans | serif | mono), margins `{top, bottom, left, right}`, start, apply (all | odd | even), bates `{prefix, start, digits, suffix}`, date
+- margins `{l, t, r, b}` | box `{x, y, w, h}` | auto: crop, one of them
+- query, regex, preset (email | phone | card | date), caseSensitive, wholeWord: find, and redact of every match
+- areas: redact, `[{page, x, y, w, h}]` points from the page's top left
 Returns: see the pdf-workbench sub-skill.
 
 ## Resources and prompt

@@ -95,11 +95,15 @@ animate {deck, slide: "3", action: "add", element: "e106", effect: "flyIn", dir:
 animate {deck, slide: "3", action: "add", element: "stat1", effect: "pulse"}
 animate {deck, slide: "3", action: "update", id: "a2", effect: "wipeIn", dir: "u"}
 animate {deck, slide: "3", action: "move", id: "a3", to: 1}
+animate {deck, slide: "3", action: "add", element: "e110", effect: "line", dir: "r", path: "M 0 0 L 320 0", trigger: "afterPrevious"}
+animate {deck, slide: "3", action: "add", element: "e110", effect: "custom", path: "M 0 0 C 80 -120 220 -120 300 0"}
 animate {deck, slide: "3", action: "list"}
 animate {deck, slide: "3", action: "clear"}
 ```
 
 Animate only when the brief or the person asks, and keep it plain: one entrance per idea (fade or wipe), body text by paragraph, at most one emphasis on the number that matters, exits rarely. `onClick` makes a click step; `withPrevious` and `afterPrevious` ride on the step before (before the first click they run when the slide opens). Contact sheets show the final state, so nothing to check by eye; the list line `click n` tells you how many clicks the presenter needs. Animations follow their slot through update_slide rebuilds (an animation on a drawn shape is dropped when the rebuild removes it) and export to PowerPoint.
+
+Motion paths (class `path`) move an object and leave it at the end, so the contact sheet shows it where it starts while the audience last sees it at the end: plan the end position so it lands on clear space and inside the slide. `path` is in slide points relative to the object's centre (16:9 is 960 x 540, so a quarter of the width is 240); a second path on the same object starts where the first ended. Use them for one purposeful move (a marker travelling to the step being discussed), not decoration.
 
 ## Raw ops
 
@@ -122,6 +126,6 @@ Op shapes: `{op: "set", path, value}` (no value deletes the key), `{op: "ins", p
 | A different layout or a rewritten slide | update_slide |
 | New slides | add_slides |
 | Order, duplicate, hide, delete | slides |
-| Entrance, emphasis or exit animations | animate |
+| Entrance, emphasis, exit or motion path animations | animate |
 | Transition, background, anything else in the contract | apply_ops |
 | The whole story changed | build_deck again (a new deck id) |

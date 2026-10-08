@@ -1,6 +1,6 @@
 ---
 name: pdf-workbench
-description: "Works PDFs through formsld's pdf MCP tool: info, text, images, tables, merge, split and to_deck, and decides between pdf to_deck (each page a picture slide) and ingest (an editable rebuilt deck). Use when the person wants a PDF merged, split, read, mined for text, pictures or tables, or turned into slides, or asks for PDF work the window's PDF workbench does (sign, redact, compress, watermark, page numbers)."
+description: "Works PDFs through formsld's pdf MCP tool: info, text, images, tables, merge, split, to_deck, header_footer, crop, find and redact, and decides between pdf to_deck (each page a picture slide) and ingest (an editable rebuilt deck). Use when the person wants a PDF merged, split, read, mined for text, pictures or tables, given headers, footers, page or Bates numbers, cropped, searched for words or patterns, redacted, or turned into slides, or asks for PDF work only the window's PDF workbench does (sign, comment, compress, watermark)."
 ---
 
 # PDF workbench
@@ -27,8 +27,16 @@ An absolute path to the PDF (or PDFs). An output file or existing folder for mer
 | Pieces of it | `pdf {action: "split", path, ranges: ["1-3", "4-"], out: "/abs/folder"}` |
 | The pages as slides, exactly as they look | `pdf {action: "to_deck", path, title, template}` |
 | An editable deck built from its content | `ingest {paths: [path], brief}` then the deck-director loop |
+| Headers, footers, page numbers or Bates numbers | `pdf {action: "header_footer", path, header: {left, center, right}, footer: {...}, bates: {prefix, start, digits}}` with tokens `<<page>>`, `<<pages>>`, `<<date>>`, `<<file>>`, `<<bates>>` |
+| Pages trimmed to an area | `pdf {action: "crop", path, margins: {l, t, r, b}}`, or `box: {x, y, w, h}`, or `auto: true` to cut white margins |
+| Where a word, phrase or pattern appears | `pdf {action: "find", path, query}` or `preset: "email"` (also `phone`, `card`, `date`), `regex: true` for a pattern |
+| Text or areas removed for good | `pdf {action: "redact", path, query or preset}` (every match) or `areas: [{page, x, y, w, h}]` |
 
-3. **Report** the paths the tool returned (split names files `[stem]-part[n]-[range].pdf`), or the deck id for to_deck.
+3. **Report** the paths the tool returned (split names files `[stem]-part[n]-[range].pdf`; header_footer, crop and redact write `[stem]-header-footer.pdf`, `[stem]-cropped.pdf`, `[stem]-redacted.pdf` beside the input unless `out` is given), or the deck id for to_deck.
+
+## Redaction
+
+Run `find` with the same query or preset first and tell the person what will go (count and pages), then `redact`. Redaction is true removal: every page with a match is re-rendered as a picture with black boxes, so the whole page loses its selectable text. It never touches the input file; the redacted copy is a new file. Cropping is different: it only hides the area outside the box, and the content stays in the file.
 
 ## to_deck or ingest
 
@@ -38,7 +46,7 @@ An absolute path to the PDF (or PDFs). An output file or existing folder for mer
 
 ## What the tool does not do
 
-Annotate, comment, fill forms, sign, organize (reorder, rotate, delete pages), protect or unlock, redact, compress, watermark, add page numbers, change metadata. These are in the window's PDF workbench (File > PDF tools): tell the person where, in one line. For page reordering alone, split plus merge gives the same result through the tool.
+Annotate, comment and reply, fill forms, sign, organize (reorder, rotate, delete pages), protect or unlock, compress, watermark, change metadata. These are in the window's PDF workbench (File > PDF tools): tell the person where, in one line. For page reordering alone, split plus merge gives the same result through the tool; plain page numbers are a header_footer with `footer: {center: "<<page>>"}`.
 
 ## Gate
 
@@ -46,9 +54,9 @@ Annotate, comment, fill forms, sign, organize (reorder, rotate, delete pages), p
 
 ## Hands back
 
-Output paths with page counts, extracted text or tables (or a summary of them), media ids for extracted pictures, or the to_deck deck id and its slide count.
+Output paths with page counts, extracted text or tables (or a summary of them), media ids for extracted pictures, find matches (count, pages, a few in context), the redacted or cropped page counts, or the to_deck deck id and its slide count.
 
 ## Owned resources
 
-- `references/pdf-actions.md` every action with its arguments, page syntax, output naming, result shape and errors. Open before merge, split or to_deck.
+- `references/pdf-actions.md` every action with its arguments, page syntax, output naming, result shape and errors. Open before merge, split, to_deck, header_footer, crop or redact.
 - `checklists/pdf-gate.md` run before reporting.

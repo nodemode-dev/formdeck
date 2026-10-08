@@ -46,7 +46,7 @@ GUIDE = """# formsld authoring guide
 3. draft_spec {intake, template, slides?}: a heuristic first draft as a slide script (about 80 percent there). Edit it: order the story, turn titles into claims, cut to 3 to 6 bullets, choose layouts.
 4. build_deck {script, intake, template}: compiles, stores and opens the deck in the window.
 5. render_slides {deck, slides?} shows contact sheets; lint_deck {deck} lists overflow, contrast, empty placeholders and more, each with a fix.
-6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis and exit animations per slide), apply_template, set_theme, apply_ops (raw ops).
+6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis, exit and motion path animations per slide), apply_template, set_theme, apply_ops (raw ops).
 7. review {deck, status: review} hands slides to the person, who approves or asks for changes; comments {action: list} shows what they said.
 undo {deck} reverts your whole last turn (every change you made within 90 seconds of the previous one).
 
@@ -160,13 +160,16 @@ TOOLS = [
     _tool("apply_ops", "Applies raw deck ops (set, ins, del, move; formsld://guide) as one undoable step.", {"deck": _DECK, "ops": {"type": "array", "items": {"type": "object"}}, "label": _S}, ["deck", "ops"]),
     _tool("slides", "Moves (to a 1-based position), deletes, duplicates, hides or shows slides.",
           {"deck": _DECK, "action": {"type": "string", "enum": ["move", "delete", "duplicate", "hide", "show"]}, "slides": _SLIDES, "to": _INT}, ["deck", "action", "slides"], destructive=True),
-    _tool("animate", "Lists, adds, updates, removes, reorders or clears one slide's animations (entrance, emphasis, exit); they play in the show and export to PowerPoint.",
+    _tool("animate", "Lists, adds, updates, removes, reorders or clears one slide's animations (entrance, emphasis, exit, motion paths); they play in the show and export to PowerPoint.",
           {"deck": _DECK, "slide": _SLIDE, "action": {"type": "string", "enum": ["list", "add", "update", "remove", "move", "clear"]},
            "element": {"type": "string", "description": "add (or retarget on update): a top-level element id or slot (title, body...)"},
-           "effect": {"type": "string", "description": "entr: appear fadeIn flyIn floatIn riseUp wipeIn split zoomIn growTurn swivel wheel bounce; emph: pulse colorPulse teeter spin grow transparency; exit: disappear fadeOut flyOut floatOut wipeOut splitOut zoomOut shrinkTurn swivel wheel"},
-           "class": {"type": "string", "enum": ["entr", "emph", "exit"]}, "trigger": {"type": "string", "enum": ["onClick", "withPrevious", "afterPrevious"]},
+           "effect": {"type": "string", "description": "entr: appear fadeIn flyIn floatIn riseUp wipeIn split zoomIn growTurn swivel wheel bounce; emph: pulse colorPulse teeter spin grow transparency; exit: disappear fadeOut flyOut floatOut wipeOut splitOut zoomOut shrinkTurn swivel wheel; path: line arc turn circle custom"},
+           "class": {"type": "string", "enum": ["entr", "emph", "exit", "path"]}, "trigger": {"type": "string", "enum": ["onClick", "withPrevious", "afterPrevious"]},
            "duration": {"type": "number", "description": "Seconds"}, "delay": {"type": "number", "description": "Seconds"},
-           "dir": {"type": "string", "enum": ["l", "r", "u", "d"], "description": "fly, wipe: side; float: u or d; split: l (vertical) or u (horizontal); spin: r clockwise, l counter-clockwise"},
+           "dir": {"type": "string", "enum": ["l", "r", "u", "d"], "description": "fly, wipe: side; float: u or d; split: l (vertical) or u (horizontal); spin: r clockwise, l counter-clockwise; line: direction of travel; arc: d or u (travels right, bulges down or up), l or r (travels down, bulges left or right); turn: d (right then down), u (right then up), r (down then right), l (up then right)"},
+           "path": {"type": "string", "description": "class path: SVG path data in points relative to the element's centre where the motion starts, e.g. 'M 0 0 L 120 -60 L 240 0'; required for custom, otherwise the preset shape"},
+           "rotate": {"type": "boolean", "description": "class path: turn the element to follow the path (plays in formsld only)"},
+           "reverse": {"type": "boolean", "description": "class path: travel from the path's end back to its start"},
            "byParagraph": {"type": "boolean"}, "id": {"type": "string", "description": "Animation id (update, remove, move)"}, "to": {"type": "integer", "description": "1-based position (move, or add)"}},
           ["deck", "slide", "action"]),
     _tool("apply_template", "Restyles a deck with another template, keeping its content.", {"deck": _DECK, "template": _S}, ["deck", "template"]),
@@ -184,10 +187,30 @@ TOOLS = [
     _tool("review", "Sets slides' review status (draft, review, changes, approved); with no status, the counts.",
           {"deck": _DECK, "slides": _SLIDES, "status": {"type": "string", "enum": ["draft", "review", "changes", "approved"]}}, ["deck"]),
     _tool("undo", "Undoes your last turn (default) or last step on a deck.", {"deck": _DECK, "scope": {"type": "string", "enum": ["turn", "step"]}}, ["deck"], destructive=True),
-    _tool("pdf", "PDF tools: info, text, images, tables, merge, split, to_deck (each page a slide).",
-          {"action": {"type": "string", "enum": ["info", "text", "images", "tables", "merge", "split", "to_deck"]}, "path": _S, "paths": {"type": "array", "items": _S},
-           "pages": {"type": "string", "description": "1-based pages: 3, 1-4, 2,5"}, "ranges": {"type": "array", "items": _S}, "out": {"type": "string", "description": "Output file or folder"},
-           "template": _S, "title": _S}, ["action"]),
+    _tool("pdf", "PDF tools: info, text, images, tables, merge, split, to_deck (each page a slide), header_footer (headers, footers, page and Bates numbers), "
+          "crop, find (words, phrases, regex or presets) and redact (true redaction of areas or of every match).",
+          {"action": {"type": "string", "enum": ["info", "text", "images", "tables", "merge", "split", "to_deck", "header_footer", "crop", "find", "redact"]},
+           "path": _S, "paths": {"type": "array", "items": _S},
+           "pages": {"type": "string", "description": "1-based pages: 3, 1-4, 2,5, 4-"}, "ranges": {"type": "array", "items": _S},
+           "out": {"type": "string", "description": "Output file or folder; header_footer, crop and redact default to [name]-[action].pdf beside the input"},
+           "template": _S, "title": _S,
+           "header": {"type": "object", "description": "header_footer: {left, center, right} text; tokens <<page>>, <<pages>>, <<date>>, <<file>>, <<bates>>"},
+           "footer": {"type": "object", "description": "header_footer: {left, center, right} text, same tokens"},
+           "size": {"type": "number", "description": "header_footer font size in points (default 10)"},
+           "color": {"type": "string", "description": "header_footer text colour #RRGGBB"},
+           "font": {"type": "string", "enum": ["sans", "serif", "mono"]},
+           "margins": {"type": "object", "description": "header_footer: {top, bottom, left, right} points from the edges (default 36). crop: {l, t, r, b} points cut from each edge as the page is shown"},
+           "start": {"type": "integer", "description": "header_footer: number of the first page in the range (default 1)"},
+           "apply": {"type": "string", "enum": ["all", "odd", "even"], "description": "header_footer: which pages of the range"},
+           "bates": {"type": "object", "description": "header_footer Bates numbers {prefix, start, digits, suffix}: at <<bates>>, else the footer's right"},
+           "date": {"type": "string", "description": "header_footer: text for <<date>> (default today as YYYY-MM-DD)"},
+           "box": {"type": "object", "description": "crop: {x, y, w, h} points from the unrotated page's top left, the area to keep"},
+           "auto": {"type": "boolean", "description": "crop: cut the white margins around the content"},
+           "query": {"type": "string", "description": "find, redact: a word, phrase or (with regex) a regular expression"},
+           "regex": {"type": "boolean"}, "preset": {"type": "string", "enum": ["email", "phone", "card", "date"]},
+           "caseSensitive": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
+           "areas": {"type": "array", "items": {"type": "object"}, "description": "redact: [{page, x, y, w, h}] points from the page's top left; omit to redact every find match"}},
+          ["action"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
 MUTATING = {"build_deck", "add_slides", "update_slide", "set_text", "edit_elements", "apply_ops", "slides", "apply_template", "set_theme", "undo", "open_file"}
@@ -1031,11 +1054,13 @@ async def t_slides(a: Agent, args: dict) -> dict:
     return _ok(f"{label[:1].upper() + label[1:]} · deck now {len(deck['slides'])} slides\n" + "\n".join(_outline(deck)))
 
 
-_ANIM_CLASS = {"entr": "entrance", "emph": "emphasis", "exit": "exit"}
+_ANIM_CLASS = {"entr": "entrance", "emph": "emphasis", "exit": "exit", "path": "motion path"}
 _ANIM_WORDS = {
     "entr": {"fade": "fadeIn", "fly": "flyIn", "float": "floatIn", "wipe": "wipeIn", "zoom": "zoomIn", "grow": "growTurn", "rise": "riseUp"},
     "emph": {"growshrink": "grow", "shrink": "grow", "colourpulse": "colorPulse", "rotate": "spin"},
     "exit": {"fade": "fadeOut", "fly": "flyOut", "float": "floatOut", "wipe": "wipeOut", "zoom": "zoomOut", "shrink": "shrinkTurn", "split": "splitOut"},
+    "path": {"lines": "line", "arcs": "arc", "turns": "turn", "shape": "circle", "shapes": "circle", "loop": "circle", "path": "custom", "motionpath": "custom",
+             "draw": "custom", "freeform": "custom"},
 }
 
 
@@ -1045,7 +1070,7 @@ def _anim_norm(s) -> str:
 
 def _anim_effect(wa, raw, cls: str | None) -> tuple[str, str]:
     key = _anim_norm(raw)
-    for c in [cls] if cls else ["entr", "emph", "exit"]:
+    for c in [cls] if cls else ["entr", "emph", "exit", "path"]:
         for eid in wa.EFFECTS[c]:
             if key in (_anim_norm(eid), _anim_norm(wa.LABELS.get(eid))):
                 return eid, c
@@ -1053,7 +1078,8 @@ def _anim_effect(wa, raw, cls: str | None) -> tuple[str, str]:
             return _ANIM_WORDS[c][key], c
     if cls:
         raise ToolError(f"{raw} is not a {_ANIM_CLASS[cls]} effect: use {', '.join(wa.EFFECTS[cls])}.")
-    raise ToolError(f"Unknown effect {raw}. Entrance: {', '.join(wa.EFFECTS['entr'])}. Emphasis: {', '.join(wa.EFFECTS['emph'])}. Exit: {', '.join(wa.EFFECTS['exit'])}.")
+    raise ToolError(f"Unknown effect {raw}. Entrance: {', '.join(wa.EFFECTS['entr'])}. Emphasis: {', '.join(wa.EFFECTS['emph'])}. Exit: {', '.join(wa.EFFECTS['exit'])}. "
+                    f"Motion paths (class path): {', '.join(wa.EFFECTS['path'])}.")
 
 
 def _anim_paras(el: dict | None) -> int:
@@ -1071,17 +1097,17 @@ def _anim_seconds(x, name: str) -> float | None:
     return round(float(x), 3)
 
 
-def _anim_fields(wa, args: dict, cur: dict | None, el: dict) -> dict:
+def _anim_fields(wa, args: dict, cur: dict | None, el: dict, size: dict | None = None) -> dict:
     cls = args.get("class")
     if cls is not None and cls not in wa.CLASSES:
-        raise ToolError("class is entr (entrance), emph (emphasis) or exit.")
+        raise ToolError("class is entr (entrance), emph (emphasis), exit or path (motion path).")
     if args.get("effect"):
         effect, cls = _anim_effect(wa, args["effect"], cls)
     elif cur and (cls is None or cls == cur.get("class")):
         effect, cls = cur.get("effect"), cur.get("class")
     else:
-        cls = cls or "entr"
-        effect = {"entr": "fadeIn", "emph": "pulse", "exit": "fadeOut"}[cls]
+        cls = cls or ("path" if args.get("path") else "entr")
+        effect = {"entr": "fadeIn", "emph": "pulse", "exit": "fadeOut", "path": "custom" if args.get("path") else "line"}[cls]
     trigger = args.get("trigger") or (cur or {}).get("trigger") or "onClick"
     if trigger not in wa.TRIGGERS:
         raise ToolError("trigger is onClick, withPrevious or afterPrevious.")
@@ -1108,6 +1134,24 @@ def _anim_fields(wa, args: dict, cur: dict | None, el: dict) -> dict:
         if not _anim_paras(el):
             raise ToolError(f"byParagraph needs a text element; {el.get('id')} has no text.")
         out["byParagraph"] = True
+    if cls == "path":
+        was = cur if cur is not None and cur.get("class") == "path" else {}
+        if allowed and "dir" not in out:
+            out["dir"] = wa.DEFAULT_DIR[effect]
+        if args.get("path") is not None:
+            text = wa.normalize_path(args["path"])
+            if not text:
+                raise ToolError("path is SVG path data in points relative to the element's centre, starting with M, e.g. 'M 0 0 L 120 -60 L 240 0'.")
+        elif same and was.get("path") and (effect == "custom" or out.get("dir") == was.get("dir")):
+            text = was["path"]
+        else:
+            text = wa.default_path(effect, out.get("dir"), (size or {}).get("w") or 960, (size or {}).get("h") or 540)
+        if not text:
+            raise ToolError("custom needs path: SVG path data in points relative to the element's centre, e.g. 'M 0 0 L 120 -60 L 240 0'.")
+        out["path"] = text
+        for key in ("rotate", "reverse"):
+            if (args.get(key) if args.get(key) is not None else was.get(key)):
+                out[key] = True
     return out
 
 
@@ -1124,7 +1168,8 @@ def _anim_text(deck: dict, idx: int) -> dict:
             clicks += n
         else:
             step = ("with previous" if an.get("trigger") == "withPrevious" else "after previous") + ("" if clicks else " (on entry)")
-        bits = [str(i), str(an.get("id")), step, f"{_ANIM_CLASS.get(an.get('class'), an.get('class'))} {an.get('effect')}" + (f" {an['dir']}" if an.get("dir") else "")]
+        bits = [str(i), str(an.get("id")), step, f"{_ANIM_CLASS.get(an.get('class'), an.get('class'))} {an.get('effect')}" + (f" {an['dir']}" if an.get("dir") else "")
+                + (" reversed" if an.get("reverse") else "") + (" oriented" if an.get("rotate") else "") + (f" [{_clip(an['path'], 48)}]" if an.get("path") else "")]
         timing = (f"{an['duration']:g}s" if isinstance(an.get("duration"), (int, float)) else "default") + (f" after {an['delay']:g}s" if an.get("delay") else "")
         bits.append(timing + (" by paragraph" if an.get("byParagraph") else ""))
         tag = (el.get("slot") or (el.get("ph") or {}).get("type") or el.get("name") or el.get("type")) if el else "missing"
@@ -1158,7 +1203,7 @@ async def t_animate(a: Agent, args: dict) -> dict:
             raise ToolError(f"{el.get('id')} is inside a group: animate the group instead.")
         counter = model.counters(deck)
         counter.used |= {x.get("id") for s in deck["slides"] for x in s.get("animations") or []}
-        anim = {"id": counter.next("a"), "target": el["id"], **_anim_fields(wa, args, None, el)}
+        anim = {"id": counter.next("a"), "target": el["id"], **_anim_fields(wa, args, None, el, deck.get("size"))}
         at = args.get("to")
         if at is not None and (not isinstance(at, int) or not 1 <= at <= len(anims) + 1):
             raise ToolError(f"to is a 1-based position from 1 to {len(anims) + 1}.")
@@ -1185,7 +1230,7 @@ async def t_animate(a: Agent, args: dict) -> dict:
                     raise ToolError(f"Slide {idx + 1} has no top-level element or slot {args['element']}.")
                 target = got[0]["id"]
             el = next((e for e in slide.get("elements", []) if e.get("id") == target), {})
-            ops = [{"op": "set", "path": path + [{"id": aid}], "value": {"id": aid, "target": target, **_anim_fields(wa, args, cur, el)}}]
+            ops = [{"op": "set", "path": path + [{"id": aid}], "value": {"id": aid, "target": target, **_anim_fields(wa, args, cur, el, deck.get("size"))}}]
             label = f"update animation {aid} on slide {idx + 1}"
     else:
         raise ToolError("action is list, add, update, remove, move or clear.")
@@ -1416,20 +1461,20 @@ async def t_undo(a: Agent, args: dict) -> dict:
     return _ok(f"{res['label']} ({res['count']} step{'s' if res['count'] != 1 else ''}) · deck now {len(deck['slides'])} slides")
 
 
-def _pages(raw) -> list[int] | None:
+def _pages(raw) -> list[int] | str | None:
     if raw in (None, "", []):
         return None
     if isinstance(raw, list):
         return [int(x) for x in raw]
-    out = []
-    for part in str(raw).replace(" ", "").split(","):
-        if not part:
-            continue
-        if "-" in part:
-            x, y = part.split("-", 1)
-            out.extend(range(int(x), int(y) + 1))
-        else:
-            out.append(int(part))
+    return str(raw).strip() or None
+
+
+def _pdf_out(src: Path, raw, suffix: str) -> Path:
+    out = _abs(raw, must_exist=False) if raw else src.with_name(f"{src.stem}-{suffix}.pdf")
+    if out.is_dir():
+        out = out / f"{src.stem}-{suffix}.pdf"
+    if not out.parent.is_dir():
+        raise ToolError(f"The folder {out.parent} does not exist.")
     return out
 
 
@@ -1439,8 +1484,8 @@ async def t_pdf(a: Agent, args: dict) -> dict:
     except ImportError:
         return _fail("The PDF tools are not installed in this engine yet.")
     action = args.get("action")
-    pages = _pages(args.get("pages"))
     try:
+        pages = _pages(args.get("pages"))
         if action == "info":
             info = await asyncio.to_thread(pdfmod.info, _abs(args.get("path")))
             return _ok(json.dumps(info, ensure_ascii=False, default=str)[:6000])
@@ -1478,11 +1523,53 @@ async def t_pdf(a: Agent, args: dict) -> dict:
             deck = STORE.create(deck)
             _focus(deck["id"])
             return _ok(f"Made {_head(deck)}\n" + "\n".join(_outline(deck)[:40]), {"deck": deck["id"]})
+        if action in ("find", "redact"):
+            search = {"regex": bool(args.get("regex")), "preset": args.get("preset") or None, "case_sensitive": bool(args.get("caseSensitive")),
+                      "whole_word": bool(args.get("wholeWord")), "pages": pages}
+        if action == "find":
+            got = await asyncio.to_thread(lambda: pdfmod.find(_abs(args.get("path")), args.get("query"), **search))
+            lines = [f"p{m['page']} · {m['text']} · {m['context']}" for m in got["matches"][:200]]
+            head = f"{got['count']} match{'es' if got['count'] != 1 else ''} on {got['pages']} page{'s' if got['pages'] != 1 else ''}"
+            more = " (first 200 listed)" if got["count"] > 200 else ""
+            return _ok(head + more + (":\n" + "\n".join(lines) if lines else "."), {"count": got["count"], "truncated": got["truncated"],
+                                                                                   "matches": got["matches"][:500]})
+        if action in ("header_footer", "crop", "redact"):
+            src = _abs(args.get("path"))
+            out = _pdf_out(src, args.get("out"), {"header_footer": "header-footer", "crop": "cropped", "redact": "redacted"}[action])
+            tmp = out.with_name(f".{out.name}.tmp")
+            extra: dict = {}
+            try:
+                if action == "header_footer":
+                    n = await asyncio.to_thread(lambda: pdfmod.header_footer(
+                        src, tmp, header=args.get("header"), footer=args.get("footer"), size=args.get("size"), color=str(args.get("color") or "#333333"),
+                        font=str(args.get("font") or "sans"), margins=args.get("margins"), pages=pages, start=args.get("start"),
+                        apply=str(args.get("apply") or "all"), bates=args.get("bates") or None, date=args.get("date") or None, file=src.name))
+                elif action == "crop":
+                    res = await asyncio.to_thread(lambda: pdfmod.crop(src, tmp, box=args.get("box"), margins=args.get("margins"),
+                                                                      auto=bool(args.get("auto")), pages=pages))
+                    n, extra = res["pages"], {"cropped": res["cropped"]}
+                else:
+                    areas = args.get("areas")
+                    if not areas:
+                        if not args.get("query") and not args.get("preset"):
+                            raise ToolError("redact needs areas, or a query or preset to redact every match.")
+                        got = await asyncio.to_thread(lambda: pdfmod.find(src, args.get("query"), **search))
+                        if not got["count"]:
+                            return _ok("No matches, so nothing was redacted and no file was written.", {"count": 0})
+                        areas, extra = pdfmod.match_areas(got["matches"]), {"matches": got["count"]}
+                    n = await asyncio.to_thread(pdfmod.redact, src, tmp, areas)
+                    extra["areas"] = len(areas)
+                tmp.replace(out)
+            finally:
+                tmp.unlink(missing_ok=True)
+            words = {"cropped": ("cropped", "cropped"), "matches": ("match", "matches"), "areas": ("area redacted", "areas redacted")}
+            detail = "".join(f", {v} {words[k][v != 1]}" for k, v in extra.items())
+            return _ok(f"Wrote {out} ({n} page{'s' if n != 1 else ''}{detail}).", {"path": str(out), "pages": n, **extra})
     except ToolError:
         raise
     except Exception as exc:
         return _fail(f"pdf {action} failed: {type(exc).__name__}: {_clip(str(exc), 300)}")
-    raise ToolError("action is info, text, images, tables, merge, split or to_deck.")
+    raise ToolError("action is info, text, images, tables, merge, split, to_deck, header_footer, crop, find or redact.")
 
 
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}
