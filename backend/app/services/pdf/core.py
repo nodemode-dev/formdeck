@@ -462,6 +462,11 @@ def to_deck(path, *, mode: str = "pages", template: str | None = None, title: st
         first.close()
         deck, counter, layout = _deck_shell(title or stem, template, pw / max(ph, 1))
         deck["meta"]["source"] = Path(name or path).name
+        try:
+            import pdfplumber
+            plumb = pdfplumber.open(str(path), password=(passwords or [""])[0] or "")
+        except Exception:
+            plumb = None
         for i in range(min(n, MAX_DECK_PAGES)):
             page = doc[i]
             w, h = page.get_size()
@@ -469,11 +474,19 @@ def to_deck(path, *, mode: str = "pages", template: str | None = None, title: st
             buf = io.BytesIO()
             pil.save(buf, "PNG", compress_level=6)
             meta = store.put(buf.getvalue(), f"{stem}-page-{i + 1}.png", "image/png")
-            tp = page.get_textpage()
-            notes = re.sub(r"[ \t]+\n", "\n", tp.get_text_range().replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")).strip()[:6000]
-            tp.close()
+            try:
+                raw = (plumb.pages[i].extract_text() or "") if plumb else None
+            except Exception:
+                raw = None
+            if raw is None:
+                tp = page.get_textpage()
+                raw = tp.get_text_range()
+                tp.close()
+            notes = re.sub(r"[ \t]+\n", "\n", raw.replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")).strip()[:6000]
             page.close()
             deck["slides"].append(_image_slide(deck, counter, layout, meta, w, h, f"Page {i + 1}", notes))
+        if plumb:
+            plumb.close()
         return model.normalize(deck)
     finally:
         doc.close()

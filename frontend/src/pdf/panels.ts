@@ -132,7 +132,7 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
     if (this.metaFor !== d.id) {
       this.metaFor = d.id;
       for (const m of ['title', 'author', 'subject', 'keywords'] as const) setValue(this.$<HTMLInputElement>(`[data-m="${m}"]`), i[m] ?? '');
-      setValue(this.$<HTMLInputElement>('[data-a="deck-title"]'), i.title || stem(d.name));
+      setValue(this.$<HTMLInputElement>('[data-a="deck-title"]'), i.title && !/^(untitled|unknown|none|document\d*)$/i.test(i.title.trim()) ? i.title : stem(d.name));
       setHidden(this.$('[data-part="unlock"]'), !i.encrypted);
     }
     this.syncFields();
