@@ -14,6 +14,7 @@ import { Dialog } from './dialogs';
 import { delayedIndicator, el, escapeHtml, isMac, q, reserve, setChecked, setClass, setDisabled, setHidden, setHtml, setStyleVar, setText, setValue } from './dom';
 import { icon } from './icons';
 import { toast } from './toast';
+import { findMentions, myName, people } from '../editor/mentions';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const clampN = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
@@ -1021,14 +1022,18 @@ class CommentDlg extends Modal {
   }
 }
 
-export function addComment(ed: Editor, text: string): void {
+export function addComment(ed: Editor, text: string, assignee?: string): void {
   const t = text.trim();
   const s = ed.slide;
   if (!t || !s) return;
   void loadSettings();
   const list = ed.doc.deck.comments;
   const ops: Op[] = list ? [] : [{ op: 'set', path: ['comments'], value: [] }];
-  const c: Comment = { id: ed.doc.nextId('c'), slide: s.id, author, kind: 'user', text: t, at: new Date().toISOString() };
+  const c: Comment = { id: ed.doc.nextId('c'), slide: s.id, author: author === 'You' ? myName() : author, kind: 'user', text: t, at: new Date().toISOString() };
+  const mentions = findMentions(t, people(ed.doc.deck));
+  if (assignee && !mentions.includes(assignee)) mentions.push(assignee);
+  if (mentions.length) c.mentions = mentions;
+  if (assignee) c.assignee = assignee;
   const one = ed.selection.find((id) => s.elements.some((e) => e.id === id));
   if (one) c.element = one;
   ops.push({ op: 'ins', path: ['comments'], index: list?.length ?? 0, value: c });

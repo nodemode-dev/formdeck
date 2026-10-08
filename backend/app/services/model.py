@@ -185,6 +185,22 @@ def normalize(deck: dict) -> dict:
         m.setdefault("textStyles", default_text_styles())
     for key in ("layouts", "slides", "sections", "comments"):
         deck.setdefault(key, [])
+    deck["comments"] = [c for c in deck["comments"] if isinstance(c, dict)] if isinstance(deck["comments"], list) else []
+    for c in deck["comments"]:
+        for item in [c, *[r for r in c.get("replies") or [] if isinstance(r, dict)]]:
+            if "mentions" in item:
+                raw = item["mentions"] if isinstance(item["mentions"], list) else []
+                clean = list(dict.fromkeys(m.strip()[:60] for m in raw if isinstance(m, str) and m.strip()))
+                if clean:
+                    item["mentions"] = clean
+                else:
+                    item.pop("mentions")
+        if "assignee" in c:
+            who = c["assignee"].strip()[:60] if isinstance(c["assignee"], str) else ""
+            if who:
+                c["assignee"] = who
+            else:
+                c.pop("assignee")
     deck.setdefault("media", {})
     deck.setdefault("meta", {})
     if "customShows" in deck:

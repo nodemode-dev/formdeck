@@ -13,6 +13,8 @@ from app.services import model, ops as opsmod
 COALESCE_SECONDS = 1.5
 HISTORY_LIMIT = 400
 SAVE_DELAY = 0.8
+ACTIVITY_LIMIT = 2000
+ACTIVITY_TRIM_BYTES = 900_000
 
 
 @dataclass
@@ -49,6 +51,7 @@ class Session:
     save_task: asyncio.Task | None = None
     saved_rev: int = 0
     last_turn: str | None = None
+    activity: list = field(default_factory=list)
 
 
 def deck_dir(deck_id: str) -> Path:
@@ -64,11 +67,110 @@ def _write_json(path: Path, data) -> None:
     tmp.replace(path)
 
 
+def touched_slides(deck: dict, ops: list) -> list[str]:
+    out: list[str] = []
+    comments = {c.get("id"): c.get("slide") for c in deck.get("comments") or [] if isinstance(c, dict)}
+    for op in ops:
+        path = op.get("path") or []
+        sid = None
+        if path[:1] == ["slides"]:
+            if len(path) >= 2 and isinstance(path[1], dict):
+                sid = path[1].get("id")
+            elif len(path) == 1 and op.get("op") == "ins" and isinstance(op.get("value"), dict):
+                sid = op["value"].get("id")
+            elif len(path) == 1 and op.get("id"):
+                sid = op.get("id")
+        elif path[:1] == ["comments"]:
+            if len(path) >= 2 and isinstance(path[1], dict):
+                sid = comments.get(path[1].get("id"))
+            elif op.get("op") == "ins" and isinstance(op.get("value"), dict):
+                sid = op["value"].get("slide")
+        if isinstance(sid, str) and sid and sid not in out:
+            out.append(sid)
+            if len(out) >= 24:
+                break
+    return out
+
+
 class Store:
     def __init__(self):
         self.sessions: dict[str, Session] = {}
         self.clients: dict[str, Client] = {}
         self._steps = itertools.count(1)
+        self.agents: dict[str, float] = {}
+        self.agent_keys: dict[str, str] = {}
+
+    def seen_agent(self, name: str, key: str | None = None) -> bool:
+        name = str(name or "").strip()
+        if not name:
+            return False
+        fresh = name not in self.agents
+        self.agents[name] = time.time()
+        if key:
+            if len(self.agent_keys) > 500:
+                self.agent_keys.pop(next(iter(self.agent_keys)))
+            self.agent_keys[key] = name
+        return fresh
+
+    def agent_names(self) -> list[str]:
+        return sorted(self.agents, key=lambda n: -self.agents[n])[:12]
+
+    def who(self, client: str | None, origin: str) -> str:
+        if client and client in self.agent_keys:
+            return self.agent_keys[client]
+        c = self.clients.get(client or "")
+        if c is not None and c.kind != "window" and c.name:
+            return c.name
+        if origin == "agent" and c is None:
+            return "Agent"
+        return str(config.read_settings().get("author") or "").strip() or "You"
+
+    def _log(self, s: Session, sid: str, who: str, origin: str, label: str, slides: list[str]) -> None:
+        s.activity.append({"id": sid, "at": model.now_iso(), "who": who, "origin": origin, "label": label, "slides": slides})
+        if len(s.activity) > ACTIVITY_LIMIT:
+            del s.activity[:-ACTIVITY_LIMIT]
+
+    def _flush_activity(self, deck_id: str, s: Session) -> None:
+        n = len(s.activity)
+        if not n:
+            return
+        batch = s.activity[:n]
+        del s.activity[:n]
+        path = deck_dir(deck_id) / "activity.jsonl"
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as f:
+                for e in batch:
+                    f.write(json.dumps(e, ensure_ascii=False, separators=(",", ":")) + "\n")
+            if path.stat().st_size > ACTIVITY_TRIM_BYTES:
+                lines = path.read_text(encoding="utf-8").splitlines()[-ACTIVITY_LIMIT:]
+                tmp = path.with_suffix(".tmp")
+                tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                tmp.replace(path)
+        except OSError:
+            pass
+
+    def activity(self, deck_id: str, limit: int = 300, who: str | None = None) -> dict:
+        rows: list[dict] = []
+        try:
+            path = deck_dir(deck_id) / "activity.jsonl"
+            if path.is_file():
+                for line in path.read_text(encoding="utf-8").splitlines():
+                    try:
+                        rows.append(json.loads(line))
+                    except ValueError:
+                        continue
+        except (OSError, KeyError):
+            pass
+        s = self.sessions.get(deck_id)
+        if s is not None:
+            seen = {r.get("id") for r in rows[-50:]}
+            rows.extend(copy.deepcopy([e for e in s.activity if e.get("id") not in seen]))
+        people = sorted({str(r.get("who") or "") for r in rows if r.get("who")}, key=str.lower)
+        if who:
+            rows = [r for r in rows if r.get("who") == who]
+        rows.reverse()
+        return {"entries": rows[:max(1, min(int(limit or 300), ACTIVITY_LIMIT))], "people": people, "total": len(rows)}
 
     def library(self) -> list[dict]:
         out = []
@@ -126,6 +228,7 @@ class Store:
         _write_json(d / "deck.json", s.deck)
         _write_json(d / "info.json", model.summary(s.deck))
         s.saved_rev = s.rev
+        self._flush_activity(deck_id, s)
 
     def _schedule_save(self, deck_id: str) -> None:
         s = self.sessions[deck_id]
@@ -160,7 +263,7 @@ class Store:
                 self.clients.pop(c.id, None)
 
     async def step(self, deck_id: str, ops: list, label: str = "Edit", origin: str = "user", client: str | None = None,
-                   coalesce: str | None = None, step_id: str | None = None, turn: str | None = None) -> dict:
+                   coalesce: str | None = None, step_id: str | None = None, turn: str | None = None, who: str | None = None) -> dict:
         s = self.session(deck_id)
         async with s.lock:
             inverse = opsmod.apply_all(s.deck, ops)
@@ -168,16 +271,25 @@ class Store:
             sid = step_id or f"k{next(self._steps)}"
             now = time.monotonic()
             top = s.undo[-1] if s.undo else None
+            slides = touched_slides(s.deck, ops) or touched_slides(s.deck, inverse)
             if coalesce and top and top.coalesce == coalesce and top.client == client and now - top.at < COALESCE_SECONDS:
                 top.ops = top.ops + ops
                 top.inverse = inverse + top.inverse
                 top.at = now
+                last = s.activity[-1] if s.activity else None
+                if last and last.get("id") == top.id:
+                    last["at"] = model.now_iso()
+                    last["slides"] = last["slides"] + [x for x in slides if x not in last["slides"]]
             else:
                 s.undo.append(Step(sid, label, origin, client, list(ops), inverse, now, turn, coalesce))
                 del s.undo[:-HISTORY_LIMIT]
+                who = who or self.who(client, origin)
+                self._log(s, sid, who, origin, label, slides)
             s.redo.clear()
             s.deck.setdefault("meta", {})["modified"] = model.now_iso()
             message = {"t": "ops", "deck": deck_id, "rev": s.rev, "ops": ops, "client": client, "step": sid, "label": label, "origin": origin, "canUndo": True, "canRedo": False}
+            if who:
+                message["who"] = who
         await self.broadcast(deck_id, message)
         self._schedule_save(deck_id)
         return {"rev": s.rev, "step": sid}
@@ -210,7 +322,9 @@ class Store:
                 target.append(st)
             s.rev += 1
             label = ("Undo " if back else "Redo ") + batch[0].label
-            message = {"t": "ops", "deck": deck_id, "rev": s.rev, "ops": applied, "client": client, "step": f"k{next(self._steps)}", "label": label, "origin": "history",
+            hid = f"k{next(self._steps)}"
+            self._log(s, hid, self.who(client, "history"), "history", label, touched_slides(s.deck, applied))
+            message = {"t": "ops", "deck": deck_id, "rev": s.rev, "ops": applied, "client": client, "step": hid, "label": label, "origin": "history",
                        "canUndo": bool(s.undo), "canRedo": bool(s.redo)}
         await self.broadcast(deck_id, message)
         self._schedule_save(deck_id)

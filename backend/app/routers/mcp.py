@@ -184,8 +184,12 @@ TOOLS = [
           {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fsld", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
            "notes": {"type": "boolean"}, "width": _INT}, ["deck", "format"]),
     _tool("open_file", "Opens a .pptx, .potx or .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
-    _tool("comments", "Lists, adds, replies to or resolves review comments.",
-          {"deck": _DECK, "action": {"type": "string", "enum": ["list", "add", "reply", "resolve"]}, "slide": _SLIDE, "element": _S, "text": _S, "id": _S}, ["deck", "action"]),
+    _tool("comments", "Lists, adds, replies to or resolves review comments, with @mentions and assignees. list shows each comment's mentions and assignee; "
+          "filter mine lists the open comments that mention you or are assigned to you. add and reply read @Name in the text and take mentions and assignee.",
+          {"deck": _DECK, "action": {"type": "string", "enum": ["list", "add", "reply", "resolve"]}, "slide": _SLIDE, "element": _S, "text": _S, "id": _S,
+           "mentions": {"type": "array", "items": _S, "description": "add, reply: names to mention (also read from @Name in text)"},
+           "assignee": {"type": "string", "description": "add, reply: assign the comment to this person"},
+           "filter": {"type": "string", "enum": ["open", "all", "mine"], "description": "list: open (default), all, or mine (mentions you or assigned to you)"}}, ["deck", "action"]),
     _tool("review", "Sets slides' review status (draft, review, changes, approved); with no status, the counts.",
           {"deck": _DECK, "slides": _SLIDES, "status": {"type": "string", "enum": ["draft", "review", "changes", "approved"]}}, ["deck"]),
     _tool("undo", "Undoes your last turn (default) or last step on a deck.", {"deck": _DECK, "scope": {"type": "string", "enum": ["turn", "step"]}}, ["deck"], destructive=True),
@@ -252,6 +256,7 @@ def _agent(request: Request, params: dict) -> Agent:
     a = SESSIONS.get(key)
     if a is None:
         a = SESSIONS[key] = Agent(key, info.get("name") or "agent")
+    STORE.seen_agent(a.name, a.key)
     return a
 
 
@@ -382,7 +387,7 @@ async def _apply(a: Agent, deck_id: str, ops: list, label: str) -> dict | None:
     if not ops:
         return None
     try:
-        return await STORE.step(deck_id, ops, label if label.startswith("Agent") else f"Agent: {label}", "agent", a.key, None, None, _turn(a))
+        return await STORE.step(deck_id, ops, label if label.startswith("Agent") else f"Agent: {label}", "agent", a.key, None, None, _turn(a), a.name)
     except (opsmod.OpError, KeyError, TypeError, IndexError) as exc:
         raise ToolError(f"The change was refused: {exc}. get_deck shows the current ids.")
 
@@ -552,11 +557,31 @@ async def t_get_context(a: Agent, args: dict) -> dict:
             decks.append({"id": item["id"], "title": item.get("title", ""), "slides": item.get("slides", 0), "open": False})
     if decks:
         lines.append("Decks: " + " · ".join(f"{d['id']} \"{_clip(d['title'], 40)}\" {d['slides']} slides{' (open)' if d['open'] else ''}" for d in decks))
+    agent_names = {n.lower() for n in [a.name, *STORE.agent_names(), "agent"]}
+    recent: list = []
+    for d in decks:
+        if not d["open"] and d["id"] not in STORE.sessions:
+            continue
+        try:
+            dk = STORE.session(d["id"]).deck
+        except KeyError:
+            continue
+        open_c = [c for c in dk.get("comments") or [] if not c.get("resolved")]
+        for_agents = [c for c in open_c if _for_agent(c, agent_names)]
+        yours = [c for c in open_c if _for_agent(c, {a.name.lower()})]
+        d["comments"] = {"open": len(open_c), "forAgents": len(for_agents), "forYou": len(yours)}
+        if for_agents:
+            lines.append(f"Comments for agents: {d['id']} has {len(for_agents)} open comment{'s that mention or are' if len(for_agents) != 1 else ' that mentions or is'} assigned to an agent, {len(yours)} to you (comments {{action: list, filter: mine}})")
+        if not recent and (not focus or focus[0] == d["id"]):
+            pos = {sl["id"]: i + 1 for i, sl in enumerate(dk["slides"])}
+            recent = STORE.activity(d["id"], 5)["entries"]
+            if recent:
+                lines.append(f"Recent activity on {d['id']}: " + " · ".join(f"{str(e.get('at', ''))[11:16]} {e.get('who')}: {_clip(re.sub(r'^Agent:\s*', '', e.get('label', '')), 50)}" + (f" (slide {', '.join(str(pos[x]) for x in e.get('slides', [])[:3] if x in pos)})" if any(x in pos for x in e.get("slides", [])) else "") for e in recent))
     cat = templates.catalog()
     lines.append(f"Templates: {len(cat['templates'])} · default {s.get('defaultTemplate') or cat['default']}" + (f" · last used {s['lastTemplate']}" if s.get("lastTemplate") else "") + " (list_templates)")
     lines.append("Workflow:")
     lines.extend(WORKFLOW)
-    return _ok("\n".join(lines), {"version": config.VERSION, "window": bool(wins), "agentsAllowed": allowed, "focus": list(focus) if focus else None, "decks": decks,
+    return _ok("\n".join(lines), {"version": config.VERSION, "window": bool(wins), "agentsAllowed": allowed, "focus": list(focus) if focus else None, "decks": decks, "activity": recent,
                                   "templates": len(cat["templates"]), "defaultTemplate": s.get("defaultTemplate") or cat["default"]})
 
 
@@ -1402,6 +1427,28 @@ async def t_open_file(a: Agent, args: dict) -> dict:
     return _ok("\n".join(lines), {"deck": deck["id"], "slides": len(deck["slides"])})
 
 
+def _people(deck: dict) -> list[str]:
+    names = [str(config.read_settings().get("author") or "").strip(), *STORE.agent_names()]
+    for c in deck.get("comments") or []:
+        names.append(str(c.get("author") or ""))
+        names.extend(str(r.get("author") or "") for r in c.get("replies") or [] if isinstance(r, dict))
+    return [n for n in dict.fromkeys(x.strip() for x in names) if n]
+
+
+def _mentions(deck: dict, text: str, given) -> list[str]:
+    out = [str(m).strip()[:60] for m in (given if isinstance(given, list) else []) if str(m).strip()]
+    low = text.lower()
+    for name in sorted(_people(deck), key=len, reverse=True):
+        if re.search(r"(^|[^\w])@" + re.escape(name.lower()) + r"(?![\w])", low) and name not in out:
+            out.append(name)
+    return list(dict.fromkeys(out))
+
+
+def _for_agent(c: dict, names: set[str]) -> bool:
+    ms = [*(c.get("mentions") or []), *(m for r in c.get("replies") or [] if isinstance(r, dict) for m in r.get("mentions") or [])]
+    return any(str(m).lower() in names for m in ms) or str(c.get("assignee") or "").lower() in names
+
+
 async def t_comments(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
     action = args.get("action") or "list"
@@ -1411,25 +1458,36 @@ async def t_comments(a: Agent, args: dict) -> dict:
         want = deck["slides"][_index(deck, args["slide"])]["id"] if args.get("slide") else None
         rows = [c for c in comments if want is None or c.get("slide") == want]
         open_rows = [c for c in rows if not c.get("resolved")]
-        lines = [f"{len(open_rows)} open, {len(rows) - len(open_rows)} resolved"]
-        for c in open_rows:
+        flt = args.get("filter") or "open"
+        shown = rows if flt == "all" else [c for c in open_rows if _for_agent(c, {a.name.lower()})] if flt == "mine" else open_rows
+        lines = [f"{len(open_rows)} open, {len(rows) - len(open_rows)} resolved" + (f", {len(shown)} for you" if flt == "mine" else "")]
+        for c in shown:
             where = f"slide {pos.get(c.get('slide'), '?')} ({c.get('slide')})" if c.get("slide") else "deck"
-            lines.append(f"{c.get('id')} · {where}" + (f" · {c['element']}" if c.get("element") else "") + f" · {c.get('author') or '?'} ({c.get('kind', 'user')}): {_clip(c.get('text', ''), 200)}")
+            tags = (" · mentions " + ", ".join(c["mentions"]) if c.get("mentions") else "") + (f" · assigned to {c['assignee']}" if c.get("assignee") else "") + (" · resolved" if c.get("resolved") else "")
+            lines.append(f"{c.get('id')} · {where}" + (f" · {c['element']}" if c.get("element") else "") + f" · {c.get('author') or '?'} ({c.get('kind', 'user')}){tags}: {_clip(c.get('text', ''), 200)}")
             for r in c.get("replies") or []:
-                lines.append(f"  reply · {r.get('author') or '?'}: {_clip(r.get('text', ''), 160)}")
-        return _ok("\n".join(lines))
+                lines.append(f"  reply · {r.get('author') or '?'}" + (" · mentions " + ", ".join(r["mentions"]) if r.get("mentions") else "") + f": {_clip(r.get('text', ''), 160)}")
+        return _ok("\n".join(lines), {"comments": [{k: c.get(k) for k in ("id", "slide", "author", "text", "mentions", "assignee", "resolved") if c.get(k) is not None} for c in shown]})
     stamp = model.now_iso()
+    mentions = _mentions(deck, str(args.get("text") or ""), args.get("mentions"))
+    assignee = str(args.get("assignee") or "").strip()[:60]
+    if assignee and assignee not in mentions:
+        mentions.append(assignee)
     if action == "add":
         if not str(args.get("text") or "").strip():
             raise ToolError("add needs text.")
         cid = model.counters(deck).next("c")
         c = {"id": cid, "author": a.name, "kind": "agent", "text": str(args["text"]).strip(), "at": stamp, "resolved": False, "replies": []}
+        if mentions:
+            c["mentions"] = mentions
+        if assignee:
+            c["assignee"] = assignee
         if args.get("slide"):
             c["slide"] = deck["slides"][_index(deck, args["slide"])]["id"]
         if args.get("element"):
             c["element"] = str(args["element"])
         await _apply(a, deck["id"], [{"op": "ins", "path": ["comments"], "value": c}], "comment")
-        return _ok(f"Added comment {cid}.", {"id": cid})
+        return _ok(f"Added comment {cid}." + (f" Mentions {', '.join(mentions)}." if mentions else "") + (f" Assigned to {assignee}." if assignee else ""), {"id": cid})
     cid = str(args.get("id") or "")
     found = next((c for c in comments if c.get("id") == cid), None)
     if found is None:
@@ -1438,9 +1496,12 @@ async def t_comments(a: Agent, args: dict) -> dict:
         if not str(args.get("text") or "").strip():
             raise ToolError("reply needs text.")
         r = {"author": a.name, "kind": "agent", "text": str(args["text"]).strip(), "at": stamp}
+        if mentions:
+            r["mentions"] = mentions
         op = {"op": "ins", "path": ["comments", {"id": cid}, "replies"], "value": r} if isinstance(found.get("replies"), list) else {"op": "set", "path": ["comments", {"id": cid}, "replies"], "value": [r]}
-        await _apply(a, deck["id"], [op], "reply")
-        return _ok(f"Replied to {cid}.")
+        ops = [op] + ([{"op": "set", "path": ["comments", {"id": cid}, "assignee"], "value": assignee}] if assignee else [])
+        await _apply(a, deck["id"], ops, "reply")
+        return _ok(f"Replied to {cid}." + (f" Assigned to {assignee}." if assignee else ""))
     if action == "resolve":
         await _apply(a, deck["id"], [{"op": "set", "path": ["comments", {"id": cid}, "resolved"], "value": True}], "resolve comment")
         return _ok(f"Resolved {cid}.")
@@ -1667,6 +1728,8 @@ async def mcp(request: Request) -> Response:
         while len(SESSIONS) > 500:
             SESSIONS.pop(next(iter(SESSIONS)))
         SESSIONS[sid] = Agent(sid, (params.get("clientInfo") or {}).get("name") or "agent")
+        if STORE.seen_agent(SESSIONS[sid].name, sid):
+            await STORE.broadcast_all({"t": "agents", "names": STORE.agent_names()})
         headers["Mcp-Session-Id"] = sid
         out = _res(req_id, {"protocolVersion": asked if asked in VERSIONS + LEGACY else VERSIONS[1], "capabilities": CAPS, "serverInfo": SERVER, "instructions": INSTRUCTIONS}, False)
     elif version not in VERSIONS + LEGACY:

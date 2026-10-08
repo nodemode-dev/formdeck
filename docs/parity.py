@@ -127,10 +127,10 @@ row(a, "Loop until Esc and custom shows", 1, 1, 0, F, "`present/show-dialogs.ts 
 row(a, "Present to a remote audience with Q&A", 1, 1, 0, N, "nothing found")
 
 a = "Review and comments"
-row(a, "Comments: add, list, resolve", 1, 1, 1, F, "`inspector.ts` Review tab: add, reply, resolve; `dialogs-insert.ts addComment`; agents through `mcp.py comments`; no @mentions")
+row(a, "Comments: add, list, resolve", 1, 1, 1, F, "`inspector.ts` Review tab: add, reply, resolve, reopen, @mentions, assignees, filter (`editor/mentions.ts attachMentions`); `dialogs-insert.ts addComment`; agents through `mcp.py comments` (mentions, assignee, filter mine)")
 row(a, "Review status per slide (draft, review, changes, approved)", 0, 0, 0, F, "`commands.ts reviewStatus`, `inspector.ts` Review tab, `mcp.py review`")
-row(a, "Compare two versions", 1, 0, 1, P, "two PDFs page by page with text and picture differences (`pdf/compare.ts Comparer`, `services/pdf/compare.py compare`); decks are not compared yet")
-row(a, "Activity: who changed what", 1, 1, 1, P, "`inspector.ts addActivity` lists agent steps; labelled undo history in `store.py`")
+row(a, "Compare two versions", 1, 0, 1, F, "two PDFs page by page with text and picture differences (`pdf/compare.ts Comparer`, `services/pdf/compare.py compare`); decks against a saved version or a .pptx/.fsld file with per-slide differences, word-level text changes and undoable accept or ignore (`editor/compare.ts compareDecks, acceptAll`, `ui/review-dialogs.ts CompareDialog`, `routers/decks.py version_deck, compare_file`)")
+row(a, "Activity: who changed what", 1, 1, 1, F, "every step logged per deck with who, origin, label and slides (`store.py Store._log, activity`, `Decks/[id]/activity.jsonl`, `GET /api/decks/{id}/activity`); Review > Activity grouped by day with a person filter (`ui/review-dialogs.ts ActivityDialog`); agents read it in `mcp.py t_get_context`")
 
 a = "Collaboration and sharing"
 row(a, "Real-time co-editing", 1, 1, 0, P, "several windows and agents edit one deck live with presence (`editor.ts setPeer`, `routers/live.py`); one computer only")

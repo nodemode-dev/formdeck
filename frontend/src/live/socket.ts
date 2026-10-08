@@ -1,6 +1,7 @@
 import { DeckDoc } from '../engine/doc';
 import type { Deck } from '../engine/model';
 import type { Op } from '../engine/ops';
+import { addAgents } from '../editor/mentions';
 
 type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 type Notice = (text: string, kind: 'info' | 'error') => void;
@@ -88,6 +89,11 @@ export class LiveClient {
     if (t === 'hello') {
       this.clientId = String(m.client);
       for (const d of this.docs.values()) d.clientId = this.clientId;
+      addAgents(m.agents);
+      return;
+    }
+    if (t === 'agents') {
+      addAgents(m.names);
       return;
     }
     if (t === 'snapshot') {
@@ -110,6 +116,7 @@ export class LiveClient {
       return;
     }
     if (t === 'ops') {
+      if (m.origin === 'agent' && m.who) addAgents([m.who]);
       this.docs.get(deckId)?.remote(m as unknown as { rev: number; ops: Op[]; client?: string; step?: string; label?: string; origin?: string; canUndo?: boolean; canRedo?: boolean });
       return;
     }

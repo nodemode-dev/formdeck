@@ -27,7 +27,7 @@ How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader an
 | Transitions | 3 of 3 · 100% | 2 of 2 · 100% | not offered |
 | Animations | 4 of 4 · 100% | 3 of 3 · 100% | not offered |
 | Slideshow and presenter | 7.5 of 9 · 83% | 7.5 of 9 · 83% | not offered |
-| Review and comments | 2 of 3 · 67% | 1.5 of 2 · 75% | 2 of 3 · 67% |
+| Review and comments | 3 of 3 · 100% | 2 of 2 · 100% | 3 of 3 · 100% |
 | Collaboration and sharing | 1.5 of 4 · 38% | 1.5 of 4 · 38% | 1 of 2 · 50% |
 | Accessibility | 2 of 4 · 50% | 0.5 of 2 · 25% | 2 of 4 · 50% |
 | Import and export | 6 of 8 · 75% | 5 of 6 · 83% | 3 of 3 · 100% |
@@ -40,16 +40,16 @@ How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader an
 | PDF convert | not offered | not offered | 7 of 10 · 70% |
 | Automation and agents | 1 of 3 · 33% | 1 of 3 · 33% | 1 of 3 · 33% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **85.5 of 105 · 81.4%** | **74 of 88 · 84.1%** | **44 of 56 · 78.6%** |
+| **Overall** | **86.5 of 105 · 82.4%** | **74.5 of 88 · 84.7%** | **45 of 56 · 80.4%** |
 
-Across all 151 scored rows (the union of the three products plus the rows where formsld leads), formsld has 117 full, 17 partial and 17 none: 125.5 of 151 points, 83.1%.
+Across all 151 scored rows (the union of the three products plus the rows where formsld leads), formsld has 119 full, 15 partial and 17 none: 126.5 of 151 points, 83.8%.
 
 ## Where formsld leads
 
 Rows formsld implements that the product does not offer:
 
 - **Over PowerPoint (42 rows):** the whole PDF workbench (viewing, annotation, fill and sign, form creation, organize, protect and redact, convert: 35 rows), per-slide review status, and six agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, and a headless `build-deck` command.
-- **Over Google Slides (55 rows):** the same 42, plus sections, outline view, reset slide, text columns, object lock, the selection pane with reading order, edit points, morph, motion paths, video and GIF export, comparing PDFs and the Check Deck accessibility checker.
+- **Over Google Slides (55 rows):** the same 42, plus sections, outline view, reset slide, text columns, object lock, the selection pane with reading order, edit points, morph, motion paths, video and GIF export, comparing PDFs and decks and the Check Deck accessibility checker.
 - **Over Acrobat (85 rows):** the whole deck editor, from templates, layouts and slide master editing through tables, drawing and connectors, charts, transitions, animations with motion paths, the show with recorded narration, and video export, plus review status and the agent rows.
 - **Drafting from material:** PowerPoint (Copilot) and Google Slides (Gemini) both draft decks, so this row scores against them, but formsld does it locally from md, pdf, docx, pptx, csv, xlsx, pictures and notes in one dialog (`backend/app/services/autodraft.py draft`), with no model and no account, and hands the same intake to an outside agent.
 
@@ -59,7 +59,7 @@ Rows formsld implements that the product does not offer:
 - **Diagrams and SmartArt, 0.5 of 2.** The compiler draws timelines, processes, teams and stats from a script, but there is no SmartArt editor and no icon or 3-D model library.
 - **Masters and themes, 2.5 of 3.** View, Slide Master edits the master and each layout (placeholders, background, hide graphics, insert, duplicate, rename, delete, reorder); a deck still carries one master.
 - **PDF forms and signing, 4 of 6.** Filling, flattening, placed signatures and form creation work; certificate signatures and signature requests do not exist.
-- **Pictures and the rest.** No stock or AI pictures, no video trim control, no merge shapes, no OCR, no tagged PDF, and captions need Chrome or Edge. Comparing decks (as opposed to PDFs) comes next.
+- **Pictures and the rest.** No stock or AI pictures, no video trim control, no merge shapes, no OCR, no tagged PDF, and captions need Chrome or Edge.
 
 ## Line by line
 
@@ -213,10 +213,10 @@ Rows formsld implements that the product does not offer:
 
 | Capability | PowerPoint | Slides | Acrobat | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Comments: add, list, resolve | yes | yes | yes | Full | `inspector.ts` Review tab: add, reply, resolve; `dialogs-insert.ts addComment`; agents through `mcp.py comments`; no @mentions |
+| Comments: add, list, resolve | yes | yes | yes | Full | `inspector.ts` Review tab: add, reply, resolve, reopen, @mentions, assignees, filter (`editor/mentions.ts attachMentions`); `dialogs-insert.ts addComment`; agents through `mcp.py comments` (mentions, assignee, filter mine) |
 | Review status per slide (draft, review, changes, approved) | no | no | no | Full | `commands.ts reviewStatus`, `inspector.ts` Review tab, `mcp.py review` |
-| Compare two versions | yes | no | yes | Partial | two PDFs page by page with text and picture differences (`pdf/compare.ts Comparer`, `services/pdf/compare.py compare`); decks are not compared yet |
-| Activity: who changed what | yes | yes | yes | Partial | `inspector.ts addActivity` lists agent steps; labelled undo history in `store.py` |
+| Compare two versions | yes | no | yes | Full | two PDFs page by page with text and picture differences (`pdf/compare.ts Comparer`, `services/pdf/compare.py compare`); decks against a saved version or a .pptx/.fsld file with per-slide differences, word-level text changes and undoable accept or ignore (`editor/compare.ts compareDecks, acceptAll`, `ui/review-dialogs.ts CompareDialog`, `routers/decks.py version_deck, compare_file`) |
+| Activity: who changed what | yes | yes | yes | Full | every step logged per deck with who, origin, label and slides (`store.py Store._log, activity`, `Decks/[id]/activity.jsonl`, `GET /api/decks/{id}/activity`); Review > Activity grouped by day with a person filter (`ui/review-dialogs.ts ActivityDialog`); agents read it in `mcp.py t_get_context` |
 
 ### Collaboration and sharing
 

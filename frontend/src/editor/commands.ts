@@ -171,6 +171,8 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'review-changes', label: 'Request Changes', icon: 'requestChanges', enabled: has, run: () => reviewStatus('changes') },
     { id: 'review-draft', label: 'Back to Draft', enabled: has, run: () => reviewStatus('draft') },
     { id: 'check-deck', label: 'Check Deck...', icon: 'success', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/check-dialog').then((m) => m.checkDeck(ed)); } },
+    { id: 'review-activity', label: 'Activity...', icon: 'history', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/review-dialogs').then((m) => m.activityDialog(ed)); } },
+    { id: 'review-compare', label: 'Compare...', icon: 'compare', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/review-dialogs').then((m) => m.compareDialog(ed)); } },
     { id: 'add-comment', label: 'New Comment', keys: ['Alt+Mod+M'], icon: 'comment', enabled: has, run: () => h.comment() },
     { id: 'insert-text', label: 'Text Box', icon: 'textBox', enabled: has, run: () => { const ed = E(); if (!ed) return; const d = ed.doc.deck.size; const id = ed.insert(newTextBox({ x: Math.round(d.w / 2 - 160), y: Math.round(d.h / 2 - 30), w: 320, h: 60 }) as SlideElement, 'Insert text box'); if (id) requestAnimationFrame(() => ed.stage.beginEdit(id)); } },
     { id: 'insert-image', label: 'Picture...', icon: 'image', enabled: has, run: () => void E()?.pickImage() },

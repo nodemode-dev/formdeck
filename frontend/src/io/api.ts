@@ -1,6 +1,7 @@
 import type { Deck } from '../engine/model';
 
 export interface DeckSummary { id: string; title: string; slides: number; size: { w: number; h: number }; template?: string; modified?: string; review?: Record<string, number>; warnings?: string[]; thumb?: boolean }
+export interface ActivityEntry { id: string; at: string; who: string; origin: string; label: string; slides: string[] }
 export interface TemplateSummary { id: string; name: string; category: string; tags: string[]; description: string; source: string; colors: Record<string, string>; fonts: { major: string; minor: string }; dark?: boolean; motif?: string; layouts: number }
 
 async function json<T>(res: Response): Promise<T> {
@@ -36,6 +37,13 @@ export const api = {
   versions: (deckId: string) => get<{ versions: Array<{ n: number; name: string; at: string; slides: number }> }>(`/api/decks/${deckId}/versions`),
   saveVersion: (deckId: string, name: string) => post<{ n: number }>(`/api/decks/${deckId}/versions`, { name }),
   restoreVersion: (deckId: string, n: number) => post<{ rev: number }>(`/api/decks/${deckId}/versions/${n}/restore`),
+  version: (deckId: string, n: number) => get<{ info: { n: number; name: string; at: string }; deck: Deck }>(`/api/decks/${deckId}/versions/${n}`),
+  activity: (deckId: string, who = '', limit = 300) => get<{ entries: ActivityEntry[]; people: string[]; total: number }>(`/api/decks/${deckId}/activity?limit=${limit}${who ? `&who=${encodeURIComponent(who)}` : ''}`),
+  async compareFile(file: File): Promise<{ deck: Deck; name: string }> {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return json<{ deck: Deck; name: string }>(await fetch('/api/compare-file', { method: 'POST', body: fd }));
+  },
   openPath: (path: string, asTemplate = false) => post<DeckSummary & { template?: string }>('/api/open-path', { path, asTemplate }),
   async upload(files: File[]): Promise<Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number }>> {
     const fd = new FormData();

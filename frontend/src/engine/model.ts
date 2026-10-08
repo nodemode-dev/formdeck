@@ -103,8 +103,8 @@ export interface Layout { id: string; master: string; name: string; semantic?: S
 export interface Master { id: string; name: string; background?: Fill | null; elements: SlideElement[]; textStyles: { title: LevelStyle[]; body: LevelStyle[]; other: LevelStyle[] } }
 export interface Theme { name: string; colors: Record<string, string>; fonts: { major: string; minor: string } }
 export interface Section { id: string; name: string; start: string; collapsed?: boolean }
-export interface CommentReply { author: string; kind: 'user' | 'agent'; text: string; at: string }
-export interface Comment { id: string; slide: string; element?: string; author: string; kind: 'user' | 'agent'; text: string; at: string; resolved?: boolean; replies?: CommentReply[] }
+export interface CommentReply { author: string; kind: 'user' | 'agent'; text: string; at: string; mentions?: string[] }
+export interface Comment { id: string; slide: string; element?: string; author: string; kind: 'user' | 'agent'; text: string; at: string; resolved?: boolean; replies?: CommentReply[]; mentions?: string[]; assignee?: string }
 export interface MediaInfo { name: string; mime: string; w?: number; h?: number; bytes?: number; frames?: number; duration?: number }
 export interface CustomShow { id: string; name: string; slides: string[] }
 export interface ShowSettings {

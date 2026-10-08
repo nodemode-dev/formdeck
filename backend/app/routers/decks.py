@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import io
+import json
 import re
 from pathlib import Path
 
@@ -108,6 +109,32 @@ def versions(deck_id: str) -> dict:
 def save_version(deck_id: str, body: dict = Body(default={})) -> dict:
     _session_or_404(deck_id)
     return STORE.save_version(deck_id, body.get("name") or "")
+
+
+@router.get("/decks/{deck_id}/activity")
+def activity(deck_id: str, limit: int = 300, who: str = "") -> dict:
+    _session_or_404(deck_id)
+    return STORE.activity(deck_id, limit, who or None)
+
+
+@router.get("/decks/{deck_id}/versions/{n}")
+def version_deck(deck_id: str, n: int) -> dict:
+    _session_or_404(deck_id)
+    try:
+        data = json.loads((deck_dir(deck_id) / "versions" / f"{int(n)}.json").read_text(encoding="utf-8"))
+        return {"info": data["info"], "deck": model.normalize(data["deck"])}
+    except (OSError, KeyError, ValueError):
+        raise HTTPException(404, "There is no such version.")
+
+
+@router.post("/compare-file")
+async def compare_file(file: UploadFile) -> dict:
+    data = await file.read()
+    try:
+        deck = await asyncio.to_thread(import_bytes, data, file.filename or "deck.pptx")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return {"deck": model.normalize(deck), "name": Path(file.filename or "deck").name}
 
 
 @router.post("/decks/{deck_id}/versions/{n}/restore")

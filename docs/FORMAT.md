@@ -202,9 +202,9 @@ A layout's placeholders show in the editor as prompts ("Click to add title") on 
 
 ## Review, comments, history
 
-`comments[]`: `{ "id": "c1", "slide": "s3", "element": "e4", "author": "Ana", "kind": "user", "text": "Use the Q3 number", "at": "2026-10-07T12:31:00Z", "resolved": false, "replies": [ { "author": "agent", "kind": "agent", "text": "Done", "at": "..." } ] }`. `kind` is `user` or `agent`.
+`comments[]`: `{ "id": "c1", "slide": "s3", "element": "e4", "author": "Ana", "kind": "user", "text": "Use the Q3 number @claude-code", "at": "2026-10-07T12:31:00Z", "resolved": false, "mentions": ["claude-code"], "assignee": "claude-code", "replies": [ { "author": "agent", "kind": "agent", "text": "Done @Ana", "at": "...", "mentions": ["Ana"] } ] }`. `kind` is `user` or `agent`. `mentions` (optional, on a comment or a reply) lists the people named with `@Name` in the text; `assignee` (optional) is the one person the comment is assigned to and is always among the comment's mentions. The engine drops empty mentions and assignees and removes duplicates.
 
-History (undo) lives in the engine for each open deck and is not stored in deck.json. Named versions are saved snapshots in the library (`Decks/[id]/versions/[n].json`).
+History (undo) lives in the engine for each open deck and is not stored in deck.json. Named versions are saved snapshots in the library (`Decks/[id]/versions/[n].json`). The activity log is `Decks/[id]/activity.jsonl`, one JSON line per step: `{ "id": "k12", "at": "2026-10-08T09:14:03Z", "who": "Ana", "origin": "user", "label": "Delete slide", "slides": ["s4"] }`. `origin` is `user`, `agent` or `history` (undo and redo); `who` is the person's name from Preferences (or `You`) or the agent's client name; `slides` are the slide ids the step touched (empty for deck-wide steps). The log keeps the latest 2000 steps and is not part of deck.json, a .fsld package or a .pptx.
 
 ## The .fsld package
 

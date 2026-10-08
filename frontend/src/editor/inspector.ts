@@ -1,4 +1,4 @@
-import { SCHEME_SLOTS, type Deck, type Effects, type SchemeName, type SlideElement } from '../engine/model';
+import { SCHEME_SLOTS, type Comment, type Deck, type Effects, type SchemeName, type SlideElement } from '../engine/model';
 import { colorCss, colorHex, frameOf, chain } from '../engine/resolve';
 import { slidePath, elPath, type Op } from '../engine/ops';
 import { BUNDLED_FONTS, ensureFont } from '../render/fonts';
@@ -11,6 +11,7 @@ import type { Editor } from './editor';
 import { dirtyOp, holderNameOps, paraStyleOps, runStyleOps, setFrameOps } from './actions';
 import { AnimationPane } from './animation-pane';
 import { TablePanel } from './table-panel';
+import { attachMentions, findMentions, isAgentName, loadMe, mentionsMe, myName, people, renderMentions } from './mentions';
 
 const SLOT_NAMES: Record<SchemeName, string> = {
   dk1: 'Text dark', lt1: 'Background light', dk2: 'Dark 2', lt2: 'Light 2', accent1: 'Accent 1', accent2: 'Accent 2', accent3: 'Accent 3',
@@ -41,7 +42,8 @@ export class Inspector {
   readonly animate = new AnimationPane();
   readonly table = new TablePanel();
   private docOff: (() => void) | null = null;
-  hooks: { templates: () => void; background: () => void; slideSize: () => void; comment: (text: string) => void; agentsAllowed: () => boolean; setAgents: (on: boolean) => void; copyPrompt: () => void; mcpStatus: () => string } | null = null;
+  private commentFilter: 'all' | 'open' | 'mine' | 'assigned' = 'open';
+  hooks: { templates: () => void; background: () => void; slideSize: () => void; comment: (text: string, assignee?: string) => void; agentsAllowed: () => boolean; setAgents: (on: boolean) => void; copyPrompt: () => void; mcpStatus: () => string } | null = null;
 
   constructor(host: HTMLElement) {
     this.format = el(`<div class="fs-insp">
@@ -104,8 +106,10 @@ export class Inspector {
 <div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">This slide</span></div>
 <div class="fs-seg" data-seg="review"><button type="button" data-v="draft">Draft</button><button type="button" data-v="review">Review</button><button type="button" data-v="changes">Changes</button><button type="button" data-v="approved">Approved</button></div>
 <div class="fs-review-deck fs-note"></div></div>
-<div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Comments</span></div><div class="fs-list fs-comments"></div>
-<div class="fs-comment-new"><textarea class="fs-input" rows="2" placeholder="Comment on this slide (Enter to post)"></textarea></div></div>
+<div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Comments</span></div>
+<div class="fs-prop-row"><span class="fs-prop-label">Show</span><div class="fs-prop-ctl"><select data-f="cfilter" aria-label="Show comments"><option value="all">All</option><option value="open" selected>Open</option><option value="mine">Mentions me</option><option value="assigned">Assigned to me</option></select></div></div>
+<div class="fs-list fs-comments"></div><div class="fs-note fs-comments-empty" hidden></div>
+<div class="fs-comment-new"><textarea class="fs-input" rows="2" placeholder="Comment on this slide (Enter to post, @ to mention)"></textarea><div class="fs-comment-assign" hidden><label class="fs-check"><input type="checkbox" data-f="assign"><span></span></label><span class="fs-comment-assign-label">Assign to</span><select data-f="assignee" aria-label="Assign to"></select></div></div></div>
 </div>`);
     this.agent = el(`<div class="fs-insp">
 <div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Outside agents</span></div>
@@ -154,7 +158,16 @@ export class Inspector {
       const b = (e.target as HTMLElement).closest('[data-seg="review"] button') as HTMLButtonElement | null;
       if (b && this.ed) this.ed.run({ draft: 'review-draft', review: 'review-ready', changes: 'review-changes', approved: 'review-approve' }[b.dataset.v as string] as string);
       const r = (e.target as HTMLElement).closest('[data-resolve]') as HTMLElement | null;
-      if (r && this.ed) this.ed.apply([{ op: 'set', path: ['comments', { id: r.dataset.resolve as string }, 'resolved'], value: true }], 'Resolve comment');
+      const rc = r && this.ed ? (this.ed.doc.deck.comments ?? []).find((x) => x.id === r.dataset.resolve) : undefined;
+      if (rc && this.ed) this.ed.apply([{ op: 'set', path: ['comments', { id: rc.id }, 'resolved'], value: !rc.resolved }], rc.resolved ? 'Reopen comment' : 'Resolve comment');
+      const go = (e.target as HTMLElement).closest('[data-goto]') as HTMLElement | null;
+      if (go?.dataset.goto && this.ed) { this.ed.setCurrent(go.dataset.goto); if (go.dataset.el && this.ed.doc.element(go.dataset.goto, go.dataset.el)) this.ed.select([go.dataset.el]); }
+    });
+    this.review.addEventListener('change', (e) => {
+      const t = e.target as HTMLSelectElement;
+      if (t.dataset.f !== 'cfilter' || !this.ed) return;
+      this.commentFilter = t.value as typeof this.commentFilter;
+      void loadMe().then(() => { const ed = this.ed, s = ed?.slide; if (ed && s) this.syncComments(ed.doc.deck, s.id); });
     });
     this.review.addEventListener('keydown', (e) => {
       const t = e.target as HTMLInputElement;
@@ -165,16 +178,39 @@ export class Inspector {
       const text = t.value.trim();
       const c = (ed.doc.deck.comments ?? []).find((x) => x.id === id);
       if (!text || !c) return;
-      const reply = { author: 'You', kind: 'user' as const, text, at: new Date().toISOString() };
+      const mentions = findMentions(text, people(ed.doc.deck));
+      const reply = { author: myName(), kind: 'user' as const, text, at: new Date().toISOString(), ...(mentions.length ? { mentions } : {}) };
       ed.apply(c.replies ? [{ op: 'ins', path: ['comments', { id }, 'replies'], index: c.replies.length, value: reply } as Op] : [{ op: 'set', path: ['comments', { id }, 'replies'], value: [reply] }], 'Reply');
       t.value = '';
     });
     const ta = this.review.querySelector('.fs-comment-new textarea') as HTMLTextAreaElement;
+    const assignRow = this.review.querySelector('.fs-comment-assign') as HTMLElement;
+    const assignBox = assignRow.querySelector('[data-f="assign"]') as HTMLInputElement;
+    const assignSel = assignRow.querySelector('[data-f="assignee"]') as HTMLSelectElement;
+    const names = (): string[] => people(this.ed?.doc.deck);
+    attachMentions(ta, names);
+    void loadMe();
+    ta.addEventListener('input', () => {
+      const found = findMentions(ta.value, names());
+      setHidden(assignRow, !found.length);
+      const have = Array.from(assignSel.options).map((o) => o.value);
+      if (have.join('\u0001') !== found.join('\u0001')) {
+        const keep = assignSel.value;
+        assignSel.replaceChildren(...found.map((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; return o; }));
+        if (found.includes(keep)) assignSel.value = keep;
+      }
+      if (!found.length) setChecked(assignBox, false);
+    });
+    assignSel.addEventListener('change', () => setChecked(assignBox, true));
     ta.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const v = ta.value.trim();
-        if (v) { this.hooks?.comment(v); ta.value = ''; }
+        if (v) {
+          this.hooks?.comment(v, assignBox.checked && !assignRow.hidden ? assignSel.value : undefined);
+          ta.value = '';
+          ta.dispatchEvent(new Event('input'));
+        }
       }
     });
     this.agent.addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.dataset.f === 'agents') this.hooks?.setAgents(t.checked); });
@@ -392,24 +428,7 @@ export class Inspector {
       const counts = { draft: 0, review: 0, changes: 0, approved: 0 } as Record<string, number>;
       for (const x of deck.slides) counts[x.review?.status ?? 'draft']++;
       setText(this.review.querySelector('.fs-review-deck'), `${counts.approved} of ${deck.slides.length} approved · ${counts.review} ready for review · ${counts.changes} with changes`);
-      const list = this.review.querySelector('.fs-comments') as HTMLElement;
-      const comments = (deck.comments ?? []).filter((c) => c.slide === s.id && !c.resolved);
-      patchList(list, comments, {
-        key: (c) => c.id,
-        create: (c) => {
-          const n = el(`<div class="fs-row is-stack fs-comment"><div class="fs-row-avatar${c.kind === 'agent' ? ' is-agent' : ''}">${c.kind === 'agent' ? icon('agent', 14) : escapeHtml(c.author.slice(0, 2).toUpperCase())}</div><div class="fs-row-main"><div class="fs-row-title">${escapeHtml(c.author)}</div><div class="fs-row-text"></div><div class="fs-comment-replies"></div><input class="fs-input fs-comment-reply" type="text" placeholder="Reply" aria-label="Reply" data-reply="${c.id}"></div><button class="fs-icon-btn is-sm" type="button" title="Resolve" data-resolve="${c.id}">${icon('check', 14)}</button></div>`);
-          setText(n.querySelector('.fs-row-text'), c.text);
-          return n;
-        },
-        update: (n, c) => {
-          setText(n.querySelector('.fs-row-text'), c.text);
-          patchList(n.querySelector('.fs-comment-replies') as HTMLElement, (c.replies ?? []).map((r, i) => ({ ...r, key: `${i}` })), {
-            key: (r) => r.key,
-            create: (r) => { const rn = el(`<div class="fs-comment-r${r.kind === 'agent' ? ' is-agent' : ''}"><span class="fs-comment-by"></span><span class="fs-comment-rt"></span></div>`); setText(rn.querySelector('.fs-comment-by'), r.author); setText(rn.querySelector('.fs-comment-rt'), r.text); return rn; },
-            update: (rn, r) => { setText(rn.querySelector('.fs-comment-by'), r.author); setText(rn.querySelector('.fs-comment-rt'), r.text); },
-          });
-        },
-      });
+      this.syncComments(deck, s.id);
     }
     setText(this.design.querySelector('.fs-tpl-name'), deck.template?.name ?? deck.theme.name ?? 'Custom');
     for (const [k, font] of [['font-major', deck.theme.fonts.major], ['font-minor', deck.theme.fonts.minor]] as const) {
@@ -456,6 +475,48 @@ export class Inspector {
       else cursor = cursor.nextElementSibling;
     }
     if (this.layoutGrid.isConnected) for (const v of this.layoutViews.values()) v.fitAll();
+  }
+
+  private syncComments(deck: Deck, here: string): void {
+    const list = this.review.querySelector('.fs-comments') as HTMLElement;
+    const me = myName().toLowerCase();
+    const f = this.commentFilter;
+    const order = new Map(deck.slides.map((x, i) => [x.id, i]));
+    const comments = (deck.comments ?? []).filter((c) => (f === 'all' || !c.resolved) && (f !== 'mine' || mentionsMe(c)) && (f !== 'assigned' || (c.assignee ?? '').toLowerCase() === me))
+      .map((c, i) => ({ c, i, o: order.get(c.slide) ?? 1e6 })).sort((a, b) => a.o - b.o || a.i - b.i).map((x) => x.c);
+    const names = people(deck);
+    const opts: { key: (c: Comment) => string; create: (c: Comment) => HTMLElement; update: (n: HTMLElement, c: Comment) => void } = {
+      key: (c) => c.id,
+      create: (c) => {
+        const n = el(`<div class="fs-row is-stack fs-comment"><div class="fs-row-avatar${c.kind === 'agent' ? ' is-agent' : ''}">${c.kind === 'agent' ? icon('agent', 14) : escapeHtml(c.author.slice(0, 2).toUpperCase())}</div><div class="fs-row-main"><div class="fs-row-title"><span class="fs-comment-author">${escapeHtml(c.author)}</span><button class="fs-comment-where" type="button" data-goto="${escapeHtml(c.slide)}" data-el="${escapeHtml(c.element ?? '')}"></button></div><div class="fs-comment-assignee" hidden></div><div class="fs-row-text"></div><div class="fs-comment-replies"></div><input class="fs-input fs-comment-reply" type="text" placeholder="Reply, @ to mention" aria-label="Reply" data-reply="${c.id}"></div><button class="fs-icon-btn is-sm" type="button" title="Resolve" data-resolve="${c.id}">${icon('check', 14)}</button></div>`);
+        attachMentions(n.querySelector('.fs-comment-reply') as HTMLInputElement, () => people(this.ed?.doc.deck));
+        opts.update(n, c);
+        return n;
+      },
+      update: (n, c) => {
+        const pos = order.get(c.slide);
+        setText(n.querySelector('.fs-comment-where'), pos === undefined ? 'Removed slide' : `Slide ${pos + 1}`);
+        setClass(n, 'is-here', c.slide === here);
+        setClass(n, 'is-resolved', !!c.resolved);
+        const rb = n.querySelector('[data-resolve]') as HTMLElement;
+        const rt = c.resolved ? 'Reopen' : 'Resolve';
+        if (rb.title !== rt) { rb.title = rt; rb.setAttribute('aria-label', rt); }
+        setClass(rb, 'is-on', !!c.resolved);
+        const asg = n.querySelector('.fs-comment-assignee') as HTMLElement;
+        setText(asg, c.assignee ? `Assigned to ${c.assignee}${isAgentName(c.assignee) ? ' (agent)' : ''}` : '');
+        setHidden(asg, !c.assignee);
+        renderMentions(n.querySelector('.fs-row-text'), c.text, [...(c.mentions ?? []), ...names]);
+        patchList(n.querySelector('.fs-comment-replies') as HTMLElement, (c.replies ?? []).map((r, i) => ({ ...r, key: `${i}` })), {
+          key: (r) => r.key,
+          create: (r) => { const rn = el(`<div class="fs-comment-r${r.kind === 'agent' ? ' is-agent' : ''}"><span class="fs-comment-by"></span><span class="fs-comment-rt"></span></div>`); setText(rn.querySelector('.fs-comment-by'), r.author); renderMentions(rn.querySelector('.fs-comment-rt'), r.text, [...(r.mentions ?? []), ...names]); return rn; },
+          update: (rn, r) => { setText(rn.querySelector('.fs-comment-by'), r.author); renderMentions(rn.querySelector('.fs-comment-rt'), r.text, [...(r.mentions ?? []), ...names]); },
+        });
+      },
+    };
+    patchList(list, comments, opts);
+    const empty = this.review.querySelector('.fs-comments-empty') as HTMLElement;
+    setText(empty, { all: 'No comments yet.', open: 'No open comments.', mine: `No open comments mention ${myName()}.`, assigned: `No open comments are assigned to ${myName()}.` }[f]);
+    setHidden(empty, comments.length > 0);
   }
 
   addActivity(item: ActivityItem): void {

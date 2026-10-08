@@ -188,6 +188,10 @@ Edit > Find and Replace (Mod+F) searches every text box, speaker notes included,
 
 Every slide has a review status: Draft, Review (ready for the person), Changes (changes requested) or Approved. Set it in the Review tab, the Review menu or the toolbar; it applies to every selected slide. New Comment (Alt+Mod+M) adds a comment to the current slide; type in a comment's Reply box and press Enter to answer it; Resolve hides it. Agents read and write the same comments and statuses, and they leave their work in Review for you to approve.
 
+Type @ in a comment or reply to mention a person or an agent; arrows and Enter pick from the list, and a mentioned name can be made the assignee. The Review tab lists comments for the whole deck; Show picks All, Open, Mentions me or Assigned to me, and a resolved comment can be reopened.
+
+Review > Activity lists every change by day with who made it (you, another window or an agent), what it was and the slides it touched; filter by person and click a line to go to the slide. Review > Compare compares the deck with a saved version or with a .pptx or .fsld file: each changed slide is listed with its differences, text changes are shown word by word, and Accept or Ignore applies or skips each one (Accept all is a single undo step).
+
 Review > Check Deck runs the same checks agents use: text that overflows (measured on the rendered slides), text too small or too low in contrast, pictures without alt text or too low in resolution, elements off the slide or overlapping, empty placeholders and wordy slides. It gives a score and one line per issue with a fix; click a line to go to that slide and element.
 
 ### Saving and versions

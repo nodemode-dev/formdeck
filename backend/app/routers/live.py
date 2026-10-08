@@ -33,7 +33,7 @@ async def live(ws: WebSocket) -> None:
 
     client = Client(ids.short("c", 8), send)
     STORE.clients[client.id] = client
-    await send({"t": "hello", "client": client.id, "version": config.VERSION})
+    await send({"t": "hello", "client": client.id, "version": config.VERSION, "agents": STORE.agent_names()})
     try:
         while True:
             raw = await ws.receive_text()

@@ -63,7 +63,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 
 ## Known gaps in 0.5.0
 
-- Co-authoring across machines, share links and publishing to the web are not built; @mentions, an activity log and comparing decks come next.
+- Co-authoring across machines, share links and publishing to the web are not built.
 - One slide master per deck; no SmartArt editor, merge shapes, OCR or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Google Slides and Acrobat (0.5.0: 81.4%, 84.1% and 78.6%).
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in formsld; in .pptx they round-trip as native charts for the common kinds.
