@@ -32,6 +32,8 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 9. Subscribe before open · live/socket.ts
 10. Placeholder fill for tables and charts · ui/dialogs-insert.ts
 11. Background live preview · ui/dialogs-insert.ts
+12. Inspector sections are blocks, not section buttons · styles/panels.css
+13. Zero-height lines keep a 1pt box · render/slide.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -76,3 +78,11 @@ A new table or chart takes over an empty tbl, chart or obj placeholder (its ph, 
 ## 11. Background live preview · _v0.2.0 (ui/dialogs-insert.ts backgroundDialog)
 
 The dialog sits at the right edge without a blurring scrim so the slide stays visible, and each change is a step with coalesce key `bg`; Apply with no change writes nothing, so the slide stays linked to its layout background.
+
+## 12. Inspector sections are blocks, not section buttons · _v0.2.1 (styles/panels.css .fs-insp, editor/inspector.ts)
+
+The family stylesheet defines `.fs-prop-section` as a 28 px collapsible header button and `.fs-panel-title` as a pill, while the inspector uses them as section containers and labels, so sections were clipped to one row and the Review panel overlapped itself. Rules scoped under `.fs-insp` turn them into stacked blocks with quiet uppercase labels, and add the missing layout grid, comment box and template label styles. The comment list no longer overwrites each row's reply count after patching.
+
+## 13. Zero-height lines keep a 1pt box · _v0.2.1 (render/slide.ts shapeSvg)
+
+Chrome does not paint an SVG whose box rounds to zero, so horizontal and vertical lines and connectors were invisible in the editor while the raster export drew them. Line geometry now gets at least a 1 pt box with overflow visible. Numbered bullet labels (`.fs-bu`) no longer wrap at small scales.

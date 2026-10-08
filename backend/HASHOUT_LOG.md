@@ -34,6 +34,9 @@ app/services/package.py      .fsld pack and unpack
 7. PDF export as raster plus text layer · routers/exports.py
 8. True redaction rasterizes · services/pdf
 9. Snapshot message shape · routers/live.py
+10. Content before arc in autodraft · services/autodraft.py
+11. Short note lines stay separate · services/intake/markdown.py
+12. Stats before big number on pptx import · services/pptx/read_layouts.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -70,3 +73,15 @@ Redaction renders the marked pages with pypdfium2, burns black boxes in and repl
 ## 9. Snapshot message shape · _v0.2.0 (routers/live.py snapshot_message)
 
 Snapshots used to spread the store snapshot over the message, and its `deck` key overwrote the deck id. They now send `{t, deck: id, data, rev, canUndo, canRedo}`.
+
+## 10. Content before arc in autodraft · _v0.2.1 (services/autodraft.py PITCH, UPDATE, _pitch_order, _select, draft)
+
+"Board update for investors" used to trigger the pitch arc, and its placeholder slides ("The problem", "The market") each counted as their own section in `_select`, so they outranked real Decisions and pictures when trimming to the slide target. Now the arc needs a real pitch cue (pitch, fundraising, seed round, series, raise, demo day, investor deck) and no update cue (update, report, review, board, quarterly, results); placeholder slides are added only into spare room and never get group protection in `_select`. Pictures the person uploaded are never dropped: gallery slots are reserved before trimming, and low-value text slides give way when pictures still need room. Lines that each read as "value label" become a stats slide. Single-slide topics no longer become sections, and the notes group (named after the deck) appears in the agenda as "Decisions and next steps".
+
+## 11. Short note lines stay separate · _v0.2.1 (services/intake/markdown.py flush_para)
+
+Markdown joins consecutive lines into one paragraph, which merged "**$18.4M** revenue / **128%** retention / 3 new markets" into one sentence. A paragraph whose lines all start bold, or are all ten words or fewer, keeps each line as its own paragraph; ordinary wrapped prose is unchanged. The image classifier also stops calling flat images logos at 1200 px and above.
+
+## 12. Stats before big number on pptx import · _v0.2.1 (services/pptx/read_layouts.py STRONG_NAMES)
+
+The generator names the stats layout "Statistics", which the big-number rule matched first, so re-imported templates lost their stats layout and `layout: stats` fell back. The stats rule now runs first.
