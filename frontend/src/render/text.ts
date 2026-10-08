@@ -107,9 +107,11 @@ export function textHtml(body: TextBody | undefined, tc: TextCtx): string {
       if (r.t === '\n') { runs += '<br>'; continue; }
       const text = r.t.replace(/‹#›/g, String(tc.slideNumber));
       const link = r.link ? ` data-link="${esc('url' in r.link ? r.link.url : '#' + r.link.slide)}"` : '';
-      runs += `<span class="fs-r" style="${runCss(r, lvl, tc)}"${link}>${esc(text)}</span>`;
+      const css = runCss(r, lvl, tc);
+      runs += `<span class="fs-r" style="${css}" data-s="${css}"${link}>${esc(text)}</span>`;
     }
-    const tail = !p.runs.some((r) => r.t && r.t !== '\n') ? `<span class="fs-r" style="${runCss(p.runs[0] ?? null, lvl, tc)}"><br></span>` : '';
+    const tailCss = runCss(p.runs[0] ?? null, lvl, tc);
+    const tail = !p.runs.some((r) => r.t && r.t !== '\n') ? `<span class="fs-r" style="${tailCss}" data-s="${tailCss}"><br></span>` : '';
     out += `<p class="fs-p" data-lvl="${level}" style="${styles.join(';')}">${bu}${runs}${tail}</p>`;
   });
   return out;
@@ -136,6 +138,32 @@ export function fitText(box: HTMLElement, flow: HTMLElement, mode: 'none' | 'shr
   const k = Math.floor(lo * 40) / 40;
   flow.style.setProperty('--k', String(k));
   return k;
+}
+
+const probe = typeof document === 'undefined' ? null : document.createElement('span');
+
+function cssHex(v: string): string | undefined {
+  const t = v.trim();
+  if (/^#[0-9a-f]{6}$/i.test(t)) return t.toUpperCase();
+  if (/^#[0-9a-f]{3}$/i.test(t)) return ('#' + t.slice(1).split('').map((c) => c + c).join('')).toUpperCase();
+  const m = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?\s*\)$/.exec(t);
+  if (!m || (m[4] !== undefined && Number(m[4]) === 0)) return undefined;
+  return '#' + [m[1], m[2], m[3]].map((n) => Math.max(0, Math.min(255, Number(n))).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function inlineDelta(node: HTMLElement, base: string | undefined): Partial<Run> {
+  const s = node.style;
+  let ref: CSSStyleDeclaration | null = null;
+  if (base !== undefined && probe) { probe.setAttribute('style', base); ref = probe.style; }
+  const changed = (k: 'fontWeight' | 'fontStyle' | 'textDecorationLine' | 'color' | 'backgroundColor' | 'fontFamily'): boolean => ref ? (s[k] || '') !== (ref[k] || '') : !!s[k];
+  const out: Partial<Run> = {};
+  if (changed('fontWeight')) out.b = s.fontWeight === 'bold' || s.fontWeight === 'bolder' || Number(s.fontWeight) >= 600;
+  if (changed('fontStyle')) out.i = s.fontStyle === 'italic' || s.fontStyle === 'oblique';
+  if (changed('textDecorationLine')) { out.u = s.textDecorationLine.includes('underline'); out.s = s.textDecorationLine.includes('line-through'); }
+  if (changed('color')) { const h = cssHex(s.color); if (h) out.color = h; }
+  if (changed('backgroundColor')) out.hl = cssHex(s.backgroundColor);
+  if (changed('fontFamily')) { const f = s.fontFamily.split(',')[0].replace(/["']/g, '').trim(); if (f) out.font = f; }
+  return out;
 }
 
 export function readParas(flow: HTMLElement, original: Para[]): Para[] {
@@ -165,14 +193,27 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
         return;
       }
       let style = inherited;
-      if (node.classList.contains('fs-r')) {
+      const isRun = node.classList.contains('fs-r');
+      if (isRun) {
         const src = base.runs.filter((r) => r.t !== '\n')[runIndex++] ?? proto;
         style = strip(src);
+        if (style.link && node.dataset.link === undefined) style = { ...style, link: undefined };
+      }
+      if (node.tagName === 'A') {
+        const href = node.getAttribute('href') ?? '';
+        if (href) style = { ...style, link: href.startsWith('#') ? { slide: href.slice(1) } : { url: href } };
       }
       const tag = node.tagName;
-      if (tag === 'B' || tag === 'STRONG' || node.style.fontWeight === '700' && !node.classList.contains('fs-r')) style = { ...style, b: true };
+      if (tag === 'B' || tag === 'STRONG') style = { ...style, b: true };
       if (tag === 'I' || tag === 'EM') style = { ...style, i: true };
       if (tag === 'U') style = { ...style, u: true };
+      if (tag === 'S' || tag === 'STRIKE') style = { ...style, s: true };
+      if (tag === 'FONT') {
+        const fc = node.getAttribute('color'), face = node.getAttribute('face');
+        if (fc) style = { ...style, color: cssHex(fc) ?? fc };
+        if (face) style = { ...style, font: face.split(',')[0].replace(/["']/g, '').trim() };
+      }
+      if (!isRun || node.dataset.s !== undefined) style = { ...style, ...inlineDelta(node, isRun ? node.dataset.s : undefined) };
       for (const c of Array.from(node.childNodes)) walk(c, style);
     };
     for (const c of Array.from(pEl.childNodes)) walk(c, strip(proto));
