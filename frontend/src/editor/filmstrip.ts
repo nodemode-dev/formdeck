@@ -34,7 +34,9 @@ export class Filmstrip {
     scroll.append(this.list, this.mlist);
     this.mlist.addEventListener('pointerdown', (e) => {
       const it = this.holderAt(e.target);
-      if (e.button === 0 && it) this.ed.setHolder(it.kind, it.id);
+      if (e.button !== 0 || !it) return;
+      this.ed.setHolder(it.kind, it.id);
+      if (it.kind === 'layout') this.dragLayout(it.id, e.clientY);
     });
     this.mlist.addEventListener('dblclick', (e) => { if (this.holderAt(e.target)) this.ed.run('master-rename-layout'); });
     this.mlist.addEventListener('contextmenu', (e) => {
@@ -68,6 +70,57 @@ export class Filmstrip {
     const id = node?.dataset.key;
     const kind = node?.dataset.holder;
     return id && (kind === 'layout' || kind === 'master') ? { kind, id } : null;
+  }
+
+  private layoutGroup(id: string): { master: string; ids: string[] } | null {
+    let master = '';
+    const groups = new Map<string, string[]>();
+    for (const h of this.ed.holderOrder()) {
+      if (h.kind === 'master') { master = h.id; groups.set(master, []); } else groups.get(master)?.push(h.id);
+    }
+    for (const [m, ids] of groups) if (ids.includes(id)) return { master: m, ids };
+    return null;
+  }
+
+  private dragLayout(id: string, y0: number): void {
+    let active = false;
+    let drop = -1;
+    const clear = (): void => { for (const it of this.mitems.values()) setClass(it.node, 'is-drop-after', false); };
+    const moving = (ev: PointerEvent): void => {
+      if (!active && Math.abs(ev.clientY - y0) > 6) active = true;
+      const g = active ? this.layoutGroup(id) : null;
+      if (!g) return;
+      let at = g.ids.length;
+      for (let i = 0; i < g.ids.length; i++) {
+        const n = this.mitems.get(g.ids[i])?.node;
+        if (!n) continue;
+        const r = n.getBoundingClientRect();
+        if (ev.clientY < r.top + r.height / 2) { at = i; break; }
+      }
+      drop = at;
+      const mark = at === 0 ? g.master : g.ids[at - 1];
+      for (const [k, it] of this.mitems) setClass(it.node, 'is-drop-after', k === mark);
+      const sr = this.scroll.getBoundingClientRect();
+      if (ev.clientY < sr.top + 30) this.scroll.scrollTop -= 8;
+      if (ev.clientY > sr.bottom - 30) this.scroll.scrollTop += 8;
+    };
+    const done = (): void => {
+      window.removeEventListener('pointermove', moving);
+      window.removeEventListener('pointerup', done);
+      window.removeEventListener('pointercancel', done);
+      clear();
+      const g = this.layoutGroup(id);
+      if (!active || drop < 0 || !g) return;
+      const rest = g.ids.filter((x) => x !== id);
+      const before = g.ids.slice(0, drop).filter((x) => x !== id).length;
+      if (!rest.length || g.ids.indexOf(id) === before) return;
+      const all = this.ed.doc.deck.layouts.map((l) => l.id).filter((x) => x !== id);
+      const index = before < rest.length ? all.indexOf(rest[before]) : all.indexOf(rest[rest.length - 1]) + 1;
+      if (index >= 0) this.ed.apply([{ op: 'move', path: ['layouts'], id, index }], 'Move layout');
+    };
+    window.addEventListener('pointermove', moving);
+    window.addEventListener('pointerup', done);
+    window.addEventListener('pointercancel', done);
   }
 
   private holderScale(kind: 'layout' | 'master'): number {

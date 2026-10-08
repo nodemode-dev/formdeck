@@ -29,12 +29,16 @@ def table_element(table: dict, frame_w: float, frame_h: float, ctx):
     width = max((len(r.get("cells") or []) for r in rows), default=1)
     if not cols:
         cols = [(frame_w or 100.0 * width) / max(width, 1)] * max(width, 1)
+    total = sum(cols)
+    if frame_w and 0 < total < frame_w - 0.5:
+        cols = [c * frame_w / total for c in cols]
     tbl = make("a:tbl")
     tbl.append(_table_props(table.get("style") or {}))
     grid = sub(tbl, "a:tblGrid")
     for col in cols:
         sub(grid, "a:gridCol", {"w": max(pt_emu(col), 1)})
     covered = _coverage(rows, len(cols))
+    origin = _origins(rows, len(cols))
     for r, row in enumerate(rows):
         tr = sub(tbl, "a:tr", {"h": max(pt_emu(row.get("h") or 20), 1)})
         cells = [c for c in row.get("cells") or [] if isinstance(c, dict)]
@@ -42,8 +46,46 @@ def table_element(table: dict, frame_w: float, frame_h: float, ctx):
             ctx.warn("table row had more cells than columns; extra cells dropped")
         for c in range(len(cols)):
             cell = cells[c] if c < len(cells) else {"text": {"paras": [{"runs": []}]}}
+            cell = {**cell, "borders": _slot_borders(rows, origin, r, c)}
             tr.append(_cell_element(cell, covered.get((r, c)), len(cols) - c, len(rows) - r, ctx))
     return tbl
+
+
+def _cell_at(rows: list, r: int, c: int) -> dict:
+    cells = (rows[r].get("cells") or []) if 0 <= r < len(rows) else []
+    return cells[c] if 0 <= c < len(cells) and isinstance(cells[c], dict) else {}
+
+
+def _origins(rows: list, ncols: int) -> dict:
+    origin: dict = {}
+    for r in range(len(rows)):
+        for c in range(ncols):
+            if (r, c) in origin:
+                continue
+            cell = _cell_at(rows, r, c)
+            span = [1, 1] if cell.get("merged") else (cell.get("span") or [1, 1])
+            cs, rs = max(int(span[0] or 1), 1), max(int(span[1] or 1), 1)
+            for dr in range(rs):
+                for dc in range(cs):
+                    if r + dr < len(rows) and c + dc < ncols and (r + dr, c + dc) not in origin:
+                        origin[(r + dr, c + dc)] = (r, c)
+    return origin
+
+
+def _slot_borders(rows: list, origin: dict, r: int, c: int) -> dict:
+    out = {}
+    home = origin.get((r, c), (r, c))
+    own = _cell_at(rows, *home).get("borders") or {}
+    for side, (dr, dc), opposite in (("l", (0, -1), "r"), ("r", (0, 1), "l"), ("t", (-1, 0), "b"), ("b", (1, 0), "t")):
+        across = origin.get((r + dr, c + dc))
+        if across == home:
+            continue
+        mine = own.get(side) if isinstance(own, dict) else None
+        theirs = (_cell_at(rows, *across).get("borders") or {}).get(opposite) if across else None
+        line = (theirs if theirs is not None else mine) if side in ("l", "t") else (mine if mine is not None else theirs)
+        if isinstance(line, dict):
+            out[side] = line
+    return out
 
 
 def _table_props(style: dict):

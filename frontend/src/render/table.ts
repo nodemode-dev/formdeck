@@ -35,6 +35,32 @@ function borderCss(line: Line | undefined, theme: Theme): string | null {
   return `${line.width ?? 1}px ${line.dash && line.dash !== 'solid' ? 'dashed' : 'solid'} ${colorCss(line.color ?? 'tx1', theme)}`;
 }
 
+export type Side = 'l' | 't' | 'r' | 'b';
+export const OPPOSITE: Record<Side, Side> = { l: 'r', r: 'l', t: 'b', b: 't' };
+
+export function neighbours(g: TableGrid, r: number, c: number, side: Side): number[] {
+  const [cs, rs] = g.spans[r * g.cols + c] ?? [1, 1];
+  const out: number[] = [];
+  const add = (rr: number, cc: number): void => {
+    if (rr < 0 || cc < 0 || rr >= g.rows || cc >= g.cols) return;
+    const o = g.origin[rr * g.cols + cc];
+    if (o >= 0 && !out.includes(o)) out.push(o);
+  };
+  if (side === 'l' || side === 'r') for (let dr = 0; dr < rs; dr++) add(r + dr, side === 'l' ? c - 1 : c + cs);
+  else for (let dc = 0; dc < cs; dc++) add(side === 't' ? r - 1 : r + rs, c + dc);
+  return out;
+}
+
+export function sideLine(t: TableData, g: TableGrid, r: number, c: number, side: Side): Line | undefined {
+  const own = t.rows[r]?.cells[c]?.borders?.[side];
+  let other: Line | undefined;
+  for (const o of neighbours(g, r, c, side)) {
+    other = t.rows[Math.floor(o / g.cols)]?.cells[o % g.cols]?.borders?.[OPPOSITE[side]];
+    if (other) break;
+  }
+  return side === 'l' || side === 't' ? other ?? own : own ?? other;
+}
+
 export interface TableGrid { rows: number; cols: number; origin: Int32Array; spans: Array<[number, number]> }
 
 export function tableGrid(t: TableData): TableGrid {
@@ -105,15 +131,14 @@ export function tableHtml(t: TableData, theme: Theme, tc: TextCtx): string {
       const cell: TableCell = row.cells[c] ?? { text: { paras: [] } };
       const paint = stylePaint(t, theme, r, c, g.rows, g.cols, r + rs - 1);
       const fill = cell.fill && cell.fill.type === 'solid' ? colorCss(cell.fill.color, theme) : cell.fill && cell.fill.type === 'none' ? 'transparent' : paint.fill;
-      const b = cell.borders ?? {};
       const borders = (['l', 't', 'r', 'b'] as const).map((side) => {
-        const v = borderCss(b[side], theme) ?? (st.id === 'lines' ? (side === 'b' ? `1px solid ${colorCss({ scheme: (st.accent ?? 'accent1') as 'accent1', alpha: r === 0 && st.firstRow ? 1 : 0.3 }, theme)}` : 'none') : paint.border);
+        const v = borderCss(sideLine(t, g, r, c, side), theme) ??(st.id === 'lines' ? (side === 'b' ? `1px solid ${colorCss({ scheme: (st.accent ?? 'accent1') as 'accent1', alpha: r === 0 && st.firstRow ? 1 : 0.3 }, theme)}` : 'none') : paint.border);
         return `border-${{ l: 'left', t: 'top', r: 'right', b: 'bottom' }[side]}:${v}`;
       }).join(';');
       const inset = cell.text?.inset ?? [7.2, 3.6, 7.2, 3.6];
       const color = paint.color;
-      const body = tc.mode === 'edit' && !(cell.text?.paras ?? []).length ? { ...cell.text, paras: [{ runs: [{ t: '' }] }] } : cell.text;
-      const inner = textHtml(body, { ...tc, showPrompt: false });
+      const body = !(cell.text?.paras ?? []).length ? { ...cell.text, paras: [{ runs: [{ t: '' }] }] } : cell.text;
+      const inner = textHtml(body, { ...tc, mode: 'edit', showPrompt: false });
       const cls = `fs-cell-flow${color || paint.bold ? ' fs-cell-paint' : ''}${paint.bold ? ' is-bold' : ''}${color ? ' has-color' : ''}`;
       html += `<td${cs > 1 ? ` colspan="${cs}"` : ''}${rs > 1 ? ` rowspan="${rs}"` : ''} data-r="${r}" data-c="${c}" style="background:${fill};${borders};padding:${inset[1]}px ${inset[2]}px ${inset[3]}px ${inset[0]}px;vertical-align:${cell.anchor === 'm' ? 'middle' : cell.anchor === 'b' ? 'bottom' : 'top'}"><div class="${cls}"${color ? ` style="--cell-color:${color}"` : ''}>${inner}</div></td>`;
     }
