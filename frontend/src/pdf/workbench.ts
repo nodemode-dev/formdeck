@@ -12,7 +12,7 @@ import { Organizer, type OrgItem } from './organize';
 import { Panes, type Ctx, type Doc, type Tab } from './panels';
 import { Thumbs, Viewer } from './viewer';
 
-export interface WorkbenchOptions { file?: File; toDeck: (id: string) => void; close: () => void; addImages?: (items: ImageItem[]) => boolean }
+export interface WorkbenchOptions { file?: File; path?: string; toDeck: (id: string) => void; close: () => void; addImages?: (items: ImageItem[]) => boolean }
 
 const svg = (body: string, size = 16): string => `<span class="icon" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${body}</svg></span>`;
 const LOCAL = {
@@ -180,6 +180,7 @@ class Workbench {
     setHidden(this.root, false);
     if (wasHidden) this.root.focus({ preventScroll: true });
     if (opts.file) void this.guard(() => this.openFile(opts.file as File));
+    else if (opts.path) { const path = opts.path; void this.guard(() => this.run('Opening', async () => this.adopt(await pdfApi.openPath(path)))); }
     else if (!this.doc) void this.loadRecents();
   }
 

@@ -140,7 +140,13 @@ export async function startApp(): Promise<void> {
     const refresh = (): void => { toolbar.sync(); inspector.sync(); syncChrome(); };
     editorOff.push(ed.on('selection', refresh), ed.on('current', refresh), ed.on('edit', refresh), ed.on('doc', () => { refresh(); layoutCommands(commands, ed); views?.refresh(); scheduleThumb(); }));
     editorOff.push(doc.on((e) => {
-      if (e.origin === 'remote' && e.by === 'agent' && e.label) inspector.addActivity({ id: `${doc.rev}`, at: Date.now(), label: e.label, origin: 'agent' });
+      if (e.origin === 'remote' && e.by === 'agent' && e.label) {
+        inspector.addActivity({ id: `${doc.rev}`, at: Date.now(), label: e.label, origin: 'agent' });
+        setText(status.agent.lastElementChild, e.label.replace(/^Agent:\s*/, 'Agent · '));
+        setHidden(status.agent, false);
+        window.clearTimeout(agentTimer);
+        agentTimer = window.setTimeout(() => setHidden(status.agent, true), 8000);
+      }
       setText(status.save, doc.hasPending ? 'Saving…' : 'Saved');
     }));
     if (views) views.hide();
@@ -151,6 +157,7 @@ export async function startApp(): Promise<void> {
   }
 
   let thumbTimer = 0;
+  let agentTimer = 0;
   function scheduleThumb(): void {
     window.clearTimeout(thumbTimer);
     thumbTimer = window.setTimeout(() => { const ed = editor; if (ed) void bridge.uploadThumb(ed).catch(() => undefined); }, 4000);
@@ -261,8 +268,8 @@ export async function startApp(): Promise<void> {
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-image', 'insert-media', 'insert-shapes', 'insert-line', 'insert-arrow', 'insert-table', 'insert-chart', '-', 'add-comment'] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text'] },
     { label: 'Slide', items: () => ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: (editor?.doc.deck.layouts ?? []).map((l) => `layout:${l.id}`).filter((id) => commands.get(id)) }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
-    { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'group', 'ungroup', 'lock'] },
-    { label: 'Review', items: ['review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
+    { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock'] },
+    { label: 'Review', items: ['check-deck', '-', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view'] },
     { label: 'Help', items: ['help', 'shortcuts', 'preferences'] },
   ];
@@ -394,10 +401,22 @@ export async function startApp(): Promise<void> {
     }
   }
 
-  async function openPdf(file?: File): Promise<void> {
+  async function openPdf(file?: File, path?: string): Promise<void> {
     const m = await import('./pdf/workbench');
-    m.openWorkbench({ file, toDeck: (id: string) => void openDeck(id), close: () => { if (!editor) home.open(); } });
+    m.openWorkbench({ file, path, toDeck: (id: string) => void openDeck(id), close: () => { if (!editor) home.open(); } });
   }
+
+  async function openPaths(paths: string[]): Promise<void> {
+    for (const p of paths) {
+      if (/\.pdf$/i.test(p)) { await openPdf(undefined, p); continue; }
+      try {
+        const d = await api.openPath(p);
+        if (d.warnings?.length) toast(`${p.split(/[\\/]/).pop()} opened. ${d.warnings.length} item${d.warnings.length === 1 ? '' : 's'} could not be kept.`);
+        await openDeck(d.id);
+      } catch (err) { toast(`Could not open ${p}: ${err instanceof Error ? err.message : err}`, 'error'); }
+    }
+  }
+  (window as unknown as { __formsldOpen?: (paths: string[]) => void }).__formsldOpen = (paths) => void openPaths(paths);
 
   enhanceAllSelects(document);
   try {
@@ -407,8 +426,13 @@ export async function startApp(): Promise<void> {
   } catch { toast('The formsld engine is not answering yet; retrying.', 'error'); }
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');
+  const files = params.getAll('open').filter(Boolean);
   if (want) await openDeck(want);
   else home.open();
+  if (files.length) {
+    history.replaceState(null, '', location.pathname);
+    void openPaths(files);
+  }
   revealApp();
   document.title = `formsld ${VERSION}`;
 }

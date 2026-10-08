@@ -325,3 +325,15 @@ async def build(body: dict = Body(...)) -> dict:
     if body.get("template"):
         config.write_settings({"lastTemplate": body["template"]})
     return {**model.summary(deck), "warnings": warnings}
+
+
+@router.post("/decks/{deck_id}/check")
+async def check(deck_id: str) -> dict:
+    from app.services import bridge, lint
+    s = _session_or_404(deck_id)
+    measured, measuredOk = None, False
+    if bridge.window_connected():
+        res = await bridge.window_call("measure", {"deck": deck_id}, deck_id, 45)
+        if res and not res.get("isError"):
+            measured, measuredOk = (res.get("structuredContent") or {}).get("issues") or [], True
+    return {**lint.lint(s.deck, measured), "measured": measuredOk}
