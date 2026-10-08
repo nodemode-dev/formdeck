@@ -143,9 +143,12 @@ class _Parser:
 
     def flush_para(self) -> None:
         if self.para:
-            text = self.inline(" ".join(x.strip() for x in self.para))
-            if text:
-                self.cur["paras"].append(text)
+            lines = [x.strip() for x in self.para if x.strip()]
+            separate = len(lines) >= 2 and (all(x.startswith("**") for x in lines) or all(len(x.split()) <= 10 and not x.endswith((",", "-")) for x in lines))
+            for chunk in (lines if separate else [" ".join(lines)]):
+                text = self.inline(chunk)
+                if text:
+                    self.cur["paras"].append(text)
             self.para = []
 
     def flush_list(self) -> None:

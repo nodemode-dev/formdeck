@@ -137,7 +137,7 @@ def classify(w: int, h: int, f: dict) -> str:
     thin = ln.get("hthin", 0) + ln.get("vthin", 0)
     if f["light"] >= 0.5 and f["top5"] >= 0.8 and f["dark"] <= 0.1 and (thin >= 2 or (thin >= 1 and ln.get("bars", 0) >= 0.05)):
         return "chart"
-    if f["top5"] >= 0.9 and f["uniq"] <= 64 and mx <= 1600 and f["bg"] >= 0.45 and f["box"] <= 0.8:
+    if f["top5"] >= 0.9 and f["uniq"] <= 64 and mx < 1200 and f["bg"] >= 0.45 and f["box"] <= 0.8:
         return "logo"
     if f["flat"] >= 0.55 and mx >= 480 and ui and f["iso"] >= 0.01 and (f["light"] >= 0.3 or f["dark"] >= 0.3):
         return "screenshot"

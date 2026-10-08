@@ -15,8 +15,10 @@ TIMELINE_TITLE = re.compile(r"\b(roadmap|timeline|milestones?|schedule|history|j
 PROCESS_TITLE = re.compile(r"\b(process|(?<!next )steps|how it works|approach|method(ology)?|workflow|framework|onboarding|stages|phases)\b", re.I)
 TEAM_TITLE = re.compile(r"\b(team|people|founders|leadership|who we are|speakers|advisors|staff|crew|contacts)\b", re.I)
 PERSON = re.compile(r"^(?P<name>[A-Z][\w'.\-]+(?:\s+[A-Z][\w'.\-]+){0,3})\s*(?:\s[-–]\s|:|,|\||\()\s*(?P<role>[^)]{2,80}?)\)?$")
-PITCH = re.compile(r"\b(pitch|investors?|fundrais\w*|seed|series\s+[a-d]|vcs?|venture|raise|raising|demo\s*day)\b", re.I)
+PITCH = re.compile(r"\b(pitch|fundrais\w*|seed\s+round|series\s+[a-d]|vcs?|venture\s+capital|raise|raising|demo\s*day|investor\s+(deck|pitch|presentation))\b", re.I)
+UPDATE = re.compile(r"\b(update|report|review|recap|board|quarterly|monthly|weekly|results|retro\w*|kpis?)\b", re.I)
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+STATLINE = re.compile(r"^([-+]?[$€£¥]?\d[\d,.]*\s?(?:%|x|k|K|M|B|bn|m)?\+?)\s*[:\-–·]?\s+([A-Za-z].{1,48})$")
 CHECK = re.compile(r"^\[[ xX]\]\s*")
 ARC = [
     ("problem", "The problem", r"problem|pain|challenge|why now|status quo|today", ["Who has the problem, and how often", "What it costs them today", "Why current options fall short"]),
@@ -326,6 +328,9 @@ def _section_units(sec: dict, src: dict, tables: dict, group: str, gsize: int = 
             per_ctx[n.get("context", "")] = per_ctx.get(n.get("context", ""), 0) + 1
         if len(stats) == 3:
             break
+    lined = [STATLINE.match(_clean(p)) for p in paras]
+    if len(paras) >= 2 and all(lined):
+        stats = [(m.group(1).strip(), m.group(2)[:1].upper() + m.group(2)[1:]) for m in lined if m][:3]
     paras_used = False
     if len(stats) >= 3:
         units.append(_unit("stats", title if (used_bullets or not bullets) else f"{title} in numbers", stats=stats[:3], notes=_notes(text, ref), plain=title))
@@ -441,6 +446,8 @@ def _select(body: list[Unit], room: int) -> list[Unit]:
     best: dict[str, Unit] = {}
     for u in body:
         g = u.get("group") or u.get("sec") or str(u["seq"])
+        if u["value"] <= VALUE["stub"]:
+            continue
         if g not in best or u["value"] > best[g]["value"]:
             best[g] = u
     keep = {id(u) for u in sorted(best.values(), key=lambda u: (-u["value"], u["seq"]))[:room]}
@@ -522,7 +529,7 @@ def _arc_of(u: Unit) -> str | None:
     return None
 
 
-def _pitch_order(units: list[Unit]) -> list[Unit]:
+def _pitch_order(units: list[Unit], room: int) -> list[Unit]:
     keys = [k for k, *_ in ARC]
     groups: dict[str, list[Unit]] = {}
     order: list[str] = []
@@ -545,6 +552,9 @@ def _pitch_order(units: list[Unit]) -> list[Unit]:
     for key, title, _, bullets in ARC:
         if key in found or not bullets:
             continue
+        if room <= 0:
+            break
+        room -= 1
         stub = _unit("content", title, bullets=[(0, b) for b in bullets], notes=f"No source content matched {title.lower()}: fill this in or delete the slide.", group=title, sec=title)
         stub["value"] = VALUE["stub"]
         pos = next((i for i, u in enumerate(out) if (arc_of.get(u.get("group")) and keys.index(arc_of[u.get("group")]) > keys.index(key))), len(out))
@@ -557,7 +567,7 @@ def draft(intake: dict, *, brief: str = "", template: str | None = None, slides:
     gsize = _gallery_size(template)
     sources = [s for s in intake.get("sources", []) if not s.get("error") and s.get("kind") != "unknown"]
     assets = {a["id"]: a for a in intake.get("assets", [])}
-    pitch = bool(PITCH.search(brief))
+    pitch = bool(PITCH.search(brief)) and not UPDATE.search(brief)
     units: list[Unit] = []
     titles: list[tuple[int, str, list]] = []
     context: list[str] = []
@@ -615,7 +625,7 @@ def draft(intake: dict, *, brief: str = "", template: str | None = None, slides:
     for i, u in enumerate([u for u in body if u["layout"] == "section"], 1):
         u["number"] = f"{i:02d}"
     if pitch:
-        body = _pitch_order(body)
+        body = _pitch_order(body, (int(slides) - 2 - len(body)) if slides else 3)
     cont_seen: dict[str, int] = {}
     kept = []
     for u in body:
@@ -668,7 +678,9 @@ def draft(intake: dict, *, brief: str = "", template: str | None = None, slides:
     groups = list(dict.fromkeys(u["group"] for u in body if u.get("group") and u["layout"] != "section"))
     want_agenda = 4 <= len(groups) <= 7 and (target is None or target >= 8)
     if target:
-        body = _select(body, max(0, target - 2 - (1 if want_agenda else 0)))
+        room = max(0, target - 2 - (1 if want_agenda else 0))
+        reserve = min(room // 2, len(_chunks([a for a in pics if a.get("class") not in PAIRABLE], gsize)))
+        body = _select(body, room - reserve)
         groups = list(dict.fromkeys(u["group"] for u in body if u.get("group") and u["layout"] != "section"))
         want_agenda = want_agenda and len(groups) >= 4
     for u in body:
@@ -688,6 +700,12 @@ def draft(intake: dict, *, brief: str = "", template: str | None = None, slides:
             u["layout"] = "imageRight" if side % 2 == 0 else "imageLeft"
             side += 1
     rest = pairable + others
+    need = 0 if not rest else 1 if len(rest) == 1 else len(_chunks(rest, gsize))
+    if target and need > slots_left:
+        spare = sorted((u for u in body if not u.get("images") and u.get("kind") not in ("decisions", "next") and u["layout"] in ("content", "section", "quote", "agenda")), key=lambda u: (u["value"], -u["seq"]))
+        drop = {id(u) for u in spare[:need - max(0, slots_left)]}
+        body = [u for u in body if id(u) not in drop]
+        slots_left += len(drop)
     extra: list[Unit] = []
     if rest and slots_left > 0:
         if len(rest) == 1:
@@ -699,13 +717,16 @@ def draft(intake: dict, *, brief: str = "", template: str | None = None, slides:
     main = [u for u in body if not u.get("tail")]
     deck = [first]
     if want_agenda:
-        deck.append(_unit("agenda", "Agenda", bullets=[(0, g) for g in groups], notes="Walk through what the deck covers."))
-        seen_g: set = set()
-        for u in main + tail:
-            g = u.get("group")
-            if g and g in groups and g not in seen_g:
-                seen_g.add(g)
-                u["section"] = g
+        label = {g: ("Decisions and next steps" if any(u.get("tail") for u in body if u.get("group") == g) else g) for g in groups if g != doc_title or any(u.get("tail") for u in body if u.get("group") == g)}
+        deck.append(_unit("agenda", "Agenda", bullets=[(0, label[g]) for g in groups if g in label], notes="Walk through what the deck covers."))
+        sized = {g: sum(1 for u in body if u.get("group") == g) for g in label}
+        if len(body) >= 10 and sum(1 for n in sized.values() if n >= 2) >= 2:
+            seen_g: set = set()
+            for u in main + tail:
+                g = u.get("group")
+                if g and g in label and g not in seen_g:
+                    seen_g.add(g)
+                    u["section"] = label[g]
     deck += main + extra + tail + [last]
     head = ["---", f"title: {_one(doc_title)}"]
     if template:
