@@ -108,8 +108,6 @@ def probe(data: bytes, mime: str) -> dict:
 
 
 class MediaStore:
-    """Content-addressed media pool shared by every deck in the library: one file per media id plus a small json beside it."""
-
     def __init__(self, root: Path | None = None):
         self.root = root or config.media_dir()
         self.root.mkdir(parents=True, exist_ok=True)

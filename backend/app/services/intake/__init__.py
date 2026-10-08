@@ -170,7 +170,6 @@ def _finish(src: dict, out: dict, raw: str | None) -> dict:
 
 
 def ingest(paths, media=None, *, intake_id: str | None = None, existing: dict | None = None, root: Path | None = None) -> dict:
-    """Read files and folders into an intake (stable src, asset and table ids) and save it as intake.json."""
     if media is None:
         from app.services.media import store
 
@@ -256,7 +255,6 @@ def _save(intake: dict, root: Path | None) -> None:
 
 
 def load(intake_id: str, root: Path | None = None) -> dict | None:
-    """The saved intake dict, or None when the id is unknown."""
     try:
         return json.loads((_folder(intake_id, root) / "intake.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -264,7 +262,6 @@ def load(intake_id: str, root: Path | None = None) -> dict | None:
 
 
 def digest(intake: dict, detail: str = "brief", max_chars: int = 6000) -> str:
-    """Compact markdown summary of an intake for an agent; detail is brief or full, never longer than max_chars."""
     return _digest.render(intake, detail, max_chars)
 
 
@@ -291,7 +288,6 @@ def _expand_markers(text: str, intake: dict) -> str:
 
 
 def get_source(intake: dict, source_id: str, start: int | None = None, end: int | None = None) -> str:
-    """Full text of a source as markdown: lines start..end, or pages for pdf and slides for pptx; also takes a table id or asset id."""
     from . import tables
 
     src = next((s for s in intake.get("sources", []) if s["id"] == source_id), None)

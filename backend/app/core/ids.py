@@ -19,8 +19,6 @@ def media_id(data: bytes, kind: str) -> str:
 
 
 class Counter:
-    """Hands out the next free id with a prefix, given the ids a deck already uses."""
-
     def __init__(self, used: set[str]):
         self.used = set(used)
 
