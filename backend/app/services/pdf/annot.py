@@ -19,12 +19,13 @@ from app.core import config
 
 from . import core
 
-KINDS = ("highlight", "underline", "strikeout", "note", "freetext", "ink", "rect", "ellipse", "line", "arrow", "image")
+KINDS = ("highlight", "underline", "strikeout", "note", "freetext", "ink", "rect", "ellipse", "line", "arrow", "image", "stamp")
 MARKUP = ("highlight", "underline", "strikeout")
-BOXED = ("note", "freetext", "image", "rect", "ellipse")
+BOXED = ("note", "freetext", "image", "rect", "ellipse", "stamp")
 SUBTYPE = {"highlight": "/Highlight", "underline": "/Underline", "strikeout": "/StrikeOut", "note": "/Text", "freetext": "/FreeText",
-           "ink": "/Ink", "rect": "/Square", "ellipse": "/Circle", "line": "/Line", "arrow": "/Line", "image": "/Stamp"}
-DEFAULT_COLOR = {"highlight": "#FFD400", "note": "#FFD400", "freetext": "#111111", "image": "#111111"}
+           "ink": "/Ink", "rect": "/Square", "ellipse": "/Circle", "line": "/Line", "arrow": "/Line", "image": "/Stamp", "stamp": "/Stamp"}
+DEFAULT_COLOR = {"highlight": "#FFD400", "note": "#FFD400", "freetext": "#111111", "image": "#111111", "stamp": "#15803D"}
+SHAPES = ("box", "tag", "mark")
 NOTE = 20.0
 MAX_ANNOTS = 2000
 STATES = {"none": "/None", "accepted": "/Accepted", "rejected": "/Rejected", "completed": "/Completed", "cancelled": "/Cancelled"}
@@ -147,6 +148,21 @@ def _status(v) -> str | None:
     return s
 
 
+def _stamp_spec(v) -> dict:
+    v = v if isinstance(v, dict) else {}
+    label = re.sub(r"\s+", " ", str(v.get("label") or "")).strip()[:60]
+    shape = str(v.get("shape") or "box")
+    if shape not in SHAPES:
+        raise ValueError(f"A stamp shape is one of {', '.join(SHAPES)}")
+    mark = str(v.get("mark") or "")
+    if shape == "mark" and mark not in ("check", "cross"):
+        raise ValueError("A mark stamp is a check or a cross")
+    if shape != "mark" and not label:
+        raise ValueError("A stamp needs a label")
+    name = re.sub(r"[^A-Za-z0-9]", "", str(v.get("name") or label.title())) or "Stamp"
+    return {"label": label, "sub": re.sub(r"\s+", " ", str(v.get("sub") or "")).strip()[:120], "shape": shape, "mark": mark, "name": name[:40]}
+
+
 def normalize(a: dict, sizes: list[tuple[float, float]]) -> dict:
     kind = a.get("kind")
     if kind not in KINDS:
@@ -183,6 +199,10 @@ def normalize(a: dict, sizes: list[tuple[float, float]]) -> dict:
             out["box"] = _rect((x, y, max(w, 1), max(h, 1)))
             if kind == "image":
                 out["image"] = _image(a.get("image"))
+            elif kind == "stamp":
+                out["stamp"] = _stamp_spec(a.get("stamp"))
+                if not out["text"]:
+                    out["text"] = " ".join(p for p in (out["stamp"]["label"], out["stamp"]["sub"]) if p) or out["stamp"]["mark"].title()
     except (KeyError, TypeError, IndexError):
         raise ValueError(f"The {kind} annotation on page {page} has malformed coordinates") from None
     return out
@@ -250,6 +270,89 @@ def _note_icon(c, color, cw: float, ch: float) -> None:
     for k in range(3):
         yy = y0 + ch - 6 - k * 4
         c.line(x0 + 4.5, yy, x0 + cw - 4.5, yy)
+
+
+def _fit(text: str, font: str, size: float, width: float) -> float:
+    tw = pdfmetrics.stringWidth(text, font, 1) if text else 0
+    return max(3.0, min(size, width / tw)) if tw > 0 else size
+
+
+def _rounded(c, x: float, y: float, w: float, h: float, r: float) -> None:
+    p = c.beginPath()
+    p.roundRect(x, y, w, h, max(0.0, min(r, w / 2, h / 2)))
+    c.drawPath(p, stroke=1, fill=1)
+
+
+def _stamp(c, s: dict, color, cw: float, ch: float, opacity: float) -> None:
+    lw = max(0.8, ch * 0.055)
+    x0, y0 = -cw / 2, -ch / 2
+    dark = tuple(v * 0.78 for v in color)
+    if s["shape"] == "mark":
+        c.setStrokeColorRGB(*color)
+        c.setStrokeAlpha(opacity)
+        c.setLineWidth(max(1.0, min(cw, ch) * 0.14))
+        pts = [(0.14, 0.55), (0.40, 0.80), (0.88, 0.22)] if s["mark"] == "check" else [(0.2, 0.2), (0.8, 0.8), None, (0.8, 0.2), (0.2, 0.8)]
+        p = c.beginPath()
+        start = True
+        for pt in pts:
+            if pt is None:
+                start = True
+                continue
+            x, y = x0 + pt[0] * cw, -y0 - pt[1] * ch
+            if start:
+                p.moveTo(x, y)
+                start = False
+            else:
+                p.lineTo(x, y)
+        c.drawPath(p, stroke=1, fill=0)
+        return
+    font = font_for(s["label"] + s["sub"], bold=True)
+    if s["shape"] == "tag":
+        tip = ch * 0.42
+        c.setFillColorRGB(*color)
+        c.setStrokeColorRGB(*dark)
+        c.setFillAlpha(opacity * 0.92)
+        c.setStrokeAlpha(opacity)
+        c.setLineWidth(lw * 0.6)
+        p = c.beginPath()
+        p.moveTo(x0 + lw / 2, 0)
+        p.lineTo(x0 + tip, ch / 2 - lw / 2)
+        p.lineTo(cw / 2 - lw / 2, ch / 2 - lw / 2)
+        p.lineTo(cw / 2 - lw / 2, -ch / 2 + lw / 2)
+        p.lineTo(x0 + tip, -ch / 2 + lw / 2)
+        p.close()
+        c.drawPath(p, stroke=1, fill=1)
+        size = _fit(s["label"], font, ch * 0.46, cw - tip - ch * 0.3)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFillAlpha(opacity)
+        c.setFont(font, size)
+        c.drawCentredString((x0 + tip + cw / 2) / 2, -size * 0.35, s["label"])
+        return
+    r = min(ch * 0.2, cw * 0.2)
+    c.setStrokeColorRGB(*color)
+    c.setFillColorRGB(*color)
+    c.setLineWidth(lw)
+    c.setStrokeAlpha(opacity)
+    c.setFillAlpha(opacity * 0.08)
+    _rounded(c, x0 + lw / 2, y0 + lw / 2, cw - lw, ch - lw, r)
+    inset = lw * 2.2
+    c.setLineWidth(lw * 0.45)
+    c.setFillAlpha(0)
+    _rounded(c, x0 + inset, y0 + inset, cw - 2 * inset, ch - 2 * inset, r * 0.7)
+    pad = ch * 0.24 + inset
+    c.setFillColorRGB(*color)
+    c.setFillAlpha(opacity)
+    if s["sub"]:
+        size = _fit(s["label"], font, ch * 0.38, cw - 2 * pad)
+        c.setFont(font, size)
+        c.drawCentredString(0, ch * 0.06, s["label"])
+        sub = _fit(s["sub"], font_for(s["sub"]), ch * 0.15, cw - 2 * pad)
+        c.setFont(font_for(s["sub"]), sub)
+        c.drawCentredString(0, -ch * 0.28, s["sub"])
+    else:
+        size = _fit(s["label"], font, ch * 0.5, cw - 2 * pad)
+        c.setFont(font, size)
+        c.drawCentredString(0, -size * 0.35, s["label"])
 
 
 def draw(c, a: dict, H: float, flat: bool) -> None:
@@ -346,6 +449,9 @@ def draw(c, a: dict, H: float, flat: bool) -> None:
         cw, ch = _upright(c, a, H)
         _alpha(c, fill=a["opacity"])
         c.drawImage(ImageReader(a["image"]), -cw / 2, -ch / 2, cw, ch, mask="auto", preserveAspectRatio=False)
+    elif kind == "stamp":
+        cw, ch = _upright(c, a, H)
+        _stamp(c, a["stamp"], color, cw, ch, a["opacity"])
     c.restoreState()
 
 
@@ -419,6 +525,8 @@ def _annot(a: dict, rect: list[float], ap, llx: float, lly: float, H: float, aut
         d[NameObject("/Border")] = _arr([0, 0, 0])
     elif kind == "image":
         d[NameObject("/Name")] = NameObject("/Image")
+    elif kind == "stamp":
+        d[NameObject("/Name")] = NameObject(f"/{a['stamp']['name']}")
     return d
 
 

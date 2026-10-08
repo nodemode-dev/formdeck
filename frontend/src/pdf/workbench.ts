@@ -1,16 +1,22 @@
 import { brandMark } from '../ui/brand';
-import { comboOf } from '../ui/commands';
+import { comboOf, Commands } from '../ui/commands';
 import { anyDialogOpen } from '../ui/dialogs';
 import { delayedIndicator, el, escapeHtml, patchList, q, setClass, setDisabled, setHidden, setText, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
+import { PopupMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import { Annotator, DRAW_TOOLS, MARKUP_TOOLS, type Tool } from './annotate';
-import { deliver, isTauri, pdfApi, type Annot, type Derived, type ImageItem, type Opened, type PdfInfo, type RecentItem } from './api';
+import { deliver, isTauri, pdfApi, type Annot, type Derived, type ImageItem, type NewFieldType, type Opened, type PdfInfo, type RecentItem } from './api';
+import { Comparer, ComparePanel } from './compare';
+import { askCreate } from './create';
 import { Fields } from './fill';
 import { Finder } from './find';
+import { FIELD_ICON, FIELD_LABEL, FIELD_TYPES, FormBuilder, FormPanel } from './form';
+import { takeCreate, type CreateKind } from './intent';
 import { Organizer, type OrgItem } from './organize';
-import { Panes, type Ctx, type Doc, type Tab } from './panels';
-import { Thumbs, Viewer } from './viewer';
+import { LAYOUTS, Panes, type Ctx, type Doc, type Tab } from './panels';
+import { recall, REFLOW_SIZES, Reflow, remember, Speaker } from './reading';
+import { Thumbs, Viewer, type Layout } from './viewer';
 
 export interface WorkbenchOptions { file?: File; path?: string; toDeck: (id: string) => void; close: () => void; addImages?: (items: ImageItem[]) => boolean }
 
@@ -22,7 +28,11 @@ const LOCAL = {
   fitWidth: '<path d="M3.5 4.5v15M20.5 4.5v15M7 12h10M9.5 9.5L7 12l2.5 2.5M14.5 9.5L17 12l-2.5 2.5"/>',
   underline: '<path d="M7 4.5v6a5 5 0 0 0 10 0v-6M5.5 20h13"/>',
 };
-const TABS: Array<[Tab, string]> = [['view', 'View'], ['comment', 'Comment'], ['fill', 'Fill & Sign'], ['edit', 'Edit'], ['organize', 'Organize'], ['extract', 'Extract'], ['protect', 'Protect'], ['convert', 'Convert']];
+const TABS: Array<[Tab, string]> = [['view', 'View'], ['comment', 'Comment'], ['fill', 'Fill & Sign'], ['form', 'Prepare form'], ['edit', 'Edit'], ['organize', 'Organize'], ['extract', 'Extract'], ['protect', 'Protect'], ['convert', 'Convert']];
+const LAYOUT_KEY = 'fs-pdf-layout';
+const SAY_KEY = 'fs-pdf-say';
+const IMAGE_FILE = /\.(png|jpe?g|gif|webp|bmp|tiff?)$/i;
+const layoutBtns = LAYOUTS.map(([v, l, ic]) => `<button class="fs-tb-btn" type="button" data-a="layout" data-v="${v}" title="${l}" aria-label="${l}">${icon(ic, 16)}</button>`).join('');
 const PALETTE = ['#FFD400', '#22C55E', '#38BDF8', '#F472B6', '#E11D48', '#2563EB', '#111111'];
 const TOOL_COLOR: Record<string, string> = { highlight: '#FFD400', underline: '#2563EB', strikeout: '#E11D48', note: '#FFD400', freetext: '#111111', ink: '#E11D48', rect: '#E11D48', ellipse: '#E11D48', line: '#111111', arrow: '#E11D48' };
 const HINTS: Partial<Record<Tool, string>> = {
@@ -41,12 +51,12 @@ const SHELL = `<div class="fs-pdfwb" tabindex="-1" role="application" aria-label
 <header class="fs-pdfwb-title">
 <div class="fs-brand">${brandMark(20)}<span class="fs-brand-name">formsld</span></div>
 <span class="fs-pdfwb-crumb">PDF</span>
-<div class="fs-pdfwb-doc"><span class="fs-pdfwb-name">PDF workbench</span><span class="fs-badge fs-pdfwb-edited" hidden>Edited</span></div>
+<div class="fs-pdfwb-doc"><span class="fs-pdfwb-name">PDF workbench</span><span class="fs-badge fs-pdfwb-edited is-off">Edited</span></div>
 <div class="fs-pdfwb-actions">
 <button class="fs-icon-btn" type="button" data-a="undo" title="Undo" aria-label="Undo">${icon('undo', 16)}</button>
 <button class="fs-icon-btn" type="button" data-a="redo" title="Redo" aria-label="Redo">${icon('redo', 16)}</button>
 <span class="fs-sep"></span>
-<button class="fs-tt-btn" type="button" data-a="open" title="Open a PDF" aria-label="Open a PDF">${icon('folderOpen', 16)}</button>
+<button class="fs-tt-btn fs-pdfwb-openbtn" type="button" data-a="open-menu" title="Open or create a PDF" aria-label="Open or create a PDF" aria-haspopup="menu">${icon('folderOpen', 16)}${icon('chevronDown', 10)}</button>
 <button class="fs-tt-btn" type="button" data-a="print" title="Print" aria-label="Print">${svg(LOCAL.print)}</button>
 <button class="fs-share-btn" type="button" data-a="save">${icon('save', 14)}<span>Save</span></button>
 <button class="fs-icon-btn fs-pdfwb-close" type="button" data-a="close" title="Close" aria-label="Close">${icon('close', 16)}</button>
@@ -55,9 +65,10 @@ const SHELL = `<div class="fs-pdfwb" tabindex="-1" role="application" aria-label
 <div class="fs-pdfwb-tools">
 <div class="fs-pdfwb-tabs" role="tablist">${TABS.map(([t, l]) => `<button class="fs-pdfwb-tab" type="button" role="tab" data-tab="${t}">${l}</button>`).join('')}</div>
 <span class="fs-sep"></span>
-<div class="fs-tb fs-pdfwb-set" data-for="view">${toolBtn('select', 'Select', icon('cursor', 16))}${toolBtn('hand', 'Hand', icon('hand', 16))}<span class="fs-sep"></span><button class="fs-tb-btn" type="button" data-a="find" title="Find" aria-label="Find">${icon('search', 16)}</button></div>
-<div class="fs-tb fs-pdfwb-set" data-for="comment" hidden>${toolBtn('select', 'Select', icon('cursor', 16))}<span class="fs-sep"></span>${toolBtn('highlight', 'Highlight text', icon('highlighter', 16))}${toolBtn('underline', 'Underline text', svg(LOCAL.underline))}${toolBtn('strikeout', 'Strike through text', icon('strike', 16))}<span class="fs-sep"></span>${toolBtn('note', 'Sticky note', icon('sticky', 16))}${toolBtn('freetext', 'Text box', icon('textBox', 16))}${toolBtn('ink', 'Draw', icon('pen', 16))}${toolBtn('rect', 'Rectangle', svg(LOCAL.rect))}${toolBtn('ellipse', 'Ellipse', svg(LOCAL.ellipse))}${toolBtn('line', 'Line', icon('line', 16))}${toolBtn('arrow', 'Arrow', icon('arrow', 16))}<span class="fs-sep"></span><div class="fs-tb-group fs-pdfwb-palette">${PALETTE.map((c) => `<button class="fs-swatch" type="button" data-color="${c}" title="${c}" style="background:${c}"></button>`).join('')}<label class="fs-swatch fs-pdfwb-custom" title="Custom colour"><input type="color" data-a="custom-color" value="#E11D48"></label></div><span class="fs-sep"></span><select class="fs-pdfwb-width" aria-label="Line width" title="Line width"><option value="1">1 pt</option><option value="2" selected>2 pt</option><option value="3">3 pt</option><option value="5">5 pt</option><option value="8">8 pt</option></select><select class="fs-pdfwb-size" aria-label="Text size" title="Text size"><option value="9">9 pt</option><option value="10">10 pt</option><option value="12" selected>12 pt</option><option value="14">14 pt</option><option value="18">18 pt</option><option value="24">24 pt</option><option value="36">36 pt</option></select></div>
+<div class="fs-tb fs-pdfwb-set" data-for="view">${toolBtn('select', 'Select', icon('cursor', 16))}${toolBtn('hand', 'Hand', icon('hand', 16))}<span class="fs-sep"></span><button class="fs-tb-btn" type="button" data-a="find" title="Find" aria-label="Find">${icon('search', 16)}</button><span class="fs-sep"></span>${layoutBtns}<button class="fs-tb-btn" type="button" data-a="cover-toggle" title="Show cover page in two-page view" aria-label="Show cover page in two-page view">${icon('bookCover', 16)}</button><span class="fs-sep"></span><button class="fs-tb-btn has-label" type="button" data-a="reading" title="Reading mode" aria-pressed="false">${icon('readMode', 16)}<span>Reading</span></button><button class="fs-tb-btn" type="button" data-a="rf-smaller" title="Smaller text" aria-label="Smaller text">${icon('textSmaller', 16)}</button><button class="fs-tb-btn" type="button" data-a="rf-larger" title="Larger text" aria-label="Larger text">${icon('textLarger', 16)}</button><span class="fs-sep"></span><button class="fs-tb-btn" type="button" data-a="say-page" title="Read this page aloud" aria-label="Read this page aloud">${icon('speaker', 16)}</button><button class="fs-tb-btn" type="button" data-a="say-end" title="Read from here to the end" aria-label="Read from here to the end">${icon('readAloud', 16)}</button><button class="fs-tb-btn" type="button" data-a="say-pause" title="Pause reading" aria-label="Pause reading">${icon('pause', 16)}</button><button class="fs-tb-btn" type="button" data-a="say-stop" title="Stop reading" aria-label="Stop reading">${icon('stop', 16)}</button><span class="fs-sep"></span><button class="fs-tb-btn has-label" type="button" data-a="compare" title="Compare with another PDF">${icon('compare', 16)}<span>Compare</span></button></div>
+<div class="fs-tb fs-pdfwb-set" data-for="comment" hidden>${toolBtn('select', 'Select', icon('cursor', 16))}<span class="fs-sep"></span>${toolBtn('highlight', 'Highlight text', icon('highlighter', 16))}${toolBtn('underline', 'Underline text', svg(LOCAL.underline))}${toolBtn('strikeout', 'Strike through text', icon('strike', 16))}<span class="fs-sep"></span>${toolBtn('note', 'Sticky note', icon('sticky', 16))}${toolBtn('freetext', 'Text box', icon('textBox', 16))}${toolBtn('ink', 'Draw', icon('pen', 16))}${toolBtn('rect', 'Rectangle', svg(LOCAL.rect))}${toolBtn('ellipse', 'Ellipse', svg(LOCAL.ellipse))}${toolBtn('line', 'Line', icon('line', 16))}${toolBtn('arrow', 'Arrow', icon('arrow', 16))}<button class="fs-tb-btn" type="button" data-a="stamps" title="Stamps" aria-label="Stamps">${icon('stamp', 16)}</button><span class="fs-sep"></span><div class="fs-tb-group fs-pdfwb-palette">${PALETTE.map((c) => `<button class="fs-swatch" type="button" data-color="${c}" title="${c}" style="background:${c}"></button>`).join('')}<label class="fs-swatch fs-pdfwb-custom" title="Custom colour"><input type="color" data-a="custom-color" value="#E11D48"></label></div><span class="fs-sep"></span><select class="fs-pdfwb-width" aria-label="Line width" title="Line width"><option value="1">1 pt</option><option value="2" selected>2 pt</option><option value="3">3 pt</option><option value="5">5 pt</option><option value="8">8 pt</option></select><select class="fs-pdfwb-size" aria-label="Text size" title="Text size"><option value="9">9 pt</option><option value="10">10 pt</option><option value="12" selected>12 pt</option><option value="14">14 pt</option><option value="18">18 pt</option><option value="24">24 pt</option><option value="36">36 pt</option></select></div>
 <div class="fs-tb fs-pdfwb-set" data-for="fill" hidden>${toolBtn('select', 'Fill fields', icon('cursor', 16))}${toolBtn('freetext', 'Add text', icon('textBox', 16))}<button class="fs-tb-btn has-label" type="button" data-a="sign" title="Place your signature">${icon('signature', 16)}<span>Sign</span></button><button class="fs-tb-btn has-label" type="button" data-a="date" title="Place today's date">${icon('stamp', 16)}<span>Date</span></button></div>
+<div class="fs-tb fs-pdfwb-set" data-for="form" hidden><button class="fs-tb-btn" type="button" data-ftool="select" title="Select fields" aria-label="Select fields">${icon('cursor', 16)}</button><span class="fs-sep"></span>${FIELD_TYPES.map((t) => `<button class="fs-tb-btn" type="button" data-ftool="${t}" title="${FIELD_LABEL[t]}" aria-label="${FIELD_LABEL[t]}">${icon(FIELD_ICON[t], 16)}</button>`).join('')}<span class="fs-sep"></span><span class="fs-pdfwb-settext">Draw form fields, then apply them to the PDF.</span></div>
 <div class="fs-tb fs-pdfwb-set" data-for="edit" hidden>${toolBtn('select', 'Select', icon('cursor', 16))}${toolBtn('crop', 'Draw a crop box', icon('crop', 16))}<span class="fs-sep"></span><span class="fs-pdfwb-settext">Headers and footers, Bates numbers, page numbers, watermarks and cropping.</span></div>
 <div class="fs-tb fs-pdfwb-set" data-for="organize" hidden><button class="fs-tb-btn" type="button" data-a="org-left" title="Rotate left">${icon('undo', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-right" title="Rotate right">${icon('redo', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-delete" title="Delete pages">${icon('delete', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-blank" title="Insert a blank page">${icon('pageInsert', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-insert" title="Insert pages from a PDF">${icon('upload', 16)}</button><span class="fs-sep"></span><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="org-reset">Reset</button><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="org-apply">Apply changes</button></div>
 <div class="fs-tb fs-pdfwb-set" data-for="extract" hidden><span class="fs-pdfwb-settext">Text, pictures and tables, from all pages or a range.</span></div>
@@ -72,7 +83,7 @@ const SHELL = `<div class="fs-pdfwb" tabindex="-1" role="application" aria-label
 </aside>
 <main class="fs-pdfwb-center">
 <div class="fs-pdfwb-empty">
-<div class="fs-home-hero fs-pdfwb-hero"><span class="fs-home-hero-icon">${icon('filePdf', 26)}</span><div class="fs-home-hero-text"><div class="fs-home-hero-title">Open a PDF</div><div class="fs-home-hero-sub">Read, search, comment and reply, fill and sign, add headers, footers and Bates numbers, crop and reorder pages, extract text, pictures and tables, find and redact, protect, and turn any PDF into a deck. Drop a file anywhere here.</div></div><div class="fs-home-hero-actions"><button class="fs-btn fs-btn-primary" type="button" data-a="open">${icon('folderOpen', 14)}Open PDF</button></div></div>
+<div class="fs-home-hero fs-pdfwb-hero"><span class="fs-home-hero-icon">${icon('filePdf', 26)}</span><div class="fs-home-hero-text"><div class="fs-home-hero-title">Open a PDF</div><div class="fs-home-hero-sub">Read, search, comment and reply, fill and sign, add headers, footers and Bates numbers, crop and reorder pages, extract text, pictures and tables, find and redact, protect, and turn any PDF into a deck. Drop a file anywhere here.</div></div><div class="fs-home-hero-actions"><button class="fs-btn fs-btn-primary" type="button" data-a="open">${icon('folderOpen', 14)}Open PDF</button><button class="fs-btn" type="button" data-a="create-pictures">${icon('fileImage', 14)}Create from pictures</button><button class="fs-btn" type="button" data-a="create-files">${icon('merge', 14)}Combine files</button></div></div>
 <section class="fs-home-section fs-pdfwb-recents" hidden><div class="fs-home-section-head"><h2 class="fs-home-section-title">Recent PDFs</h2></div><div class="fs-card-grid fs-pdfwb-recent-grid"></div></section>
 </div>
 <div class="fs-pdfwb-find" hidden><label class="fs-search">${icon('search', 14)}<input type="search" class="fs-pdfwb-findin" placeholder="Find in document" spellcheck="false" aria-label="Find in document"></label><span class="fs-pdfwb-findcount"></span><button class="fs-icon-btn is-sm" type="button" data-a="find-prev" title="Previous" aria-label="Previous match">${icon('chevronUp', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-a="find-next" title="Next" aria-label="Next match">${icon('chevronDown', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-a="find-close" title="Close" aria-label="Close search">${icon('close', 14)}</button></div>
@@ -84,6 +95,7 @@ const SHELL = `<div class="fs-pdfwb" tabindex="-1" role="application" aria-label
 <div class="fs-status-left"><span class="fs-st fs-pdfwb-stat"></span><span class="fs-st fs-st-busy">${icon('loading', 12).replace('class="icon"', 'class="icon spin"')}<span class="fs-pdfwb-busy"></span></span><span class="fs-st-hint fs-pdfwb-hint"></span></div>
 <div class="fs-status-right">
 <span class="fs-pdfwb-pagebox"><input class="fs-pdfwb-pagein" type="text" inputmode="numeric" aria-label="Page number" value="1"><span class="fs-pdfwb-pageof">of 0</span></span>
+<button class="fs-icon-btn fs-pdfwb-layoutbtn" type="button" data-a="layout-menu" title="Page display" aria-label="Page display" aria-haspopup="menu">${icon('pageScroll', 14)}</button>
 <button class="fs-icon-btn" type="button" data-a="zoom-out" title="Zoom out" aria-label="Zoom out">${icon('zoomOut', 14)}</button>
 <input class="fs-pdfwb-zoomin" type="text" aria-label="Zoom" value="100%">
 <button class="fs-icon-btn" type="button" data-a="zoom-in" title="Zoom in" aria-label="Zoom in">${icon('zoomIn', 14)}</button>
@@ -103,6 +115,19 @@ class Workbench {
   private readonly finder: Finder;
   private readonly organizer: Organizer;
   private readonly panes: Panes;
+  private readonly reflow: Reflow;
+  private readonly speaker: Speaker;
+  private readonly comparer: Comparer;
+  private readonly cmpPanel: ComparePanel;
+  private readonly forms: FormBuilder;
+  private readonly formPanel: FormPanel;
+  private readonly cmds = new Commands();
+  private readonly openMenu: PopupMenu;
+  private readonly layoutMenu: PopupMenu;
+  private reading = false;
+  private menuClosed = 0;
+  private voicesKey = '';
+  private spokenPage = 0;
   private opts: WorkbenchOptions = { toDeck: () => undefined, close: () => undefined };
   private doc: Doc | null = null;
   private history: State[] = [];
@@ -122,14 +147,14 @@ class Workbench {
     this.viewer = new Viewer(center, {
       page: (n) => this.onPage(n),
       zoom: (pct) => { if (document.activeElement !== this.zoomIn) setValue(this.zoomIn, `${pct}%`); },
-      mounted: (pv) => { this.annot.mount(pv); this.fields.mount(pv); },
-      textReady: (pv) => this.finder.paint(pv),
+      mounted: (pv) => { this.annot.mount(pv); this.fields.mount(pv); this.forms.mount(pv); this.comparer.mount(pv); this.speaker.mount(pv); },
+      textReady: (pv) => { this.finder.paint(pv); this.speaker.paint(pv); },
       rendered: () => undefined,
     });
     center.insertBefore(this.viewer.scroller, q(center, '.fs-pdfwb-find'));
     this.thumbs = new Thumbs(this.viewer);
     q(this.root, '.fs-pdfwb-sidebody').prepend(this.thumbs.root);
-    this.thumbs.onPick = (n) => this.viewer.goTo(n);
+    this.thumbs.onPick = (n) => this.goPage(n);
     this.annot = new Annotator(this.viewer, {
       changed: (label) => this.pushState(label),
       select: () => { this.panes.syncAnnots(); this.syncPalette(); },
@@ -148,15 +173,70 @@ class Workbench {
     });
     center.insertBefore(this.organizer.root, q(center, '.fs-pdfwb-find'));
     setHidden(this.organizer.root, true);
+    this.reflow = new Reflow();
+    this.reflow.onPage = (n) => this.pageUi(n);
+    center.insertBefore(this.reflow.root, q(center, '.fs-pdfwb-find'));
+    this.speaker = new Speaker(this.viewer);
+    this.speaker.onState = () => this.syncView();
+    this.speaker.onVoices = () => this.syncView();
+    this.comparer = new Comparer(this.viewer);
+    this.cmpPanel = new ComparePanel(this.comparer);
+    this.comparer.onChange = () => this.cmpPanel.sync();
+    this.cmpPanel.onPick = () => void this.compareWith();
+    this.cmpPanel.onClear = () => this.comparer.set(null);
+    this.forms = new FormBuilder(this.viewer, {
+      changed: () => { this.formPanel.sync(); this.syncChrome(); },
+      select: () => this.formPanel.syncSelection(),
+      toolDone: () => this.setFormTool(null),
+    });
+    this.formPanel = new FormPanel(this.forms);
+    this.formPanel.onApply = () => void this.applyForm();
     this.panes = new Panes(this.ctx());
     this.fields.onSign = (f) => void this.panes.placeSignature({ page: f.page, x: f.x, y: f.y, w: f.w, h: f.h });
     q(this.root, '.fs-pdfwb-panel').appendChild(this.panes.root);
+    q(this.panes.root, '.fs-pdfwb-cmphost').appendChild(this.cmpPanel.root);
+    q(this.panes.root, '.fs-pdfwb-pane[data-for="form"]').appendChild(this.formPanel.root);
+    this.cmds.add(
+      { id: 'pdf-open', label: 'Open a PDF…', keys: ['Mod+O'], run: () => void this.pick(false).then((f) => { if (f[0]) void this.guard(() => this.openFile(f[0])); }) },
+      { id: 'pdf-create-pictures', label: 'Create PDF from pictures…', run: () => void this.startCreate('pictures') },
+      { id: 'pdf-create-files', label: 'Combine files into a PDF…', run: () => void this.startCreate('files') },
+      { id: 'pdf-compare', label: 'Compare with another PDF…', enabled: () => !!this.doc, run: () => void this.compareWith() },
+      ...LAYOUTS.map(([v, l]) => ({ id: `pdf-layout-${v}`, label: l, checked: () => this.viewer.layout === v, run: () => this.setLayout(v as Layout, this.viewer.cover) })),
+      { id: 'pdf-cover', label: 'Show cover page in two-page view', checked: () => this.viewer.cover, run: () => this.setLayout(this.viewer.layout, !this.viewer.cover) },
+      { id: 'pdf-reading', label: 'Reading mode', checked: () => this.reading, enabled: () => !!this.doc, run: () => this.setReading(!this.reading) },
+    );
+    this.openMenu = new PopupMenu(this.cmds, null, true);
+    this.openMenu.panel.classList.add('fs-pdfwb-menu');
+    this.openMenu.onClose = () => { this.menuClosed = performance.now(); };
+    this.openMenu.setItems(['pdf-open', 'pdf-create-pictures', 'pdf-create-files', '-', 'pdf-compare']);
+    this.layoutMenu = new PopupMenu(this.cmds, null, true);
+    this.layoutMenu.panel.classList.add('fs-pdfwb-menu');
+    this.layoutMenu.onClose = () => { this.menuClosed = performance.now(); };
+    this.layoutMenu.setItems([...LAYOUTS.map(([v]) => `pdf-layout-${v}`), '-', 'pdf-cover', '-', 'pdf-reading']);
+    const saved = (recall(LAYOUT_KEY) ?? '').split('|');
+    if (LAYOUTS.some(([v]) => v === saved[0])) this.viewer.setLayout(saved[0] as Layout, saved[1] === '1');
+    const say = (recall(SAY_KEY) ?? '').split('|');
+    if (say[0]) this.speaker.voiceURI = say[0];
+    if (Number(say[1]) > 0) this.speaker.rate = Number(say[1]);
     this.wire();
     this.setTab('view');
     this.syncChrome();
+    this.syncView();
   }
 
   private get zoomIn(): HTMLInputElement { return q<HTMLInputElement>(this.root, '.fs-pdfwb-zoomin'); }
+
+  private page(): number { return this.reading ? this.reflow.currentPage() : this.viewer.currentPage(); }
+
+  private goPage(n: number): void {
+    if (this.reading) this.reflow.goTo(Math.max(1, Math.min(this.viewer.pages.length, n)));
+    else this.viewer.goTo(n);
+  }
+
+  private stepPage(dir: 1 | -1): void {
+    if (this.reading) this.goPage(this.reflow.currentPage() + dir);
+    else this.viewer.step(dir);
+  }
 
   private ctx(): Ctx {
     return {
@@ -174,7 +254,176 @@ class Workbench {
       remember: (id, pw) => this.passwords.set(id, pw),
       insertPdfs: (files, at) => this.insertPdfs(files, at),
       applyOrganize: () => this.applyOrganize(),
+      act: (name, value) => this.act(name, value),
     };
+  }
+
+  private act(name: string, value?: string): void {
+    const sp = this.speaker;
+    switch (name) {
+      case 'layout': this.setLayout((value ?? 'continuous') as Layout, this.viewer.cover); return;
+      case 'cover': this.setLayout(this.viewer.layout, !!value); return;
+      case 'cover-toggle': this.setLayout(this.viewer.layout, !this.viewer.cover); return;
+      case 'reading': this.setReading(!this.reading); return;
+      case 'rf-smaller': this.textSize(-1); return;
+      case 'rf-larger': this.textSize(1); return;
+      case 'say-page': if (this.doc) sp.readPage(this.reading ? this.reflow.currentPage() : this.viewer.currentPage()); return;
+      case 'say-end': if (this.doc) sp.readFrom(this.reading ? this.reflow.currentPage() : this.viewer.currentPage()); return;
+      case 'say-pause': if (sp.state === 'playing') sp.pause(); else sp.resume(); return;
+      case 'say-stop': sp.stop(); return;
+      case 'say-voice': case 'say-rate':
+        if (name === 'say-voice') sp.voiceURI = value ?? ''; else sp.rate = Number(value) || 1;
+        remember(SAY_KEY, `${sp.voiceURI}|${sp.rate}`);
+        return;
+      case 'compare': void this.compareWith(); return;
+    }
+  }
+
+  private setLayout(layout: Layout, cover: boolean): void {
+    if (this.reading) this.setReading(false);
+    this.viewer.setLayout(layout, cover);
+    remember(LAYOUT_KEY, `${layout}|${cover ? 1 : 0}`);
+    this.thumbs.setCurrent(this.viewer.currentPage());
+    this.syncView();
+  }
+
+  private setReading(on: boolean): void {
+    const d = this.doc;
+    if (on === this.reading || (on && !d)) return;
+    if (on && this.tab !== 'view') this.setTab('view');
+    this.reading = on;
+    if (on && d) {
+      this.closeFind();
+      const n = this.viewer.currentPage();
+      this.viewer.park();
+      setHidden(this.viewer.scroller, true);
+      void this.run('Preparing reading mode', () => this.reflow.show(d.id, d.info.pages, n));
+      this.reflow.root.focus({ preventScroll: true });
+    } else {
+      const n = this.reflow.currentPage();
+      this.reflow.hide();
+      setHidden(this.viewer.scroller, this.tab === 'organize' || !this.doc);
+      this.viewer.unpark();
+      if (this.doc) this.viewer.goTo(n);
+      this.root.focus({ preventScroll: true });
+    }
+    this.syncView();
+  }
+
+  private textSize(dir: 1 | -1): void {
+    const i = REFLOW_SIZES.indexOf(this.reflow.size);
+    const next = REFLOW_SIZES[Math.max(0, Math.min(REFLOW_SIZES.length - 1, (i < 0 ? 4 : i) + dir))];
+    this.reflow.setSize(next);
+    this.syncView();
+  }
+
+  private pageUi(n: number): void {
+    const input = q<HTMLInputElement>(this.root, '.fs-pdfwb-pagein');
+    if (document.activeElement !== input) setValue(input, String(n));
+    this.thumbs.setCurrent(n);
+  }
+
+  private syncView(): void {
+    const r = this.root, v = this.viewer, sp = this.speaker, has = !!this.doc;
+    for (const b of Array.from(r.querySelectorAll<HTMLElement>('[data-a="layout"]'))) { const on = b.dataset.v === v.layout; setClass(b, 'is-on', on); b.setAttribute('aria-checked', String(on)); }
+    setClass(q(r, '[data-a="cover-toggle"]'), 'is-on', v.cover);
+    const cover = q<HTMLInputElement>(this.panes.root, '[data-a="cover"]');
+    if (cover.checked !== v.cover) cover.checked = v.cover;
+    const icons: Record<Layout, string> = { single: 'pageSingle', continuous: 'pageScroll', two: 'pageTwo', 'two-continuous': 'pageTwoScroll' };
+    const lb = q(r, '.fs-pdfwb-layoutbtn');
+    if (lb.dataset.icon !== v.layout) { lb.dataset.icon = v.layout; lb.innerHTML = icon(icons[v.layout], 14); }
+    for (const b of Array.from(r.querySelectorAll<HTMLButtonElement>('[data-a="reading"]'))) { setClass(b, 'is-on', this.reading); b.setAttribute('aria-pressed', String(this.reading)); setDisabled(b, !has); }
+    for (const a of ['rf-smaller', 'rf-larger']) for (const b of Array.from(r.querySelectorAll<HTMLButtonElement>(`[data-a="${a}"]`))) setDisabled(b, !this.reading || (a === 'rf-smaller' ? this.reflow.size <= REFLOW_SIZES[0] : this.reflow.size >= REFLOW_SIZES[REFLOW_SIZES.length - 1]));
+    const why = sp.supported ? '' : 'Read aloud needs speech support, which this system does not have';
+    for (const a of ['say-page', 'say-end']) for (const b of Array.from(r.querySelectorAll<HTMLButtonElement>(`[data-a="${a}"]`))) {
+      setDisabled(b, !sp.supported || !has);
+      const t = why || (a === 'say-page' ? 'Read this page aloud' : 'Read from here to the end');
+      if (b.title !== t) b.title = t;
+    }
+    for (const b of Array.from(r.querySelectorAll<HTMLButtonElement>('[data-a="say-pause"]'))) {
+      setDisabled(b, sp.state === 'idle');
+      setClass(b, 'is-on', sp.state === 'paused');
+      const t = sp.state === 'paused' ? 'Resume reading' : 'Pause reading';
+      if (b.title !== t) b.title = t;
+      const label = b.querySelector('span:not(.icon)');
+      if (label) setText(label, sp.state === 'paused' ? 'Resume' : 'Pause');
+    }
+    for (const b of Array.from(r.querySelectorAll<HTMLButtonElement>('[data-a="say-stop"]'))) setDisabled(b, sp.state === 'idle');
+    const say = this.panes.root;
+    for (const s of Array.from(say.querySelectorAll<HTMLSelectElement>('[data-a="say-voice"], [data-a="say-rate"]'))) setDisabled(s, !sp.supported);
+    const voices = sp.voices();
+    const key = voices.map((x) => x.voiceURI).join('|');
+    const sel = q<HTMLSelectElement>(say, '[data-a="say-voice"]');
+    if (key !== this.voicesKey) {
+      this.voicesKey = key;
+      const lang = navigator.language.slice(0, 2);
+      const sorted = [...voices].sort((a, b) => Number(b.lang.startsWith(lang)) - Number(a.lang.startsWith(lang)) || a.name.localeCompare(b.name));
+      sel.replaceChildren(el('<option value="">Default voice</option>'), ...sorted.map((x) => { const o = document.createElement('option'); o.value = x.voiceURI; o.textContent = `${x.name} (${x.lang})`; return o; }));
+    }
+    setValue(sel, voices.some((x) => x.voiceURI === sp.voiceURI) ? sp.voiceURI : '');
+    setValue(q<HTMLSelectElement>(say, '[data-a="say-rate"]'), String(sp.rate));
+    setText(q(say, '.fs-pdfwb-saynote'), !sp.supported ? `${why}.` : sp.error ? sp.error : sp.state === 'playing' ? `Reading page ${sp.page}. The sentence being read is highlighted on the page.` : sp.state === 'paused' ? `Paused on page ${sp.page}.` : 'Reads the text of the PDF out loud, sentence by sentence.');
+    if (sp.state !== 'idle' && sp.page !== this.spokenPage) {
+      this.spokenPage = sp.page;
+      if (this.reading) this.reflow.goTo(sp.page);
+    }
+    if (sp.state === 'idle') this.spokenPage = 0;
+  }
+
+  private setFormTool(t: NewFieldType | null): void {
+    this.forms.setTool(t);
+    this.annot.setTool(t ? 'form' : 'select');
+    this.root.dataset.tool = t ? 'form' : 'select';
+    this.viewer.setClass('is-drawing', !!t);
+    this.viewer.setClass('is-marking', false);
+    for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('[data-ftool]'))) setClass(b, 'is-on', b.dataset.ftool === (t ?? 'select'));
+    setText(q(this.root, '.fs-pdfwb-hint'), t ? `Drag on the page to draw a ${FIELD_LABEL[t].toLowerCase()}, or click to place one. Esc cancels.` : this.tab === 'form' ? 'Click a field to select it. Drag to move it; drag its corner to resize.' : '');
+  }
+
+  private async applyForm(): Promise<void> {
+    const d = this.doc;
+    if (!d || !this.forms.dirty) return;
+    const problem = this.forms.problems();
+    if (problem) { toast(problem, 'error'); return; }
+    const f = this.forms, made = f.drafts.length, renamed = f.renames.size, gone = f.deletes.size;
+    await this.run('Writing the form fields', async () => {
+      await this.flush();
+      if (this.forms.dirty) return;
+      const parts = [made ? `${made} field${made === 1 ? '' : 's'} added` : '', renamed ? `${renamed} renamed` : '', gone ? `${gone} deleted` : ''].filter(Boolean);
+      toast(`${parts.join(', ') || 'Form updated'}. Fill & Sign can fill them now.`);
+    });
+  }
+
+  private async compareWith(): Promise<void> {
+    const d = this.doc;
+    if (!d) return;
+    if (this.tab !== 'view') this.setTab('view');
+    const files = await this.pick(false);
+    const f = files[0];
+    if (!f) return;
+    await this.run('Comparing', async () => {
+      const other = await pdfApi.open(f, f.name);
+      if (other.info.locked) { toast(`${f.name} is password protected. Open it here and unlock it first.`, 'error'); return; }
+      const cur = this.doc;
+      if (!cur) return;
+      const res = await pdfApi.compare(cur.id, other.id, { otherIsNewer: this.cmpPanel.otherIsNewer, pictures: this.cmpPanel.pictures });
+      this.comparer.set(res, cur.id, f.name);
+      q(this.panes.root, '[data-part="compare"]').scrollIntoView({ block: 'start' });
+      if (res.changes.length) this.comparer.go(res.changes[0].id);
+      else toast('No differences found');
+    });
+  }
+
+  private async startCreate(kind: CreateKind, files: File[] = []): Promise<void> {
+    const got = await askCreate(kind, files);
+    if (!got) return;
+    await this.guard(() => this.run('Creating the PDF', async () => {
+      const o = await pdfApi.create(got.files, got.opts);
+      await this.adopt(o);
+      this.savedId = '';
+      this.syncChrome();
+      toast(`Created ${o.name} with ${o.pages} page${o.pages === 1 ? '' : 's'}. Save to keep it.`);
+    }).then(() => undefined));
   }
 
   open(opts: WorkbenchOptions): void {
@@ -182,9 +431,11 @@ class Workbench {
     const wasHidden = this.root.hidden;
     setHidden(this.root, false);
     if (wasHidden) this.root.focus({ preventScroll: true });
+    const create = takeCreate();
     if (opts.file) void this.guard(() => this.openFile(opts.file as File));
     else if (opts.path) { const path = opts.path; void this.guard(() => this.run('Opening', async () => this.adopt(await pdfApi.openPath(path)))); }
     else if (!this.doc) void this.loadRecents();
+    if (create) void this.startCreate(create);
   }
 
   private wire(): void {
@@ -209,8 +460,11 @@ class Workbench {
       e.preventDefault();
       e.stopPropagation();
       setHidden(q(r, '.fs-pdfwb-drop'), true);
-      const files = Array.from(e.dataTransfer?.files ?? []).filter((f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-      if (!files.length) { toast('Drop a PDF file'); return; }
+      const all = Array.from(e.dataTransfer?.files ?? []);
+      const files = all.filter((f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+      const pictures = all.filter((f) => IMAGE_FILE.test(f.name) || (f.type.startsWith('image/') && !f.type.includes('svg')));
+      if (pictures.length) { void this.startCreate(files.length ? 'files' : 'pictures', [...files, ...pictures].sort((a, b) => all.indexOf(a) - all.indexOf(b))); return; }
+      if (!files.length) { toast('Drop a PDF file, or pictures to make one'); return; }
       if (this.tab === 'organize' && this.doc) { void this.insertPdfs(files, this.organizer.items.length); return; }
       void this.guard(() => this.openFile(files[0]));
     });
@@ -224,10 +478,10 @@ class Workbench {
       if (e.key !== 'Enter') return;
       e.preventDefault();
       const n = parseInt(pageIn.value, 10);
-      if (n >= 1 && n <= this.viewer.pages.length) this.viewer.goTo(n); else pageIn.value = String(this.viewer.currentPage());
+      if (n >= 1 && n <= this.viewer.pages.length) this.goPage(n); else pageIn.value = String(this.page());
       pageIn.blur();
     });
-    pageIn.addEventListener('blur', () => { pageIn.value = String(this.viewer.currentPage()); });
+    pageIn.addEventListener('blur', () => { pageIn.value = String(this.page()); });
     this.zoomIn.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;
       e.preventDefault();
@@ -257,6 +511,8 @@ class Workbench {
     if (tabBtn?.dataset.tab) { this.setTab(tabBtn.dataset.tab as Tab); return; }
     const toolBtn = t.closest('.fs-tb-btn[data-tool]') as HTMLElement | null;
     if (toolBtn) { this.setTool(toolBtn.dataset.tool as Tool); return; }
+    const fBtn = t.closest('[data-ftool]') as HTMLElement | null;
+    if (fBtn?.dataset.ftool) { const ft = fBtn.dataset.ftool; this.setFormTool(ft === 'select' || this.forms.tool === ft ? null : ft as NewFieldType); return; }
     const sw = t.closest('[data-color]') as HTMLElement | null;
     if (sw?.dataset.color) { this.pickColor(sw.dataset.color); return; }
     const side = t.closest('[data-side]') as HTMLElement | null;
@@ -276,6 +532,18 @@ class Workbench {
       case 'undo': this.undo(); break;
       case 'redo': this.redo(); break;
       case 'open': void this.pick(false).then((f) => { if (f[0]) void this.guard(() => this.openFile(f[0])); }); break;
+      case 'open-menu': case 'layout-menu': {
+        const menu = b.dataset.a === 'open-menu' ? this.openMenu : this.layoutMenu;
+        if (menu.isOpen || performance.now() - this.menuClosed < 250) { menu.close(); break; }
+        const rc = b.getBoundingClientRect();
+        menu.openAt(b.dataset.a === 'open-menu' ? rc.left : rc.right - 240, b.dataset.a === 'open-menu' ? rc.bottom + 6 : rc.top - 6);
+        break;
+      }
+      case 'stamps': this.setTab('fill'); q(this.panes.root, '[data-part="stamps"]').scrollIntoView({ block: 'start' }); break;
+      case 'create-pictures': void this.startCreate('pictures'); break;
+      case 'create-files': void this.startCreate('files'); break;
+      case 'layout': this.act('layout', b.dataset.v); break;
+      case 'cover-toggle': case 'reading': case 'rf-smaller': case 'rf-larger': case 'say-page': case 'say-end': case 'say-pause': case 'say-stop': case 'compare': this.act(b.dataset.a); break;
       case 'print': void this.print(); break;
       case 'save': void this.save(); break;
       case 'close': this.close(); break;
@@ -308,13 +576,17 @@ class Workbench {
     const combo = comboOf(e);
     const v = this.viewer;
     const run = (fn: () => void): void => { e.preventDefault(); fn(); };
+    if (this.openMenu.isOpen || this.layoutMenu.isOpen) {
+      if (combo === 'Escape') { e.preventDefault(); this.openMenu.close(); this.layoutMenu.close(); }
+      return;
+    }
     switch (combo) {
-      case 'Mod+F': return run(() => this.openFind());
+      case 'Mod+F': return run(() => { if (this.reading) this.setReading(false); this.openFind(); });
       case 'Mod+S': return run(() => void this.save());
       case 'Mod+P': return run(() => void this.print());
       case 'Mod+O': return run(() => void this.pick(false).then((f) => { if (f[0]) void this.guard(() => this.openFile(f[0])); }));
-      case 'Mod+=': case 'Shift+Mod+=': return run(() => v.zoomStep(1));
-      case 'Mod+-': return run(() => v.zoomStep(-1));
+      case 'Mod+=': case 'Shift+Mod+=': return run(() => (this.reading ? this.textSize(1) : v.zoomStep(1)));
+      case 'Mod+-': return run(() => (this.reading ? this.textSize(-1) : v.zoomStep(-1)));
       case 'Mod+0': return run(() => v.applyFit('width'));
     }
     if (typing) return;
@@ -322,17 +594,21 @@ class Workbench {
       case 'Mod+Z': return run(() => this.undo());
       case 'Shift+Mod+Z': case 'Mod+Y': return run(() => this.redo());
       case 'Mod+A': if (this.tab === 'organize') return run(() => this.organizer.selectAll()); return;
-      case 'PageDown': return run(() => v.goTo(v.currentPage() + 1));
-      case 'PageUp': return run(() => v.goTo(v.currentPage() - 1));
-      case 'Home': return run(() => v.goTo(1));
-      case 'End': return run(() => v.goTo(v.pages.length));
+      case 'PageDown': return run(() => this.stepPage(1));
+      case 'PageUp': return run(() => this.stepPage(-1));
+      case 'Home': return run(() => this.goPage(1));
+      case 'End': return run(() => this.goPage(v.pages.length));
       case 'Delete': case 'Backspace':
         if (this.tab === 'organize') return run(() => this.organizer.remove());
+        if (this.tab === 'form' && this.forms.selected) return run(() => void this.forms.removeSelected());
         if (this.annot.selected) return run(() => void this.annot.remove());
         return;
       case 'Escape':
         if (!q(this.root, '.fs-pdfwb-find').hidden) return run(() => this.closeFind());
         if (!q(this.root, '.fs-pdfwb-bar').hidden) return run(() => this.hideBar());
+        if (this.tab === 'form' && this.forms.tool) return run(() => this.setFormTool(null));
+        if (this.tab === 'form' && this.forms.selected) return run(() => this.forms.select(null));
+        if (this.reading) return run(() => this.setReading(false));
         if (this.annot.tool !== 'select') return run(() => this.setTool('select'));
         if (this.annot.selected) return run(() => this.annot.select(null));
         return;
@@ -346,6 +622,7 @@ class Workbench {
 
   private setTab(tab: Tab): void {
     this.annot.commitEdit();
+    if (tab !== 'view' && this.reading) this.setReading(false);
     this.tab = tab;
     this.root.dataset.tab = tab;
     for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('.fs-pdfwb-tab'))) { setClass(b, 'is-on', b.dataset.tab === tab); b.setAttribute('aria-selected', String(b.dataset.tab === tab)); }
@@ -358,9 +635,12 @@ class Workbench {
     if (org && this.doc && this.organizer.docId !== this.doc.id && !this.organizer.dirty) this.organizer.reset(this.doc.id, this.doc.info.sizes);
     this.fields.setActive(tab === 'fill');
     if (tab === 'fill' && this.doc) void this.fields.load(this.doc.id).catch((err: unknown) => toast(`Could not read the form: ${err instanceof Error ? err.message : err}`, 'error'));
+    this.forms.setActive(tab === 'form');
+    if (tab === 'form' && this.doc) void this.forms.load(this.doc.id).catch((err: unknown) => toast(`Could not read the form: ${err instanceof Error ? err.message : err}`, 'error'));
     this.annot.flattenComments = tab === 'fill' ? true : q<HTMLInputElement>(this.panes.root, '[data-a="flatten-comments"]').checked;
     this.panes.show(tab);
     this.setTool('select');
+    if (tab === 'form') { this.setFormTool(null); this.formPanel.syncSelection(); }
     this.panes.syncDoc();
     this.panes.syncAnnots();
     if (org) this.organizer.root.focus({ preventScroll: true });
@@ -415,6 +695,7 @@ class Workbench {
   }
 
   private onPage(n: number): void {
+    if (this.reading) return;
     const input = q<HTMLInputElement>(this.root, '.fs-pdfwb-pagein');
     if (document.activeElement !== input) setValue(input, String(n));
     this.thumbs.setCurrent(n);
@@ -437,6 +718,7 @@ class Workbench {
     this.annot.setItems([]);
     this.annot.setAreas([]);
     this.fields.discard();
+    this.forms.discard();
     this.organizer.dirty = false;
     this.savedId = this.doc?.id ?? '';
   }
@@ -481,6 +763,9 @@ class Workbench {
     this.annot.setItems([]);
     this.annot.setAreas([]);
     this.fields.reset();
+    this.forms.reset();
+    this.speaker.stop();
+    if (this.comparer.result) this.comparer.set(null);
     this.history = [{ id: o.id, annots: [], label: 'Open' }];
     this.hi = 0;
     this.savedId = o.id;
@@ -489,10 +774,13 @@ class Workbench {
 
   private async show(id: string, name: string, info: PdfInfo, keep: boolean): Promise<void> {
     const seq = ++this.loadSeq;
+    const before = this.doc?.info.pages;
     this.doc = { id, name, info, key: info.key ?? id };
     setText(q(this.root, '.fs-pdfwb-name'), name);
     setHidden(q(this.root, '.fs-pdfwb-empty'), true);
-    setHidden(this.viewer.scroller, this.tab === 'organize');
+    setHidden(this.viewer.scroller, this.tab === 'organize' || this.reading);
+    if (this.comparer.result && this.comparer.docId !== id && before !== info.pages) this.comparer.set(null);
+    if (this.reading) void this.run('Preparing reading mode', () => this.reflow.show(id, info.pages, Math.min(this.reflow.currentPage(), info.pages)));
     try {
       await this.viewer.load(pdfApi.fileUrl(id), info.sizes, { password: this.passwords.get(id), keep, onPassword: (retry) => this.askPassword(name, retry) });
     } catch (err) {
@@ -511,9 +799,11 @@ class Workbench {
     if (this.tab === 'organize') { setHidden(this.organizer.root, false); setHidden(this.viewer.scroller, true); }
     if (this.fields.loadedFor && this.fields.loadedFor !== id) this.fields.reset();
     if (this.tab === 'fill') void this.fields.load(id).catch(() => undefined);
+    if (this.tab === 'form') void this.forms.load(id).catch(() => undefined);
     if (this.finder.query) void this.finder.search(this.finder.query);
     this.panes.syncDoc();
     this.syncChrome();
+    this.syncView();
   }
 
   private renderOutline(info: PdfInfo): void {
@@ -555,7 +845,7 @@ class Workbench {
 
   private dirty(): boolean {
     if (!this.doc) return false;
-    return this.doc.id !== this.savedId || this.annot.items.length > 0 || this.fields.dirty || this.organizer.dirty || this.annot.areas.length > 0;
+    return this.doc.id !== this.savedId || this.annot.items.length > 0 || this.fields.dirty || this.organizer.dirty || this.annot.areas.length > 0 || this.forms.dirty;
   }
 
   private pushState(label: string): void {
@@ -620,6 +910,13 @@ class Workbench {
       const res = await pdfApi.fill(this.doc.id, this.fields.pending(), false);
       this.fields.discard();
       await this.commit(res, 'Fill form');
+    }
+    if (this.forms.dirty && this.doc) {
+      const problem = this.forms.problems();
+      if (problem) throw new Error(problem);
+      const res = await pdfApi.form(this.doc.id, this.forms.payload());
+      this.forms.reset();
+      await this.commit(res, 'Prepare form');
     }
     return this.doc?.id ?? null;
   }
@@ -780,6 +1077,11 @@ class Workbench {
 
   private finishClose(notify = true): void {
     this.hideBar();
+    if (this.reading) this.setReading(false);
+    this.speaker.stop();
+    this.comparer.set(null);
+    this.forms.reset();
+    this.reflow.reset();
     this.closeFind();
     this.annot.setItems([]);
     this.annot.setAreas([]);
@@ -870,7 +1172,7 @@ class Workbench {
     undo.title = this.history[this.hi] && can ? `Undo ${this.history[this.hi].label}` : 'Undo';
     redo.title = next ? `Redo ${next.label}` : 'Redo';
     for (const a of ['print', 'save']) setDisabled(q<HTMLButtonElement>(this.root, `.fs-pdfwb-actions [data-a="${a}"]`), !has);
-    setHidden(q(this.root, '.fs-pdfwb-edited'), !this.dirty());
+    setClass(q(this.root, '.fs-pdfwb-edited'), 'is-off', !this.dirty());
     for (const s of Array.from(this.root.querySelectorAll<HTMLButtonElement>('.fs-pdfwb-tab'))) setDisabled(s, !has && s.dataset.tab !== 'view');
     setDisabled(q<HTMLButtonElement>(this.root, '[data-a="org-apply"]'), !this.organizer.dirty);
     setDisabled(q<HTMLButtonElement>(this.root, '[data-a="org-reset"]'), !this.organizer.dirty);
@@ -878,6 +1180,8 @@ class Workbench {
     setClass(q(this.root, '.fs-pdfwb-tab[data-tab="organize"]'), 'has-dot', this.organizer.dirty);
     setClass(q(this.root, '.fs-pdfwb-tab[data-tab="comment"]'), 'has-dot', this.annot.items.some((a) => !a.flatten));
     setClass(q(this.root, '.fs-pdfwb-tab[data-tab="fill"]'), 'has-dot', this.fields.dirty);
+    setClass(q(this.root, '.fs-pdfwb-tab[data-tab="form"]'), 'has-dot', this.forms.dirty);
+    setDisabled(q<HTMLButtonElement>(this.root, '.fs-pdfwb-tools [data-a="compare"]'), !has);
   }
 }
 

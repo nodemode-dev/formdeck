@@ -1,14 +1,16 @@
 import { api } from '../io/api';
-import { el, escapeHtml, patchList, q, setClass, setDisabled, setHidden, setHtml, setText, setValue } from '../ui/dom';
+import { el, escapeHtml, patchList, q, setClass, setDisabled, setHidden, setText, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
 import { KIND_LABEL, uid, type Annotator, type Tool } from './annotate';
-import { pdfApi, type Annot, type Area, type Derived, type HeaderFooter, type ImageItem, type Match, type PdfComment, type PdfInfo, type Preset, type Status, type TableItem } from './api';
+import { pdfApi, type Annot, type Area, type Derived, type HeaderFooter, type HiddenItem, type ImageItem, type Match, type PdfComment, type PdfInfo, type Preset, type Status, type TableItem } from './api';
 import { SignaturePad, typedSignature, type Fields } from './fill';
 import type { Organizer } from './organize';
+import { recall, remember } from './reading';
+import { dynamicLine, paletteHtml, STAMPS, stampSize } from './stamps';
 import type { Viewer } from './viewer';
 
-export type Tab = 'view' | 'comment' | 'fill' | 'edit' | 'organize' | 'extract' | 'protect' | 'convert';
+export type Tab = 'view' | 'comment' | 'fill' | 'form' | 'edit' | 'organize' | 'extract' | 'protect' | 'convert';
 export interface Doc { id: string; name: string; info: PdfInfo; key: string }
 export interface Ctx {
   viewer: Viewer; annot: Annotator; fields: Fields; organizer: Organizer;
@@ -25,6 +27,7 @@ export interface Ctx {
   remember(id: string, password: string): void;
   insertPdfs(files: File[], at: number): Promise<void>;
   applyOrganize(): Promise<void>;
+  act(name: string, value?: string): void;
 }
 
 const stem = (name: string): string => name.replace(/\.pdf$/i, '');
@@ -38,8 +41,14 @@ const SLOTS = ['header-left', 'header-center', 'header-right', 'footer-left', 'f
 type Slot = typeof SLOTS[number];
 const TOKEN = /<<\s*(page|pages|date|file|bates)\s*>>/gi;
 const STATUS: Array<[Status, string]> = [['none', 'None'], ['accepted', 'Accepted'], ['rejected', 'Rejected'], ['completed', 'Completed']];
+const PROP_LABELS = ['File', 'Pages', 'Page size', 'File size', 'PDF', 'Title', 'Author', 'Subject', 'Keywords', 'Created', 'Modified', 'Creator', 'Producer', 'Form fields', 'Security'];
 const STATUS_LABEL: Record<Status, string> = { none: 'None', accepted: 'Accepted', rejected: 'Rejected', completed: 'Completed', cancelled: 'Cancelled' };
 const SIDES = ['l', 't', 'r', 'b'] as const;
+export const LAYOUTS: Array<[string, string, string]> = [['single', 'Single page', 'pageSingle'], ['continuous', 'Single page continuous', 'pageScroll'], ['two', 'Two-page', 'pageTwo'], ['two-continuous', 'Two-page continuous', 'pageTwoScroll']];
+const HIDDEN_KEYS: Array<[string, string]> = [['metadata', 'Metadata'], ['javascript', 'JavaScript and actions'], ['attachments', 'Attached files'], ['comments', 'Comments and markups'], ['fields', 'Form fields'], ['layers', 'Hidden layers'], ['links', 'Links'], ['bookmarks', 'Bookmarks'], ['thumbnails', 'Page thumbnails'], ['private', 'Private application data'], ['hidden_text', 'Hidden text']];
+const HIDDEN_HELP: Record<string, string> = { fields: 'Fields are flattened: their current values stay on the page.', layers: 'Hidden layers are dropped and the visible ones merged.', hidden_text: 'Scanned pages lose their searchable text.' };
+const STAMP_NAME = 'fs-pdf-stamp-name';
+const stampSec = (): string => sec('Stamps', `${paletteHtml('By you, with the date and time')}<div class="fs-pdfwb-subhead">More</div><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-date">${icon('stamp', 14)}Date</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-text">${icon('textBox', 14)}Text</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-image">${icon('image', 14)}From a picture…</button></div>${row('Name', '<input class="fs-input" type="text" data-a="stamp-name" placeholder="Your name on dynamic stamps" spellcheck="false" aria-label="Name on dynamic stamps">')}<label class="fs-check"><input type="checkbox" data-a="stamp-flat">Flatten stamps into the page</label><p class="fs-note">Click a stamp, then click the page where it goes. Drag it to move it and its corner to resize it. Stamps stay as stamp comments that other readers can move or delete, unless flattened.</p>`, 'data-part="stamps"');
 const num = (a: string, value: number, min: number, max: number): string => `<div class="fs-num"><input type="number" data-a="${a}" value="${value}" min="${min}" max="${max}" step="1"></div>`;
 const quad = (prefix: string, title: Record<string, string>, value: number): string => `<div class="fs-pdfwb-quad">${Object.entries(title).map(([k, t]) => `<div class="fs-num" title="${t}"><span class="fs-num-label">${t[0]}</span><input type="number" min="0" step="1" value="${value}" data-a="${prefix}-${k}" aria-label="${t}"><span class="fs-unit">pt</span></div>`).join('')}</div>`;
 
@@ -103,12 +112,18 @@ export class Panes {
   private ticked = new Set<number>();
   private matchesFor = '';
   private hfFocus: Slot = 'footer-center';
+  private hidden: HiddenItem[] = [];
+  private hiddenFor = '';
+  private hidTicked = new Set<string>();
 
   constructor(private readonly ctx: Ctx) {
     this.root = el(`<div class="fs-pdfwb-panes">
 <div class="fs-pdfwb-pane" data-for="view">
-${sec('Document', '<dl class="fs-kv fs-pdfwb-props"></dl>')}
+${sec('Page display', `<div class="fs-pdfwb-layouts" role="radiogroup" aria-label="Page layout">${LAYOUTS.map(([v, l, ic]) => `<button class="fs-pdfwb-layout" type="button" role="radio" data-a="layout" data-v="${v}">${icon(ic, 18)}<span>${l}</span></button>`).join('')}</div><label class="fs-check"><input type="checkbox" data-a="cover">Show cover page in two-page view</label><div class="fs-pdfwb-btns fs-pdfwb-rfbtns"><button class="fs-btn fs-btn-sm" type="button" data-a="reading" aria-pressed="false">${icon('readMode', 14)}<span>Reading mode</span></button><button class="fs-icon-btn" type="button" data-a="rf-smaller" title="Smaller text" aria-label="Smaller text">${icon('textSmaller', 16)}</button><button class="fs-icon-btn" type="button" data-a="rf-larger" title="Larger text" aria-label="Larger text">${icon('textLarger', 16)}</button></div><p class="fs-note">Reading mode shows the text in one readable column, page after page, in reading order.</p>`)}
+${sec('Read aloud', `<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="say-page">${icon('speaker', 14)}Read this page</button><button class="fs-btn fs-btn-sm" type="button" data-a="say-end">${icon('readAloud', 14)}Read to the end</button></div><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="say-pause">${icon('pause', 14)}<span>Pause</span></button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="say-stop">${icon('stop', 14)}Stop</button></div>${row('Voice', '<select data-a="say-voice" aria-label="Voice"><option value="">Default voice</option></select>')}${row('Speed', `<select data-a="say-rate" aria-label="Speed">${[0.75, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2].map((r) => `<option value="${r}"${r === 1 ? ' selected' : ''}>${r}×</option>`).join('')}</select>`)}<p class="fs-note fs-pdfwb-saynote"></p>`, 'data-part="say"')}
+${sec('Document', `<dl class="fs-kv fs-pdfwb-props">${PROP_LABELS.map((k) => `<dt>${k}</dt><dd></dd>`).join('')}</dl>`)}
 ${sec('Find', `<label class="fs-search">${icon('search', 14)}<input type="search" class="fs-pdfwb-findq" placeholder="Search this PDF" spellcheck="false"></label><p class="fs-note fs-pdfwb-findnote">Press ${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+F anywhere in the workbench.</p>`)}
+${sec('Compare', '<div class="fs-pdfwb-cmphost"></div>', 'data-part="compare"')}
 </div>
 <div class="fs-pdfwb-pane" data-for="comment" hidden>
 ${sec(`Comments <span class="fs-badge is-count fs-pdfwb-ncount">0</span>`, `<label class="fs-check"><input type="checkbox" data-a="flatten-comments">Flatten into the page</label><p class="fs-note">Comments stay editable in other PDF readers unless flattened. They are written into the PDF, with their replies and status, when you save or apply. Select a comment to reply or set its status.</p><div class="fs-list fs-pdfwb-annots"></div><div class="fs-pdfwb-subhead fs-pdfwb-inpdf-head" hidden>In this PDF</div><div class="fs-list fs-pdfwb-inpdf"></div><div class="fs-empty fs-pdfwb-annots-empty" hidden><span class="fs-empty-icon">${icon('comment', 18)}</span><span class="fs-empty-title">No comments yet</span><span class="fs-empty-note">Choose a tool above, then select text or draw on a page.</span></div><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="apply-annots">${icon('check', 14)}Apply to PDF</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="clear-annots">Discard all</button></div>`)}
@@ -116,8 +131,9 @@ ${sec(`Comments <span class="fs-badge is-count fs-pdfwb-ncount">0</span>`, `<lab
 <div class="fs-pdfwb-pane" data-for="fill" hidden>
 ${sec('Form fields', `<p class="fs-note fs-pdfwb-fieldnote">Looking for form fields…</p><label class="fs-check"><input type="checkbox" data-a="flatten-fields">Flatten fields (no longer editable)</label><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="apply-fields">${icon('check', 14)}Apply to form</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="discard-fields">Discard</button></div>`)}
 ${sec('Signature', `<div class="fs-seg fs-pdfwb-sigmode"><button type="button" data-a="sig-draw" class="is-on">Draw</button><button type="button" data-a="sig-type">Type</button></div><div class="fs-pdfwb-sigdraw"></div><div class="fs-pdfwb-sigtype" hidden><input class="fs-input" type="text" data-a="sig-text" placeholder="Type your name" spellcheck="false"><div class="fs-pdfwb-sigpreview"></div></div><div class="fs-pdfwb-sigrow"><span class="fs-swatch is-chosen" data-a="sig-color" data-c="#1E2A78" style="background:#1E2A78" title="Blue ink"></span><span class="fs-swatch" data-a="sig-color" data-c="#111111" style="background:#111111" title="Black ink"></span><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="sig-clear">Clear</button><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="sig-place">${icon('signature', 14)}Place</button></div><p class="fs-note">Then click the page where the signature goes. Signatures are stamped into the page.</p>`)}
-${sec('Stamps', `<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-date">${icon('stamp', 14)}Date</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-check">✓ Check</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-cross">✕ Cross</button><button class="fs-btn fs-btn-sm" type="button" data-a="stamp-text">${icon('textBox', 14)}Text</button></div>`)}
+${stampSec()}
 </div>
+<div class="fs-pdfwb-pane" data-for="form" hidden></div>
 <div class="fs-pdfwb-pane" data-for="edit" hidden>
 ${sec('Header and footer', `<span class="fs-pdfwb-hflabel">Header</span><div class="fs-pdfwb-hf3"><input class="fs-input" type="text" data-hf="header-left" placeholder="Left" aria-label="Header left" spellcheck="false"><input class="fs-input" type="text" data-hf="header-center" placeholder="Centre" aria-label="Header centre" spellcheck="false"><input class="fs-input" type="text" data-hf="header-right" placeholder="Right" aria-label="Header right" spellcheck="false"></div><span class="fs-pdfwb-hflabel">Footer</span><div class="fs-pdfwb-hf3"><input class="fs-input" type="text" data-hf="footer-left" placeholder="Left" aria-label="Footer left" spellcheck="false"><input class="fs-input" type="text" data-hf="footer-center" placeholder="Centre" aria-label="Footer centre" spellcheck="false" value="Page <<page>> of <<pages>>"><input class="fs-input" type="text" data-hf="footer-right" placeholder="Right" aria-label="Footer right" spellcheck="false"></div><div class="fs-pdfwb-tokens"><span class="fs-pdfwb-tokens-label">Insert</span><button class="fs-chip" type="button" data-a="hf-token" data-t="<<page>>">Page</button><button class="fs-chip" type="button" data-a="hf-token" data-t="<<pages>>">Pages</button><button class="fs-chip" type="button" data-a="hf-token" data-t="<<date>>">Date</button><button class="fs-chip" type="button" data-a="hf-token" data-t="<<file>>" title="File name">File</button><button class="fs-chip" type="button" data-a="hf-token" data-t="<<bates>>">Bates</button></div><div class="fs-pdfwb-hfprev" aria-label="Preview"><div class="fs-pdfwb-hfline" data-band="header"><span data-p="header-left"></span><span data-p="header-center"></span><span data-p="header-right"></span></div><div class="fs-pdfwb-hfbody"><i></i><i></i><i></i></div><div class="fs-pdfwb-hfline" data-band="footer"><span data-p="footer-left"></span><span data-p="footer-center"></span><span data-p="footer-right"></span></div></div><p class="fs-note fs-pdfwb-hfnote"></p>${row('Font', '<select data-a="hf-font" aria-label="Font"><option value="sans">Sans serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select>')}${row('Size', '<div class="fs-num"><input type="number" min="4" max="96" step="0.5" value="10" data-a="hf-size"><span class="fs-unit">pt</span></div>')}${row('Colour', '<input type="color" class="fs-pdfwb-color" value="#333333" data-a="hf-color">')}${row('Margins', quad('hf', { t: 'Top', b: 'Bottom', l: 'Left', r: 'Right' }, 36))}${row('Pages', '<input class="fs-input" type="text" data-a="hf-pages" placeholder="All pages, or 2-">')}${row('Apply to', '<select data-a="hf-apply" aria-label="Apply to"><option value="all">Every page</option><option value="odd">Odd pages</option><option value="even">Even pages</option></select>')}${row('Start at', '<div class="fs-num"><input type="number" min="0" value="1" data-a="hf-start"></div>')}${row('Date', '<select data-a="hf-date" aria-label="Date format"><option value="short">Short (this computer)</option><option value="long">Long (this computer)</option><option value="iso">2026-10-08</option></select>')}<label class="fs-check"><input type="checkbox" data-a="hf-bates">Bates numbering</label><div class="fs-pdfwb-bates" hidden>${row('Prefix', '<input class="fs-input" type="text" data-a="bates-prefix" placeholder="For example ACME-" spellcheck="false">')}${row('Start', num('bates-start', 1, 0, 999999999))}${row('Digits', num('bates-digits', 6, 1, 15))}</div><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="hf-add">Add header and footer</button></div>`)}
 ${sec('Crop pages', `<p class="fs-note">Cropping hides what is outside the box. Unlike redaction, the hidden content stays in the file and comes back if the crop is removed; to delete content for good, use Redact on the Protect tab.</p>${row('Margins', quad('crop', { l: 'Left', t: 'Top', r: 'Right', b: 'Bottom' }, 0))}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="crop-tool">${icon('crop', 14)}Draw on page</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="crop-clear">Clear</button></div>${row('Pages', '<input class="fs-input" type="text" data-a="crop-pages" placeholder="All pages, or 1-3">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="crop-current">This page</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="crop-every">All pages</button></div><p class="fs-note fs-pdfwb-cropnote"></p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="crop-apply">${icon('crop', 14)}Crop pages</button><button class="fs-btn fs-btn-sm" type="button" data-a="crop-auto">Remove white margins</button></div>`)}
@@ -141,9 +157,11 @@ ${sec('Remove password', `${row('Password', '<input class="fs-input" type="passw
 ${sec('Find text to redact', `${row('Find', '<select data-a="fr-mode" aria-label="What to find"><option value="text">Words or phrase</option><option value="email">Email addresses</option><option value="phone">Phone numbers</option><option value="card">Credit card numbers</option><option value="date">Dates</option><option value="regex">Pattern (regular expression)</option></select>')}<div class="fs-pdfwb-frq"><label class="fs-search">${icon('search', 14)}<input type="search" data-a="fr-query" placeholder="Word or phrase" spellcheck="false" aria-label="Text to find"></label></div><div class="fs-pdfwb-fropts"><label class="fs-check"><input type="checkbox" data-a="fr-case">Match case</label><label class="fs-check"><input type="checkbox" data-a="fr-whole">Whole words</label></div><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="fr-find">${icon('find', 14)}Find</button></div><div class="fs-pdfwb-frhead" hidden><span class="fs-pdfwb-frcount"></span><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="fr-all">Select all</button></div><div class="fs-list fs-pdfwb-matches"></div><div class="fs-pdfwb-btns fs-pdfwb-frbtns" hidden><button class="fs-btn fs-btn-sm" type="button" data-a="fr-mark">${icon('eraser', 14)}Mark ticked</button><button class="fs-btn fs-btn-sm fs-btn-danger" type="button" data-a="fr-redact">Redact all matches</button></div>`)}
 ${sec('Redact', `<p class="fs-note fs-pdfwb-redactnote">Mark areas to black out, then apply.</p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="redact-tool">${icon('eraser', 14)}Mark areas</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="redact-clear">Clear</button></div><p class="fs-pdfwb-warn">${icon('warning', 14)}<span>Redaction is permanent: every page with a marked area is turned into an image, so its text can no longer be selected, searched or copied.</span></p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-danger" type="button" data-a="redact-apply">Apply redactions</button></div>`)}
 ${sec('Metadata', `${row('Title', '<input class="fs-input" type="text" data-m="title">')}${row('Author', '<input class="fs-input" type="text" data-m="author">')}${row('Subject', '<input class="fs-input" type="text" data-m="subject">')}${row('Keywords', '<input class="fs-input" type="text" data-m="keywords">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="meta-save">${icon('check', 14)}Save metadata</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="meta-strip">Remove all</button></div>`)}
+${sec('Remove hidden information', `<p class="fs-note fs-pdfwb-hidnote">Find what this PDF carries besides its visible pages: metadata, scripts, attachments, comments, form fields, hidden layers and more.</p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="hid-scan">${icon('find', 14)}<span>Find hidden information</span></button><button class="fs-btn fs-btn-sm fs-btn-danger" type="button" data-a="hid-remove" hidden>Remove ticked</button></div><div class="fs-pdfwb-hidlist" hidden>${HIDDEN_KEYS.map(([k, l]) => `<label class="fs-check fs-pdfwb-hidrow" data-hk="${k}"><input type="checkbox" data-a="hid-tick" data-k="${k}"><span class="fs-pdfwb-hidlabel">${l}</span><span class="fs-pdfwb-hidcount"></span></label>`).join('')}</div><p class="fs-note fs-pdfwb-hidhelp" hidden></p>`)}
 </div>
 <div class="fs-pdfwb-pane" data-for="convert" hidden>
 ${sec('PDF to deck', `<div class="fs-seg fs-pdfwb-deckmode"><button type="button" data-a="deck-pages" class="is-on">Pages as slides</button><button type="button" data-a="deck-rebuild">Rebuild editable</button></div><p class="fs-note fs-pdfwb-decknote">Every page becomes a slide picture; the page text goes into the speaker notes.</p>${row('Title', '<input class="fs-input" type="text" data-a="deck-title">')}${row('Template', '<select class="fs-pdfwb-tpl" aria-label="Template"><option value="">Default</option></select>')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="deck-make">${icon('slides', 14)}Create deck</button></div>`)}
+${sec('Word document', `<p class="fs-note">Paragraphs in reading order with their sizes, bold and italic, headings, pictures and tables become editable Word content, with a page break after each page.</p>${row('Pages', '<input class="fs-input" type="text" data-a="docx-pages" placeholder="All pages">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="docx">${icon('fileWord', 14)}Save as Word (.docx)</button></div>`)}
 ${sec('Compress', `${row('Quality', '<input class="fs-slider" type="range" min="20" max="95" value="70" data-a="cq"><span class="fs-unit fs-pdfwb-cqv">70</span>')}<p class="fs-note fs-pdfwb-cnote">Recompresses large pictures and removes duplicate objects.</p><div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="compress">Compress</button></div>`)}
 ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria-label="Scale"><option value="1">72 dpi</option><option value="2" selected>144 dpi</option><option value="3">216 dpi</option><option value="4.1667">300 dpi</option></select>')}${row('Pages', '<input class="fs-input" type="text" data-a="png-pages" placeholder="All pages">')}<div class="fs-pdfwb-btns"><button class="fs-btn fs-btn-sm" type="button" data-a="png-zip">${icon('fileImage', 14)}Download PNG zip</button></div>`)}
 </div>
@@ -161,7 +179,70 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
       if (t.classList.contains('fs-pdfwb-rtext') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); (t.closest('.fs-pdfwb-thread')?.querySelector('[data-a="thread-reply"]') as HTMLElement | null)?.click(); }
       else if (t.dataset.a === 'fr-query') { e.preventDefault(); this.$('[data-a="fr-find"]').click(); }
     });
+    const name = recall(STAMP_NAME) ?? '';
+    for (const n of Array.from(this.root.querySelectorAll<HTMLInputElement>('[data-a="stamp-name"]'))) n.value = name;
     this.syncHF();
+  }
+
+  get stampName(): string { return this.$<HTMLInputElement>('[data-a="stamp-name"]').value.trim(); }
+
+  private placeStamp(id: string): void {
+    const def = STAMPS.find((s) => s.id === id);
+    if (!def) return;
+    const spec = def.dynamic ? { ...def.spec, sub: dynamicLine(this.stampName || 'Reviewer') } : { ...def.spec };
+    const { w, h } = stampSize(spec);
+    const flatten = this.$<HTMLInputElement>('[data-a="stamp-flat"]').checked;
+    this.ctx.annot.placement = { kind: 'stamp', spec, color: def.color, w, h, label: `${def.title.toLowerCase()} stamp`, flatten };
+    this.ctx.tool('place');
+  }
+
+  private pickStampImage(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/webp,image/gif,image/bmp,.png,.jpg,.jpeg,.webp,.gif,.bmp';
+    input.onchange = () => {
+      const f = input.files?.[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+        c.width = Math.max(1, Math.round(img.naturalWidth * k));
+        c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext('2d')?.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        const flatten = this.$<HTMLInputElement>('[data-a="stamp-flat"]').checked;
+        this.ctx.annot.placement = { kind: 'image', image: c.toDataURL('image/png'), aspect: c.width / c.height, width: 140, label: 'stamp', flatten };
+        this.ctx.tool('place');
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); toast(`${f.name} could not be read as a picture`, 'error'); };
+      img.src = url;
+    };
+    input.click();
+  }
+
+  private syncHidden(): void {
+    const d = this.ctx.doc();
+    const fresh = !!d && this.hiddenFor === d.id;
+    setHidden(this.$('.fs-pdfwb-hidlist'), !fresh);
+    setHidden(this.$('[data-a="hid-remove"]'), !fresh);
+    const total = this.hidden.reduce((s, it) => s + (it.count > 0 ? 1 : 0), 0);
+    setText(this.$('[data-a="hid-scan"] span:not(.icon)'), fresh ? 'Check again' : 'Find hidden information');
+    setText(this.$('.fs-pdfwb-hidnote'), !fresh ? 'Find what this PDF carries besides its visible pages: metadata, scripts, attachments, comments, form fields, hidden layers and more.' : total ? `This PDF has ${total} kind${total === 1 ? '' : 's'} of hidden information. Tick what to remove; it all goes in one step that Undo can take back until you save.` : 'Nothing hidden was found in this PDF.');
+    for (const it of this.hidden) {
+      const rowEl = this.root.querySelector<HTMLElement>(`[data-hk="${it.key}"]`);
+      if (!rowEl) continue;
+      const box = rowEl.querySelector('input') as HTMLInputElement;
+      setDisabled(box, !it.count);
+      if (box.checked !== (it.count > 0 && this.hidTicked.has(it.key))) box.checked = it.count > 0 && this.hidTicked.has(it.key);
+      setText(rowEl.querySelector('.fs-pdfwb-hidcount'), it.count ? `${it.count} found${it.note ? ` · ${it.note}` : ''}` : 'None found');
+      setClass(rowEl, 'is-none', !it.count);
+    }
+    const help = [...this.hidTicked].filter((k) => HIDDEN_HELP[k] && this.hidden.some((it) => it.key === k && it.count)).map((k) => HIDDEN_HELP[k]);
+    setHidden(this.$('.fs-pdfwb-hidhelp'), !fresh || !help.length);
+    setText(this.$('.fs-pdfwb-hidhelp'), help.join(' '));
+    setDisabled(this.$<HTMLButtonElement>('[data-a="hid-remove"]'), ![...this.hidTicked].some((k) => this.hidden.some((it) => it.key === k && it.count)));
   }
 
   show(tab: Tab): void {
@@ -178,8 +259,9 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
     const d = this.ctx.doc();
     const props = this.$('.fs-pdfwb-props');
     if (d?.id !== this.matchesFor && this.matchesFor) { this.matches = []; this.ticked.clear(); this.matchesFor = ''; this.syncMatches(); }
+    const cells = [...props.querySelectorAll<HTMLElement>('dd')];
     if (!d) {
-      setHtmlSafe(props, '');
+      for (const c of cells) { setText(c, ''); c.removeAttribute('title'); }
       if (this.commentsFor) { this.existing = []; this.commentsFor = ''; this.openThread = ''; this.syncAnnots(); }
       return;
     }
@@ -193,8 +275,7 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
       ['Created', dateText(i.created)], ['Modified', dateText(i.modified)], ['Creator', i.creator ?? ''], ['Producer', i.producer ?? ''],
       ['Form fields', String(i.fields || 'None')], ['Security', i.encrypted ? 'Password protected' : 'None'],
     ];
-    const html = pairs.filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd title="${escapeHtml(v)}">${escapeHtml(v)}</dd>`).join('');
-    setHtmlSafe(props, html);
+    pairs.forEach(([, v], idx) => { const c = cells[idx]; if (!c) return; setText(c, v || 'Not set'); if (v) c.title = v; else c.removeAttribute('title'); });
     if (this.metaFor !== d.id) {
       this.metaFor = d.id;
       for (const m of ['title', 'author', 'subject', 'keywords'] as const) setValue(this.$<HTMLInputElement>(`[data-m="${m}"]`), i[m] ?? '');
@@ -204,6 +285,7 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
     this.syncFields();
     this.syncOrganize();
     this.syncAreas();
+    this.syncHidden();
   }
 
   syncAnnots(): void {
@@ -532,6 +614,15 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
     else if (t.dataset.hf || a?.startsWith('hf-') || a?.startsWith('bates-')) this.syncHF();
     else if (a && /^crop-[ltrb]$/.test(a)) this.syncCrop('type');
     else if (a === 'fr-mode') this.syncFindMode();
+    else if (a === 'stamp-name') {
+      remember(STAMP_NAME, t.value.trim());
+      for (const n of Array.from(this.root.querySelectorAll<HTMLInputElement>('[data-a="stamp-name"]'))) if (n !== t) n.value = t.value;
+    } else if (a === 'hid-tick') {
+      const k = t.dataset.k ?? '';
+      if (t.checked) this.hidTicked.add(k); else this.hidTicked.delete(k);
+      this.syncHidden();
+    } else if ((a === 'say-voice' || a === 'say-rate') && e.type === 'change') this.ctx.act(a, t.value);
+    else if (a === 'cover' && e.type === 'change') this.ctx.act('cover', t.checked ? '1' : '');
     else if (a === 'fr-tick') {
       const i = Number(t.dataset.i);
       if (t.checked) this.ticked.add(i); else this.ticked.delete(i);
@@ -636,9 +727,11 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
       case 'sig-clear': if (this.sigMode === 'draw') this.pad.clear(); else { setValue(this.$<HTMLInputElement>('[data-a="sig-text"]'), ''); void this.preview(); } return;
       case 'sig-place': void this.placeSignature(); return;
       case 'stamp-date': this.stamp(new Date().toLocaleDateString(), 'date'); return;
-      case 'stamp-check': this.stamp('✓', 'check mark', 16); return;
-      case 'stamp-cross': this.stamp('✕', 'cross', 16); return;
       case 'stamp-text': c.tool('freetext'); return;
+      case 'stamp': this.placeStamp(t.dataset.stamp ?? ''); return;
+      case 'stamp-image': this.pickStampImage(); return;
+      case 'layout': c.act('layout', t.dataset.v); return;
+      case 'reading': case 'rf-smaller': case 'rf-larger': case 'say-page': case 'say-end': case 'say-pause': case 'say-stop': c.act(a); return;
     }
     if (!d) return;
     switch (a) {
@@ -837,6 +930,36 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
         const id = await c.flush() ?? d.id;
         await c.deliver(pdfApi.zipUrl(id, Number(this.sval('png-scale')) || 2, this.val('png-pages')), `${stem(d.name)} pages.zip`);
       }); return;
+      case 'docx': void c.run('Converting to Word', async () => {
+        const id = await c.flush() ?? d.id;
+        await c.deliver(pdfApi.docxUrl(id, this.val('docx-pages')), `${stem(d.name)}.docx`);
+      }); return;
+      case 'hid-scan': void c.run('Looking for hidden information', async () => {
+        const id = await c.flush() ?? d.id;
+        const res = await pdfApi.hidden(id);
+        this.hidden = res.items;
+        this.hiddenFor = id;
+        this.hidTicked = new Set(res.items.filter((it) => it.count > 0 && it.key !== 'hidden_text').map((it) => it.key));
+        this.syncHidden();
+      }); return;
+      case 'hid-remove': {
+        const keys = [...this.hidTicked].filter((k) => this.hidden.some((it) => it.key === k && it.count));
+        if (!keys.length) return;
+        void c.run('Removing hidden information', async () => {
+          const id = await c.flush() ?? d.id;
+          const res = await pdfApi.sanitize(id, keys);
+          await c.commit(res, 'Remove hidden information');
+          const next = await pdfApi.hidden(res.id);
+          this.hidden = next.items;
+          this.hiddenFor = res.id;
+          this.hidTicked.clear();
+          this.metaFor = '';
+          this.syncHidden();
+          this.syncDoc();
+          toast(`Removed ${keys.length} kind${keys.length === 1 ? '' : 's'} of hidden information${res.flattened ? `; ${res.flattened} form field${res.flattened === 1 ? ' was' : 's were'} flattened` : ''}.`);
+        });
+        return;
+      }
     }
   }
 
@@ -870,5 +993,3 @@ ${sec('Export pages as images', `${row('Scale', '<select data-a="png-scale" aria
     setHidden(this.$('[data-a="tables-xlsx"]'), !this.tables.length);
   }
 }
-
-function setHtmlSafe(node: HTMLElement, html: string): void { setHtml(node, html, html); }

@@ -25,6 +25,8 @@ const KEEP_CANVASES = 24;
 const PAD = 16;
 
 export type FitMode = 'width' | 'page' | null;
+export type Layout = 'single' | 'continuous' | 'two' | 'two-continuous';
+const GAP_X = 10;
 interface LinkAnnot { subtype?: string; rect?: number[]; url?: string; dest?: unknown }
 export interface Hit { page: number; start: number; end: number }
 interface PageText { text: string; starts: number[]; lens: number[] }
@@ -72,6 +74,10 @@ export class Viewer {
   fit: FitMode = 'width';
   viewRot = 0;
   gen = 0;
+  layout: Layout = 'continuous';
+  cover = false;
+  private flipAt = 0;
+  private flipAcc = 0;
   private task: PDFDocumentLoadingTask | null = null;
   private readonly io: IntersectionObserver;
   private active = 0;
@@ -101,7 +107,63 @@ export class Viewer {
       requestAnimationFrame(() => { this.scrollQueued = false; this.track(); });
     }, { passive: true });
     new ResizeObserver(() => { if (this.fit && this.pages.length && this.scroller.clientWidth) this.applyFit(this.fit, false); }).observe(this.scroller);
+    this.scroller.addEventListener('wheel', (e) => this.wheelFlip(e), { passive: true });
     this.applyK();
+  }
+
+  get paged(): boolean { return this.layout === 'single' || this.layout === 'two'; }
+
+  private get twoUp(): boolean { return this.layout === 'two' || this.layout === 'two-continuous'; }
+
+  spread(n: number): number[] {
+    const total = this.pages.length;
+    const p = Math.max(1, Math.min(total, n));
+    if (!this.twoUp) return [p];
+    if (this.cover) return p === 1 ? [1] : [p % 2 === 0 ? p : p - 1, p % 2 === 0 ? p + 1 : p].filter((x) => x <= total);
+    const first = p % 2 === 1 ? p : p - 1;
+    return [first, first + 1].filter((x) => x <= total);
+  }
+
+  setLayout(layout: Layout, cover: boolean): void {
+    const n = this.current;
+    this.layout = layout;
+    this.cover = cover;
+    const h = this.host;
+    if (h.dataset.layout !== layout) h.dataset.layout = layout;
+    if (h.hasAttribute('data-cover') !== cover) h.toggleAttribute('data-cover', cover);
+    if (h.hasAttribute('data-paged') !== this.paged) h.toggleAttribute('data-paged', this.paged);
+    this.showSpread(this.paged ? n : 0);
+    if (!this.scroller.clientHeight || !this.pages.length) return;
+    if (this.fit) this.applyFit(this.fit, false);
+    this.goTo(n);
+    this.schedule();
+  }
+
+  private showSpread(n: number): void {
+    const keep = new Set(n ? this.spread(n) : []);
+    for (const pv of this.pages) setClass(pv.box, 'is-off', n > 0 && !keep.has(pv.index + 1));
+  }
+
+  isShown(index: number): boolean { return !this.pages[index]?.box.classList.contains('is-off'); }
+
+  step(dir: 1 | -1): void {
+    const cur = this.spread(this.current);
+    const target = dir > 0 ? cur[cur.length - 1] + 1 : cur[0] - 1;
+    if (target >= 1 && target <= this.pages.length) this.goTo(target);
+  }
+
+  private wheelFlip(e: WheelEvent): void {
+    if (!this.paged || e.ctrlKey || e.metaKey || !this.pages.length || Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+    const s = this.scroller, atEnd = s.scrollTop + s.clientHeight >= s.scrollHeight - 2, atTop = s.scrollTop <= 1;
+    if (!(e.deltaY > 0 ? atEnd : atTop)) { this.flipAcc = 0; return; }
+    this.flipAcc += e.deltaY;
+    const now = performance.now();
+    if (Math.abs(this.flipAcc) < 80 || now - this.flipAt < 420) return;
+    this.flipAcc = 0;
+    this.flipAt = now;
+    const before = this.current;
+    this.step(e.deltaY > 0 ? 1 : -1);
+    if (this.current !== before && e.deltaY < 0) this.scroller.scrollTop = this.scroller.scrollHeight;
   }
 
   park(): void {
@@ -142,6 +204,11 @@ export class Viewer {
     this.thumbs.clear();
     for (const pv of this.pages) { pv.task?.cancel(); pv.task = null; }
     this.setSizes(sizes);
+    if (this.paged) {
+      const at = opts.keep ? Math.min(this.current, sizes.length) || 1 : 1;
+      this.showSpread(at);
+      if (at !== this.current) { this.current = at; this.hooks.page(at); }
+    }
     const shown = this.scroller.clientHeight > 0;
     if (!opts.keep) {
       this.fit = 'width';
@@ -210,8 +277,9 @@ export class Viewer {
   private anchor(ax?: number, ay?: number): { page: number; rel: number; ay: number; ax: number; left: number } | null {
     if (!this.pages.length) return null;
     const y = this.scroller.scrollTop + (ay ?? 0);
-    let pv = this.pages[0];
-    for (const p of this.pages) { if (p.box.offsetTop <= y) pv = p; else break; }
+    const list = this.paged ? this.pages.filter((p) => !p.box.classList.contains('is-off')) : this.pages;
+    let pv = list[0] ?? this.pages[0];
+    for (const p of list) { if (p.box.offsetTop <= y) pv = p; else break; }
     return { page: pv.index, rel: (y - pv.box.offsetTop) / Math.max(1, pv.box.offsetHeight), ay: ay ?? 0, ax: ax ?? 0, left: this.scroller.scrollLeft + (ax ?? 0) };
   }
 
@@ -252,9 +320,15 @@ export class Viewer {
   applyFit(mode: 'width' | 'page', anchor = true): void {
     const pv = this.pages[this.current - 1] ?? this.pages[0];
     if (!pv) return;
-    const t = this.total(pv);
-    const pw = (t % 180 ? pv.size.h : pv.size.w) * CSS_UNITS, ph = (t % 180 ? pv.size.w : pv.size.h) * CSS_UNITS;
-    const availW = Math.max(80, this.scroller.clientWidth - PAD * 2 - 8), availH = Math.max(80, this.scroller.clientHeight - PAD * 2);
+    let pw = 0, ph = 0;
+    for (const n of this.spread(pv.index + 1)) {
+      const p = this.pages[n - 1], t = this.total(p);
+      pw += (t % 180 ? p.size.h : p.size.w) * CSS_UNITS;
+      ph = Math.max(ph, (t % 180 ? p.size.w : p.size.h) * CSS_UNITS);
+    }
+    if (this.twoUp && this.spread(pv.index + 1).length === 1) pw *= 2;
+    const gap = this.twoUp ? GAP_X : 0;
+    const availW = Math.max(80, this.scroller.clientWidth - PAD * 2 - 8 - gap), availH = Math.max(80, this.scroller.clientHeight - PAD * 2);
     const z = mode === 'width' ? Math.min(availW / pw, 4) : Math.min(availW / pw, availH / ph);
     this.fit = mode;
     if (anchor) { this.setZoom(z, undefined, true); if (mode === 'page') this.goTo(this.current); return; }
@@ -277,6 +351,15 @@ export class Viewer {
   goTo(n: number, smooth = false): void {
     const pv = this.pages[Math.max(0, Math.min(this.pages.length - 1, n - 1))];
     if (!pv) return;
+    if (this.paged) {
+      const first = this.spread(pv.index + 1)[0];
+      this.showSpread(first);
+      this.scroller.scrollTop = 0;
+      if (this.fit) this.center();
+      if (first !== this.current) { this.current = first; this.hooks.page(first); }
+      this.schedule();
+      return;
+    }
     this.scroller.scrollTo({ top: Math.max(0, pv.box.offsetTop - PAD), behavior: smooth ? 'smooth' : 'auto' });
     this.track();
   }
@@ -284,6 +367,7 @@ export class Viewer {
   scrollToPoint(page: number, x: number, y: number): void {
     const pv = this.pages[page];
     if (!pv) return;
+    if (this.paged && !this.isShown(page)) this.goTo(page + 1);
     const k = this.k(), t = this.total(pv), W = pv.size.w, H = pv.size.h;
     const [dx, dy] = t === 90 ? [H - y, x] : t === 180 ? [W - x, H - y] : t === 270 ? [y, W - x] : [x, y];
     this.scroller.scrollTop = pv.box.offsetTop + dy * k - this.scroller.clientHeight / 3;
@@ -292,13 +376,13 @@ export class Viewer {
   }
 
   private track(): void {
-    if (!this.pages.length || !this.scroller.clientHeight) return;
+    if (!this.pages.length || !this.scroller.clientHeight || this.paged) return;
     const y = this.scroller.scrollTop + this.scroller.clientHeight * 0.3;
-    let n = 1;
-    for (const p of this.pages) { if (p.box.offsetTop <= y) n = p.index + 1; else break; }
+    let n = 1, top = -1;
+    for (const p of this.pages) { const t = p.box.offsetTop; if (t <= y) { if (t > top) { n = p.index + 1; top = t; } } else break; }
     if (this.scroller.scrollTop + this.scroller.clientHeight >= this.scroller.scrollHeight - 2) {
       const last = this.pages[this.pages.length - 1];
-      if (last.box.offsetTop >= this.scroller.scrollTop) n = last.index + 1;
+      if (last.box.offsetTop >= this.scroller.scrollTop) n = this.spread(last.index + 1)[0];
     }
     if (n !== this.current) { this.current = n; this.hooks.page(n); }
   }

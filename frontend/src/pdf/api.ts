@@ -11,19 +11,36 @@ export interface Opened { id: string; name: string; pages: number; info: PdfInfo
 export interface Derived { id: string; pages: number; bytes: number; images?: number; before?: number; after?: number }
 export interface RecentItem { key: string; id: string; name: string; pages: number; opened: number; path?: string }
 export type FieldType = 'text' | 'checkbox' | 'radio' | 'choice' | 'button' | 'signature';
-export interface Field { name: string; type: FieldType; page: number; x: number; y: number; w: number; h: number; value: string; readonly: boolean; required: boolean; multiline: boolean; on?: string; options?: string[]; maxLen?: number }
+export interface Field { name: string; type: FieldType; page: number; x: number; y: number; w: number; h: number; value: string; readonly: boolean; required: boolean; multiline: boolean; on?: string; options?: string[]; maxLen?: number; tooltip?: string; format?: string }
+export type NewFieldType = 'text' | 'multiline' | 'checkbox' | 'radio' | 'dropdown' | 'listbox' | 'date' | 'signature';
+export interface NewField {
+  id: string; type: NewFieldType; page: number; x: number; y: number; w: number; h: number; name: string; tooltip: string; required: boolean; readonly: boolean;
+  value: string; checked: boolean; options: string[]; export: string; dateFormat: string; fontSize: number; align: 'left' | 'center' | 'right';
+}
+export interface StampSpec { label: string; sub?: string; shape: 'box' | 'tag' | 'mark'; mark?: 'check' | 'cross'; name: string }
+export interface ReflowRun { text: string; bold: boolean; italic: boolean }
+export interface ReflowBlock { kind: 'para' | 'heading' | 'table'; text?: string; size?: number; align?: string; level?: number; list?: boolean; runs?: ReflowRun[]; rows?: string[][] }
+export interface ReflowPage { page: number; blocks: ReflowBlock[] }
+export interface HiddenItem { key: string; label: string; count: number; note: string }
+export type ChangeKind = 'inserted' | 'deleted' | 'changed' | 'page-added' | 'page-removed' | 'picture';
+export interface CompareChange { id: number; kind: ChangeKind; page: number | null; other: number | null; at?: number; before: string; after: string; rects: Rect[] }
+export interface CompareResult {
+  summary: { pages: number; otherPages: number; added: number; removed: number; changed: number; same: number; pictures: number; words: { inserted: number; deleted: number; changed: number } };
+  changes: CompareChange[]; truncated: boolean;
+}
+export interface CreateOptions { page: 'fit' | 'a4' | 'letter'; margin: number; orientation: 'auto' | 'portrait' | 'landscape'; name?: string }
 export interface ImageItem { page: number; id: string; w: number; h: number; mime: string; bytes: number; name: string; url: string }
 export interface TableItem { page: number; header: string[]; rows: string[][] }
 export interface Rect { x: number; y: number; w: number; h: number }
 export type Pt = [number, number];
-export type AnnotKind = 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'image' | 'reply';
+export type AnnotKind = 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'image' | 'reply' | 'stamp';
 export type Status = 'none' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
 export interface Reply { id: string; text: string }
 export interface Target { index: number; nm?: string }
 export interface Annot {
   id: string; page: number; kind: AnnotKind; color: string; opacity?: number; width?: number; rot?: number; flatten?: boolean; fill?: string;
   rects?: Rect[]; points?: Pt[]; paths?: Pt[][]; x?: number; y?: number; w?: number; h?: number; text?: string; size?: number; image?: string; quote?: string;
-  replies?: Reply[]; status?: Status; target?: Target;
+  replies?: Reply[]; status?: Status; target?: Target; stamp?: StampSpec;
 }
 export interface Area extends Rect { id: string; page: number }
 export interface PdfComment {
@@ -91,6 +108,21 @@ export const pdfApi = {
   toDeck: (id: string, body: { mode: 'pages'; template?: string; title?: string }) => api.post<{ id: string; title: string; slides: number }>(`${base(id)}/to-deck`, body),
   imagesDeck: (media: string[], title: string) => api.post<{ id: string; title: string; slides: number }>('/api/pdf/images-deck', { media, title }),
   save: (id: string, path: string) => api.post<{ path: string; bytes: number }>(`${base(id)}/save`, { path }),
+  reflow: (id: string, pages: string) => api.get<{ pages: ReflowPage[]; total: number; body: number }>(`${base(id)}/reflow${q(pages)}`),
+  docxUrl: (id: string, pages?: string) => `${base(id)}/docx${q(pages)}`,
+  hidden: (id: string) => api.get<{ items: HiddenItem[] }>(`${base(id)}/hidden`),
+  sanitize: (id: string, remove: string[]) => api.post<Derived & { removed: string[]; flattened: number }>(`${base(id)}/sanitize`, { remove }),
+  form: (id: string, body: { create: Array<Omit<NewField, 'id'>>; rename: Record<string, string>; delete: string[] }) => api.post<Derived & { created: number; renamed: number; deleted: number }>(`${base(id)}/form`, body),
+  compare: (id: string, other: string, opts: { otherIsNewer: boolean; pictures: boolean }) => api.post<CompareResult>(`${base(id)}/compare`, { other, ...opts }),
+  create(files: File[], opts: CreateOptions): Promise<Opened> {
+    const fd = new FormData();
+    for (const f of files) fd.append('files', f, f.name);
+    fd.append('page', opts.page);
+    fd.append('margin', String(opts.margin));
+    fd.append('orientation', opts.orientation);
+    fd.append('name', opts.name ?? '');
+    return form<Opened>('/api/pdf/create', fd);
+  },
   write(blob: Blob, name: string, path = ''): Promise<{ path: string; bytes: number }> {
     const fd = new FormData();
     fd.append('file', blob, name);

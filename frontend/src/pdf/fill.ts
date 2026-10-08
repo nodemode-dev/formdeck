@@ -71,7 +71,7 @@ export class Fields {
 
   private create(f: Field, i: number): HTMLElement {
     const box = el(`<div class="fs-pdf-field" data-type="${f.type}" style="left:${calc(f.x)};top:${calc(f.y)};width:${calc(f.w)};height:${calc(f.h)};font-size:${calc(Math.max(6, Math.min(f.h * 0.62, 12)))}"></div>`);
-    box.title = f.name;
+    box.title = f.tooltip || f.name;
     let ctl: HTMLElement;
     if (f.type === 'checkbox' || f.type === 'radio') {
       ctl = el(`<input type="${f.type}" data-i="${i}" ${f.type === 'radio' ? `name="fsr-${this.loadedFor}-${encodeURIComponent(f.name)}"` : ''}>`);
@@ -86,6 +86,7 @@ export class Fields {
     } else {
       ctl = el(`<input type="text" data-i="${i}" spellcheck="false">`);
       if (f.maxLen) (ctl as HTMLInputElement).maxLength = f.maxLen;
+      if (f.format) (ctl as HTMLInputElement).placeholder = f.format;
     }
     if (f.readonly && ctl instanceof HTMLInputElement) ctl.disabled = true;
     if (f.required) box.classList.add('is-required');

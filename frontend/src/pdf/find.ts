@@ -66,6 +66,7 @@ export class Finder {
     if (!hit) return;
     const pv = this.viewer.pages[hit.page];
     if (!pv) return;
+    if (!this.viewer.isShown(hit.page)) this.viewer.goTo(hit.page + 1);
     this.paint(pv);
     const node = pv.hits.querySelector('.is-current') as HTMLElement | null;
     if (node) node.scrollIntoView({ block: 'center', inline: 'nearest' });

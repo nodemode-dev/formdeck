@@ -1,11 +1,13 @@
 import { el, escapeHtml, patchList, setClass, setHtml } from '../ui/dom';
-import type { Annot, Area, Pt, Rect } from './api';
+import type { Annot, Area, Pt, Rect, StampSpec } from './api';
+import { stampSvg } from './stamps';
 import type { PageView, Viewer } from './viewer';
 
-export type Tool = 'select' | 'hand' | 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'redact' | 'crop' | 'place';
+export type Tool = 'select' | 'hand' | 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'redact' | 'crop' | 'place' | 'form';
 export const MARKUP_TOOLS: readonly Tool[] = ['highlight', 'underline', 'strikeout'];
-export const DRAW_TOOLS: readonly Tool[] = ['note', 'freetext', 'ink', 'rect', 'ellipse', 'line', 'arrow', 'redact', 'crop', 'place'];
-export type Placement = { kind: 'image'; image: string; aspect: number; width: number; label: string } | { kind: 'freetext'; text: string; size: number; label: string };
+export const DRAW_TOOLS: readonly Tool[] = ['note', 'freetext', 'ink', 'rect', 'ellipse', 'line', 'arrow', 'redact', 'crop', 'place', 'form'];
+export type Placement = { kind: 'image'; image: string; aspect: number; width: number; label: string; flatten?: boolean } | { kind: 'freetext'; text: string; size: number; label: string }
+  | { kind: 'stamp'; spec: StampSpec; color: string; w: number; h: number; label: string; flatten: boolean };
 export interface AnnotHooks { changed(label: string): void; select(id: string | null): void; areas(): void; toolDone(): void; crop(): void }
 export interface Style { color: string; width: number; opacity: number; size: number }
 
@@ -16,7 +18,7 @@ export const KIND_LABEL: Record<string, string> = {
 };
 const NOTE = 20;
 const SVG_KINDS = new Set(['highlight', 'underline', 'strikeout', 'ink', 'rect', 'ellipse', 'line', 'arrow']);
-const BOXED = new Set(['freetext', 'image', 'rect', 'ellipse']);
+const BOXED = new Set(['freetext', 'image', 'rect', 'ellipse', 'stamp']);
 
 let seq = 0;
 export const uid = (p: string): string => `${p}${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -97,6 +99,11 @@ function contentOf(a: Annot, f: Rect): { html: string; key: string } {
   }
   if (a.kind === 'note') return { html: NOTE_ICON(a.color), key: `note|${a.color}` };
   if (a.kind === 'image') return { html: upright(a, `<img alt="" draggable="false" src="${escapeHtml(a.image ?? '')}">`), key: `img|${a.w}|${a.h}|${a.rot}|${a.opacity}|${(a.image ?? '').length}|${(a.image ?? '').slice(-32)}` };
+  if (a.kind === 'stamp' && a.stamp) {
+    const rot = a.rot ?? 0, [cw, ch] = rot % 180 ? [a.h ?? 0, a.w ?? 0] : [a.w ?? 0, a.h ?? 0];
+    const html = upright(a, stampSvg(a.stamp, a.color, cw, ch, a.opacity ?? 1));
+    return { html, key: html };
+  }
   const style = `font-size:${calc(a.size ?? 12)};color:${escapeHtml(a.color)};${a.fill ? `background:${escapeHtml(a.fill)};` : ''}`;
   const html = upright(a, `<div class="fs-pdf-ft" style="${style}">${escapeHtml(a.text ?? '')}</div>`);
   return { html, key: html };
@@ -281,9 +288,9 @@ export class Annotator {
   }
 
   private down(e: PointerEvent): void {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || this.tool === 'form') return;
     const t = e.target as HTMLElement;
-    if (t.closest('.fs-pdf-edit, .fs-pdf-field, .fs-pdf-notepop')) return;
+    if (t.closest('.fs-pdf-edit, .fs-pdf-field, .fs-pdf-notepop, .fs-pdf-fbox')) return;
     if (this.editing) this.commitEdit();
     if (this.tool === 'hand') {
       e.preventDefault();
@@ -392,7 +399,7 @@ export class Annotator {
       if (!a) return;
       if (m.resize) {
         let w = Math.max(6, (a.w ?? 0) + dx), h = Math.max(6, (a.h ?? 0) + dy);
-        if (a.kind === 'image' && !e.shiftKey && (a.w ?? 0) > 0) h = w * ((a.h ?? 1) / (a.w ?? 1));
+        if ((a.kind === 'image' || a.kind === 'stamp') && !e.shiftKey && (a.w ?? 0) > 0) h = w * ((a.h ?? 1) / (a.w ?? 1));
         if (a.kind === 'image' && e.shiftKey) w = Math.max(6, w);
         this.update(a.id, { w, h }, `Resize ${KIND_LABEL[a.kind].toLowerCase()}`);
       } else this.update(a.id, shifted(a, dx, dy), `Move ${KIND_LABEL[a.kind].toLowerCase()}`);
@@ -460,7 +467,10 @@ export class Annotator {
     if (pl.kind === 'image') {
       const w0 = pl.width, h0 = pl.width / Math.max(0.05, pl.aspect);
       const [w, h] = rot % 180 ? [h0, w0] : [w0, h0];
-      this.add({ id, page: pv.index + 1, kind: 'image', color: '#111111', opacity: 1, rot, ...clampBox(w, h), w, h, image: pl.image, flatten: true }, `Place ${pl.label}`);
+      this.add({ id, page: pv.index + 1, kind: 'image', color: '#111111', opacity: 1, rot, ...clampBox(w, h), w, h, image: pl.image, flatten: pl.flatten ?? true }, `Place ${pl.label}`);
+    } else if (pl.kind === 'stamp') {
+      const [w, h] = rot % 180 ? [pl.h, pl.w] : [pl.w, pl.h];
+      this.add({ id, page: pv.index + 1, kind: 'stamp', color: pl.color, opacity: 1, rot, ...clampBox(w, h), w, h, stamp: pl.spec, text: [pl.spec.label, pl.spec.sub].filter(Boolean).join(' ') || (pl.spec.mark === 'cross' ? 'Cross' : 'Check mark'), flatten: pl.flatten ? true : undefined }, `Place ${pl.label}`);
     } else {
       const w0 = Math.max(40, pl.text.length * pl.size * 0.56 + 10), h0 = pl.size * 1.3 + 8;
       const [w, h] = rot % 180 ? [h0, w0] : [w0, h0];

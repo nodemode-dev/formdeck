@@ -382,6 +382,76 @@ async def to_deck(doc_id: str, body: dict) -> dict:
     return {"id": created["id"], "title": created.get("title", ""), "slides": len(created.get("slides", []))}
 
 
+@router.get("/pdf/{doc_id}/reflow")
+async def reflow(doc_id: str, pages: str | None = None) -> dict:
+    return await _run(pdfsvc.reflow, _path(doc_id), pages, _pw(doc_id))
+
+
+@router.get("/pdf/{doc_id}/docx")
+async def to_docx(doc_id: str, pages: str | None = None):
+    src = _path(doc_id)
+    tmp = docs.root() / f".docx-{docs.new_id()}.docx"
+    try:
+        await _run(pdfsvc.to_docx, src, tmp, pages=pages, passwords=_pw(doc_id))
+        data = await asyncio.to_thread(tmp.read_bytes)
+    finally:
+        tmp.unlink(missing_ok=True)
+    stem = Path(docs.meta(doc_id).get("name") or doc_id).stem
+    return Response(data, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    headers={"Content-Disposition": f'attachment; filename="{stem}.docx"'})
+
+
+@router.post("/pdf/create")
+async def create(files: list[UploadFile] = File(...), page: str = Form("fit"), margin: float = Form(0), orientation: str = Form("auto"),
+                 name: str = Form("")) -> dict:
+    items: list[tuple[str, bytes]] = []
+    total = 0
+    for k, f in enumerate(files):
+        data = await f.read()
+        total += len(data)
+        if total > config.MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "The files add up to more than 1 GB")
+        items.append((f.filename or f"file{k + 1}", data))
+    if not items:
+        raise HTTPException(400, "Add at least one picture or PDF")
+    title = Path(name.strip() or items[0][0]).stem or "Combined"
+    doc_id, out = docs.target(f"{title}.pdf")
+    try:
+        await _run(pdfsvc.from_files, items, out, page=page, margin=margin, orientation=orientation, title=title)
+    except BaseException:
+        docs.discard(doc_id)
+        raise
+    return await _opened(doc_id)
+
+
+@router.get("/pdf/{doc_id}/hidden")
+async def hidden(doc_id: str) -> dict:
+    return {"items": await _run(pdfsvc.scan_hidden, _path(doc_id), _pw(doc_id))}
+
+
+@router.post("/pdf/{doc_id}/sanitize")
+async def sanitize(doc_id: str, body: dict) -> dict:
+    remove = body.get("remove")
+    if not isinstance(remove, list):
+        raise HTTPException(400, "remove must list what to remove")
+    return await _derive(doc_id, pdfsvc.sanitize, remove=[str(r) for r in remove], passwords=_pw(doc_id))
+
+
+@router.post("/pdf/{doc_id}/form")
+async def prepare_form(doc_id: str, body: dict) -> dict:
+    create, rename, delete = body.get("create") or [], body.get("rename") or {}, body.get("delete") or []
+    if not isinstance(create, list) or not isinstance(rename, dict) or not isinstance(delete, list):
+        raise HTTPException(400, "create is a list of fields, rename maps old names to new ones and delete lists names")
+    return await _derive(doc_id, pdfsvc.prepare_form, create=create, rename=rename, delete=delete, passwords=_pw(doc_id))
+
+
+@router.post("/pdf/{doc_id}/compare")
+async def compare(doc_id: str, body: dict) -> dict:
+    other = str(body.get("other") or "")
+    return await _run(pdfsvc.compare, _path(doc_id), _path(other), passwords=_pw(doc_id), other_passwords=_pw(other),
+                      other_is_newer=bool(body.get("otherIsNewer")), pictures=bool(body.get("pictures")))
+
+
 @router.post("/pdf/{doc_id}/save")
 async def save(doc_id: str, body: dict) -> dict:
     src = _path(doc_id)

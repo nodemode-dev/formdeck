@@ -292,6 +292,17 @@ def read_fields(path, passwords: list[str] | None = None) -> list[dict]:
             maxlen = _inherit(a, "/MaxLen")
             if maxlen is not None:
                 item["maxLen"] = int(maxlen)
+            tip = _inherit(a, "/TU")
+            if tip is not None:
+                item["tooltip"] = _plain(tip)
+            if kind == "text":
+                try:
+                    js = str((_inherit(a, "/AA") or {}).get("/F", {}).get_object().get("/JS") or "")
+                except Exception:
+                    js = ""
+                m = re.search(r'AFDate_FormatEx\("([^"]{1,40})"\)', js)
+                if m:
+                    item["format"] = m.group(1)
             out.append(item)
     return out
 
