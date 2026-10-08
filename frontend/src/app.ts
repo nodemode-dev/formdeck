@@ -19,6 +19,7 @@ import { colorOps, layoutCommands, registerCommands, type AppHooks } from './edi
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
 import { registerTableCommands } from './editor/table-edit';
+import { gateSlideCommands, MASTER_MENU, registerMasterCommands } from './editor/master-view';
 import * as dialogs from './ui/app-dialogs';
 import { AgentBridge } from './automation/agent-bridge';
 import { VERSION } from './version';
@@ -174,7 +175,12 @@ export async function startApp(): Promise<void> {
     }
     if (!ed) return;
     const i = ed.doc.slideIndex(ed.current);
-    setText(status.slide, ed.doc.deck.slides.length ? `Slide ${i + 1} of ${ed.doc.deck.slides.length}` : 'No slides');
+    const inMaster = ed.holderKind !== 'slide';
+    setText(status.slide, inMaster ? `Slide Master · ${ed.holder?.name ?? ''}` : ed.doc.deck.slides.length ? `Slide ${i + 1} of ${ed.doc.deck.slides.length}` : 'No slides');
+    setText(q(root, '.fs-strip-title'), inMaster ? 'Master' : 'Slides');
+    const stripNew = q<HTMLButtonElement>(root, '.fs-strip-head [data-cmd="new-slide"], .fs-strip-head [data-cmd="master-insert-layout"]');
+    const wantCmd = inMaster ? 'master-insert-layout' : 'new-slide';
+    if (stripNew.dataset.cmd !== wantCmd) { stripNew.dataset.cmd = wantCmd; stripNew.title = inMaster ? 'New layout' : 'New slide'; }
     setText(status.save, ed.doc.hasPending ? 'Saving…' : live.connected ? 'Saved' : 'Offline, reconnecting');
     setClass(status.dot, 'is-ok', live.connected && !ed.doc.hasPending);
     setClass(status.dot, 'is-warn', !live.connected);
@@ -207,6 +213,7 @@ export async function startApp(): Promise<void> {
     view: (v) => {
       const ed = editor;
       if (!ed) return;
+      if (v !== 'normal' && ed.holderKind !== 'slide') commands.run('close-master');
       ed.view = v;
       if (v === 'normal') { views?.hide(); setHidden(altView, true); ed.stage.layout(); }
       else void import('./editor/views').then((m) => { views ??= new m.AltViews(altView, () => editor); views.show(v); setHidden(altView, false); });
@@ -263,14 +270,16 @@ export async function startApp(): Promise<void> {
   };
   registerCommands(commands, hooks);
   registerTableCommands(commands, () => editor);
+  registerMasterCommands(commands, () => editor);
+  gateSlideCommands(commands, () => editor);
 
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-pdf', 'export-png', 'export-fsld'] }, 'print', '-', 'pdf-tools', '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
-    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'toggle-strip', 'toggle-props', 'toggle-notes'] },
+    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'toggle-strip', 'toggle-props', 'toggle-notes'] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-image', 'insert-media', 'insert-shapes', 'insert-line', 'insert-arrow', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', '-', 'insert-link', 'add-comment'] },
-    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }] },
-    { label: 'Slide', items: () => ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: (editor?.doc.deck.layouts ?? []).map((l) => `layout:${l.id}`).filter((id) => commands.get(id)) }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
+    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }] },
+    { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: (editor?.doc.deck.layouts ?? []).map((l) => `layout:${l.id}`).filter((id) => commands.get(id)) }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
     { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock'] },
     { label: 'Review', items: ['check-deck', '-', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view'] },

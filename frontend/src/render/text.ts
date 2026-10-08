@@ -155,7 +155,7 @@ function inlineDelta(node: HTMLElement, base: string | undefined): Partial<Run> 
   const s = node.style;
   let ref: CSSStyleDeclaration | null = null;
   if (base !== undefined && probe) { probe.setAttribute('style', base); ref = probe.style; }
-  const changed = (k: 'fontWeight' | 'fontStyle' | 'textDecorationLine' | 'color' | 'backgroundColor' | 'fontFamily'): boolean => ref ? (s[k] || '') !== (ref[k] || '') : !!s[k];
+  const changed = (k: 'fontWeight' | 'fontStyle' | 'textDecorationLine' | 'color' | 'backgroundColor' | 'fontFamily' | 'verticalAlign'): boolean => ref ? (s[k] || '') !== (ref[k] || '') : !!s[k];
   const out: Partial<Run> = {};
   if (changed('fontWeight')) out.b = s.fontWeight === 'bold' || s.fontWeight === 'bolder' || Number(s.fontWeight) >= 600;
   if (changed('fontStyle')) out.i = s.fontStyle === 'italic' || s.fontStyle === 'oblique';
@@ -163,6 +163,7 @@ function inlineDelta(node: HTMLElement, base: string | undefined): Partial<Run> 
   if (changed('color')) { const h = cssHex(s.color); if (h) out.color = h; }
   if (changed('backgroundColor')) out.hl = cssHex(s.backgroundColor);
   if (changed('fontFamily')) { const f = s.fontFamily.split(',')[0].replace(/["']/g, '').trim(); if (f) out.font = f; }
+  if (changed('verticalAlign')) { out.sup = s.verticalAlign === 'super' || undefined; out.sub = s.verticalAlign === 'sub' || undefined; }
   return out;
 }
 
@@ -208,6 +209,8 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
       if (tag === 'I' || tag === 'EM') style = { ...style, i: true };
       if (tag === 'U') style = { ...style, u: true };
       if (tag === 'S' || tag === 'STRIKE') style = { ...style, s: true };
+      if (tag === 'SUP') style = { ...style, sup: true, sub: undefined };
+      if (tag === 'SUB') style = { ...style, sub: true, sup: undefined };
       if (tag === 'FONT') {
         const fc = node.getAttribute('color'), face = node.getAttribute('face');
         if (fc) style = { ...style, color: cssHex(fc) ?? fc };

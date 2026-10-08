@@ -1,13 +1,15 @@
 import type { DeckDoc, DocEvent } from '../engine/doc';
-import type { Slide, SlideElement } from '../engine/model';
-import { elPath, slidePath, type Op } from '../engine/ops';
+import type { Layout, Para, PhType, Slide, SlideElement } from '../engine/model';
+import { elPath, setHolderResolver, slidePath, type Op } from '../engine/ops';
+import { BODY_PH, displayElement, holderKindOf, holderOf, holderOps, holderParas, masterPlaceholder, type Holder, type HolderKind } from '../engine/holders';
+import { masterOf, TITLE_KINDS } from '../engine/resolve';
 import { api } from '../io/api';
 import type { LiveClient } from '../live/socket';
 import type { Commands } from '../ui/commands';
 import type { MenuItem, PopupMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import { setText } from '../ui/dom';
-import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateSlideOps, newSlideOps, resolvedFrame } from './actions';
+import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, resolvedFrame } from './actions';
 import { Filmstrip } from './filmstrip';
 import { Stage } from './stage';
 
@@ -23,6 +25,8 @@ export class Editor {
   selection: string[] = [];
   slideSel: string[] = [];
   view: 'normal' | 'sorter' | 'outline' = 'normal';
+  holderKind: HolderKind = 'slide';
+  private returnTo = '';
   readonly peers = new Map<string, Peer>();
   readonly stage: Stage;
   readonly strip: Filmstrip;
@@ -50,6 +54,7 @@ export class Editor {
 
   dispose(): void {
     this.offDoc();
+    if (this.holderKind !== 'slide') setHolderResolver(null);
     this.stage.show(null);
   }
 
@@ -66,13 +71,18 @@ export class Editor {
 
   private onDoc(e: DocEvent): void {
     const deck = this.doc.deck;
-    if (!deck.slides.some((s) => s.id === this.current)) {
+    if (this.holderKind !== 'slide') {
+      if (!holderOf(deck, this.holderKind, this.current)) {
+        const m = deck.masters[0];
+        if (m) { this.holderKind = 'master'; this.current = m.id; this.stage.show(m.id, 'master'); this.emit('current'); }
+      }
+    } else if (!deck.slides.some((s) => s.id === this.current)) {
       const next = deck.slides[0]?.id ?? '';
       this.current = next;
       this.slideSel = next ? [next] : [];
       this.stage.show(next || null);
     }
-    const slide = this.doc.slide(this.current);
+    const slide = this.slide;
     if (slide) {
       const ids = new Set(slide.elements.map((x) => x.id));
       const sel = this.selection.filter((id) => ids.has(id));
@@ -92,18 +102,50 @@ export class Editor {
   }
 
   apply(ops: Op[], label = 'Edit', coalesce?: string): boolean {
+    if (ops.length && this.holderKind !== 'slide') ops = holderOps(this.doc.deck, ops);
     if (!ops.length) return false;
     return this.doc.apply(ops, label, coalesce) !== null;
   }
 
   run(id: string): void { this.commands.run(id); }
 
-  get slide(): Slide | undefined { return this.doc.slide(this.current); }
+  get slide(): Slide | undefined {
+    if (this.holderKind === 'slide') return this.doc.slide(this.current);
+    const h = this.holder;
+    if (!h) return undefined;
+    return { id: h.id, layout: this.holderKind === 'layout' ? h.id : '', elements: h.elements, background: h.background, hideMasterShapes: 'hideMasterShapes' in h ? h.hideMasterShapes : undefined, name: h.name };
+  }
+
+  get holder(): Holder | undefined { return holderOf(this.doc.deck, this.holderKind, this.current); }
+
+  slideLike(id: string): Slide | undefined { return this.holderKind !== 'slide' && id === this.current ? this.slide : this.doc.slide(id); }
+
+  element(id: string): SlideElement | undefined {
+    if (this.holderKind === 'slide') return this.doc.element(this.current, id);
+    const walk = (list: SlideElement[]): SlideElement | undefined => {
+      for (const e of list) {
+        if (e.id === id) return e;
+        const f = e.type === 'group' ? walk(e.children) : undefined;
+        if (f) return f;
+      }
+      return undefined;
+    };
+    return walk(this.holder?.elements ?? []);
+  }
+
+  displayParas(el: SlideElement): Para[] {
+    const h = this.holder;
+    const shown = h && this.holderKind !== 'slide' ? holderParas(this.doc.deck, this.holderKind, h, el) : null;
+    return shown ?? (el.type === 'shape' ? el.text?.paras ?? [] : []);
+  }
 
   selected(): SlideElement[] {
     const s = this.slide;
     if (!s) return [];
-    return this.selection.map((id) => s.elements.find((e) => e.id === id)).filter((e): e is SlideElement => !!e);
+    const els = this.selection.map((id) => s.elements.find((e) => e.id === id)).filter((e): e is SlideElement => !!e);
+    const h = this.holder;
+    if (this.holderKind === 'slide' || !h) return els;
+    return els.map((e) => displayElement(this.doc.deck, this.holderKind, h, e));
   }
 
   select(ids: string[], emit = true): void {
@@ -112,12 +154,19 @@ export class Editor {
     if (this.stage.editing && !ids.includes(this.stage.editing)) this.stage.endEdit();
     this.selection = ids;
     this.stage.drawOverlay();
-    this.live.presence(this.doc.id, this.current, ids);
+    if (this.holderKind === 'slide') this.live.presence(this.doc.id, this.current, ids);
     if (emit) this.emit('selection');
     else queueMicrotask(() => this.emit('selection'));
   }
 
   setCurrent(id: string): void {
+    if (this.holderKind !== 'slide') {
+      const kind = holderKindOf(this.doc.deck, id);
+      if (kind) this.setHolder(kind, id);
+      else if (this.doc.slide(id)) this.returnTo = id;
+      this.strip.mark();
+      return;
+    }
     if (!this.doc.slide(id) || id === this.current) { this.strip.mark(); return; }
     if (this.stage.editing) this.stage.endEdit();
     this.current = id;
@@ -133,6 +182,7 @@ export class Editor {
   }
 
   setSlideSelection(ids: string[], current?: string): void {
+    if (this.holderKind !== 'slide') { if (current) this.setCurrent(current); return; }
     this.slideSel = ids;
     if (current) this.setCurrent(current);
     this.strip.mark();
@@ -140,6 +190,14 @@ export class Editor {
   }
 
   step(dir: number, wrap = false): void {
+    if (this.holderKind !== 'slide') {
+      const order = this.holderOrder();
+      const i = order.findIndex((h) => h.id === this.current);
+      let j = i + dir;
+      if (wrap) j = Math.max(0, Math.min(order.length - 1, j));
+      if (j >= 0 && j < order.length) this.setHolder(order[j].kind, order[j].id);
+      return;
+    }
     const slides = this.doc.deck.slides;
     const i = slides.findIndex((s) => s.id === this.current);
     let j = i + dir;
@@ -157,7 +215,7 @@ export class Editor {
   private notesInput(): void {
     window.clearTimeout(this.notesTimer);
     this.notesTimer = window.setTimeout(() => {
-      const s = this.slide;
+      const s = this.holderKind === 'slide' ? this.slide : undefined;
       if (!s) return;
       const v = this.roots.notes.value;
       if (v !== (s.notes ?? '')) this.apply([{ op: 'set', path: [...slidePath(s.id), 'notes'], value: v }], 'Edit notes', `notes:${s.id}`);
@@ -165,7 +223,7 @@ export class Editor {
   }
 
   syncNotes(): void {
-    const s = this.slide;
+    const s = this.holderKind === 'slide' ? this.slide : undefined;
     const v = s?.notes ?? '';
     if (this.roots.notes.value !== v && document.activeElement !== this.roots.notes) this.roots.notes.value = v;
     this.roots.notes.disabled = !s;
@@ -178,6 +236,16 @@ export class Editor {
 
   contextMenu(x: number, y: number, kind: 'element' | 'slide' | 'thumb'): void {
     let items: MenuItem[];
+    const has = (list: string[]): string[] => list.filter((id) => id === '-' || this.commands.get(id));
+    const phs: MenuItem = { label: 'Insert Placeholder', items: has(PLACEHOLDERS.map((p) => `master-ph-${p.type}`)) };
+    if (this.holderKind !== 'slide') {
+      if (kind === 'thumb') items = has(['master-insert-layout', 'master-duplicate-layout', 'master-delete-layout', 'master-rename-layout', '-', 'master-hide-graphics', 'format-background', '-', 'close-master']);
+      else if (kind === 'element') items = has(['cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'flip-h', 'flip-v', 'lock', '-', 'alt-text']);
+      else items = [...has(['paste', '-']), phs, ...has(['master-hide-graphics', 'format-background', '-', 'close-master'])];
+      this.menu.setItems(items);
+      this.menu.openAt(x, y);
+      return;
+    }
     if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: this.doc.deck.layouts.map((l) => `layout:${l.id}`).filter((id) => this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste'];
     else if (kind === 'element' && this.selected()[0]?.type === 'table') items = ['table-merge', 'table-split', '-', { label: 'Insert', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right'] }, { label: 'Delete', items: ['table-delete-row', 'table-delete-col', 'delete'] }, { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, '-', 'table-distribute-rows', 'table-distribute-cols', 'table-header-row', 'table-banded-rows', '-', 'cut', 'copy', 'paste', 'duplicate', '-', 'add-comment', 'alt-text'];
     else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', '-', 'insert-link', 'add-comment', 'alt-text'];
@@ -187,6 +255,7 @@ export class Editor {
   }
 
   addSlide(layoutId?: string): void {
+    if (this.holderKind !== 'slide') { this.insertLayout(); return; }
     const deck = this.doc.deck;
     const cur = this.slide;
     const content = deck.layouts.find((l) => l.semantic === 'content') ?? deck.layouts[0];
@@ -199,6 +268,7 @@ export class Editor {
   }
 
   duplicateSlides(): void {
+    if (this.holderKind !== 'slide') { this.duplicateLayout(); return; }
     const ids = this.slideSel.length ? this.slideSel : [this.current];
     const r = duplicateSlideOps(this.doc, ids);
     if (this.apply(r.ops, ids.length > 1 ? 'Duplicate slides' : 'Duplicate slide') && r.ids.length) this.setSlideSelection(r.ids, r.ids[r.ids.length - 1]);
@@ -263,14 +333,15 @@ export class Editor {
 
   copy(cut = false): void {
     if (this.selection.length) {
-      this.clip = { kind: 'elements', items: clone(this.selected().map((e) => {
+      const els = this.holderKind === 'slide' ? this.selected() : this.selection.map((id) => this.element(id)).filter((e): e is SlideElement => !!e);
+      this.clip = { kind: 'elements', items: clone(els.map((e) => {
         const f = resolvedFrame(this.doc.deck, this.slide as Slide, e);
         return { ...e, ...f };
       })) };
       const text = this.selected().map((e) => ('text' in e && e.text ? e.text.paras.map((p) => p.runs.map((r) => r.t).join('')).join('\n') : '')).filter(Boolean).join('\n\n');
       void navigator.clipboard?.writeText(text || 'formsld objects').catch(() => undefined);
       if (cut) this.deleteSelection();
-    } else {
+    } else if (this.holderKind === 'slide') {
       const ids = this.slideSel.length ? this.slideSel : [this.current];
       this.clip = { kind: 'slides', items: clone(this.doc.deck.slides.filter((s) => ids.includes(s.id))) };
       if (cut) { const r = this.slideSel; this.apply(r.map((id) => ({ op: 'del', path: ['slides'], id }) as Op), 'Cut slides'); }
@@ -284,11 +355,15 @@ export class Editor {
     const used = this.doc.usedIds();
     if (c.kind === 'elements' && s) {
       const ids: string[] = [];
+      let idx = Math.max(9, ...s.elements.map((x) => x.ph?.idx ?? 0));
       const ops: Op[] = c.items.map((e) => {
         const copy = clone(e);
         copy.id = this.doc.nextId('e', used);
         if (copy.type === 'group') for (const ch of copy.children) ch.id = this.doc.nextId('e', used);
-        if (s.elements.some((x) => x.ph && copy.ph && x.ph.type === copy.ph.type && (x.ph.idx ?? 0) === (copy.ph.idx ?? 0))) { delete copy.ph; delete copy.slot; }
+        if (s.elements.some((x) => x.ph && copy.ph && x.ph.type === copy.ph.type && (x.ph.idx ?? 0) === (copy.ph.idx ?? 0))) {
+          if (this.holderKind === 'layout' && copy.ph && !TITLE_KINDS.has(copy.ph.type)) copy.ph = { ...copy.ph, idx: ++idx };
+          else { delete copy.ph; delete copy.slot; }
+        }
         copy.x = (copy.x ?? 0) + 12;
         copy.y = (copy.y ?? 0) + 12;
         ids.push(copy.id);
@@ -296,7 +371,7 @@ export class Editor {
       });
       this.clip = { kind: 'elements', items: c.items.map((e) => ({ ...e, x: (e.x ?? 0) + 12, y: (e.y ?? 0) + 12 })) };
       if (this.apply([...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
-    } else if (c.kind === 'slides') {
+    } else if (c.kind === 'slides' && this.holderKind === 'slide') {
       const at = this.doc.slideIndex(this.current) + 1;
       const ids: string[] = [];
       const ops: Op[] = c.items.map((sl, i) => {
@@ -330,5 +405,130 @@ export class Editor {
     const color = prev?.color ?? PEER_COLORS[this.peers.size % PEER_COLORS.length];
     this.peers.set(client, { name: name || 'Collaborator', slide, sel, color, seen: performance.now() });
     this.stage.drawOverlay();
+  }
+
+  holderOrder(): Array<{ kind: 'layout' | 'master'; id: string }> {
+    const deck = this.doc.deck;
+    const out: Array<{ kind: 'layout' | 'master'; id: string }> = [];
+    deck.masters.forEach((m, i) => {
+      out.push({ kind: 'master', id: m.id });
+      for (const l of deck.layouts) if (l.master === m.id || (i === 0 && !deck.masters.some((x) => x.id === l.master))) out.push({ kind: 'layout', id: l.id });
+    });
+    return out;
+  }
+
+  enterMaster(): void {
+    if (this.holderKind !== 'slide') return;
+    const deck = this.doc.deck;
+    const cur = this.doc.slide(this.current);
+    const layout = cur ? deck.layouts.find((l) => l.id === cur.layout) : undefined;
+    const target = layout ? { kind: 'layout' as const, id: layout.id } : deck.masters[0] ? { kind: 'master' as const, id: deck.masters[0].id } : null;
+    if (!target) return;
+    this.stage.endEdit();
+    this.returnTo = this.current;
+    setHolderResolver((id) => { const k = holderKindOf(this.doc.deck, id); return k === 'layout' ? 'layouts' : k === 'master' ? 'masters' : 'slides'; });
+    this.holderKind = target.kind;
+    this.current = target.id;
+    this.selection = [];
+    this.slideSel = [];
+    this.strip.setMode(true);
+    this.stage.show(target.id, target.kind);
+    this.strip.reveal(target.id);
+    this.syncNotes();
+    this.emit('view');
+    this.emit('current');
+    this.emit('selection');
+  }
+
+  closeMaster(target?: string): void {
+    if (this.holderKind === 'slide') return;
+    this.stage.endEdit();
+    this.holderKind = 'slide';
+    setHolderResolver(null);
+    const deck = this.doc.deck;
+    const want = target ?? this.returnTo;
+    const back = deck.slides.some((s) => s.id === want) ? want : deck.slides[0]?.id ?? '';
+    this.current = back;
+    this.selection = [];
+    if (!this.slideSel.includes(back)) this.slideSel = back ? [back] : [];
+    this.strip.setMode(false);
+    this.stage.show(back || null);
+    this.strip.mark();
+    if (back) this.strip.reveal(back);
+    this.syncNotes();
+    this.live.presence(this.doc.id, back, []);
+    this.emit('view');
+    this.emit('current');
+    this.emit('selection');
+  }
+
+  setHolder(kind: 'layout' | 'master', id: string): void {
+    if (this.holderKind === 'slide' || !holderOf(this.doc.deck, kind, id)) return;
+    if (kind === this.holderKind && id === this.current) { this.strip.mark(); return; }
+    this.stage.endEdit();
+    this.holderKind = kind;
+    this.current = id;
+    this.selection = [];
+    this.stage.show(id, kind);
+    this.strip.mark();
+    this.strip.reveal(id);
+    this.emit('current');
+    this.emit('selection');
+  }
+
+  insertLayout(): void {
+    if (this.holderKind === 'slide') return;
+    const deck = this.doc.deck;
+    const cur = this.holderKind === 'layout' ? deck.layouts.find((l) => l.id === this.current) : undefined;
+    const masterId = cur?.master ?? (this.holderKind === 'master' ? this.current : deck.masters[0]?.id ?? '');
+    const at = cur ? deck.layouts.indexOf(cur) + 1 : deck.layouts.length;
+    const r = newLayoutOps(this.doc, masterId, at);
+    if (this.apply(r.ops, 'Insert layout')) this.setHolder('layout', r.id);
+  }
+
+  duplicateLayout(): void {
+    if (this.holderKind !== 'layout') return;
+    const r = duplicateLayoutOps(this.doc, this.current);
+    if (r && this.apply(r.ops, 'Duplicate layout')) this.setHolder('layout', r.id);
+  }
+
+  deleteLayout(): void {
+    if (this.holderKind !== 'layout') return;
+    const deck = this.doc.deck;
+    const id = this.current;
+    const layout = deck.layouts.find((l) => l.id === id);
+    if (!layout) return;
+    const used = deck.slides.filter((s) => s.layout === id).length;
+    if (used) { toast(`${layout.name} is used by ${used} slide${used === 1 ? '' : 's'}. Give ${used === 1 ? 'that slide' : 'those slides'} another layout first.`); return; }
+    if (deck.layouts.filter((l) => l.master === layout.master).length <= 1) { toast('A slide master needs at least one layout.'); return; }
+    const order = this.holderOrder();
+    const i = order.findIndex((h) => h.id === id);
+    const next = order[i + 1]?.kind === 'layout' ? order[i + 1] : order[i - 1];
+    if (next) this.setHolder(next.kind, next.id);
+    this.apply([{ op: 'del', path: ['layouts'], id }], 'Delete layout');
+  }
+
+  insertPlaceholder(type: PhType): string | null {
+    const h = this.holder;
+    if (this.holderKind === 'slide' || !h) return null;
+    if (this.holderKind === 'master' && (TITLE_KINDS.has(type) || BODY_PH.has(type))) return this.addMasterPlaceholder(TITLE_KINDS.has(type) ? 'title' : 'body');
+    const master = this.holderKind === 'layout' ? masterOf(this.doc.deck, h as Layout) : undefined;
+    const el = placeholderElement(this.doc, h.elements, master, type);
+    const label = PLACEHOLDERS.find((p) => p.type === type)?.label.toLowerCase() ?? 'content';
+    if (!this.apply([{ op: 'ins', path: [...slidePath(h.id), 'elements'], value: el }], `Insert ${label} placeholder`)) return null;
+    this.select([el.id]);
+    return el.id;
+  }
+
+  addMasterPlaceholder(kind: 'title' | 'body'): string | null {
+    const h = this.holder;
+    if (this.holderKind !== 'master' || !h) return null;
+    const kinds = kind === 'title' ? TITLE_KINDS : BODY_PH;
+    const have = h.elements.find((e) => e.ph && kinds.has(e.ph.type));
+    if (have) { this.select([have.id]); return have.id; }
+    const el = masterPlaceholder(this.doc.deck, kind, this.doc.nextId('e'));
+    if (!this.apply([{ op: 'ins', path: ['masters', { id: h.id }, 'elements'], value: el }], kind === 'title' ? 'Add title placeholder' : 'Add text placeholder')) return null;
+    this.select([el.id]);
+    return el.id;
   }
 }

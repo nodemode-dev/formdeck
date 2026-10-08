@@ -13,6 +13,7 @@ export interface Command {
 const CODE_KEYS: Record<string, string> = {
   BracketLeft: '[', BracketRight: ']', Equal: '=', Minus: '-', NumpadAdd: '=', NumpadSubtract: '-', Backspace: 'Backspace', Delete: 'Delete',
   Enter: 'Enter', Escape: 'Escape', Space: 'Space', ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', Slash: '/', Tab: 'Tab',
+  Period: '.', Comma: ',', Semicolon: ';', Quote: "'", Backquote: '`', Backslash: '\\',
 };
 
 export function comboOf(e: KeyboardEvent): string {

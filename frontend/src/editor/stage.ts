@@ -2,11 +2,13 @@ import type { Para, Slide, SlideElement, TableElement } from '../engine/model';
 import { chain, frameOf, geomOf, adjOf, type Frame } from '../engine/resolve';
 import { handleValue, isLineGeom, presetGeometry } from '../engine/geometry/presets';
 import { elPath, type Op, type Touched } from '../engine/ops';
+import { holderOf, layoutUsage, type HolderKind } from '../engine/holders';
 import { SlideView } from '../render/slide';
 import { cellOrigin, cellRange, tableGrid, type TableGrid } from '../render/table';
 import { fitText, readParas } from '../render/text';
 import { anyDialogOpen } from '../ui/dialogs';
-import { setClass, setHidden } from '../ui/dom';
+import { el as html, setClass, setHidden, setText } from '../ui/dom';
+import { icon } from '../ui/icons';
 import type { Editor } from './editor';
 import { bounds, dirtyOp, fillPlaceholderOps, resolvedFrame, setFrameOps } from './actions';
 import { clearCellsOps, insertRowOps } from './table-edit';
@@ -30,6 +32,7 @@ export class Stage {
   private readonly canvas: HTMLDivElement;
   private readonly overlay: HTMLDivElement;
   private readonly hint: HTMLDivElement;
+  private readonly banner: HTMLElement;
   view: SlideView | null = null;
   zoom: number | 'fit' = 'fit';
   k = 1;
@@ -60,6 +63,8 @@ export class Stage {
     this.hint.hidden = true;
     this.viewport.append(this.canvas, this.overlay, this.hint);
     root.prepend(this.viewport);
+    this.banner = html(`<div class="fs-master-banner" hidden role="status"><span class="fs-master-banner-icon">${icon('layout', 14)}</span><span class="fs-master-banner-title">Slide Master</span><span class="fs-master-banner-name"></span><button class="fs-btn fs-btn-sm" type="button" data-cmd="close-master">${icon('close', 14)}<span>Close Master View</span></button></div>`);
+    this.viewport.after(this.banner);
     new ResizeObserver(() => this.layout()).observe(root);
     this.viewport.addEventListener('pointerdown', (e) => this.down(e));
     this.viewport.addEventListener('dblclick', (e) => this.dbl(e));
@@ -72,16 +77,17 @@ export class Stage {
     window.addEventListener('keydown', (e) => this.tableKey(e), true);
   }
 
-  show(slideId: string | null): void {
+  show(slideId: string | null, kind: HolderKind = 'slide'): void {
     if (this.editing) this.endEdit();
+    this.syncBanner(slideId ? kind : 'slide');
     if (!slideId) {
       this.view?.el.remove();
       this.view = null;
       this.drawOverlay();
       return;
     }
-    if (this.view && this.view.slideId === slideId) return;
-    const next = new SlideView(() => this.ed.doc.deck, slideId, 'edit');
+    if (this.view && this.view.slideId === slideId && this.view.holder === kind) return;
+    const next = new SlideView(() => this.ed.doc.deck, slideId, 'edit', kind);
     next.update();
     if (this.view) this.canvas.replaceChild(next.el, this.view.el);
     else this.canvas.appendChild(next.el);
@@ -92,13 +98,23 @@ export class Stage {
     this.drawOverlay();
   }
 
+  private syncBanner(kind: HolderKind): void {
+    setHidden(this.banner, kind === 'slide');
+    if (kind === 'slide') return;
+    const deck = this.ed.doc.deck;
+    const h = holderOf(deck, kind, this.ed.current);
+    const used = kind === 'layout' ? layoutUsage(deck).get(this.ed.current) ?? 0 : deck.slides.length;
+    setText(this.banner.querySelector('.fs-master-banner-name'), h ? `${h.name}${kind === 'layout' ? ' layout' : ''} · ${used ? `used by ${used} slide${used === 1 ? '' : 's'}` : 'not used'}` : '');
+  }
+
   update(t: Touched): void {
     if (!this.view) return;
     if (t.size || t.all) this.layout();
     this.view.update(t);
+    if (this.view.holder !== 'slide') this.syncBanner(this.view.holder);
     if (this.editing) {
       const node = this.view.nodeFor(this.editing);
-      if (!node || !this.ed.doc.element(this.ed.current, this.editing)) this.endEdit(false);
+      if (!node || !this.ed.element(this.editing)) this.endEdit(false);
     }
     this.drawOverlay();
   }
@@ -146,7 +162,7 @@ export class Stage {
     return { x: (e.clientX - r.left - this.ox) / this.k, y: (e.clientY - r.top - this.oy) / this.k };
   }
 
-  private slide(): Slide | undefined { return this.ed.doc.slide(this.ed.current); }
+  private slide(): Slide | undefined { return this.ed.slide; }
 
   frameOf(el: SlideElement): Frame {
     const pend = this.pendingOps.get(el.id);
@@ -296,6 +312,11 @@ export class Stage {
       this.endEdit();
     }
     const hit = this.hitElement(target);
+    if (hit.ph?.startsWith('v:')) {
+      e.preventDefault();
+      this.ed.addMasterPlaceholder(hit.ph === 'v:title' ? 'title' : 'body');
+      return;
+    }
     if (hit.ph) {
       e.preventDefault();
       const r = fillPlaceholderOps(this.ed.doc, slide, hit.ph);
@@ -547,7 +568,7 @@ export class Stage {
   private dbl(e: MouseEvent): void {
     const hit = this.hitElement(e.target);
     if (!hit.id) return;
-    const el = this.ed.doc.element(this.ed.current, hit.id);
+    const el = this.ed.element(hit.id);
     if (!el) return;
     if (el.type === 'shape') {
       if (!el.text) {
@@ -562,7 +583,7 @@ export class Stage {
   }
 
   beginEdit(id: string, at?: { x: number; y: number }): void {
-    const tbl = this.ed.doc.element(this.ed.current, id);
+    const tbl = this.ed.element(id);
     if (tbl?.type === 'table') {
       const hint = this.cells && this.cells.el === id ? { r: this.cells.ar, c: this.cells.ac } : null;
       const tc = (at ? this.cellOf(document.elementFromPoint(at.x, at.y), id) : null) ?? hint ?? { r: 0, c: 0 };
@@ -570,7 +591,7 @@ export class Stage {
       return;
     }
     const node = this.view?.nodeFor(id);
-    const el = this.ed.doc.element(this.ed.current, id);
+    const el = this.ed.element(id);
     if (!node || !el || el.type !== 'shape') return;
     const flow = node.querySelector<HTMLElement>('.fs-flow');
     if (!flow) return;
@@ -620,10 +641,11 @@ export class Stage {
     if (this.cell) { this.commitCell(slide, id, this.cell); return; }
     const node = this.view?.nodeFor(id);
     const flow = node?.querySelector<HTMLElement>('.fs-flow');
-    const el = this.ed.doc.element(slide.id, id);
+    const el = this.ed.element(id);
     if (!flow || !el || el.type !== 'shape') return;
-    const paras = readParas(flow, el.text?.paras ?? []);
-    if (JSON.stringify(paras) !== JSON.stringify(el.text?.paras ?? [])) {
+    const original = this.ed.displayParas(el);
+    const paras = readParas(flow, original);
+    if (JSON.stringify(paras) !== JSON.stringify(original)) {
       this.ed.apply([{ op: 'set', path: [...elPath(slide.id, id), 'text', 'paras'], value: paras }, ...dirtyOp(slide)], 'Typing', `text:${id}`);
     }
   }
@@ -646,8 +668,8 @@ export class Stage {
       flow.blur();
     }
     const slide = this.slide();
-    const el = slide ? this.ed.doc.element(slide.id, id) : undefined;
-    if (slide && el && el.ph && el.type === 'shape' && !(el.text?.paras ?? []).some((p) => p.runs.some((r) => r.t))) {
+    const el = slide ? this.ed.element(id) : undefined;
+    if (slide && el && el.ph && el.type === 'shape' && this.ed.holderKind === 'slide' && !(el.text?.paras ?? []).some((p) => p.runs.some((r) => r.t))) {
       this.ed.apply([{ op: 'del', path: ['slides', { id: slide.id }, 'elements'], id }], 'Remove empty placeholder');
     }
     this.view?.update();
@@ -666,7 +688,7 @@ export class Stage {
       const index = Array.from(flow.querySelectorAll(':scope > p')).indexOf(pEl);
       this.commit();
       const slide = this.slide();
-      const el = slide && this.editing ? this.ed.doc.element(slide.id, this.editing) : undefined;
+      const el = slide && this.editing ? this.ed.element(this.editing) : undefined;
       if (!slide || !el || el.type !== 'shape' || !el.text) return;
       const paras = structuredClone(el.text.paras);
       const para = paras[index];
@@ -687,7 +709,7 @@ export class Stage {
     }
   }
 
-  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName' | 'createLink' | 'unlink', value?: string): boolean {
+  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName' | 'createLink' | 'unlink' | 'superscript' | 'subscript', value?: string): boolean {
     if (!this.editing) return false;
     const flow = this.editFlow();
     if (!flow) return false;
@@ -719,7 +741,7 @@ export class Stage {
   }
 
   setCells(el: string, ar: number, ac: number, fr = ar, fc = ac, active = true): void {
-    const tbl = this.ed.doc.element(this.ed.current, el);
+    const tbl = this.ed.element(el);
     if (!tbl || tbl.type !== 'table') return;
     const g = tableGrid(tbl.table);
     if (!g.rows || !g.cols) return;
@@ -765,7 +787,7 @@ export class Stage {
   }
 
   private beginCell(id: string, r: number, c: number, caret: { x: number; y: number } | 'start' | 'end' | 'all'): void {
-    const el = this.ed.doc.element(this.ed.current, id);
+    const el = this.ed.element(id);
     if (!el || el.type !== 'table' || !this.view?.nodeFor(id)) return;
     const g = tableGrid(el.table);
     if (!g.rows || !g.cols) return;
@@ -833,7 +855,7 @@ export class Stage {
   }
 
   private commitCell(slide: Slide, id: string, at: { r: number; c: number }): void {
-    const el = this.ed.doc.element(slide.id, id);
+    const el = this.ed.element(id);
     const flow = this.editFlow();
     const cell = el?.type === 'table' ? el.table.rows[at.r]?.cells[at.c] : undefined;
     if (!flow || !el || el.type !== 'table' || !cell) return;
@@ -856,7 +878,7 @@ export class Stage {
   private cellKey(ev: KeyboardEvent, flow: HTMLElement): void {
     const id = this.editing, at = this.cell;
     const slide = this.slide();
-    const el = id ? this.ed.doc.element(this.ed.current, id) : undefined;
+    const el = id ? this.ed.element(id) : undefined;
     if (!id || !at || !slide || !el || el.type !== 'table') return;
     const stop = (): void => { ev.preventDefault(); ev.stopPropagation(); };
     if (ev.key === 'Escape') { stop(); this.endEdit(); return; }
@@ -873,7 +895,7 @@ export class Stage {
       if (next) { this.beginCell(id, next[0], next[1], 'all'); return; }
       if (ev.shiftKey) return;
       this.commit();
-      const fresh = this.ed.doc.element(slide.id, id);
+      const fresh = this.ed.element(id);
       if (!fresh || fresh.type !== 'table') return;
       const n = fresh.table.rows.length;
       const ops = insertRowOps(this.ed.doc.deck, slide, fresh, n, n - 1);

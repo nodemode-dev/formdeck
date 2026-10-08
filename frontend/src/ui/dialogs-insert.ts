@@ -28,6 +28,7 @@ function loadSettings(): Promise<void> {
 }
 
 function targetSlides(ed: Editor): string[] {
+  if (ed.holderKind !== 'slide') return ed.holder ? [ed.current] : [];
   const ids = ed.slideSel.length ? ed.slideSel : [ed.current];
   return ids.filter((id) => !!ed.doc.slide(id));
 }
@@ -50,6 +51,7 @@ class Modal {
 interface PhSpot { frame: Frame; ph?: Placeholder; slot?: string; replace?: string; index?: number }
 
 function phTarget(ed: Editor, s: Slide, kinds: PhType[]): PhSpot | null {
+  if (ed.holderKind !== 'slide') return null;
   const deck = ed.doc.deck;
   const idx = s.elements.findIndex((e) => !!e.ph && kinds.includes(e.ph.type) && e.type === 'shape' && !plainText(e.text).trim());
   if (idx >= 0) {
@@ -868,7 +870,11 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
 
   private scope(): void {
     const n = targetSlides(this.ed).length;
-    setText(q(this.root, '[data-f="scope"]'), n > 1 ? `Changes apply to the ${n} selected slides.` : 'Changes apply to this slide.');
+    const kind = this.ed.holderKind;
+    setText(q(this.root, '[data-f="scope"]'), kind === 'master' ? 'Changes apply to the slide master and every layout that shows its background.' : kind === 'layout' ? 'Changes apply to this layout and its slides.' : n > 1 ? `Changes apply to the ${n} selected slides.` : 'Changes apply to this slide.');
+    for (const b of Array.from(this.d.foot.querySelectorAll<HTMLButtonElement>('button'))) if (b.textContent === 'Apply to All') setHidden(b, kind !== 'slide');
+    const hideRow = this.hide.closest<HTMLElement>('label, .fs-field, .fs-ins-row');
+    if (hideRow) setHidden(hideRow, kind === 'master');
   }
 
   private fill(): Fill | null {
@@ -887,7 +893,7 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
   private bgOps(ids: string[], f: Fill): Op[] {
     const want = JSON.stringify(f);
     return ids.flatMap((id) => {
-      const s = this.ed.doc.slide(id);
+      const s = this.ed.slideLike(id);
       return s && JSON.stringify(s.background ?? null) !== want ? [{ op: 'set', path: [...slidePath(id), 'background'], value: f } as Op] : [];
     });
   }
@@ -895,7 +901,7 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
   private hideOps(ids: string[]): Op[] {
     const on = this.hide.checked;
     return ids.flatMap((id) => {
-      const s = this.ed.doc.slide(id);
+      const s = this.ed.slideLike(id);
       if (!s || !!s.hideMasterShapes === on) return [];
       return [on ? { op: 'set', path: [...slidePath(id), 'hideMasterShapes'], value: true } as Op : { op: 'set', path: [...slidePath(id), 'hideMasterShapes'] } as Op];
     });
@@ -959,7 +965,7 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
   private reset(): void {
     const ed = this.ed;
     const ops = targetSlides(ed).flatMap((id) => {
-      const s = ed.doc.slide(id);
+      const s = ed.slideLike(id);
       return s && s.background ? [{ op: 'set', path: [...slidePath(id), 'background'], value: null } as Op] : [];
     });
     ed.apply(ops, 'Reset background', 'bg');

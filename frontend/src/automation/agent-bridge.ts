@@ -140,7 +140,7 @@ export class AgentBridge {
       const deck = ed.doc.deck;
       const first = deck.slides[0];
       if (!first) return;
-      const sig = JSON.stringify([first, layoutOf(deck, first), deck.masters.length, deck.theme, deck.size]);
+      const sig = JSON.stringify([first, layoutOf(deck, first), deck.masters.map((m) => [m.background, m.elements, m.textStyles]), deck.theme, deck.size]);
       if (this.thumbSig.get(id) === sig) return;
       const r = await rasterSlide(deck, first.id, 480 / deck.size.w);
       let blob = await toBlob(r.canvas, 'image/webp', 0.82);

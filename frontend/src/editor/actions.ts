@@ -1,7 +1,7 @@
 import type { DeckDoc } from '../engine/doc';
-import type { Color, Deck, Fill, Line, Para, Run, ShapeElement, Slide, SlideElement, TextBody } from '../engine/model';
+import type { Color, Deck, Fill, Layout, Line, Master, Para, PhType, Run, ShapeElement, Slide, SlideElement, TextBody } from '../engine/model';
 import { elPath, slidePath, type Op } from '../engine/ops';
-import { chain, frameOf, layoutOf, levelStyle, type Frame } from '../engine/resolve';
+import { chain, frameOf, layoutOf, levelStyle, TITLE_KINDS, type Frame } from '../engine/resolve';
 
 export const clone = <T>(v: T): T => structuredClone(v);
 
@@ -295,4 +295,74 @@ export function newShape(geom: string, f: Frame, accent = 'accent1'): Omit<Shape
 
 export function newTextBox(f: Frame, text = ''): Omit<ShapeElement, 'id'> {
   return { type: 'shape', name: 'Text', geom: 'rect', ...f, fill: { type: 'none' }, line: { type: 'none' }, text: { paras: [{ runs: [{ t: text }], bullet: { type: 'none' } }], autofit: 'grow', wrap: true, inset: [7.2, 3.6, 7.2, 3.6] } };
+}
+
+export const PLACEHOLDERS: Array<{ type: PhType; label: string }> = [
+  { type: 'obj', label: 'Content' }, { type: 'body', label: 'Text' }, { type: 'pic', label: 'Picture' }, { type: 'chart', label: 'Chart' }, { type: 'tbl', label: 'Table' },
+  { type: 'title', label: 'Title' }, { type: 'ftr', label: 'Footer' }, { type: 'dt', label: 'Date' }, { type: 'sldNum', label: 'Slide Number' },
+];
+
+export function uniqueLayoutId(deck: Deck, name: string): string {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32) || 'layout';
+  const used = new Set([...deck.layouts.map((l) => l.id), ...deck.masters.map((m) => m.id)]);
+  let id = `l_${slug}`;
+  for (let n = 2; used.has(id); n++) id = `l_${slug}_${n}`;
+  return id;
+}
+
+function uniqueLayoutName(deck: Deck, name: string): string {
+  const used = new Set(deck.layouts.map((l) => l.name));
+  let out = name;
+  for (let n = 2; used.has(out); n++) out = `${name} ${n}`;
+  return out;
+}
+
+function placeholderFrame(deck: Deck, master: Master | undefined, type: PhType): Frame {
+  const from = master?.elements.find((e) => e.ph && (TITLE_KINDS.has(type) ? TITLE_KINDS.has(e.ph.type) : e.ph.type === type));
+  if (from && from.x !== undefined && from.y !== undefined && from.w !== undefined && from.h !== undefined) return { x: from.x, y: from.y, w: from.w, h: from.h };
+  const W = deck.size.w, H = deck.size.h;
+  const r = (v: number): number => Math.round(v * 100) / 100;
+  const box = (w: number, h: number): Frame => ({ x: r((W - w) / 2), y: r((H - h) / 2), w: r(w), h: r(h) });
+  if (TITLE_KINDS.has(type)) return { x: r(W * 0.0625), y: r(H * 0.07), w: r(W * 0.875), h: r(H * 0.16) };
+  if (type === 'dt') return { x: r(W * 0.0625), y: r(H * 0.9), w: r(W * 0.22), h: r(H * 0.06) };
+  if (type === 'ftr') return { x: r(W * 0.34), y: r(H * 0.9), w: r(W * 0.32), h: r(H * 0.06) };
+  if (type === 'sldNum') return { x: r(W * 0.7175), y: r(H * 0.9), w: r(W * 0.22), h: r(H * 0.06) };
+  if (type === 'pic') return box(W * 0.35, H * 0.45);
+  if (type === 'chart' || type === 'tbl') return box(W * 0.5, H * 0.45);
+  return box(W * 0.5, H * 0.4);
+}
+
+export function placeholderElement(doc: DeckDoc, elements: SlideElement[], master: Master | undefined, type: PhType, used?: Set<string>): ShapeElement {
+  const label = PLACEHOLDERS.find((p) => p.type === type)?.label ?? 'Content';
+  const idx = TITLE_KINDS.has(type) ? undefined : Math.max(9, ...elements.map((e) => e.ph?.idx ?? 0)) + 1;
+  const text: TextBody = type === 'sldNum' ? { paras: [{ runs: [{ t: '‹#›' }], align: 'r' }] } : type === 'dt' ? { paras: [], prompt: 'Date' } : type === 'ftr' ? { paras: [], prompt: 'Footer' } : { paras: [] };
+  if (type === 'pic' || type === 'chart' || type === 'tbl') Object.assign(text, { anchor: 'm', lstStyle: [{ align: 'c' }] });
+  return { id: doc.nextId('e', used), type: 'shape', name: `${label} Placeholder`, ph: idx === undefined ? { type } : { type, idx }, ...placeholderFrame(doc.deck, master, type), text };
+}
+
+export function newLayoutOps(doc: DeckDoc, masterId: string, at: number): { ops: Op[]; id: string } {
+  const deck = doc.deck;
+  const master = deck.masters.find((m) => m.id === masterId) ?? deck.masters[0];
+  const name = uniqueLayoutName(deck, 'Custom Layout');
+  const id = uniqueLayoutId(deck, name);
+  const layout: Layout = { id, master: master?.id ?? masterId, name, elements: [placeholderElement(doc, [], master, 'title')] };
+  return { id, ops: [{ op: 'ins', path: ['layouts'], index: Math.max(0, Math.min(at, deck.layouts.length)), value: layout }] };
+}
+
+export function duplicateLayoutOps(doc: DeckDoc, layoutId: string): { ops: Op[]; id: string } | null {
+  const deck = doc.deck;
+  const at = deck.layouts.findIndex((l) => l.id === layoutId);
+  if (at < 0) return null;
+  const src = deck.layouts[at];
+  const used = doc.usedIds();
+  const copy = clone(src);
+  copy.name = uniqueLayoutName(deck, `${src.name} copy`);
+  copy.id = uniqueLayoutId(deck, copy.name);
+  copy.elements = src.elements.map((e) => reid(doc, e, used));
+  delete copy.semantic;
+  return { id: copy.id, ops: [{ op: 'ins', path: ['layouts'], index: at + 1, value: copy }] };
+}
+
+export function holderNameOps(kind: 'layout' | 'master', id: string, name: string): Op[] {
+  return [{ op: 'set', path: [kind === 'layout' ? 'layouts' : 'masters', { id }, 'name'], value: name }];
 }

@@ -158,5 +158,8 @@ export function touched(ops: Op[]): Touched {
   return t;
 }
 
-export const slidePath = (sid: string): PathKey[] => ['slides', { id: sid }];
-export const elPath = (sid: string, eid: string): PathKey[] => ['slides', { id: sid }, 'elements', { id: eid }];
+export type HolderList = 'slides' | 'layouts' | 'masters';
+let holderList: ((id: string) => HolderList) | null = null;
+export function setHolderResolver(fn: ((id: string) => HolderList) | null): void { holderList = fn; }
+export const slidePath = (sid: string): PathKey[] => [holderList?.(sid) ?? 'slides', { id: sid }];
+export const elPath = (sid: string, eid: string): PathKey[] => [...slidePath(sid), 'elements', { id: eid }];

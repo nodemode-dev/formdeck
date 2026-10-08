@@ -1,26 +1,48 @@
 import type { Touched } from '../engine/ops';
+import { holderOf, layoutUsage } from '../engine/holders';
 import { SlideView } from '../render/slide';
 import { icon } from '../ui/icons';
-import { el, setClass, setText } from '../ui/dom';
+import { el, setClass, setHidden, setStyleVar, setText, setTitle } from '../ui/dom';
 import type { Editor } from './editor';
 import { moveSlidesOps } from './actions';
 import { hasAnimations } from './animation-pane';
 
 interface ThumbItem { node: HTMLElement; view: SlideView; num: HTMLElement; badges: HTMLElement }
+interface HolderItem { node: HTMLElement; view: SlideView; num: HTMLElement; name: HTMLElement; kind: 'layout' | 'master' }
+
+const LAYOUT_INDENT = 18;
 
 export class Filmstrip {
   readonly list: HTMLElement;
+  private readonly mlist: HTMLElement;
   private readonly items = new Map<string, ThumbItem>();
+  private readonly mitems = new Map<string, HolderItem>();
   private readonly sections = new Map<string, HTMLElement>();
   private width = 0;
   private dragIds: string[] | null = null;
   private dropAt = -1;
   private anchor: string | null = null;
   private collapsed = new Set<string>();
+  private masterMode = false;
+  private refitSlides = false;
+  private slideTop = 0;
 
   constructor(private readonly ed: Editor, private readonly scroll: HTMLElement, private readonly count: HTMLElement) {
     this.list = el('<div class="fs-strip-list" role="listbox" aria-label="Slides" aria-multiselectable="true"></div>');
-    scroll.appendChild(this.list);
+    this.mlist = el('<div class="fs-strip-list fs-mstrip" role="listbox" aria-label="Slide master and layouts" hidden></div>');
+    setStyleVar(this.mlist, '--fs-mthumb-indent', `${LAYOUT_INDENT}px`);
+    scroll.append(this.list, this.mlist);
+    this.mlist.addEventListener('pointerdown', (e) => {
+      const it = this.holderAt(e.target);
+      if (e.button === 0 && it) this.ed.setHolder(it.kind, it.id);
+    });
+    this.mlist.addEventListener('dblclick', (e) => { if (this.holderAt(e.target)) this.ed.run('master-rename-layout'); });
+    this.mlist.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const it = this.holderAt(e.target);
+      if (it) this.ed.setHolder(it.kind, it.id);
+      this.ed.contextMenu(e.clientX, e.clientY, 'thumb');
+    });
     new ResizeObserver(() => this.resize()).observe(scroll);
     this.list.addEventListener('pointerdown', (e) => this.down(e));
     this.list.addEventListener('contextmenu', (e) => {
@@ -41,16 +63,93 @@ export class Filmstrip {
     return Math.max(80, w - 20 - 22 - 6 - 4);
   }
 
+  private holderAt(t: EventTarget | null): { kind: 'layout' | 'master'; id: string } | null {
+    const node = (t as HTMLElement | null)?.closest?.('.fs-mthumb') as HTMLElement | null;
+    const id = node?.dataset.key;
+    const kind = node?.dataset.holder;
+    return id && (kind === 'layout' || kind === 'master') ? { kind, id } : null;
+  }
+
+  private holderScale(kind: 'layout' | 'master'): number {
+    return ((this.width || this.thumbWidth()) - (kind === 'layout' ? LAYOUT_INDENT : 0)) / this.ed.doc.deck.size.w;
+  }
+
   private resize(): void {
     const w = this.thumbWidth();
     if (Math.abs(w - this.width) < 0.5) return;
     this.width = w;
     const k = w / this.ed.doc.deck.size.w;
     for (const it of this.items.values()) it.view.setScale(k);
-    for (const it of this.items.values()) it.view.refit();
+    for (const it of this.mitems.values()) it.view.setScale(this.holderScale(it.kind));
+    if (this.masterMode) {
+      this.refitSlides = true;
+      for (const it of this.mitems.values()) it.view.refit();
+    } else for (const it of this.items.values()) it.view.refit();
+  }
+
+  setMode(master: boolean): void {
+    if (this.masterMode === master) return;
+    this.masterMode = master;
+    if (master) this.slideTop = this.scroll.scrollTop;
+    setHidden(this.list, master);
+    setHidden(this.mlist, !master);
+    if (master) {
+      this.updateMasters();
+      this.scroll.scrollTop = 0;
+      return;
+    }
+    this.update();
+    if (this.refitSlides) { this.refitSlides = false; for (const it of this.items.values()) it.view.refit(); }
+    this.scroll.scrollTop = this.slideTop;
+  }
+
+  private updateMasters(t?: Touched): void {
+    const deck = this.ed.doc.deck;
+    const usage = layoutUsage(deck);
+    const refresh = !t || t.all || t.theme || t.layouts || t.masters || t.size || t.media;
+    const nodes: HTMLElement[] = [];
+    let masters = 0;
+    for (const h of this.ed.holderOrder()) {
+      const holder = holderOf(deck, h.kind, h.id);
+      if (!holder) continue;
+      let it = this.mitems.get(h.id);
+      if (it && it.kind !== h.kind) { it.node.remove(); this.mitems.delete(h.id); it = undefined; }
+      if (!it) {
+        const view = new SlideView(() => this.ed.doc.deck, h.id, 'thumb', h.kind);
+        view.setScale(this.holderScale(h.kind));
+        const node = el(`<div class="fs-thumb fs-mthumb is-${h.kind}" role="option" draggable="false"><span class="fs-thumb-num"></span><div class="fs-mthumb-main"><div class="fs-thumb-frame"></div><span class="fs-mthumb-name"></span></div></div>`);
+        node.dataset.key = h.id;
+        node.dataset.holder = h.kind;
+        node.querySelector('.fs-thumb-frame')?.appendChild(view.el);
+        it = { node, view, num: node.querySelector('.fs-thumb-num') as HTMLElement, name: node.querySelector('.fs-mthumb-name') as HTMLElement, kind: h.kind };
+        this.mitems.set(h.id, it);
+        view.update();
+      } else if (refresh) {
+        if (t?.size) it.view.setScale(this.holderScale(h.kind));
+        it.view.update(t);
+      }
+      if (h.kind === 'master') masters++;
+      setText(it.num, h.kind === 'master' ? String(masters) : '');
+      setText(it.name, holder.name);
+      const n = h.kind === 'layout' ? usage.get(h.id) ?? 0 : deck.slides.length;
+      const used = n ? `used by ${n} slide${n === 1 ? '' : 's'}` : 'not used by any slide';
+      setTitle(it.node, h.kind === 'layout' ? `${holder.name} layout: ${used}` : `${holder.name} slide master: ${used}`);
+      nodes.push(it.node);
+    }
+    let cursor: Element | null = this.mlist.firstElementChild;
+    for (const n of nodes) {
+      if (n !== cursor) this.mlist.insertBefore(n, cursor);
+      else cursor = cursor.nextElementSibling;
+    }
+    const keep = new Set(nodes);
+    for (const [id, it] of this.mitems) if (!keep.has(it.node)) { this.mitems.delete(id); it.node.remove(); }
+    for (const it of this.mitems.values()) it.view.fitAll();
+    setText(this.count, String(deck.layouts.length));
+    this.mark();
   }
 
   update(t?: Touched): void {
+    if (this.masterMode) { this.updateMasters(t); return; }
     const deck = this.ed.doc.deck;
     const k = (this.width || this.thumbWidth()) / deck.size.w;
     if (!this.width) this.width = this.thumbWidth();
@@ -119,6 +218,13 @@ export class Filmstrip {
   }
 
   mark(): void {
+    if (this.masterMode) {
+      for (const [id, it] of this.mitems) {
+        setClass(it.node, 'is-current', id === this.ed.current);
+        if (it.node.getAttribute('aria-selected') !== String(id === this.ed.current)) it.node.setAttribute('aria-selected', String(id === this.ed.current));
+      }
+      return;
+    }
     for (const [id, it] of this.items) {
       setClass(it.node, 'is-current', id === this.ed.current);
       setClass(it.node, 'is-selected', this.ed.slideSel.includes(id) && id !== this.ed.current);
@@ -127,7 +233,7 @@ export class Filmstrip {
   }
 
   reveal(id: string): void {
-    const it = this.items.get(id);
+    const it = this.masterMode ? this.mitems.get(id) : this.items.get(id);
     if (!it) return;
     const r = it.node.getBoundingClientRect(), s = this.scroll.getBoundingClientRect();
     if (r.top < s.top + 4) this.scroll.scrollTop -= s.top + 4 - r.top;

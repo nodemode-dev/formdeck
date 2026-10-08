@@ -8,7 +8,7 @@ import { el, escapeHtml, patchList, setChecked, setClass, setHidden, setText, se
 import { icon } from '../ui/icons';
 import { PanelGroup } from '../ui/panel-group';
 import type { Editor } from './editor';
-import { dirtyOp, paraStyleOps, runStyleOps, setFrameOps } from './actions';
+import { dirtyOp, holderNameOps, paraStyleOps, runStyleOps, setFrameOps } from './actions';
 import { AnimationPane } from './animation-pane';
 
 const SLOT_NAMES: Record<SchemeName, string> = {
@@ -38,6 +38,7 @@ export class Inspector {
   private readonly layoutViews = new Map<string, SlideView>();
   readonly activity: ActivityItem[] = [];
   readonly animate = new AnimationPane();
+  private docOff: (() => void) | null = null;
   hooks: { templates: () => void; background: () => void; slideSize: () => void; comment: (text: string) => void; agentsAllowed: () => boolean; setAgents: (on: boolean) => void; copyPrompt: () => void; mcpStatus: () => string } | null = null;
 
   constructor(host: HTMLElement) {
@@ -57,6 +58,7 @@ export class Inspector {
 <div class="fs-prop-section" data-s="effects"><div class="fs-panel-head"><span class="fs-panel-title">Effects</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Shadow</span><div class="fs-prop-ctl"><select data-f="shadow" aria-label="Shadow"><option value="none">None</option><option value="soft">Soft</option><option value="below">Below</option><option value="hard">Hard</option><option value="long">Long</option></select></div></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Glow</span><div class="fs-prop-ctl"><select data-f="glow" aria-label="Glow"><option value="none">None</option><option value="6">Small</option><option value="12">Medium</option><option value="20">Large</option></select></div></div>
+<div class="fs-prop-row"><span class="fs-prop-label">Reflection</span><div class="fs-prop-ctl"><select data-f="refl" aria-label="Reflection"><option value="none">None</option><option value="0.35">Tight</option><option value="0.55">Half</option><option value="0.9">Full</option></select></div></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Soft edges</span><div class="fs-prop-ctl"><input class="fs-slider" type="range" min="0" max="30" step="1" data-f="soft" aria-label="Soft edges"></div></div></div>
 <div class="fs-prop-section" data-s="image"><div class="fs-panel-head"><span class="fs-panel-title">Picture</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Fit</span><div class="fs-prop-ctl"><div class="fs-seg is-quiet" data-seg="fit"><button type="button" data-v="cover">Fill</button><button type="button" data-v="contain">Fit</button><button type="button" data-v="stretch">Stretch</button></div></div></div>
@@ -72,12 +74,16 @@ export class Inspector {
 <div class="fs-prop-row is-stack"><span class="fs-prop-label">Alt text</span><textarea class="fs-input" rows="2" data-f="alt" placeholder="Describe the picture for screen readers"></textarea></div></div>
 </div>`);
     this.slidePage = el(`<div class="fs-insp">
-<div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Layout</span></div><div class="fs-layout-grid"></div></div>
-<div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Slide</span></div>
+<div class="fs-prop-section" data-ms="slide"><div class="fs-panel-head"><span class="fs-panel-title">Layout</span></div><div class="fs-layout-grid"></div></div>
+<div class="fs-prop-section" data-ms="master"><div class="fs-panel-head"><span class="fs-panel-title fs-holder-kind">Layout</span></div>
+<div class="fs-prop-row"><span class="fs-prop-label">Name</span><div class="fs-prop-ctl"><input class="fs-input" type="text" data-f="holder-name" aria-label="Name" spellcheck="false"></div></div>
+<div class="fs-prop-row" data-mk="layout"><span class="fs-prop-label">Graphics</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="holder-hide"><span></span></label><span class="fs-note">Hide the master's background graphics</span></div></div>
+<div class="fs-note fs-holder-usage"></div></div>
+<div class="fs-prop-section"><div class="fs-panel-head" data-ms="slide"><span class="fs-panel-title">Slide</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Background</span><div class="fs-prop-ctl"><button class="fs-btn fs-btn-sm" type="button" data-a="background">${icon('background', 14)}Format...</button></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Hidden</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="hidden"><span></span></label></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Transition</span><div class="fs-prop-ctl"><select data-f="transition" aria-label="Transition"><option value="none">None</option><option value="fade">Fade</option><option value="push">Push</option><option value="wipe">Wipe</option><option value="split">Split</option><option value="cover">Cover</option><option value="uncover">Uncover</option><option value="zoom">Zoom</option><option value="reveal">Reveal</option><option value="flip">Flip</option><option value="cube">Cube</option><option value="morph">Morph</option></select></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Duration</span><div class="fs-prop-ctl fs-pair">${num('tdur', 'S', 's')}<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="transition-all">Apply to all</button></div></div></div>
+<div class="fs-prop-row" data-ms="slide"><span class="fs-prop-label">Hidden</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="hidden"><span></span></label></div></div>
+<div class="fs-prop-row" data-ms="slide"><span class="fs-prop-label">Transition</span><div class="fs-prop-ctl"><select data-f="transition" aria-label="Transition"><option value="none">None</option><option value="fade">Fade</option><option value="push">Push</option><option value="wipe">Wipe</option><option value="split">Split</option><option value="cover">Cover</option><option value="uncover">Uncover</option><option value="zoom">Zoom</option><option value="reveal">Reveal</option><option value="flip">Flip</option><option value="cube">Cube</option><option value="morph">Morph</option></select></div></div>
+<div class="fs-prop-row" data-ms="slide"><span class="fs-prop-label">Duration</span><div class="fs-prop-ctl fs-pair">${num('tdur', 'S', 's')}<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="transition-all">Apply to all</button></div></div></div>
 </div>`);
     this.layoutGrid = this.slidePage.querySelector('.fs-layout-grid') as HTMLElement;
     this.design = el(`<div class="fs-insp">
@@ -179,6 +185,11 @@ export class Inspector {
     for (const v of this.layoutViews.values()) v.el.remove();
     this.layoutViews.clear();
     this.layoutGrid.textContent = '';
+    this.docOff?.();
+    this.docOff = ed ? ed.doc.on((e) => {
+      if (!(e.touched.layouts || e.touched.masters || e.touched.theme || e.touched.size || e.touched.all)) return;
+      for (const v of this.layoutViews.values()) { v.update(e.touched); if (v.el.isConnected) v.fitAll(); }
+    }) : null;
     this.sync();
   }
 
@@ -225,8 +236,9 @@ export class Inspector {
         if (side === 'l' || side === 'r') crop[side] = Math.min(crop[side], 0.95 - crop[side === 'l' ? 'r' : 'l']);
         else crop[side] = Math.min(crop[side], 0.95 - crop[side === 't' ? 'b' : 't']);
         ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'crop'], value: crop.l || crop.t || crop.r || crop.b ? crop : undefined });
-      } else if ((f === 'shadow' || f === 'glow' || f === 'soft') && (e.type === 'shape' || e.type === 'image')) {
+      } else if ((f === 'shadow' || f === 'glow' || f === 'soft' || f === 'refl') && (e.type === 'shape' || e.type === 'image')) {
         const fx = { ...(e.effects ?? {}) };
+        if (f === 'refl') fx.reflection = t.value === 'none' ? null : { size: Number(t.value), alpha: 0.45, dist: 2 };
         if (f === 'shadow') fx.shadow = SHADOWS[t.value] ?? null;
         if (f === 'glow') fx.glow = t.value === 'none' ? null : { color: { scheme: 'accent1', alpha: 0.6 }, radius: Number(t.value) };
         if (f === 'soft') fx.softEdge = Number(t.value) || null;
@@ -243,7 +255,7 @@ export class Inspector {
       ops.push(...runStyleOps(ed.doc.deck, s, els.filter((e) => e.type === 'shape'), { spc: Number.isFinite(v) && v !== 0 ? v : undefined }));
     }
     if (!ops.length) return;
-    const labels: Record<string, string> = { opacity: 'Opacity', alt: 'Alt text', lsp: 'Line spacing', spb: 'Space before', spa: 'Space after', cspc: 'Character spacing', shadow: 'Shadow', glow: 'Glow', soft: 'Soft edges', bright: 'Brightness', contrast: 'Contrast', sat: 'Saturation', blur: 'Blur', grayscale: 'Grayscale' };
+    const labels: Record<string, string> = { opacity: 'Opacity', alt: 'Alt text', lsp: 'Line spacing', spb: 'Space before', spa: 'Space after', cspc: 'Character spacing', shadow: 'Shadow', glow: 'Glow', refl: 'Reflection', soft: 'Soft edges', bright: 'Brightness', contrast: 'Contrast', sat: 'Saturation', blur: 'Blur', grayscale: 'Grayscale' };
     ed.apply([...ops, ...dirtyOp(s)], labels[f] ?? (f.startsWith('crop-') ? 'Crop' : 'Position and size'), live ? `fmt:${f}` : undefined);
   }
 
@@ -280,6 +292,8 @@ export class Inspector {
     const s = ed?.slide;
     const f = t.dataset.f;
     if (!ed || !s || !f) return;
+    if (f === 'holder-name' && ed.holderKind !== 'slide' && t.value.trim()) { ed.apply(holderNameOps(ed.holderKind, ed.current, t.value.trim()), 'Rename'); return; }
+    if (f === 'holder-hide' && ed.holderKind === 'layout') { ed.run('master-hide-graphics'); return; }
     if (f === 'hidden') ed.apply([{ op: 'set', path: [...slidePath(s.id), 'hidden'], value: (t as HTMLInputElement).checked }], 'Hide slide');
     if (f === 'transition') ed.apply([{ op: 'set', path: [...slidePath(s.id), 'transition'], value: t.value === 'none' ? null : { ...(s.transition ?? {}), type: t.value, duration: s.transition?.duration ?? 0.6 } }], 'Transition');
     if (f === 'tdur' && s.transition) ed.apply([{ op: 'set', path: [...slidePath(s.id), 'transition', 'duration'], value: Math.max(0.1, Number(t.value) || 0.6) }], 'Transition duration');
@@ -343,9 +357,26 @@ export class Inspector {
         this.val('shadow', shadow);
         this.val('glow', fx.glow ? String([6, 12, 20].reduce((b, r) => Math.abs(r - (fx.glow?.radius ?? 6)) < Math.abs(b - (fx.glow?.radius ?? 6)) ? r : b, 6)) : 'none');
         this.val('soft', fx.softEdge ?? 0);
+        this.val('refl', fx.reflection ? String([0.35, 0.55, 0.9].reduce((b, v) => Math.abs(v - (fx.reflection?.size ?? 0.5)) < Math.abs(b - (fx.reflection?.size ?? 0.5)) ? v : b, 0.55)) : 'none');
       }
     }
-    if (s) {
+    const inMaster = ed.holderKind !== 'slide';
+    for (const n of Array.from(this.slidePage.querySelectorAll<HTMLElement>('[data-ms]'))) setHidden(n, inMaster ? n.dataset.ms === 'slide' : n.dataset.ms === 'master');
+    setClass(this.animate.el, 'fs-insp-off', inMaster);
+    setClass(this.review, 'fs-insp-off', inMaster);
+    if (inMaster) {
+      const h = ed.holder;
+      setText(this.slidePage.querySelector('.fs-holder-kind'), ed.holderKind === 'master' ? 'Slide master' : 'Layout');
+      const name = this.slidePage.querySelector<HTMLInputElement>('[data-f="holder-name"]');
+      if (name) setValue(name, h?.name ?? '');
+      const mk = this.slidePage.querySelector<HTMLElement>('[data-mk="layout"]');
+      if (mk) setHidden(mk, ed.holderKind !== 'layout');
+      const hide = this.slidePage.querySelector<HTMLInputElement>('[data-f="holder-hide"]');
+      if (hide && h && 'hideMasterShapes' in h) setChecked(hide, !!h.hideMasterShapes);
+      const used = ed.holderKind === 'layout' ? deck.slides.filter((x) => x.layout === ed.current).length : deck.slides.length;
+      setText(this.slidePage.querySelector('.fs-holder-usage'), ed.holderKind === 'layout' ? `Used by ${used} slide${used === 1 ? '' : 's'}.` : `The master styles all ${deck.layouts.length} layouts and ${used} slides.`);
+    }
+    if (s && !inMaster) {
       const hid = this.slidePage.querySelector<HTMLInputElement>('[data-f="hidden"]');
       if (hid) setChecked(hid, !!s.hidden);
       const tr = this.slidePage.querySelector<HTMLSelectElement>('[data-f="transition"]');

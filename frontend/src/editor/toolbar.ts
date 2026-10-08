@@ -28,11 +28,13 @@ export class Toolbar {
 <span class="fs-tb-title"><span class="fs-tb-title-icon"></span><span class="fs-tb-title-text">Slide</span></span>
 <div class="fs-tb-group" data-g="slide">${lbtn('new-slide', 'slideAdd', 'New slide', 'New slide (Mod+M)')}<select class="fs-tb-layout" aria-label="Layout" title="Layout"></select>${btn('apply-template', 'template', 'Change template')}${btn('format-background', 'background', 'Background')}</div>
 <span class="fs-sep" data-g="slide"></span>
+<div class="fs-tb-group" data-g="master">${lbtn('master-insert-layout', 'slideAdd', 'New layout')}${btn('master-duplicate-layout', 'duplicate', 'Duplicate layout')}${btn('master-hide-graphics', 'eyeOff', 'Hide background graphics')}${btn('format-background', 'background', 'Background')}${lbtn('close-master', 'close', 'Close Master View')}</div>
+<span class="fs-sep" data-g="master"></span>
 <div class="fs-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-image', 'image', 'Picture')}<button class="fs-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-media', 'video', 'Video or audio')}${btn('add-comment', 'comment', 'Comment')}</div>
 <span class="fs-sep" data-g="insert"></span>
 <div class="fs-tb-group" data-g="font"><select class="fs-tb-font" aria-label="Font" title="Font" style="width:140px"></select><input class="fs-tb-field is-num fs-tb-size" type="number" min="1" max="400" step="1" aria-label="Font size" title="Font size"></div>
 <span class="fs-sep" data-g="font"></span>
-<div class="fs-tb-group" data-g="style">${btn('bold', 'bold', 'Bold')}${btn('italic', 'italic', 'Italic')}${btn('underline', 'underline', 'Underline')}${btn('strike', 'strike', 'Strikethrough')}${btn('insert-link', 'link', 'Link (Mod+K)')}<button class="fs-tb-btn fs-tb-color" type="button" data-act="text-color" title="Text colour" aria-label="Text colour">${icon('textColor', 16)}</button><button class="fs-tb-btn fs-tb-color" type="button" data-act="highlight" title="Highlight" aria-label="Highlight">${icon('highlight', 16)}</button>${btn('clear-format', 'clearFormat', 'Clear formatting')}</div>
+<div class="fs-tb-group" data-g="style">${btn('bold', 'bold', 'Bold')}${btn('italic', 'italic', 'Italic')}${btn('underline', 'underline', 'Underline')}${btn('strike', 'strike', 'Strikethrough')}${btn('superscript', 'superscript', 'Superscript')}${btn('subscript', 'subscript', 'Subscript')}${btn('insert-link', 'link', 'Link (Mod+K)')}<button class="fs-tb-btn fs-tb-color" type="button" data-act="text-color" title="Text colour" aria-label="Text colour">${icon('textColor', 16)}</button><button class="fs-tb-btn fs-tb-color" type="button" data-act="highlight" title="Highlight" aria-label="Highlight">${icon('highlight', 16)}</button>${btn('clear-format', 'clearFormat', 'Clear formatting')}</div>
 <span class="fs-sep" data-g="style"></span>
 <div class="fs-tb-group" data-g="para">${btn('text-align-l', 'alignLeft', 'Align left')}${btn('text-align-c', 'alignCenter', 'Center')}${btn('text-align-r', 'alignRight', 'Align right')}${btn('text-align-j', 'alignJustify', 'Justify')}</div>
 <span class="fs-sep" data-g="para"></span>
@@ -120,11 +122,12 @@ export class Toolbar {
     const ctx = this.context();
     this.ctx = ctx;
     const cellTyping = ctx === 'table' && !!ed?.stage.editing;
+    const inMaster = !!ed && ed.holderKind !== 'slide';
     const show: Record<string, boolean> = {
-      slide: ctx === 'slide', insert: ctx === 'slide' || ctx === 'none', table: ctx === 'table',
+      slide: ctx === 'slide' && !inMaster, master: inMaster && (ctx === 'slide' || ctx === 'none'), insert: ctx === 'slide' || ctx === 'none', table: ctx === 'table',
       font: ctx === 'text' || ctx === 'shape' || cellTyping, style: ctx === 'text' || ctx === 'shape' || cellTyping, para: ctx === 'text' || ctx === 'shape',
       list: ctx === 'text', anchor: ctx === 'text' || ctx === 'shape', paint: ctx === 'shape' || ctx === 'text',
-      image: ctx === 'image', chart: ctx === 'chart', arrange: ctx !== 'slide' && ctx !== 'none', review: ctx === 'slide',
+      image: ctx === 'image', chart: ctx === 'chart', arrange: ctx !== 'slide' && ctx !== 'none', review: ctx === 'slide' && !inMaster,
     };
     for (const [g, node] of Object.entries(this.groups)) {
       setHidden(node, !show[g]);

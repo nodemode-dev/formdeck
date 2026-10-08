@@ -1,5 +1,6 @@
-import type { ChartElement, Deck, ImageElement, Layout, MediaElement, Placeholder, ShapeElement, Slide, SlideElement, TableElement } from '../engine/model';
-import { backgroundOf, bodyProps, chain, colorCss, fillOf, fontStack, frameOf, geomOf, adjOf, levelStyle, lineOf, masterOf, showMasterShapes, slideNumber, themeFont, layoutOf, type Chain, type Frame } from '../engine/resolve';
+import type { ChartElement, Deck, Fill, ImageElement, Layout, MediaElement, Master, Placeholder, ShapeElement, Slide, SlideElement, TableElement } from '../engine/model';
+import { backgroundOf, bodyProps, chain, colorCss, fillOf, fontStack, frameOf, geomOf, adjOf, levelStyle, lineOf, masterOf, showMasterShapes, slideNumber, themeFont, layoutOf, TITLE_KINDS, type Chain, type Frame } from '../engine/resolve';
+import { BODY_PH, displayElement, holderOf, masterHint, masterPlaceholder, type HolderKind } from '../engine/holders';
 import { isLineGeom, presetGeometry } from '../engine/geometry/presets';
 import type { Touched } from '../engine/ops';
 import { chartSvg } from './chart';
@@ -22,7 +23,9 @@ function boxStyle(f: Frame, el: SlideElement, extra = ''): string {
   const t: string[] = [];
   if (el.rot) t.push(`rotate(${el.rot}deg)`);
   if (el.flipH || el.flipV) t.push(`scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`);
-  return `left:${round(f.x)}px;top:${round(f.y)}px;width:${round(Math.max(0, f.w))}px;height:${round(Math.max(0, f.h))}px;${t.length ? `transform:${t.join(' ')};` : ''}${el.opacity !== undefined && el.opacity < 1 ? `opacity:${el.opacity};` : ''}${el.hidden ? 'visibility:hidden;' : ''}${extra}`;
+  const refl = 'effects' in el ? el.effects?.reflection : null;
+  const mirror = refl ? `-webkit-box-reflect:below ${round(refl.dist ?? 2)}px linear-gradient(to bottom, rgba(0,0,0,${round(refl.alpha ?? 0.5)}) 0%, transparent ${round(Math.max(5, Math.min(100, (refl.size ?? 0.5) * 100)))}%);` : '';
+  return `left:${round(f.x)}px;top:${round(f.y)}px;width:${round(Math.max(0, f.w))}px;height:${round(Math.max(0, f.h))}px;${t.length ? `transform:${t.join(' ')};` : ''}${el.opacity !== undefined && el.opacity < 1 ? `opacity:${el.opacity};` : ''}${el.hidden ? 'visibility:hidden;' : ''}${mirror}${extra}`;
 }
 
 function shapeSvg(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
@@ -171,6 +174,14 @@ export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: s
   return { box: boxStyle(f, el, lineLike ? 'overflow:visible;' : ''), inner, kind };
 }
 
+interface Item { key: string; el: SlideElement; prompt: boolean; sk: string }
+
+function hashKey(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return `${(h >>> 0).toString(36)}.${s.length}`;
+}
+
 function decorations(ctx: Ctx, list: SlideElement[], holder: 'layout' | 'master', layout: Layout | undefined): string {
   let out = '';
   const local: Ctx = { ...ctx, holder, layout };
@@ -197,10 +208,10 @@ export class SlideView {
   editingId: string | null = null;
   slideId: string;
 
-  constructor(private readonly getDeck: () => Deck, slideId: string, readonly mode: RenderMode) {
+  constructor(private readonly getDeck: () => Deck, slideId: string, readonly mode: RenderMode, readonly holder: HolderKind = 'slide') {
     this.slideId = slideId;
     this.el = document.createElement('div');
-    this.el.className = `fs-slide is-${mode}`;
+    this.el.className = `fs-slide is-${mode}${holder === 'slide' ? '' : ' is-holder'}`;
     this.inner = document.createElement('div');
     this.inner.className = 'fs-slide-inner';
     this.bg = document.createElement('div');
@@ -215,7 +226,7 @@ export class SlideView {
     this.el.appendChild(this.inner);
   }
 
-  get slide(): Slide | undefined { return this.getDeck().slides.find((s) => s.id === this.slideId); }
+  get slide(): Slide | undefined { return this.holder === 'slide' ? this.getDeck().slides.find((s) => s.id === this.slideId) : undefined; }
 
   setScale(k: number): void {
     const deck = this.getDeck();
@@ -231,6 +242,8 @@ export class SlideView {
   get k(): number { return this.scale; }
 
   update(t?: Touched): void {
+    void t;
+    if (this.holder !== 'slide') { this.updateHolder(); return; }
     const deck = this.getDeck();
     const slide = this.slide;
     if (!slide) return;
@@ -244,8 +257,7 @@ export class SlideView {
       this.bgKey = bgKey;
       this.bg.style.background = cssBackground(backgroundOf(deck, slide), deck.theme, mediaUrl);
     }
-    void t;
-    const decoKey = JSON.stringify([themeKey, layout?.id, slide.hideMasterShapes, number, master.elements.filter((e) => !e.ph), layout?.elements.filter((e) => !e.ph), layout?.hideMasterShapes, deck.size]);
+    const decoKey = JSON.stringify([themeKey, layout?.id, slide.hideMasterShapes, number, master.elements.filter((e) => !e.ph), layout?.elements.filter((e) => !e.ph), layout?.hideMasterShapes, deck.size, master.textStyles.other]);
     if (decoKey !== this.decoKey) {
       this.decoKey = decoKey;
       const m = showMasterShapes(slide, layout) ? decorations(ctx, master.elements, 'master', layout) : '';
@@ -253,15 +265,57 @@ export class SlideView {
       if (this.master.innerHTML !== m) this.master.innerHTML = m;
       if (this.layoutLayer.innerHTML !== l) this.layoutLayer.innerHTML = l;
     }
-    const styleKey = JSON.stringify([themeKey, layout?.id, JSON.stringify(layout?.elements.filter((e) => e.ph) ?? []).length, number, deck.size.w, deck.size.h]);
-    const items: Array<{ key: string; el: SlideElement; prompt: boolean }> = [];
+    const base = [themeKey, number, deck.size.w, deck.size.h, master.id];
+    const plainKey = hashKey(JSON.stringify([...base, master.textStyles.other]));
+    const chartKey = hashKey(plainKey + bgKey);
+    const phKey = hashKey(JSON.stringify([...base, layout?.id, layout?.elements.filter((e) => e.ph), master.elements.filter((e) => e.ph), master.textStyles]));
+    const items: Item[] = [];
     if (this.mode === 'edit' && layout) {
       for (const lel of layout.elements) {
         if (!lel.ph || phFilled(slide, lel.ph) || ['dt', 'ftr', 'sldNum'].includes(lel.ph.type)) continue;
-        items.push({ key: `p:${lel.id}`, el: lel, prompt: true });
+        items.push({ key: `p:${lel.id}`, el: lel, prompt: true, sk: phKey });
       }
     }
-    for (const el of slide.elements) items.push({ key: el.id, el, prompt: false });
+    for (const el of slide.elements) items.push({ key: el.id, el, prompt: false, sk: el.ph ? phKey : el.type === 'chart' ? chartKey : plainKey });
+    this.reconcile(ctx, items, (node, item) => this.paint(node, ctx, item.el, item.prompt, layout));
+  }
+
+  private updateHolder(): void {
+    const deck = this.getDeck();
+    const holder = holderOf(deck, this.holder, this.slideId);
+    if (!holder) return;
+    const layout = this.holder === 'layout' ? (holder as Layout) : undefined;
+    const master = layout ? masterOf(deck, layout) : (holder as Master);
+    const ctx: Ctx = { deck, slide: null, holder: this.holder, layout: layout ?? masterHint(master), mode: this.mode, number: 1 };
+    const themeKey = JSON.stringify(deck.theme);
+    const bg: Fill = layout?.background ?? master.background ?? { type: 'solid', color: 'lt1' };
+    const bgKey = JSON.stringify([bg, themeKey]);
+    if (bgKey !== this.bgKey) {
+      this.bgKey = bgKey;
+      this.bg.style.background = cssBackground(bg, deck.theme, mediaUrl);
+    }
+    const showMaster = !!layout && !layout.hideMasterShapes;
+    const decoKey = JSON.stringify([themeKey, showMaster ? master.elements.filter((e) => !e.ph) : null, master.textStyles.other, deck.size]);
+    if (decoKey !== this.decoKey) {
+      this.decoKey = decoKey;
+      const m = showMaster ? decorations(ctx, master.elements, 'master', layout) : '';
+      if (this.master.innerHTML !== m) this.master.innerHTML = m;
+      if (this.layoutLayer.innerHTML !== '') this.layoutLayer.innerHTML = '';
+    }
+    const base = [themeKey, deck.size.w, deck.size.h, master.id];
+    const plainKey = hashKey(JSON.stringify([...base, master.textStyles.other]));
+    const phKey = hashKey(JSON.stringify([...base, master.textStyles, layout ? master.elements.filter((e) => e.ph) : null]));
+    const items: Item[] = holder.elements.map((el) => ({ key: el.id, el: displayElement(deck, this.holder, holder, el), prompt: false, sk: el.ph ? phKey : plainKey }));
+    if (this.holder === 'master' && this.mode === 'edit') {
+      for (const kind of ['title', 'body'] as const) {
+        const kinds = kind === 'title' ? TITLE_KINDS : BODY_PH;
+        if (!holder.elements.some((e) => e.ph && kinds.has(e.ph.type))) items.push({ key: `v:${kind}`, el: masterPlaceholder(deck, kind, `v:${kind}`), prompt: true, sk: phKey });
+      }
+    }
+    this.reconcile(ctx, items, (node, item) => this.paintHolder(node, ctx, item));
+  }
+
+  private reconcile(ctx: Ctx, items: Item[], paint: (node: HTMLElement, item: Item) => void): void {
     const container = this.content;
     const existing = new Map<string, HTMLElement>();
     for (const child of Array.from(container.children)) existing.set((child as HTMLElement).dataset.key ?? '', child as HTMLElement);
@@ -270,30 +324,41 @@ export class SlideView {
     const fit: HTMLElement[] = [];
     for (const item of items) {
       seen.add(item.key);
-      const sig = JSON.stringify(item.el) + styleKey + (item.prompt ? 'p' : '');
-      const boxless = JSON.stringify({ ...item.el, x: 0, y: 0, rot: 0 }) + styleKey + (item.prompt ? 'p' : '');
+      const tag = item.sk + (item.prompt ? 'p' : '');
+      const sig = JSON.stringify(item.el) + tag;
+      const boxless = JSON.stringify({ ...item.el, x: 0, y: 0, rot: 0 }) + tag;
       let node = existing.get(item.key);
       const editing = !item.prompt && item.el.id === this.editingId;
       if (!node) {
         node = document.createElement('div');
         node.dataset.key = item.key;
-        this.paint(node, ctx, item.el, item.prompt, layout);
+        paint(node, item);
         this.sigs.set(item.key, sig);
         this.boxSigs.set(item.key, boxless);
         fit.push(node);
       } else if (this.sigs.get(item.key) !== sig && (!editing || this.boxSigs.get(item.key) === boxless)) {
         if (this.boxSigs.get(item.key) === boxless && item.el.type !== 'group') node.setAttribute('style', elementHtml(ctx, item.el).box);
         else if (item.el.type === 'image' && !item.prompt && this.patchImage(node, ctx, item.el)) fit.push(node);
-        else { this.paint(node, ctx, item.el, item.prompt, layout); fit.push(node); }
+        else { paint(node, item); fit.push(node); }
         this.sigs.set(item.key, sig);
         this.boxSigs.set(item.key, boxless);
       }
       if (node !== cursor) container.insertBefore(node, cursor);
       else cursor = cursor.nextElementSibling;
     }
-    for (const [k, node] of existing) if (!seen.has(k)) { node.remove(); this.sigs.delete(k); }
+    for (const [k, node] of existing) if (!seen.has(k)) { node.remove(); this.sigs.delete(k); this.boxSigs.delete(k); }
     if (this.el.isConnected) for (const n of fit) this.fit(n);
     else this.pendingFit.push(...fit);
+  }
+
+  private paintHolder(node: HTMLElement, ctx: Ctx, item: Item): void {
+    const h = elementHtml(ctx, item.el);
+    node.className = `fs-el fs-${h.kind}${item.el.ph ? ' is-ph' : ''}${item.prompt ? ' is-prompt is-virtual' : ''}${item.el.locked ? ' is-locked' : ''}`;
+    node.dataset.id = item.prompt ? '' : item.el.id;
+    if (item.prompt) node.dataset.ph = item.key;
+    else delete node.dataset.ph;
+    node.setAttribute('style', h.box);
+    node.innerHTML = h.inner;
   }
 
   private pendingFit: HTMLElement[] = [];

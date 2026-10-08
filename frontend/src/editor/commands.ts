@@ -63,6 +63,24 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     const allOn = els.every((e) => (e.text?.paras ?? []).every((p) => p.runs.every((r) => r.t === '' || !!(r[key] ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0)[key as 'b' | 'i']))));
     apply(runStyleOps(ed.doc.deck, s, els, { [key]: allOn ? false : true }), label);
   };
+  const scriptToggle = (key: 'sup' | 'sub', label: string): void => {
+    const ed = E();
+    const s = slide();
+    if (!ed || !s) return;
+    if (ed.stage.editing && ed.stage.editFormat(key === 'sup' ? 'superscript' : 'subscript')) return;
+    const els = textSel();
+    const allOn = els.length > 0 && els.every((e) => (e.text?.paras ?? []).every((p) => p.runs.every((r) => r.t === '' || !!r[key])));
+    apply(runStyleOps(ed.doc.deck, s, els, allOn ? { [key]: undefined } : { [key]: true, [key === 'sup' ? 'sub' : 'sup']: undefined }), label);
+  };
+  const capsToggle = (mode: 'all' | 'small'): void => {
+    const ed = E();
+    const s = slide();
+    if (!ed || !s) return;
+    if (ed.stage.editing) ed.stage.endEdit();
+    const els = textSel();
+    const allOn = els.length > 0 && els.every((e) => (e.text?.paras ?? []).every((p) => p.runs.every((r) => r.t === '' || (r.caps ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0).caps) === mode)));
+    apply(runStyleOps(ed.doc.deck, s, els, { caps: allOn ? undefined : mode }), mode === 'all' ? 'All caps' : 'Small caps');
+  };
   const runOn = (key: 'b' | 'i' | 'u' | 's'): boolean => {
     const ed = E();
     const s = slide();
@@ -173,6 +191,10 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'clear-format', label: 'Clear Formatting', keys: ['Mod+\\'], icon: 'clearFormat', enabled: () => textSel().length > 0, run: () => { const s = slide(); const ed = E(); if (s && ed) apply(runStyleOps(ed.doc.deck, s, textSel(), { b: undefined, i: undefined, u: undefined, s: undefined, color: undefined, sz: undefined, font: undefined, hl: undefined }), 'Clear formatting'); } },
     { id: 'text-color', label: 'Text Colour...', icon: 'textColor', enabled: () => textSel().length > 0 || editing(), run: () => h.textColor() },
     { id: 'highlight', label: 'Highlight...', icon: 'highlight', enabled: () => textSel().length > 0 || editing(), run: () => h.highlight() },
+    { id: 'superscript', label: 'Superscript', keys: ['Shift+Mod+='], icon: 'superscript', enabled: () => textSel().length > 0 || editing(), checked: () => textSel().some((e) => (e.text?.paras ?? []).some((p) => p.runs.some((r) => r.t && r.sup))), run: () => scriptToggle('sup', 'Superscript') },
+    { id: 'subscript', label: 'Subscript', keys: ['Shift+Mod+-'], icon: 'subscript', enabled: () => textSel().length > 0 || editing(), checked: () => textSel().some((e) => (e.text?.paras ?? []).some((p) => p.runs.some((r) => r.t && r.sub))), run: () => scriptToggle('sub', 'Subscript') },
+    { id: 'all-caps', label: 'All Caps', keys: ['Shift+Mod+A'], icon: 'allCaps', enabled: () => textSel().length > 0, run: () => capsToggle('all') },
+    { id: 'small-caps', label: 'Small Caps', icon: 'smallCaps', enabled: () => textSel().length > 0, run: () => capsToggle('small') },
     { id: 'insert-link', label: 'Link...', keys: ['Mod+K'], icon: 'link', enabled: () => editing() || sel().length > 0, run: () => { const ed = E(); if (ed) void import('../ui/link-dialog').then((m) => m.linkDialog(ed)); } },
     { id: 'fill-color', label: 'Fill Colour...', icon: 'fill', enabled: () => textSel().length > 0, run: () => h.fillColor() },
     { id: 'line-color', label: 'Outline Colour...', icon: 'pen', enabled: () => sel().some((e) => e.type === 'shape' || e.type === 'image'), run: () => h.lineColor() },
