@@ -229,10 +229,6 @@ export class Inspector {
         create: (c) => el(`<div class="fs-row is-stack"><div class="fs-row-avatar${c.kind === 'agent' ? ' is-agent' : ''}">${c.kind === 'agent' ? icon('agent', 14) : escapeHtml(c.author.slice(0, 2).toUpperCase())}</div><div class="fs-row-main"><div class="fs-row-title">${escapeHtml(c.author)}</div><div class="fs-row-text"></div></div><button class="fs-icon-btn is-sm" type="button" title="Resolve" data-resolve="${c.id}">${icon('check', 14)}</button></div>`),
         update: (n, c) => setText(n.querySelector('.fs-row-text'), c.text + (c.replies?.length ? `  (${c.replies.length} repl${c.replies.length === 1 ? 'y' : 'ies'})` : '')),
       });
-      for (const n of Array.from(list.children) as HTMLElement[]) {
-        const c = comments.find((x) => x.id === n.dataset.key);
-        if (c) setText(n.querySelector('.fs-row-text'), c.text);
-      }
     }
     setText(this.design.querySelector('.fs-tpl-name'), deck.template?.name ?? deck.theme.name ?? 'Custom');
     setText(this.design.querySelector('.fs-font-major'), deck.theme.fonts.major);

@@ -11,7 +11,7 @@
 .fs-flow { min-height: 0; flex: none; outline: none; overflow-wrap: break-word; word-break: normal; caret-color: var(--accent-color); cursor: inherit; user-select: text; -webkit-user-select: text; }
 .fs-flow[contenteditable="true"] { cursor: text; }
 .fs-p { margin: 0; padding: 0; white-space: pre-wrap; }
-.fs-bu { display: inline-block; text-decoration: none; font-style: normal; user-select: none; -webkit-user-select: none; }
+.fs-bu { display: inline-block; white-space: nowrap; text-decoration: none; font-style: normal; user-select: none; -webkit-user-select: none; }
 .fs-r[data-link] { cursor: pointer; }
 .fs-prompt .fs-r { opacity: 0.42; }
 .fs-imgbox { position: absolute; inset: 0; overflow: hidden; }

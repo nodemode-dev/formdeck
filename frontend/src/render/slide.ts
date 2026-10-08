@@ -48,7 +48,8 @@ function shapeSvg(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
     if (shade && !lineOnly) body += `<path d="${p.d}" fill="${shade}"${rule} stroke="none"/>`;
   }
   const filter = cssFilter(el.effects, theme);
-  return `<svg class="fs-geom" viewBox="0 0 ${round(w)} ${round(h)}" width="${round(w)}" height="${round(h)}" preserveAspectRatio="none"${filter ? ` style="filter:${filter}"` : ''}>${fp.defs || st.defs ? `<defs>${fp.defs}${st.defs}</defs>` : ''}${body}</svg>`;
+  const bw = lineOnly ? Math.max(1, w) : w, bh = lineOnly ? Math.max(1, h) : h;
+  return `<svg class="fs-geom" viewBox="0 0 ${round(bw)} ${round(bh)}" width="${round(bw)}" height="${round(bh)}" preserveAspectRatio="none"${filter ? ` style="filter:${filter}"` : ''}>${fp.defs || st.defs ? `<defs>${fp.defs}${st.defs}</defs>` : ''}${body}</svg>`;
 }
 
 function textBlock(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {

@@ -240,7 +240,7 @@ export class AgentBridge {
       this.h.notice(`Exporting ${plural(ids.length, 'slide')} as ${label} for an agent`);
       const r = await this.compose(deck, { format, slides: ids, scale: args.scale === undefined ? undefined : num(args.scale, 2), path: str(args.path) || undefined });
       this.h.notice(`Exported ${label} to ${r.path}`);
-      return ok(`Exported ${plural(ids.length, 'slide')} as ${label}: ${r.path} (${r1(r.bytes / 1048576)} MB). Download: ${r.url}`, { path: r.path, bytes: r.bytes, url: r.url });
+      return ok(`Exported ${plural(ids.length, 'slide')} as ${label}: ${r.path} (${r1(r.bytes / 1048576)} MB).${r.url ? ` Download: ${r.url}` : ''}`, { path: r.path, bytes: r.bytes, url: r.url });
     });
   }
 
