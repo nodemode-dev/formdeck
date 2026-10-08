@@ -10,8 +10,8 @@ _IMG = r"(image|photo|picture|pic)"
 STRONG_NAMES = [
     (r"\bagenda\b|table of contents|\bcontents\b|\boutline\b", "agenda"),
     (r"\bquote\b|\bquotes\b|testimonial", "quote"),
+    (r"\bstats?\b|\bstatistics\b|\bmetrics\b", "stats"),
     (r"big number|statistic|\bnumber\b|\bkpi\b", "bigNumber"),
-    (r"\bstats\b|\bmetrics\b", "stats"),
     (r"thank|closing|\bend\b|contact|questions", "closing"),
     (rf"{_IMG}.*\bleft\b|\bleft\b.*{_IMG}", "imageLeft"),
     (rf"{_IMG}.*\bright\b|\bright\b.*{_IMG}", "imageRight"),
