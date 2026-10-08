@@ -67,7 +67,7 @@ The contracts every part of formsld reads and writes: the deck model (`deck.json
   "spec": { "layout": "content", "title": "Pipeline", "bullets": ["..."] } }
 ```
 
-`spec` keeps the deck-spec entry the slide was compiled from, so the slide can be rebuilt in another template; any hand edit to a slide clears its `spec.dirty` to true and rebuilding then asks first. `review.status` is `draft`, `review` (ready for the person), `changes` (the person asked for changes) or `approved`.
+`spec` keeps the deck-spec entry the slide was compiled from, so the slide can be rebuilt in another template; any hand edit to a slide sets its `spec.dirty` to true. A clean slide is recompiled from its spec when the template or its semantic layout changes; a dirty slide keeps its elements, which move into the matching slots of the new layout. `review.status` is `draft`, `review` (ready for the person), `changes` (the person asked for changes) or `approved`.
 
 ## Colours, fills, lines, effects
 
@@ -108,7 +108,7 @@ Every element has:
 | --- | --- |
 | `id` | unique in the deck |
 | `type` | `shape`, `image`, `table`, `chart`, `group`, `media` |
-| `name` | optional label shown in the Selection pane |
+| `name` | optional label (PowerPoint's shape name, kept through .pptx import and export) |
 | `x`, `y`, `w`, `h` | the frame in points before rotation; may be absent on a placeholder (inherited) |
 | `rot`, `flipH`, `flipV` | rotation about the centre in degrees, mirror flags |
 | `ph` | `{ "type": "title", "idx": 0 }` when the element fills a placeholder (see below) |
@@ -209,10 +209,10 @@ Readers ignore files they do not know. Writers write `mimetype` first and store 
 A template is a deck with no required slides: its theme, masters and layouts, plus `template` metadata, and optional sample slides that show it off.
 
 ```json
-{ "id": "aurora", "name": "Aurora", "category": "Pitch", "tags": ["bold", "gradient"], "source": "builtin", "license": "Apache-2.0", "description": "...", "preview": "thumbs/s1.webp" }
+{ "id": "aurora", "name": "Aurora", "category": "Pitch", "tags": ["bold", "gradient"], "source": "builtin", "license": "Apache-2.0", "description": "...", "style": { "bg": "...", "fg": "...", "motif": "...", "dark": true } }
 ```
 
-Built-in templates ship as code (`backend/app/services/templates/`) and are generated on demand; imported templates are stored in the library as `.fsld` packages under `Templates/`. Every built-in template has a layout for each of the 21 semantic names:
+Built-in templates ship as code (`backend/app/services/templates/`), are generated on demand and carry `style` hints for the compiler. Imported templates (a .pptx or .potx opened as a template) and decks saved as templates are stored in the library as `Templates/[template id]/template.json`: a whole deck.json whose theme, masters and layouts make the template (any slides it carries are kept in the file but never copied into new decks), with `template.source` `imported`, `category` `Imported` and `license` `user`; the media it names live in the library's `Media/` folder. Every built-in template has a layout for each of the 21 semantic names:
 
 | Semantic | Slots |
 | --- | --- |
@@ -224,7 +224,7 @@ Built-in templates ship as code (`backend/app/services/templates/`) and are gene
 | `comparison` | title, heading, body, heading2, body2 |
 | `imageLeft`, `imageRight` | title, body, image |
 | `imageFull` | image, title, subtitle |
-| `gallery` | title, image, image2, image3, image4 |
+| `gallery` | title, image, image2, image3 (three pictures side by side) |
 | `bigNumber` | number, caption, title |
 | `stats` | title, stat1, label1, stat2, label2, stat3, label3 |
 | `quote` | quote, by |
@@ -248,7 +248,7 @@ Every change to a deck is a list of ops applied in order. Paths are arrays of ke
 { "op": "move", "path": ["slides"], "id": "s3", "index": 0 }
 ```
 
-`set` with `value` absent deletes the key. `ins` without `index` appends. A step is `{ "label": "Move", "origin": "user", "ops": [...] }`; the engine computes the inverse when it applies a step, and undo applies the inverse. Every applied step raises the deck's revision by one.
+`set` with `value` absent deletes the key. `ins` without `index` appends. `del` names the item by `id` or `index`; `move` names it by `id` (or `from`, an index) and gives the target `index`. A step is `{ "label": "Move", "origin": "user", "ops": [...] }`; the engine computes the inverse when it applies a step, and undo applies the inverse. Every applied step raises the deck's revision by one.
 
 ## Deck spec and slide script
 
