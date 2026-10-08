@@ -183,7 +183,7 @@ A layout's placeholders show in the editor as prompts ("Click to add title") on 
 
 `transition`: `{ "type": "fade", "duration": 0.6, "dir": "l", "advanceOnClick": true, "advanceAfter": null }`. Types: `none`, `fade`, `push`, `wipe`, `split`, `cover`, `uncover`, `zoom`, `reveal`, `flip`, `cube`, `morph`. `dir` is `l`, `r`, `u`, `d`.
 
-`animations[]`: `{ "id": "a1", "target": "e4", "effect": "fadeIn", "class": "entr", "trigger": "onClick", "duration": 0.5, "delay": 0, "byParagraph": false, "dir": "u" }`. `class` is `entr`, `emph` or `exit`. Entrance effects: `appear`, `fadeIn`, `flyIn`, `floatIn`, `wipeIn`, `zoomIn`, `riseUp`, `split`. Emphasis: `pulse`, `spin`, `grow`, `teeter`, `colorPulse`. Exit: `disappear`, `fadeOut`, `flyOut`, `zoomOut`, `wipeOut`. `trigger` is `onClick`, `withPrevious` or `afterPrevious`.
+`animations[]`: `{ "id": "a1", "target": "e4", "effect": "fadeIn", "class": "entr", "trigger": "onClick", "duration": 0.5, "delay": 0, "byParagraph": false, "dir": "u" }`. `class` is `entr`, `emph` or `exit`. Entrance effects: `appear`, `fadeIn`, `flyIn`, `floatIn`, `riseUp`, `wipeIn`, `split`, `zoomIn`, `growTurn`, `swivel`, `wheel`, `bounce`. Emphasis: `pulse`, `colorPulse`, `teeter`, `spin`, `grow`, `transparency`. Exit: `disappear`, `fadeOut`, `flyOut`, `floatOut`, `wipeOut`, `splitOut`, `zoomOut`, `shrinkTurn`, `swivel`, `wheel`. `dir`: fly and wipe `l`, `r`, `u`, `d`; float `u` or `d`; split `l` (vertical) or `u` (horizontal); spin `r` or `l`. Animations round-trip through .pptx as the main timing sequence with PowerPoint preset ids; motion paths and trigger sequences are dropped on import with a warning. `trigger` is `onClick`, `withPrevious` or `afterPrevious`.
 
 ## Review, comments, history
 

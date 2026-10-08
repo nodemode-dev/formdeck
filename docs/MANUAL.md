@@ -1,6 +1,6 @@
 # formsld manual
 
-formsld makes presentations, pitch decks and PDFs. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.2.2. Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formsld makes presentations, pitch decks and PDFs. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.3.0. Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -79,8 +79,8 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 | File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, PDF, Pictures, formsld file), Print, Open PDF Workbench, Delete Deck |
 | Edit | Undo, Redo, Undo Agent Turn, Cut, Copy, Paste, Duplicate, Delete, Select All, Find and Replace |
 | View | Normal, Slide Sorter, Outline, zoom, show or hide the slides panel, properties panel and speaker notes |
-| Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Table, Chart, New Comment |
-| Format | Bold, Italic, Underline, Strikethrough, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Alt Text |
+| Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Table, Table (rows, columns, merge, split, distribute, header and banded rows), Chart, Link, New Comment |
+| Format | Bold, Italic, Underline, Strikethrough, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Alt Text, Table Style |
 | Slide | New, Duplicate, Delete, Hide Slide, Layout, Reset Slide, Format Background, Change Template, Slide Size, Add Section, Rename Section |
 | Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock |
 | Review | Check Deck, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
@@ -105,19 +105,25 @@ Click a thumbnail to go to a slide; Shift or Mod click to select several; drag t
 
 ### Text
 
-Use the toolbar or Format menu for font, size, bold, italic, underline, strikethrough, colour, highlight, alignment, bullets, numbering, list levels and vertical alignment. Increase and Decrease Font Size step through the usual sizes; Clear Formatting removes run formatting. In the Format tab, Autofit chooses Off, Shrink (text shrinks to fit) or Grow (the box grows), and Columns splits a text box into 1 to 3 columns. Fonts come from the theme (heading and body) or the font list, which can be searched.
+Use the toolbar or Format menu for font, size, bold, italic, underline, strikethrough, colour, highlight, alignment, bullets, numbering, list levels and vertical alignment. Increase and Decrease Font Size step through the usual sizes; Clear Formatting removes run formatting. In the Format tab, Autofit chooses Off, Shrink (text shrinks to fit) or Grow (the box grows), Columns splits a text box into 1 to 3 columns, Line spacing sets the spacing between lines, Paragraph sets the space before and after each paragraph, and Character spacing loosens or tightens the letters. Fonts come from the theme (heading and body) or the font list, which can be searched.
+
+**Links** (Insert > Link or Mod+K): while typing, select some text and link it to a web address or to a slide in the deck; with an object selected instead, the whole object becomes the link. Remove link takes it off. Links are followed in the slideshow and kept in PowerPoint files.
 
 ### Shapes
 
-Insert > Shapes (or the toolbar) opens a gallery of the Office preset shapes in groups; click one to place it in the middle of the slide. Line and Arrow draw a straight line or arrow. Fill Colour and Outline Colour offer the theme colours with their tints and shades, standard colours, a custom colour and No fill or No outline. Double-click a shape to type in it.
+Insert > Shapes (or the toolbar) opens a gallery of the Office preset shapes in groups; click one to place it in the middle of the slide. Line and Arrow draw a straight line or arrow. Fill Colour and Outline Colour offer the theme colours with their tints and shades, standard colours, a custom colour and No fill or No outline. Double-click a shape to type in it. The Effects section of the Format tab adds a shadow (Soft, Below, Hard, Long), a glow (Small, Medium, Large) or soft edges to shapes and pictures.
 
 ### Pictures
 
-Insert > Picture, drop, or paste a picture. In the Format tab: Fit (Fill, Fit, Stretch), Shape (Square, Round, Circle), Grayscale and Alt text. Replace Picture keeps the frame and swaps the file. Animated GIFs play on the slide and in the show.
+Insert > Picture, drop, or paste a picture. In the Format tab: Fit (Fill, Fit, Stretch), Shape (Square, Round, Circle), Grayscale, Brightness, Contrast, Saturation, Blur, Crop (a percentage off each side), Reset picture and Alt text. Replace Picture keeps the frame and swaps the file. Animated GIFs play on the slide and in the show.
 
 ### Tables
 
-Insert > Table: hover the grid to pick a size or type columns and rows, then choose a style and whether to show a header row and banded rows. A table placeholder on a layout opens the same dialog. Table cells cannot yet be typed in on the slide; ask an agent to fill a table, or build it in a slide script.
+Insert > Table: hover the grid to pick a size or type columns and rows, then choose a style and whether to show a header row and banded rows. A table placeholder on a layout opens the same dialog.
+
+- **Typing**: double-click a cell (or press Enter or F2 with the table selected). Tab moves to the next cell and adds a row at the end of the table; Shift+Tab goes back; the arrow keys cross into the next cell at the edge of the text; Esc stops typing. Rows grow to fit what you type. Bold, italic, colours and the other text buttons work on the selected text in a cell.
+- **Selecting cells**: click a selected table once more to select a cell, then drag or Shift+click for a range (it grows to include whole merged cells); the arrow keys and Shift+arrows move and extend it; Delete clears the text. Drag the thin strips just outside a selected table's edges to move it.
+- **Rows, columns and merges** (Insert > Table, the table toolbar, or right-click): insert rows above or below and columns left or right, delete rows or columns, merge and split cells, distribute rows and columns evenly, select the whole table, and toggle the header row and banded rows. Format > Table Style switches between None, Light, Medium, Dark, Lines and Grid. Merged cells stay merged in PowerPoint files.
 
 ### Charts
 
@@ -135,10 +141,11 @@ Arrange holds Bring to Front, Bring Forward, Send Backward, Send to Back, Align 
 
 Two tab groups, each collapsible:
 
-- **Format**: position, size, rotation and opacity for the selection; Autofit and Columns for text; Fit, Shape, Grayscale and Alt text for pictures. With nothing selected it says how to start.
+- **Format**: position, size, rotation and opacity for the selection; Autofit, Columns, Line spacing, Paragraph and Character spacing for text; shadow, glow and soft edges under Effects; Fit, Shape, the picture adjustments, Crop and Alt text for pictures. With nothing selected it says how to start.
 - **Slide**: the layout grid for the current slide (click a layout to apply it), Background, Hidden, Transition (None, Fade, Push, Wipe, Split, Cover, Uncover, Zoom, Reveal, Flip, Cube, Morph), Duration and Apply to all.
-- **Design**: the current template with Change template, the theme colours and fonts, and the slide size.
-- **Review**: the slide's status (Draft, Review, Changes, Approved), the open comments with Resolve, and a box to post a comment (Enter posts).
+- **Design**: the current template with Change template, the theme colours (click one to change it on every slide), the heading and body fonts (pick from the list), and the slide size.
+- **Animate**: add an entrance, emphasis or exit effect to the selected object, with its start (On click, With previous, After previous), duration, delay, direction and By paragraph for text. The list below shows the slide's animations in order with their click numbers; select one to edit it, move it up or down, or delete it. Preview plays them on the slide. Numbers beside objects on the slide show their order while the tab is open, and a badge marks animated slides in the slides panel. Animations are kept in PowerPoint files both ways.
+- **Review**: the slide's status (Draft, Review, Changes, Approved), the open comments with their replies, a Reply box under each comment, Resolve, and a box to post a comment (Enter posts).
 - **Agent**: the switch that lets outside agents edit, Copy a prompt for your agent, and an Activity list of recent agent steps.
 
 ### Slide size and background
@@ -156,7 +163,7 @@ Edit > Find and Replace (Mod+F) searches every text box, speaker notes included,
 
 ### Comments and review status
 
-Every slide has a review status: Draft, Review (ready for the person), Changes (changes requested) or Approved. Set it in the Review tab, the Review menu or the toolbar; it applies to every selected slide. New Comment (Alt+Mod+M) adds a comment to the current slide; Resolve hides it. Agents read and write the same comments and statuses, and they leave their work in Review for you to approve.
+Every slide has a review status: Draft, Review (ready for the person), Changes (changes requested) or Approved. Set it in the Review tab, the Review menu or the toolbar; it applies to every selected slide. New Comment (Alt+Mod+M) adds a comment to the current slide; type in a comment's Reply box and press Enter to answer it; Resolve hides it. Agents read and write the same comments and statuses, and they leave their work in Review for you to approve.
 
 Review > Check Deck runs the same checks agents use: text that overflows (measured on the rendered slides), text too small or too low in contrast, pictures without alt text or too low in resolution, elements off the slide or overlapping, empty placeholders and wordy slides. It gives a score and one line per issue with a fix; click a line to go to that slide and element.
 
@@ -187,6 +194,7 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | Slide | New Slide | Mod+M |
 | | Duplicate Slide | Shift+Mod+D |
 | Format | Bold, Italic, Underline | Mod+B, Mod+I, Mod+U |
+| Insert | Link | Mod+K |
 | | Strikethrough | Shift+Mod+X |
 | | Increase, Decrease Font Size | Shift+Mod+. and Shift+Mod+, |
 | | Clear Formatting | Mod+\ |
@@ -251,7 +259,7 @@ File > Open PDF Workbench, Home > PDF workbench, or open or drop a .pdf. The wor
 
 ## Import, export and print
 
-- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx, .pptm and .pdf. A toast lists anything PowerPoint content formsld could not keep (for example animations, ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx or .pdf) opens it: decks open in the editor, PDFs in the workbench.
+- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx, .pptm and .pdf. A toast lists anything PowerPoint content formsld could not keep (for example motion paths, ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx or .pdf) opens it: decks open in the editor, PDFs in the workbench.
 - **Google Slides**: download your presentation as .pptx and open it; to go back, export .pptx and upload it to Drive, then Open with Google Slides.
 - **Export** (File > Export or the Export button):
   - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts are not embedded; the computer that opens it needs the template's fonts or substitutes similar ones.

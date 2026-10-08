@@ -1,6 +1,6 @@
 # formsld parity
 
-How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader and its common tools) formsld 0.2.2 covers, measured row by row against its own code. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at 0.2.2 (flip and rotate commands, Check Deck).
+How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader and its common tools) formsld 0.3.0 covers, measured row by row against its own code. Compiled 8 October 2026 from the tree at 0.2.1, re-scored at 0.2.2 (flip and rotate, Check Deck) and at 0.3.0 (spacing, links, effects, picture adjustments and crop, table editing, theme editing, comment replies, the Animate tab and animations in .pptx).
 
 ## Method
 
@@ -16,18 +16,18 @@ How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader an
 | --- | --- | --- | --- |
 | File and templates | 8 of 8 · 100% | 8 of 8 · 100% | not offered |
 | Slides and layouts | 10 of 10 · 100% | 7 of 7 · 100% | not offered |
-| Masters and themes | 1 of 3 · 33% | 1 of 3 · 33% | not offered |
-| Text | 8 of 12 · 67% | 7 of 9 · 78% | not offered |
+| Masters and themes | 1.5 of 3 · 50% | 1.5 of 3 · 50% | not offered |
+| Text | 9 of 12 · 75% | 8 of 9 · 89% | not offered |
 | Shapes and drawing | 4 of 7 · 57% | 4 of 6 · 67% | not offered |
-| Pictures and media | 4.5 of 8 · 56% | 4.5 of 8 · 56% | not offered |
-| Tables | 2 of 3 · 67% | 2 of 3 · 67% | not offered |
+| Pictures and media | 5.5 of 8 · 69% | 5.5 of 8 · 69% | not offered |
+| Tables | 3 of 3 · 100% | 3 of 3 · 100% | not offered |
 | Charts | 4 of 5 · 80% | 4 of 5 · 80% | not offered |
 | Diagrams and SmartArt | 0.5 of 2 · 25% | 0.5 of 1 · 50% | not offered |
 | Arrange and align | 5 of 7 · 71% | 4 of 5 · 80% | not offered |
 | Transitions | 3 of 3 · 100% | 2 of 2 · 100% | not offered |
-| Animations | 0.5 of 4 · 12.5% | 0.5 of 3 · 17% | not offered |
+| Animations | 3 of 4 · 75% | 3 of 3 · 100% | not offered |
 | Slideshow and presenter | 5 of 9 · 56% | 5 of 9 · 56% | not offered |
-| Review and comments | 1 of 3 · 33% | 1 of 2 · 50% | 1 of 3 · 33% |
+| Review and comments | 1.5 of 3 · 50% | 1.5 of 2 · 75% | 1.5 of 3 · 50% |
 | Collaboration and sharing | 1.5 of 4 · 38% | 1.5 of 4 · 38% | 1 of 2 · 50% |
 | Accessibility | 1.5 of 4 · 38% | 0.5 of 2 · 25% | 1.5 of 4 · 38% |
 | Import and export | 4.5 of 8 · 56% | 4.5 of 6 · 75% | 3 of 3 · 100% |
@@ -40,9 +40,9 @@ How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader an
 | PDF convert | not offered | not offered | 6 of 10 · 60% |
 | Automation and agents | 1 of 3 · 33% | 1 of 3 · 33% | 1 of 3 · 33% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **67 of 105 · 63.8%** | **60 of 88 · 68.2%** | **35.5 of 56 · 63.4%** |
+| **Overall** | **73.5 of 105 · 70.0%** | **66.5 of 88 · 75.6%** | **36 of 56 · 64.3%** |
 
-Across all 151 scored rows (the union of the three products plus the rows where formsld leads), formsld has 85 full, 30 partial and 36 none: 100 of 151 points, 66.2%.
+Across all 151 scored rows (the union of the three products plus the rows where formsld leads), formsld has 96 full, 21 partial and 34 none: 106.5 of 151 points, 70.5%.
 
 ## Where formsld leads
 
@@ -50,16 +50,16 @@ Rows formsld implements that the product does not offer:
 
 - **Over PowerPoint (37 rows):** the whole PDF workbench (viewing, annotation, fill and sign, organize, protect and redact, convert: 30 rows), per-slide review status, and six agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, and a headless `build-deck` command.
 - **Over Google Slides (44 rows):** the same 37, plus sections, outline view, reset slide, text columns, object lock, morph and the Check Deck accessibility checker.
-- **Over Acrobat (73 rows):** the whole deck editor, from templates and layouts through charts, transitions and the show, plus review status and the agent rows.
+- **Over Acrobat (75 rows):** the whole deck editor, from templates and layouts through charts, transitions, animations and the show, plus review status and the agent rows.
 - **Drafting from material:** PowerPoint (Copilot) and Google Slides (Gemini) both draft decks, so this row scores against them, but formsld does it locally from md, pdf, docx, pptx, csv, xlsx, pictures and notes in one dialog (`backend/app/services/autodraft.py draft`), with no model and no account, and hands the same intake to an outside agent.
 
 ## Where formsld trails most
 
-- **Animations, 0.5 of 4.** The show plays entrance, emphasis and exit effects, but there is no animation pane, and .pptx import and export drop them.
-- **Masters and themes, 1 of 3.** No master view; theme colours and fonts change only by switching template or through an agent.
-- **Diagrams, accessibility, review and sharing.** No SmartArt editor, no reading order or tagged PDF, no comment replies in the UI, no share links, and co-editing stops at one computer.
+- **Motion paths.** The Animate tab, the show and the .pptx round trip cover entrance, emphasis and exit effects; motion paths are not built and are dropped on import with a warning.
+- **Masters and themes, 1.5 of 3.** Theme colours and fonts are edited in the Design tab, but there is no master view and only one master per deck.
+- **Diagrams, accessibility, review and sharing.** No SmartArt editor, no reading order or tagged PDF, no @mentions, no share links, and co-editing stops at one computer.
 - **PDF forms and signing, 3 of 6.** Filling, flattening and placed signatures work; certificate signatures, signature requests and form creation do not exist.
-- **Many partial rows are model-only.** Line spacing, character spacing, hyperlinks, shape effects, picture adjustments, table cell editing and merged cells are rendered and round-trip through .pptx but have no control in the editor. Each is a cheap win: the ops already exist (`frontend/src/editor/actions.ts`).
+- **A few model-only rows remain.** Caps, superscript and subscript, and shape reflections are rendered and round-trip through .pptx but have no control in the editor yet; the ops already exist (`frontend/src/editor/actions.ts`).
 
 ## Line by line
 
@@ -95,7 +95,7 @@ Rows formsld implements that the product does not offer:
 
 | Capability | PowerPoint | Slides | Acrobat | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Theme colours and fonts | yes | yes | no | Partial | shown read-only in `inspector.ts` Design tab; changed only by agents (`routers/mcp.py set_theme`) or by changing template |
+| Theme colours and fonts | yes | yes | no | Full | `inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme` |
 | Edit slide masters and layouts | yes | yes | no | None | no master view in `frontend/src/editor`; masters arrive from templates and imports |
 | Several masters in one deck | yes | yes | no | Partial | `model.ts Deck.masters` is a list, but `services/pptx/reader.py` keeps the first master's theme and warns |
 
@@ -108,9 +108,9 @@ Rows formsld implements that the product does not offer:
 | Paragraph alignment and vertical anchor | yes | yes | no | Full | `commands.ts text-align-*, anchor-*` |
 | Autofit (shrink text, grow box) | yes | yes | no | Full | `frontend/src/render/text.ts fitText`, `inspector.ts` Autofit |
 | Text columns | yes | no | no | Full | `inspector.ts` Columns 1 to 3 |
-| Line and paragraph spacing controls | yes | yes | no | Partial | `model.ts Para.lineSpacing, spaceBefore` rendered and round-tripped; no control in the toolbar or inspector |
-| Character spacing, caps, superscript, subscript | yes | yes | no | Partial | `model.ts Run.spc, caps, sup, sub` rendered; no UI |
-| Hyperlinks | yes | yes | no | Partial | `model.ts Link`, followed in `present/show.ts openUrl`, round-tripped in `pptx/write_text.py hyperlink_element`; no insert-link command |
+| Line and paragraph spacing controls | yes | yes | no | Full | `inspector.ts` Text box: Line spacing, Paragraph before and after (`paraStyleOps`) |
+| Character spacing, caps, superscript, subscript | yes | yes | no | Partial | Character spacing in `inspector.ts` (`runStyleOps spc`); `Run.caps, sup, sub` rendered without a control |
+| Hyperlinks | yes | yes | no | Full | Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py` |
 | Find and replace | yes | yes | no | Full | `dialogs-insert.ts FindPanel` (match case, whole word) |
 | Spell check | yes | yes | no | Partial | browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings |
 | WordArt and text effects | yes | no | no | None | `pptx/read_elements.py` approximates WordArt with a font size |
@@ -123,7 +123,7 @@ Rows formsld implements that the product does not offer:
 | Preset shapes gallery | yes | yes | no | Full | `frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop` |
 | Lines, arrows and connectors | yes | yes | no | Partial | `commands.ts insert-line, insert-arrow`; connectors do not glue to shapes |
 | Shape fill and outline colour | yes | yes | no | Full | `commands.ts colorOps`, `frontend/src/ui/colorpop.ts pickColor` |
-| Shape effects: shadow, glow, soft edge, reflection | yes | yes | no | Partial | `model.ts Effects` rendered and round-tripped; no UI to set them |
+| Shape effects: shadow, glow, soft edge, reflection | yes | yes | no | Partial | `inspector.ts` Effects: shadow presets, glow, soft edges for shapes and pictures; no reflection |
 | Freeform and scribble drawing | yes | yes | no | None | custom `path` exists in the model but no drawing tool |
 | Edit points and merge shapes | yes | no | no | None | nothing found |
 | Smart guides and snapping | yes | yes | no | Full | `editor/stage.ts snap` and guides; Alt-drag skips snapping |
@@ -133,8 +133,8 @@ Rows formsld implements that the product does not offer:
 | Capability | PowerPoint | Slides | Acrobat | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Insert pictures by file, drop or paste | yes | yes | no | Full | `editor/editor.ts pickImage, insertFiles`, `app.ts` paste and drop |
-| Crop and crop to shape | yes | yes | no | Partial | `inspector.ts` Fit (fill, fit, stretch) and Shape mask (square, round, circle); no crop handles, `crop` only from imports and agents |
-| Picture adjustments | yes | yes | no | Partial | Grayscale in `inspector.ts`; brightness, contrast, saturation, blur in `model.ts ImageElement.adjust` without UI |
+| Crop and crop to shape | yes | yes | no | Full | `inspector.ts` Crop (left, right, top, bottom), Fit (fill, fit, stretch) and Shape mask (square, round, circle); no drag crop handles |
+| Picture adjustments | yes | yes | no | Full | `inspector.ts` Brightness, Contrast, Saturation, Blur, Grayscale and Reset picture |
 | Generate or edit pictures with AI | yes | yes | no | None | nothing found |
 | Stock pictures and icons library | yes | yes | no | None | nothing found |
 | Video and audio with start, end, loop and autoplay | yes | yes | no | Partial | `editor.ts pickImage` inserts media, `present/show.ts` plays start, end and loop; no trim UI |
@@ -146,8 +146,8 @@ Rows formsld implements that the product does not offer:
 | Capability | PowerPoint | Slides | Acrobat | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Insert a table with a style | yes | yes | no | Full | `dialogs-insert.ts TableDlg` (size grid, six styles, header row, banded rows) |
-| Type in table cells | yes | yes | no | Partial | `editor/stage.ts dbl` edits shapes only; cells change through agents (`mcp.py edit_elements`) |
-| Merge cells, add and remove rows and columns | yes | yes | no | Partial | `model.ts TableCell.span, merged` rendered and round-tripped; no UI |
+| Type in table cells | yes | yes | no | Full | `editor/stage.ts beginCell, stepCell, commitCell`: double-click, Enter or F2, Tab between cells, rows grow to fit |
+| Merge cells, add and remove rows and columns | yes | yes | no | Full | `editor/table-edit.ts registerTableCommands` (rows, columns, merge, split, distribute, styles), round-tripped in `pptx/read_table.py, write_table.py` |
 
 ### Charts
 
@@ -190,10 +190,10 @@ Rows formsld implements that the product does not offer:
 
 | Capability | PowerPoint | Slides | Acrobat | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Entrance, emphasis and exit effects in the show | yes | yes | no | Partial | `present/show.ts buildSteps`, `effects.ts effectFx` play `slide.animations`; only agents can add them (`mcp.py update_slide`) |
-| Animation pane, order and triggers | yes | yes | no | None | no authoring UI in `frontend/src/editor` |
+| Entrance, emphasis and exit effects in the show | yes | yes | no | Full | `present/show.ts buildSteps`, `effects.ts effectFx` play `slide.animations`; added in the Animate tab or by agents (`mcp.py animate`) |
+| Animation pane, order and triggers | yes | yes | no | Full | `editor/animation-pane.ts AnimationPane`: add, reorder, edit start, duration, delay, direction, by paragraph; preview on the stage |
 | Motion paths | yes | no | no | None | nothing found |
-| Animations kept in .pptx | yes | yes | no | None | `pptx/reader.py` warns that animations were not imported; the writer does not write timing |
+| Animations kept in .pptx | yes | yes | no | Full | `pptx/write_anim.py insert_timing`, `read_anim.py read_timing`: main sequence with PowerPoint preset ids both ways; motion paths dropped with a warning |
 
 ### Slideshow and presenter
 
@@ -213,7 +213,7 @@ Rows formsld implements that the product does not offer:
 
 | Capability | PowerPoint | Slides | Acrobat | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Comments: add, list, resolve | yes | yes | yes | Partial | `inspector.ts` Review tab, `dialogs-insert.ts addComment`; replies only through agents (`mcp.py comments`), no mentions |
+| Comments: add, list, resolve | yes | yes | yes | Full | `inspector.ts` Review tab: add, reply, resolve; `dialogs-insert.ts addComment`; agents through `mcp.py comments`; no @mentions |
 | Review status per slide (draft, review, changes, approved) | no | no | no | Full | `commands.ts reviewStatus`, `inspector.ts` Review tab, `mcp.py review` |
 | Compare two versions | yes | no | yes | None | nothing found |
 | Activity: who changed what | yes | yes | yes | Partial | `inspector.ts addActivity` lists agent steps; labelled undo history in `store.py` |

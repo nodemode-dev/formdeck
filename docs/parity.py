@@ -42,7 +42,7 @@ row(a, "Speaker notes", 1, 1, 0, F, "`app.ts` notes pane, `editor.ts` notes bind
 row(a, "Reset slide to its layout", 1, 0, 0, F, "`commands.ts reset-slide`")
 
 a = "Masters and themes"
-row(a, "Theme colours and fonts", 1, 1, 0, P, "shown read-only in `inspector.ts` Design tab; changed only by agents (`routers/mcp.py set_theme`) or by changing template")
+row(a, "Theme colours and fonts", 1, 1, 0, F, "`inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme`")
 row(a, "Edit slide masters and layouts", 1, 1, 0, N, "no master view in `frontend/src/editor`; masters arrive from templates and imports")
 row(a, "Several masters in one deck", 1, 1, 0, P, "`model.ts Deck.masters` is a list, but `services/pptx/reader.py` keeps the first master's theme and warns")
 
@@ -52,9 +52,9 @@ row(a, "Bullets, numbering and list levels", 1, 1, 0, F, "`commands.ts bullets, 
 row(a, "Paragraph alignment and vertical anchor", 1, 1, 0, F, "`commands.ts text-align-*, anchor-*`")
 row(a, "Autofit (shrink text, grow box)", 1, 1, 0, F, "`frontend/src/render/text.ts fitText`, `inspector.ts` Autofit")
 row(a, "Text columns", 1, 0, 0, F, "`inspector.ts` Columns 1 to 3")
-row(a, "Line and paragraph spacing controls", 1, 1, 0, P, "`model.ts Para.lineSpacing, spaceBefore` rendered and round-tripped; no control in the toolbar or inspector")
-row(a, "Character spacing, caps, superscript, subscript", 1, 1, 0, P, "`model.ts Run.spc, caps, sup, sub` rendered; no UI")
-row(a, "Hyperlinks", 1, 1, 0, P, "`model.ts Link`, followed in `present/show.ts openUrl`, round-tripped in `pptx/write_text.py hyperlink_element`; no insert-link command")
+row(a, "Line and paragraph spacing controls", 1, 1, 0, F, "`inspector.ts` Text box: Line spacing, Paragraph before and after (`paraStyleOps`)")
+row(a, "Character spacing, caps, superscript, subscript", 1, 1, 0, P, "Character spacing in `inspector.ts` (`runStyleOps spc`); `Run.caps, sup, sub` rendered without a control")
+row(a, "Hyperlinks", 1, 1, 0, F, "Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py`")
 row(a, "Find and replace", 1, 1, 0, F, "`dialogs-insert.ts FindPanel` (match case, whole word)")
 row(a, "Spell check", 1, 1, 0, P, "browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings")
 row(a, "WordArt and text effects", 1, 0, 0, N, "`pptx/read_elements.py` approximates WordArt with a font size")
@@ -64,15 +64,15 @@ a = "Shapes and drawing"
 row(a, "Preset shapes gallery", 1, 1, 0, F, "`frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop`")
 row(a, "Lines, arrows and connectors", 1, 1, 0, P, "`commands.ts insert-line, insert-arrow`; connectors do not glue to shapes")
 row(a, "Shape fill and outline colour", 1, 1, 0, F, "`commands.ts colorOps`, `frontend/src/ui/colorpop.ts pickColor`")
-row(a, "Shape effects: shadow, glow, soft edge, reflection", 1, 1, 0, P, "`model.ts Effects` rendered and round-tripped; no UI to set them")
+row(a, "Shape effects: shadow, glow, soft edge, reflection", 1, 1, 0, P, "`inspector.ts` Effects: shadow presets, glow, soft edges for shapes and pictures; no reflection")
 row(a, "Freeform and scribble drawing", 1, 1, 0, N, "custom `path` exists in the model but no drawing tool")
 row(a, "Edit points and merge shapes", 1, 0, 0, N, "nothing found")
 row(a, "Smart guides and snapping", 1, 1, 0, F, "`editor/stage.ts snap` and guides; Alt-drag skips snapping")
 
 a = "Pictures and media"
 row(a, "Insert pictures by file, drop or paste", 1, 1, 0, F, "`editor/editor.ts pickImage, insertFiles`, `app.ts` paste and drop")
-row(a, "Crop and crop to shape", 1, 1, 0, P, "`inspector.ts` Fit (fill, fit, stretch) and Shape mask (square, round, circle); no crop handles, `crop` only from imports and agents")
-row(a, "Picture adjustments", 1, 1, 0, P, "Grayscale in `inspector.ts`; brightness, contrast, saturation, blur in `model.ts ImageElement.adjust` without UI")
+row(a, "Crop and crop to shape", 1, 1, 0, F, "`inspector.ts` Crop (left, right, top, bottom), Fit (fill, fit, stretch) and Shape mask (square, round, circle); no drag crop handles")
+row(a, "Picture adjustments", 1, 1, 0, F, "`inspector.ts` Brightness, Contrast, Saturation, Blur, Grayscale and Reset picture")
 row(a, "Generate or edit pictures with AI", 1, 1, 0, N, "nothing found")
 row(a, "Stock pictures and icons library", 1, 1, 0, N, "nothing found")
 row(a, "Video and audio with start, end, loop and autoplay", 1, 1, 0, P, "`editor.ts pickImage` inserts media, `present/show.ts` plays start, end and loop; no trim UI")
@@ -81,8 +81,8 @@ row(a, "Alt text", 1, 1, 0, F, "`dialogs-insert.ts AltDlg`, `inspector.ts` Alt t
 
 a = "Tables"
 row(a, "Insert a table with a style", 1, 1, 0, F, "`dialogs-insert.ts TableDlg` (size grid, six styles, header row, banded rows)")
-row(a, "Type in table cells", 1, 1, 0, P, "`editor/stage.ts dbl` edits shapes only; cells change through agents (`mcp.py edit_elements`)")
-row(a, "Merge cells, add and remove rows and columns", 1, 1, 0, P, "`model.ts TableCell.span, merged` rendered and round-tripped; no UI")
+row(a, "Type in table cells", 1, 1, 0, F, "`editor/stage.ts beginCell, stepCell, commitCell`: double-click, Enter or F2, Tab between cells, rows grow to fit")
+row(a, "Merge cells, add and remove rows and columns", 1, 1, 0, F, "`editor/table-edit.ts registerTableCommands` (rows, columns, merge, split, distribute, styles), round-tripped in `pptx/read_table.py, write_table.py`")
 
 a = "Charts"
 row(a, "Native charts: column, bar, line, area, pie, doughnut, scatter, radar, combo", 1, 1, 0, F, "`frontend/src/render/chart.ts chartSvg`, `dialogs-insert.ts ChartDlg`")
@@ -110,10 +110,10 @@ row(a, "Morph", 1, 0, 0, F, "`present/effects.ts morph`")
 row(a, "Duration, apply to all, advance after a time", 1, 1, 0, F, "`inspector.ts` Duration and Apply to all; `Transition.advanceAfter` from rehearsal")
 
 a = "Animations"
-row(a, "Entrance, emphasis and exit effects in the show", 1, 1, 0, P, "`present/show.ts buildSteps`, `effects.ts effectFx` play `slide.animations`; only agents can add them (`mcp.py update_slide`)")
-row(a, "Animation pane, order and triggers", 1, 1, 0, N, "no authoring UI in `frontend/src/editor`")
+row(a, "Entrance, emphasis and exit effects in the show", 1, 1, 0, F, "`present/show.ts buildSteps`, `effects.ts effectFx` play `slide.animations`; added in the Animate tab or by agents (`mcp.py animate`)")
+row(a, "Animation pane, order and triggers", 1, 1, 0, F, "`editor/animation-pane.ts AnimationPane`: add, reorder, edit start, duration, delay, direction, by paragraph; preview on the stage")
 row(a, "Motion paths", 1, 0, 0, N, "nothing found")
-row(a, "Animations kept in .pptx", 1, 1, 0, N, "`pptx/reader.py` warns that animations were not imported; the writer does not write timing")
+row(a, "Animations kept in .pptx", 1, 1, 0, F, "`pptx/write_anim.py insert_timing`, `read_anim.py read_timing`: main sequence with PowerPoint preset ids both ways; motion paths dropped with a warning")
 
 a = "Slideshow and presenter"
 row(a, "Full-screen show, keyboard navigation, go to slide by number", 1, 1, 0, F, "`present/show.ts KEYS, onKey`")
@@ -127,7 +127,7 @@ row(a, "Loop until Esc and custom shows", 1, 1, 0, N, "nothing found")
 row(a, "Present to a remote audience with Q&A", 1, 1, 0, N, "nothing found")
 
 a = "Review and comments"
-row(a, "Comments: add, list, resolve", 1, 1, 1, P, "`inspector.ts` Review tab, `dialogs-insert.ts addComment`; replies only through agents (`mcp.py comments`), no mentions")
+row(a, "Comments: add, list, resolve", 1, 1, 1, F, "`inspector.ts` Review tab: add, reply, resolve; `dialogs-insert.ts addComment`; agents through `mcp.py comments`; no @mentions")
 row(a, "Review status per slide (draft, review, changes, approved)", 0, 0, 0, F, "`commands.ts reviewStatus`, `inspector.ts` Review tab, `mcp.py review`")
 row(a, "Compare two versions", 1, 0, 1, N, "nothing found")
 row(a, "Activity: who changed what", 1, 1, 1, P, "`inspector.ts addActivity` lists agent steps; labelled undo history in `store.py`")
