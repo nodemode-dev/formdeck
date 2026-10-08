@@ -1,0 +1,11 @@
+.fs-cell-flow { min-height: 0; outline: none; overflow-wrap: break-word; word-break: normal; caret-color: var(--accent-color); cursor: inherit; user-select: text; -webkit-user-select: text; }
+.fs-cell-flow[contenteditable="true"] { cursor: text; }
+.fs-slide.is-show .fs-cell-flow { user-select: none; -webkit-user-select: none; }
+.fs-slide.is-edit .fs-layer-content > .fs-el.fs-table:not(.is-locked) table.fs-table td { cursor: default; }
+.fs-viewport.is-cell-range table.fs-table, .fs-viewport.is-cell-range table.fs-table * { user-select: none; -webkit-user-select: none; }
+
+.fs-cell-range { position: absolute; box-sizing: border-box; border: 2px solid var(--fs-sel); background: color-mix(in srgb, var(--fs-sel) 16%, transparent); pointer-events: none; }
+.fs-cell-range.is-one { background: transparent; }
+.fs-cell-range.is-caret { border-width: 1px; border-color: color-mix(in srgb, var(--fs-sel) 70%, transparent); background: transparent; }
+.fs-table-grip { position: absolute; box-sizing: border-box; cursor: move; pointer-events: auto; touch-action: none; }
+.fs-table-grip:hover { background: color-mix(in srgb, var(--fs-sel) 14%, transparent); }

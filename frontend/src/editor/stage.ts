@@ -1,12 +1,15 @@
-import type { Slide, SlideElement } from '../engine/model';
+import type { Para, Slide, SlideElement, TableElement } from '../engine/model';
 import { chain, frameOf, geomOf, adjOf, type Frame } from '../engine/resolve';
 import { handleValue, isLineGeom, presetGeometry } from '../engine/geometry/presets';
-import { elPath, type Touched } from '../engine/ops';
+import { elPath, type Op, type Touched } from '../engine/ops';
 import { SlideView } from '../render/slide';
+import { cellOrigin, cellRange, tableGrid, type TableGrid } from '../render/table';
 import { fitText, readParas } from '../render/text';
+import { anyDialogOpen } from '../ui/dialogs';
 import { setClass, setHidden } from '../ui/dom';
 import type { Editor } from './editor';
-import { bounds, dirtyOp, fillPlaceholderOps, setFrameOps } from './actions';
+import { bounds, dirtyOp, fillPlaceholderOps, resolvedFrame, setFrameOps } from './actions';
+import { clearCellsOps, insertRowOps } from './table-edit';
 
 type Drag =
   | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean }
@@ -14,7 +17,10 @@ type Drag =
   | { kind: 'rotate'; id: string; cx: number; cy: number }
   | { kind: 'adjust'; id: string; index: number; key: string; f: Frame }
   | { kind: 'marquee'; x0: number; y0: number; add: boolean; base: string[] }
-  | { kind: 'pan'; x0: number; y0: number; px: number; py: number };
+  | { kind: 'pan'; x0: number; y0: number; px: number; py: number }
+  | { kind: 'cells'; el: string; r: number; c: number };
+
+export interface CellSel { el: string; r0: number; c0: number; r1: number; c1: number; ar: number; ac: number; fr: number; fc: number; active: boolean; one: boolean }
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
 const SNAP_PX = 6;
@@ -37,6 +43,8 @@ export class Stage {
   editing: string | null = null;
   private commitTimer = 0;
   private editOriginal: SlideElement | null = null;
+  cells: CellSel | null = null;
+  private cell: { r: number; c: number } | null = null;
   private space = false;
   onZoom: ((pct: number) => void) | null = null;
 
@@ -61,6 +69,7 @@ export class Stage {
     window.addEventListener('pointerup', (e) => this.up(e));
     window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !this.editing && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) this.space = true; });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') this.space = false; });
+    window.addEventListener('keydown', (e) => this.tableKey(e), true);
   }
 
   show(slideId: string | null): void {
@@ -152,6 +161,7 @@ export class Stage {
   drawOverlay(): void {
     const slide = this.slide();
     const sel = this.ed.selection;
+    if (this.cells && !(sel.length === 1 && sel[0] === this.cells.el)) this.cells = null;
     const parts: string[] = [];
     if (slide && this.view) {
       const els = sel.map((id) => slide.elements.find((e) => e.id === id)).filter((e): e is SlideElement => !!e);
@@ -161,6 +171,7 @@ export class Stage {
         const rot = this.rotOf(el);
         const cls = `fs-sel${els.length > 1 ? ' is-multi' : ''}${this.editing === el.id ? ' is-editing' : ''}`;
         parts.push(`<div class="${cls}" style="left:${this.ox + f.x * k}px;top:${this.oy + f.y * k}px;width:${f.w * k}px;height:${f.h * k}px;transform:rotate(${rot}deg)"></div>`);
+        if (els.length === 1 && el.type === 'table') parts.push(...this.tableParts(el, f, rot));
       }
       if (els.length === 1 && !this.editing && !els[0].locked) {
         const el = els[0];
@@ -237,6 +248,18 @@ export class Stage {
     const handle = target.closest?.('.fs-handle') as HTMLElement | null;
     const slide = this.slide();
     if (!slide) return;
+    if (target.closest?.('.fs-table-grip')) {
+      e.preventDefault();
+      if (this.editing) this.endEdit();
+      const frames = new Map<string, Frame>();
+      for (const id of this.ed.selection) {
+        const el = slide.elements.find((x) => x.id === id);
+        if (el && !el.locked) frames.set(id, this.frameOf(el));
+      }
+      const p = this.toSlide(e);
+      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false };
+      return;
+    }
     if (handle) {
       e.preventDefault();
       const id = this.ed.selection[0];
@@ -257,8 +280,19 @@ export class Stage {
       return;
     }
     if (this.editing) {
-      const flow = this.view?.nodeFor(this.editing)?.querySelector('.fs-flow');
-      if (flow && flow.contains(target)) return;
+      const id = this.editing;
+      const flow = this.editFlow();
+      if (flow && flow.contains(target)) {
+        if (this.cell) this.drag = { kind: 'cells', el: id, r: this.cell.r, c: this.cell.c };
+        return;
+      }
+      const tc = this.cell ? this.cellOf(target, id) : null;
+      if (tc) {
+        e.preventDefault();
+        this.beginCell(id, tc.r, tc.c, { x: e.clientX, y: e.clientY });
+        if (this.cell) this.drag = { kind: 'cells', el: id, r: this.cell.r, c: this.cell.c };
+        return;
+      }
       this.endEdit();
     }
     const hit = this.hitElement(target);
@@ -279,11 +313,21 @@ export class Stage {
     const p = this.toSlide(e);
     if (hit.id) {
       e.preventDefault();
+      const tc = this.cellOf(target, hit.id);
+      if (tc && this.ed.selection.length === 1 && this.ed.selection[0] === hit.id && !e.metaKey && !e.ctrlKey) {
+        const cur = this.cells && this.cells.el === hit.id ? this.cells : null;
+        if (e.shiftKey && cur) this.setCells(hit.id, cur.ar, cur.ac, tc.r, tc.c);
+        else this.setCells(hit.id, tc.r, tc.c);
+        const a = this.cells;
+        if (a) this.drag = { kind: 'cells', el: hit.id, r: a.ar, c: a.ac };
+        return;
+      }
       const add = e.shiftKey || e.metaKey || e.ctrlKey;
       let sel = this.ed.selection;
       if (add) sel = sel.includes(hit.id) ? sel.filter((x) => x !== hit.id) : [...sel, hit.id];
       else if (!sel.includes(hit.id)) sel = [hit.id];
       this.ed.select(sel);
+      if (tc && sel.length === 1) this.setCells(hit.id, tc.r, tc.c, tc.r, tc.c, false);
       const frames = new Map<string, Frame>();
       for (const id of sel) {
         const el = slide.elements.find((x) => x.id === id);
@@ -308,6 +352,20 @@ export class Stage {
       this.panX = d.px - (e.clientX - d.x0);
       this.panY = d.py - (e.clientY - d.y0);
       this.layout();
+      return;
+    }
+    if (d.kind === 'cells') {
+      const tc = this.cellOf(document.elementFromPoint(e.clientX, e.clientY), d.el);
+      if (!tc) return;
+      if (this.editing === d.el && this.cell) {
+        if (tc.r === this.cell.r && tc.c === this.cell.c) return;
+        this.endEdit();
+      }
+      const cur = this.cells;
+      if (cur && cur.el === d.el && cur.active && cur.fr === tc.r && cur.fc === tc.c) return;
+      setClass(this.viewport, 'is-cell-range', true);
+      window.getSelection()?.removeAllRanges();
+      this.setCells(d.el, d.r, d.c, tc.r, tc.c);
       return;
     }
     const p = this.toSlide(e);
@@ -477,6 +535,7 @@ export class Stage {
     const d = this.drag;
     if (!d) return;
     this.drag = null;
+    setClass(this.viewport, 'is-cell-range', false);
     if (this.frame) { cancelAnimationFrame(this.frame); this.frame = 0; }
     if (this.pendingOps.size) this.flush(d.kind === 'move' ? 'Move' : d.kind === 'resize' ? 'Resize' : 'Rotate', `${d.kind}:end`);
     this.guides = [];
@@ -497,11 +556,19 @@ export class Stage {
         this.ed.apply([{ op: 'set', path: [...elPath(slide.id, el.id), 'text'], value: { paras: [{ runs: [{ t: '' }], align: 'c' }], anchor: 'm' } }], 'Add text');
       }
       requestAnimationFrame(() => this.beginEdit(hit.id as string, { x: e.clientX, y: e.clientY }));
-    } else if (el.type === 'chart') this.ed.run('edit-chart');
+    } else if (el.type === 'table') this.beginEdit(hit.id, { x: e.clientX, y: e.clientY });
+    else if (el.type === 'chart') this.ed.run('edit-chart');
     else if (el.type === 'image') this.ed.run('replace-image');
   }
 
   beginEdit(id: string, at?: { x: number; y: number }): void {
+    const tbl = this.ed.doc.element(this.ed.current, id);
+    if (tbl?.type === 'table') {
+      const hint = this.cells && this.cells.el === id ? { r: this.cells.ar, c: this.cells.ac } : null;
+      const tc = (at ? this.cellOf(document.elementFromPoint(at.x, at.y), id) : null) ?? hint ?? { r: 0, c: 0 };
+      this.beginCell(id, tc.r, tc.c, at ?? 'end');
+      return;
+    }
     const node = this.view?.nodeFor(id);
     const el = this.ed.doc.element(this.ed.current, id);
     if (!node || !el || el.type !== 'shape') return;
@@ -539,7 +606,8 @@ export class Stage {
 
   private onInput(flow: HTMLElement): void {
     const tx = flow.parentElement as HTMLElement;
-    fitText(tx, flow, (tx.dataset.autofit as 'none' | 'shrink' | 'grow') ?? 'none');
+    if (this.cell) this.drawOverlay();
+    else fitText(tx, flow, (tx.dataset.autofit as 'none' | 'shrink' | 'grow') ?? 'none');
     window.clearTimeout(this.commitTimer);
     this.commitTimer = window.setTimeout(() => this.commit(), 350);
   }
@@ -549,6 +617,7 @@ export class Stage {
     const id = this.editing;
     const slide = this.slide();
     if (!id || !slide) return;
+    if (this.cell) { this.commitCell(slide, id, this.cell); return; }
     const node = this.view?.nodeFor(id);
     const flow = node?.querySelector<HTMLElement>('.fs-flow');
     const el = this.ed.doc.element(slide.id, id);
@@ -563,11 +632,12 @@ export class Stage {
     const id = this.editing;
     if (!id) return;
     if (commit) this.commit();
+    const flow = this.editFlow();
+    if (this.cell && this.cells?.el === id) this.cells = { ...this.cells, active: false };
     this.editing = null;
+    this.cell = null;
     this.editOriginal = null;
     if (this.view) this.view.editingId = null;
-    const node = this.view?.nodeFor(id);
-    const flow = node?.querySelector<HTMLElement>('.fs-flow');
     if (flow) {
       flow.contentEditable = 'false';
       flow.oninput = null;
@@ -586,6 +656,7 @@ export class Stage {
   }
 
   private editKey(ev: KeyboardEvent, flow: HTMLElement): void {
+    if (this.cell) { this.cellKey(ev, flow); return; }
     if (ev.key === 'Escape') { ev.preventDefault(); this.endEdit(); return; }
     if (ev.key === 'Tab') {
       ev.preventDefault();
@@ -616,15 +687,281 @@ export class Stage {
     }
   }
 
-  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName', value?: string): boolean {
+  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName' | 'createLink' | 'unlink', value?: string): boolean {
     if (!this.editing) return false;
-    const flow = this.view?.nodeFor(this.editing)?.querySelector<HTMLElement>('.fs-flow');
+    const flow = this.editFlow();
     if (!flow) return false;
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !flow.contains(sel.anchorNode)) return false;
-    document.execCommand(cmd, false, value);
+    if (!sel || !flow.contains(sel.anchorNode) || (sel.isCollapsed && !this.cell)) return false;
+    if (sel.isCollapsed) {
+      const all = document.createRange();
+      all.selectNodeContents(flow);
+      sel.removeAllRanges();
+      sel.addRange(all);
+      document.execCommand(cmd, false, value);
+      sel.collapseToEnd();
+    } else document.execCommand(cmd, false, value);
     this.onInput(flow);
     return true;
+  }
+
+  private editFlow(): HTMLElement | null {
+    const node = this.editing ? this.view?.nodeFor(this.editing) : null;
+    if (!node) return null;
+    return this.cell ? node.querySelector<HTMLElement>(`td[data-r="${this.cell.r}"][data-c="${this.cell.c}"] > .fs-cell-flow`) : node.querySelector<HTMLElement>('.fs-flow');
+  }
+
+  private cellOf(target: EventTarget | null, id: string): { r: number; c: number } | null {
+    const node = this.view?.nodeFor(id);
+    const td = (target as HTMLElement | null)?.closest?.('td[data-r]') as HTMLElement | null;
+    if (!node || !td || !node.contains(td)) return null;
+    return { r: Number(td.dataset.r), c: Number(td.dataset.c) };
+  }
+
+  setCells(el: string, ar: number, ac: number, fr = ar, fc = ac, active = true): void {
+    const tbl = this.ed.doc.element(this.ed.current, el);
+    if (!tbl || tbl.type !== 'table') return;
+    const g = tableGrid(tbl.table);
+    if (!g.rows || !g.cols) return;
+    const [oar, oac] = cellOrigin(g, ar, ac);
+    const [ofr, ofc] = cellOrigin(g, fr, fc);
+    const rg = cellRange(g, oar, oac, ofr, ofc);
+    const [cs, rs] = g.spans[rg.r0 * g.cols + rg.c0];
+    const next: CellSel = { el, ...rg, ar: oar, ac: oac, fr: ofr, fc: ofc, active, one: rg.r1 - rg.r0 + 1 === rs && rg.c1 - rg.c0 + 1 === cs };
+    const same = JSON.stringify(next) === JSON.stringify(this.cells);
+    this.cells = next;
+    if (same) return;
+    this.drawOverlay();
+    this.ed.emit('selection');
+  }
+
+  fitRows(id: string, r0: number, r1: number, label: string, coalesce?: string): void {
+    const slide = this.slide();
+    const el = slide?.elements.find((x) => x.id === id);
+    if (!slide || !el || el.type !== 'table' || this.editing === id) return;
+    const ops = this.growOps(slide, el, r0, r1);
+    if (ops.length) this.ed.apply([...ops, ...dirtyOp(slide)], label, coalesce);
+  }
+
+  private growOps(slide: Slide, el: TableElement, r0: number, r1: number): Op[] {
+    const trs = this.view?.nodeFor(el.id)?.querySelectorAll<HTMLElement>('table.fs-table > tbody > tr');
+    if (!trs) return [];
+    const base = elPath(slide.id, el.id);
+    const ops: Op[] = [];
+    let total = 0;
+    el.table.rows.forEach((row, r) => {
+      const tr = trs[r];
+      let h = row.h;
+      if (tr && r >= r0 && r <= r1 && tr.offsetHeight > row.h + 0.5) {
+        h = tr.offsetHeight;
+        ops.push({ op: 'set', path: [...base, 'table', 'rows', r, 'h'], value: h });
+      }
+      total += h;
+    });
+    if (!ops.length) return [];
+    const f = resolvedFrame(this.ed.doc.deck, slide, el);
+    if (total > f.h + 0.5) ops.push(...setFrameOps(this.ed.doc.deck, slide, el, { h: total }));
+    return ops;
+  }
+
+  private beginCell(id: string, r: number, c: number, caret: { x: number; y: number } | 'start' | 'end' | 'all'): void {
+    const el = this.ed.doc.element(this.ed.current, id);
+    if (!el || el.type !== 'table' || !this.view?.nodeFor(id)) return;
+    const g = tableGrid(el.table);
+    if (!g.rows || !g.cols) return;
+    [r, c] = cellOrigin(g, r, c);
+    if (!el.table.rows[r]?.cells[c]) return;
+    const same = this.editing === id && this.cell?.r === r && this.cell?.c === c;
+    if (!same) {
+      if (this.editing && (this.editing !== id || !this.cell)) this.endEdit();
+      else if (this.editing) this.detachCell();
+      if (!(this.ed.selection.length === 1 && this.ed.selection[0] === id)) this.ed.select([id]);
+    }
+    const flow = this.view?.nodeFor(id)?.querySelector<HTMLElement>(`td[data-r="${r}"][data-c="${c}"] > .fs-cell-flow`);
+    if (!flow) return;
+    if (!same) {
+      this.editing = id;
+      this.cell = { r, c };
+      this.editOriginal = structuredClone(el);
+      if (this.view) this.view.editingId = id;
+      flow.contentEditable = 'true';
+      flow.spellcheck = true;
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+      document.execCommand('styleWithCSS', false, 'true');
+      flow.oninput = () => this.onInput(flow);
+      flow.onkeydown = (ev) => this.editKey(ev, flow);
+      flow.onpaste = (ev) => {
+        const text = ev.clipboardData?.getData('text/plain');
+        if (text !== undefined) { ev.preventDefault(); document.execCommand('insertText', false, text); }
+      };
+    }
+    flow.focus({ preventScroll: true });
+    this.placeCaret(flow, caret);
+    this.setCells(id, r, c);
+    if (!same) this.ed.onEditChange(id);
+    this.drawOverlay();
+  }
+
+  private detachCell(): void {
+    this.commit();
+    const flow = this.editFlow();
+    if (flow) {
+      flow.contentEditable = 'false';
+      flow.oninput = null;
+      flow.onkeydown = null;
+      flow.onpaste = null;
+    }
+    this.cell = null;
+  }
+
+  private placeCaret(flow: HTMLElement, caret: { x: number; y: number } | 'start' | 'end' | 'all'): void {
+    const sel = window.getSelection();
+    let range: Range | null = null;
+    if (typeof caret === 'object' && 'caretRangeFromPoint' in document) range = (document as Document & { caretRangeFromPoint(x: number, y: number): Range | null }).caretRangeFromPoint(caret.x, caret.y);
+    if (!range || !flow.contains(range.startContainer)) {
+      range = document.createRange();
+      const ps = flow.querySelectorAll(':scope > p');
+      const first = ps[0], last = ps[ps.length - 1];
+      if (first && last) {
+        range.setStart(first, 0);
+        range.setEnd(last, last.childNodes.length);
+      } else range.selectNodeContents(flow);
+      if (caret !== 'all') range.collapse(caret === 'start');
+    }
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+
+  private commitCell(slide: Slide, id: string, at: { r: number; c: number }): void {
+    const el = this.ed.doc.element(slide.id, id);
+    const flow = this.editFlow();
+    const cell = el?.type === 'table' ? el.table.rows[at.r]?.cells[at.c] : undefined;
+    if (!flow || !el || el.type !== 'table' || !cell) return;
+    const orig = cell.text?.paras ?? [];
+    const paras = readParas(flow, orig);
+    const empty = (ps: Para[]): boolean => ps.every((p) => p.runs.every((x) => !x.t));
+    if (JSON.stringify(paras) === JSON.stringify(orig) || (paras.length <= 1 && empty(paras) && empty(orig))) return;
+    const g = tableGrid(el.table);
+    const rs = g.spans[at.r * g.cols + at.c]?.[1] || 1;
+    const ops: Op[] = [{ op: 'set', path: [...elPath(slide.id, id), 'table', 'rows', at.r, 'cells', at.c, 'text'], value: { ...(cell.text ?? {}), paras } }];
+    ops.push(...this.growOps(slide, el, at.r, at.r + rs - 1));
+    this.ed.apply([...ops, ...dirtyOp(slide)], 'Typing', `cell:${id}:${at.r}:${at.c}`);
+  }
+
+  private stepCell(g: TableGrid, r: number, c: number, dir: 1 | -1): [number, number] | null {
+    for (let i = r * g.cols + c + dir; i >= 0 && i < g.rows * g.cols; i += dir) if (g.origin[i] === i) return [Math.floor(i / g.cols), i % g.cols];
+    return null;
+  }
+
+  private cellKey(ev: KeyboardEvent, flow: HTMLElement): void {
+    const id = this.editing, at = this.cell;
+    const slide = this.slide();
+    const el = id ? this.ed.doc.element(this.ed.current, id) : undefined;
+    if (!id || !at || !slide || !el || el.type !== 'table') return;
+    const stop = (): void => { ev.preventDefault(); ev.stopPropagation(); };
+    if (ev.key === 'Escape') { stop(); this.endEdit(); return; }
+    if ((ev.metaKey || ev.ctrlKey) && ['b', 'i', 'u'].includes(ev.key.toLowerCase())) {
+      stop();
+      document.execCommand(({ b: 'bold', i: 'italic', u: 'underline' } as const)[ev.key.toLowerCase() as 'b' | 'i' | 'u']);
+      this.onInput(flow);
+      return;
+    }
+    const g = tableGrid(el.table);
+    if (ev.key === 'Tab' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+      stop();
+      const next = this.stepCell(g, at.r, at.c, ev.shiftKey ? -1 : 1);
+      if (next) { this.beginCell(id, next[0], next[1], 'all'); return; }
+      if (ev.shiftKey) return;
+      this.commit();
+      const fresh = this.ed.doc.element(slide.id, id);
+      if (!fresh || fresh.type !== 'table') return;
+      const n = fresh.table.rows.length;
+      const ops = insertRowOps(this.ed.doc.deck, slide, fresh, n, n - 1);
+      this.endEdit(false);
+      if (this.ed.apply(ops, 'Insert row')) this.beginCell(id, n, 0, 'start');
+      return;
+    }
+    if (ev.altKey || ev.metaKey || ev.ctrlKey || ev.shiftKey) return;
+    const dir = ({ ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' } as Record<string, 'l' | 'r' | 'u' | 'd'>)[ev.key];
+    if (!dir || !this.caretAtEdge(flow, dir)) return;
+    const rs = g.spans[at.r * g.cols + at.c][1];
+    const next = dir === 'l' ? this.stepCell(g, at.r, at.c, -1) : dir === 'r' ? this.stepCell(g, at.r, at.c, 1) : dir === 'u' ? (at.r > 0 ? cellOrigin(g, at.r - 1, at.c) : null) : at.r + rs < g.rows ? cellOrigin(g, at.r + rs, at.c) : null;
+    if (!next) return;
+    stop();
+    this.beginCell(id, next[0], next[1], dir === 'l' || dir === 'u' ? 'end' : 'start');
+  }
+
+  private caretAtEdge(flow: HTMLElement, dir: 'l' | 'r' | 'u' | 'd'): boolean {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !sel.isCollapsed || !flow.contains(sel.anchorNode)) return false;
+    const caret = sel.getRangeAt(0);
+    if (dir === 'l' || dir === 'r') {
+      const r = document.createRange();
+      if (dir === 'l') { r.setStart(flow, 0); r.setEnd(caret.startContainer, caret.startOffset); } else { r.setStart(caret.startContainer, caret.startOffset); r.setEnd(flow, flow.childNodes.length); }
+      const frag = r.cloneContents();
+      for (const b of Array.from(frag.querySelectorAll('.fs-bu'))) b.remove();
+      return !(frag.textContent ?? '') && frag.querySelectorAll('p').length <= 1 && (dir === 'r' || !frag.querySelector('br'));
+    }
+    let rect = caret.getBoundingClientRect();
+    if (!rect.height) {
+      const n = caret.startContainer;
+      rect = (n instanceof Element ? n : n.parentElement ?? flow).getBoundingClientRect();
+    }
+    const box = flow.getBoundingClientRect();
+    const tol = Math.max(2, rect.height * 0.6);
+    return dir === 'u' ? rect.top - box.top < tol : box.bottom - rect.bottom < tol;
+  }
+
+  private tableParts(el: TableElement, f: Frame, rot: number): string[] {
+    const k = this.k;
+    const W = f.w * k, H = f.h * k, gap = 7;
+    const box = (cls: string, x: number, y: number, w: number, h: number): string => `<div class="${cls}" style="left:${this.ox + f.x * k + x}px;top:${this.oy + f.y * k + y}px;width:${w}px;height:${h}px;transform-origin:${W / 2 - x}px ${H / 2 - y}px;transform:rotate(${rot}deg)"></div>`;
+    const out = el.locked ? [] : [box('fs-table-grip', -gap, -gap, W + 2 * gap, gap), box('fs-table-grip', -gap, H, W + 2 * gap, gap), box('fs-table-grip', -gap, 0, gap, H), box('fs-table-grip', W, 0, gap, H)];
+    const c = this.cells;
+    const editing = this.editing === el.id;
+    if (!c || c.el !== el.id || !(c.active || editing)) return out;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const td of Array.from(this.view?.nodeFor(el.id)?.querySelectorAll<HTMLElement>('td[data-r]') ?? [])) {
+      const r = Number(td.dataset.r), cc = Number(td.dataset.c);
+      if (r < c.r0 || r > c.r1 || cc < c.c0 || cc > c.c1) continue;
+      x0 = Math.min(x0, td.offsetLeft);
+      y0 = Math.min(y0, td.offsetTop);
+      x1 = Math.max(x1, td.offsetLeft + td.offsetWidth);
+      y1 = Math.max(y1, td.offsetTop + td.offsetHeight);
+    }
+    if (x1 > x0 && y1 > y0) out.push(box(`fs-cell-range${editing ? ' is-caret' : c.one ? ' is-one' : ''}`, x0 * k, y0 * k, (x1 - x0) * k, (y1 - y0) * k));
+    return out;
+  }
+
+  private tableKey(e: KeyboardEvent): void {
+    if (e.defaultPrevented || this.editing || !this.view || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target as HTMLElement | null;
+    if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || t?.isContentEditable) return;
+    const a = document.activeElement;
+    if ((a && a !== document.body && !this.root.contains(a)) || anyDialogOpen() || this.ed.view !== 'normal' || !this.viewport.isConnected) return;
+    const sel = this.ed.selected();
+    if (sel.length !== 1) return;
+    const el = sel[0];
+    if (e.key === 'F2' && el.type === 'shape' && el.text) { e.preventDefault(); this.beginEdit(el.id); return; }
+    if (el.type !== 'table') return;
+    const stop = (): void => { e.preventDefault(); e.stopPropagation(); };
+    if (e.key === 'Enter' || e.key === 'F2') { stop(); this.beginEdit(el.id); return; }
+    const c = this.cells && this.cells.el === el.id && this.cells.active ? this.cells : null;
+    const slide = this.slide();
+    if (!c || !slide) return;
+    if (e.key === 'Escape') { stop(); this.cells = { ...c, active: false }; this.drawOverlay(); this.ed.emit('selection'); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') { stop(); this.ed.apply(clearCellsOps(slide, el, c), 'Clear cells'); return; }
+    const dir = ({ ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' } as Record<string, 'l' | 'r' | 'u' | 'd'>)[e.key];
+    if (!dir) return;
+    stop();
+    const g = tableGrid(el.table);
+    const [br, bc] = e.shiftKey ? [c.fr, c.fc] : [c.ar, c.ac];
+    const [cs, rs] = g.spans[br * g.cols + bc] ?? [1, 1];
+    const [tr, tc] = dir === 'l' ? [br, bc - 1] : dir === 'r' ? [br, bc + cs] : dir === 'u' ? [br - 1, bc] : [br + rs, bc];
+    if (tr < 0 || tc < 0 || tr >= g.rows || tc >= g.cols) return;
+    const [nr, nc] = cellOrigin(g, tr, tc);
+    if (e.shiftKey) this.setCells(el.id, c.ar, c.ac, nr, nc);
+    else this.setCells(el.id, nr, nc);
   }
 
   private wheel(e: WheelEvent): void {

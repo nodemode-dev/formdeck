@@ -59,8 +59,9 @@ def _read_cell(tc, ctx) -> dict:
         text["inset"] = [emu_pt(m) if m is not None else DEFAULT_INSET[i] for i, m in enumerate(margins)]
     if tc_pr is not None and tc_pr.get("vert") in VERT_OF:
         text["vert"] = VERT_OF[tc_pr.get("vert")]
-    cell: dict = {"text": text, "span": [max(int_attr(tc, "gridSpan", 1), 1), max(int_attr(tc, "rowSpan", 1), 1)]}
-    cell["merged"] = bool(bool_attr(tc, "hMerge", False) or bool_attr(tc, "vMerge", False))
+    merged = bool(bool_attr(tc, "hMerge", False) or bool_attr(tc, "vMerge", False))
+    cell: dict = {"text": text, "span": [1, 1] if merged else [max(int_attr(tc, "gridSpan", 1), 1), max(int_attr(tc, "rowSpan", 1), 1)]}
+    cell["merged"] = merged
     fill = read_fill(fill_element(tc_pr), ctx)
     if fill is not None:
         cell["fill"] = fill

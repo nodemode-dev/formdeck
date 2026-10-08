@@ -1,14 +1,14 @@
-import type { Line, TableData, Theme } from '../engine/model';
+import type { Line, TableCell, TableData, Theme } from '../engine/model';
 import { colorCss } from '../engine/resolve';
 import { textHtml, type TextCtx } from './text';
 
 interface CellPaint { fill: string; color: string | null; bold: boolean; border: string }
 
-function stylePaint(t: TableData, theme: Theme, row: number, col: number, rows: number, cols: number): CellPaint {
+function stylePaint(t: TableData, theme: Theme, row: number, col: number, rows: number, cols: number, end = row): CellPaint {
   const st = t.style ?? { id: 'medium2' };
   const accent = st.accent ?? 'accent1';
   const header = !!st.firstRow && row === 0;
-  const lastRow = !!st.lastRow && row === rows - 1;
+  const lastRow = !!st.lastRow && end === rows - 1;
   const firstCol = !!st.firstCol && col === 0;
   const body = row - (st.firstRow ? 1 : 0);
   const band = !!st.bandRows && body >= 0 && body % 2 === 0;
@@ -35,18 +35,76 @@ function borderCss(line: Line | undefined, theme: Theme): string | null {
   return `${line.width ?? 1}px ${line.dash && line.dash !== 'solid' ? 'dashed' : 'solid'} ${colorCss(line.color ?? 'tx1', theme)}`;
 }
 
+export interface TableGrid { rows: number; cols: number; origin: Int32Array; spans: Array<[number, number]> }
+
+export function tableGrid(t: TableData): TableGrid {
+  const R = t.rows.length;
+  const C = t.cols.length || t.rows.reduce((m, row) => Math.max(m, row.cells.length), 0);
+  const origin = new Int32Array(R * C).fill(-1);
+  const spans: Array<[number, number]> = Array.from({ length: R * C }, () => [0, 0] as [number, number]);
+  for (let r = 0; r < R; r++) {
+    for (let c = 0; c < C; c++) {
+      const i = r * C + c;
+      if (origin[i] >= 0) continue;
+      const cell = t.rows[r].cells[c];
+      const want = cell && !cell.merged && Array.isArray(cell.span) ? cell.span : [1, 1];
+      const wantC = Math.min(Math.max(1, Math.floor(want[0] || 1)), C - c);
+      const wantR = Math.min(Math.max(1, Math.floor(want[1] || 1)), R - r);
+      let cs = 1;
+      while (cs < wantC && origin[i + cs] < 0) cs++;
+      let rs = 1;
+      while (rs < wantR) {
+        let free = true;
+        for (let dc = 0; dc < cs && free; dc++) free = origin[(r + rs) * C + c + dc] < 0;
+        if (!free) break;
+        rs++;
+      }
+      for (let dr = 0; dr < rs; dr++) for (let dc = 0; dc < cs; dc++) origin[(r + dr) * C + c + dc] = i;
+      spans[i] = [cs, rs];
+    }
+  }
+  return { rows: R, cols: C, origin, spans };
+}
+
+export function cellOrigin(g: TableGrid, r: number, c: number): [number, number] {
+  const o = g.origin[Math.max(0, Math.min(g.rows - 1, r)) * g.cols + Math.max(0, Math.min(g.cols - 1, c))];
+  return [Math.floor(o / g.cols), o % g.cols];
+}
+
+export function cellRange(g: TableGrid, ar: number, ac: number, fr: number, fc: number): { r0: number; c0: number; r1: number; c1: number } {
+  const cr = (v: number): number => Math.max(0, Math.min(g.rows - 1, v));
+  const cc = (v: number): number => Math.max(0, Math.min(g.cols - 1, v));
+  let r0 = Math.min(cr(ar), cr(fr)), r1 = Math.max(cr(ar), cr(fr)), c0 = Math.min(cc(ac), cc(fc)), c1 = Math.max(cc(ac), cc(fc));
+  for (let grew = true; grew;) {
+    grew = false;
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        const o = g.origin[r * g.cols + c];
+        const or = Math.floor(o / g.cols), oc = o % g.cols;
+        const [cs, rs] = g.spans[o];
+        if (or < r0) { r0 = or; grew = true; }
+        if (oc < c0) { c0 = oc; grew = true; }
+        if (or + rs - 1 > r1) { r1 = or + rs - 1; grew = true; }
+        if (oc + cs - 1 > c1) { c1 = oc + cs - 1; grew = true; }
+      }
+    }
+  }
+  return { r0, c0, r1, c1 };
+}
+
 export function tableHtml(t: TableData, theme: Theme, tc: TextCtx): string {
-  const rows = t.rows.length;
-  const cols = t.cols.length;
+  const g = tableGrid(t);
   const st = t.style ?? { id: 'medium2' };
   let html = `<table class="fs-table"><colgroup>${t.cols.map((w) => `<col style="width:${w}px">`).join('')}</colgroup><tbody>`;
   t.rows.forEach((row, r) => {
     html += `<tr style="height:${row.h}px">`;
-    row.cells.forEach((cell, c) => {
-      if (cell.merged) return;
-      const paint = stylePaint(t, theme, r, c, rows, cols);
+    for (let c = 0; c < g.cols; c++) {
+      const i = r * g.cols + c;
+      if (g.origin[i] !== i) continue;
+      const [cs, rs] = g.spans[i];
+      const cell: TableCell = row.cells[c] ?? { text: { paras: [] } };
+      const paint = stylePaint(t, theme, r, c, g.rows, g.cols, r + rs - 1);
       const fill = cell.fill && cell.fill.type === 'solid' ? colorCss(cell.fill.color, theme) : cell.fill && cell.fill.type === 'none' ? 'transparent' : paint.fill;
-      const span = cell.span ?? [1, 1];
       const b = cell.borders ?? {};
       const borders = (['l', 't', 'r', 'b'] as const).map((side) => {
         const v = borderCss(b[side], theme) ?? (st.id === 'lines' ? (side === 'b' ? `1px solid ${colorCss({ scheme: (st.accent ?? 'accent1') as 'accent1', alpha: r === 0 && st.firstRow ? 1 : 0.3 }, theme)}` : 'none') : paint.border);
@@ -54,10 +112,11 @@ export function tableHtml(t: TableData, theme: Theme, tc: TextCtx): string {
       }).join(';');
       const inset = cell.text?.inset ?? [7.2, 3.6, 7.2, 3.6];
       const color = paint.color;
-      let inner = textHtml(cell.text, { ...tc, showPrompt: false });
-      if (color || paint.bold) inner = `<div style="${color ? `--cell-color:${color};` : ''}" class="fs-cell-paint${paint.bold ? ' is-bold' : ''}${color ? ' has-color' : ''}">${inner}</div>`;
-      html += `<td${span[0] > 1 ? ` colspan="${span[0]}"` : ''}${span[1] > 1 ? ` rowspan="${span[1]}"` : ''} data-r="${r}" data-c="${c}" style="background:${fill};${borders};padding:${inset[1]}px ${inset[2]}px ${inset[3]}px ${inset[0]}px;vertical-align:${cell.anchor === 'm' ? 'middle' : cell.anchor === 'b' ? 'bottom' : 'top'}">${inner}</td>`;
-    });
+      const body = tc.mode === 'edit' && !(cell.text?.paras ?? []).length ? { ...cell.text, paras: [{ runs: [{ t: '' }] }] } : cell.text;
+      const inner = textHtml(body, { ...tc, showPrompt: false });
+      const cls = `fs-cell-flow${color || paint.bold ? ' fs-cell-paint' : ''}${paint.bold ? ' is-bold' : ''}${color ? ' has-color' : ''}`;
+      html += `<td${cs > 1 ? ` colspan="${cs}"` : ''}${rs > 1 ? ` rowspan="${rs}"` : ''} data-r="${r}" data-c="${c}" style="background:${fill};${borders};padding:${inset[1]}px ${inset[2]}px ${inset[3]}px ${inset[0]}px;vertical-align:${cell.anchor === 'm' ? 'middle' : cell.anchor === 'b' ? 'bottom' : 'top'}"><div class="${cls}"${color ? ` style="--cell-color:${color}"` : ''}>${inner}</div></td>`;
+    }
     html += '</tr>';
   });
   return html + '</tbody></table>';
