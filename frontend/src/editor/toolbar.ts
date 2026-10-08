@@ -32,7 +32,7 @@ export class Toolbar {
 <span class="fs-sep" data-g="insert"></span>
 <div class="fs-tb-group" data-g="font"><select class="fs-tb-font" aria-label="Font" title="Font" style="width:140px"></select><input class="fs-tb-field is-num fs-tb-size" type="number" min="1" max="400" step="1" aria-label="Font size" title="Font size"></div>
 <span class="fs-sep" data-g="font"></span>
-<div class="fs-tb-group" data-g="style">${btn('bold', 'bold', 'Bold')}${btn('italic', 'italic', 'Italic')}${btn('underline', 'underline', 'Underline')}${btn('strike', 'strike', 'Strikethrough')}<button class="fs-tb-btn fs-tb-color" type="button" data-act="text-color" title="Text colour" aria-label="Text colour">${icon('textColor', 16)}</button><button class="fs-tb-btn fs-tb-color" type="button" data-act="highlight" title="Highlight" aria-label="Highlight">${icon('highlight', 16)}</button>${btn('clear-format', 'clearFormat', 'Clear formatting')}</div>
+<div class="fs-tb-group" data-g="style">${btn('bold', 'bold', 'Bold')}${btn('italic', 'italic', 'Italic')}${btn('underline', 'underline', 'Underline')}${btn('strike', 'strike', 'Strikethrough')}${btn('insert-link', 'link', 'Link (Mod+K)')}<button class="fs-tb-btn fs-tb-color" type="button" data-act="text-color" title="Text colour" aria-label="Text colour">${icon('textColor', 16)}</button><button class="fs-tb-btn fs-tb-color" type="button" data-act="highlight" title="Highlight" aria-label="Highlight">${icon('highlight', 16)}</button>${btn('clear-format', 'clearFormat', 'Clear formatting')}</div>
 <span class="fs-sep" data-g="style"></span>
 <div class="fs-tb-group" data-g="para">${btn('text-align-l', 'alignLeft', 'Align left')}${btn('text-align-c', 'alignCenter', 'Center')}${btn('text-align-r', 'alignRight', 'Align right')}${btn('text-align-j', 'alignJustify', 'Justify')}</div>
 <span class="fs-sep" data-g="para"></span>
@@ -46,6 +46,8 @@ export class Toolbar {
 <span class="fs-sep" data-g="image"></span>
 <div class="fs-tb-group" data-g="chart">${lbtn('edit-chart', 'chartBar', 'Edit data')}</div>
 <span class="fs-sep" data-g="chart"></span>
+<div class="fs-tb-group" data-g="table">${btn('table-row-above', 'tableRowAbove', 'Insert row above')}${btn('table-row-below', 'tableRowBelow', 'Insert row below')}${btn('table-col-left', 'tableColLeft', 'Insert column left')}${btn('table-col-right', 'tableColRight', 'Insert column right')}${btn('table-delete-row', 'tableRowDelete', 'Delete row')}${btn('table-delete-col', 'tableColDelete', 'Delete column')}${btn('table-merge', 'tableMerge', 'Merge cells')}${btn('table-split', 'tableSplit', 'Split cell')}${btn('table-distribute-rows', 'tableDistRows', 'Distribute rows')}${btn('table-distribute-cols', 'tableDistCols', 'Distribute columns')}${btn('table-header-row', 'tableHeader', 'Header row')}${btn('table-banded-rows', 'tableBanded', 'Banded rows')}</div>
+<span class="fs-sep" data-g="table"></span>
 <div class="fs-tb-group" data-g="arrange">${btn('bring-forward', 'bringForward', 'Bring forward')}${btn('send-backward', 'sendBackward', 'Send backward')}${btn('align-center', 'alignHcenterEdge', 'Align centre')}${btn('align-middle', 'alignVcenterEdge', 'Align middle')}${btn('group', 'group', 'Group')}${btn('ungroup', 'ungroup', 'Ungroup')}${btn('delete', 'delete', 'Delete')}</div>
 <span class="fs-sep" data-g="arrange"></span>
 <div class="fs-tb-group" data-g="review">${lbtn('review-approve', 'approve', 'Approve')}${btn('review-changes', 'requestChanges', 'Request changes')}</div>
@@ -117,9 +119,10 @@ export class Toolbar {
     const ed = this.ed;
     const ctx = this.context();
     this.ctx = ctx;
+    const cellTyping = ctx === 'table' && !!ed?.stage.editing;
     const show: Record<string, boolean> = {
-      slide: ctx === 'slide', insert: ctx === 'slide' || ctx === 'none',
-      font: ctx === 'text' || ctx === 'shape', style: ctx === 'text' || ctx === 'shape', para: ctx === 'text' || ctx === 'shape',
+      slide: ctx === 'slide', insert: ctx === 'slide' || ctx === 'none', table: ctx === 'table',
+      font: ctx === 'text' || ctx === 'shape' || cellTyping, style: ctx === 'text' || ctx === 'shape' || cellTyping, para: ctx === 'text' || ctx === 'shape',
       list: ctx === 'text', anchor: ctx === 'text' || ctx === 'shape', paint: ctx === 'shape' || ctx === 'text',
       image: ctx === 'image', chart: ctx === 'chart', arrange: ctx !== 'slide' && ctx !== 'none', review: ctx === 'slide',
     };
