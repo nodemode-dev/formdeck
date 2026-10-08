@@ -2,16 +2,17 @@ import { el, escapeHtml, patchList, setClass, setHtml } from '../ui/dom';
 import type { Annot, Area, Pt, Rect } from './api';
 import type { PageView, Viewer } from './viewer';
 
-export type Tool = 'select' | 'hand' | 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'redact' | 'place';
+export type Tool = 'select' | 'hand' | 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'redact' | 'crop' | 'place';
 export const MARKUP_TOOLS: readonly Tool[] = ['highlight', 'underline', 'strikeout'];
-export const DRAW_TOOLS: readonly Tool[] = ['note', 'freetext', 'ink', 'rect', 'ellipse', 'line', 'arrow', 'redact', 'place'];
+export const DRAW_TOOLS: readonly Tool[] = ['note', 'freetext', 'ink', 'rect', 'ellipse', 'line', 'arrow', 'redact', 'crop', 'place'];
 export type Placement = { kind: 'image'; image: string; aspect: number; width: number; label: string } | { kind: 'freetext'; text: string; size: number; label: string };
-export interface AnnotHooks { changed(label: string): void; select(id: string | null): void; areas(): void; toolDone(): void }
+export interface AnnotHooks { changed(label: string): void; select(id: string | null): void; areas(): void; toolDone(): void; crop(): void }
 export interface Style { color: string; width: number; opacity: number; size: number }
 
 export const KIND_LABEL: Record<string, string> = {
   highlight: 'Highlight', underline: 'Underline', strikeout: 'Strikethrough', note: 'Note', freetext: 'Text', ink: 'Drawing', rect: 'Rectangle',
-  ellipse: 'Ellipse', line: 'Line', arrow: 'Arrow', image: 'Image',
+  ellipse: 'Ellipse', line: 'Line', arrow: 'Arrow', image: 'Image', reply: 'Reply', squiggly: 'Squiggly', stamp: 'Stamp', polygon: 'Polygon',
+  polyline: 'Polyline', caret: 'Insert text', attachment: 'Attachment', sound: 'Sound', redact: 'Redaction mark',
 };
 const NOTE = 20;
 const SVG_KINDS = new Set(['highlight', 'underline', 'strikeout', 'ink', 'rect', 'ellipse', 'line', 'arrow']);
@@ -101,13 +102,14 @@ function contentOf(a: Annot, f: Rect): { html: string; key: string } {
   return { html, key: html };
 }
 
-type Item = { key: string; annot?: Annot; area?: Area };
+type Item = { key: string; annot?: Annot; area?: Area; crop?: Area };
 interface Session { pv: PageView; tool: Tool; p0: { x: number; y: number }; pts: Pt[]; draft: HTMLElement; last: { x: number; y: number } }
 interface Move { id: string; pv: PageView; x0: number; y0: number; node: HTMLElement; resize: boolean; base: Rect; area: boolean; moved: boolean }
 
 export class Annotator {
   items: Annot[] = [];
   areas: Area[] = [];
+  cropBox: Area | null = null;
   selected: string | null = null;
   tool: Tool = 'select';
   style: Style = { color: '#FFD400', width: 2, opacity: 1, size: 12 };
@@ -156,14 +158,23 @@ export class Annotator {
     this.hooks.areas();
   }
 
+  setCrop(box: Area | null): void {
+    const prev = this.cropBox;
+    this.cropBox = box;
+    if (prev) this.render(prev.page - 1);
+    if (box && box.page !== prev?.page) this.render(box.page - 1);
+  }
+
   renderAll(): void { for (const p of this.layers.keys()) this.render(p); }
 
   render(index: number): void {
     const layer = this.layers.get(index);
     if (!layer) return;
+    const crop = this.cropBox;
     const list: Item[] = [
-      ...this.items.filter((a) => a.page === index + 1).map((a) => ({ key: a.id, annot: a })),
+      ...this.items.filter((a) => a.page === index + 1 && a.kind !== 'reply').map((a) => ({ key: a.id, annot: a })),
       ...this.areas.filter((a) => a.page === index + 1).map((a) => ({ key: a.id, area: a })),
+      ...(crop && crop.page === index + 1 ? [{ key: 'crop', crop }] : []),
     ];
     patchList(layer, list, {
       key: (it) => it.key,
@@ -173,6 +184,14 @@ export class Annotator {
   }
 
   private paint(n: HTMLElement, it: Item): void {
+    if (it.crop) {
+      const b = it.crop;
+      if (n.dataset.kind !== 'crop') n.dataset.kind = 'crop';
+      const inner = (n.firstElementChild as HTMLElement | null) ?? n.appendChild(el('<div class="fs-pdf-cropbox"></div>'));
+      const css = `left:${calc(b.x)};top:${calc(b.y)};width:${calc(b.w)};height:${calc(b.h)}`;
+      if (inner.getAttribute('style') !== css) inner.setAttribute('style', css);
+      return;
+    }
     const f = it.annot ? bounds(it.annot) : (it.area as Area);
     const css = `left:${calc(f.x)};top:${calc(f.y)};width:${calc(f.w)};height:${calc(f.h)}`;
     if (n.getAttribute('style') !== css) n.setAttribute('style', css);
@@ -235,6 +254,22 @@ export class Annotator {
   add(a: Annot, label: string): void {
     this.setItems([...this.items, a]);
     this.hooks.changed(label);
+  }
+
+  replace(items: Annot[], label: string): void {
+    this.setItems(items);
+    this.hooks.changed(label);
+  }
+
+  pulse(page: number, rects: Rect[]): void {
+    for (const old of Array.from(this.viewer.host.querySelectorAll('.fs-pdf-pulse'))) old.remove();
+    const layer = this.layers.get(page - 1);
+    if (!layer) return;
+    for (const r of rects) {
+      const n = el(`<div class="fs-pdf-pulse" style="left:${calc(r.x - 2)};top:${calc(r.y - 2)};width:${calc(r.w + 4)};height:${calc(r.h + 4)}"></div>`);
+      n.addEventListener('animationend', () => n.remove(), { once: true });
+      layer.appendChild(n);
+    }
   }
 
   reveal(id: string): void {
@@ -320,10 +355,12 @@ export class Annotator {
     }
     const a = this.draftAnnot(s);
     if (!a) return;
-    const f = s.tool === 'redact' || s.tool === 'freetext' ? { x: a.x ?? 0, y: a.y ?? 0, w: a.w ?? 0, h: a.h ?? 0 } : bounds(a);
+    const boxed = s.tool === 'redact' || s.tool === 'freetext' || s.tool === 'crop';
+    const f = boxed ? { x: a.x ?? 0, y: a.y ?? 0, w: a.w ?? 0, h: a.h ?? 0 } : bounds(a);
     s.draft.setAttribute('style', `left:${calc(f.x)};top:${calc(f.y)};width:${calc(f.w)};height:${calc(f.h)}`);
     s.draft.dataset.kind = s.tool;
-    s.draft.innerHTML = SVG_KINDS.has(a.kind) && s.tool !== 'redact' ? contentOf(a, f).html : '';
+    const inner = SVG_KINDS.has(a.kind) && !boxed ? contentOf(a, f).html : '';
+    if (inner || s.draft.firstChild) s.draft.innerHTML = inner;
   }
 
   private draftAnnot(s: Session): Annot | null {
@@ -332,7 +369,7 @@ export class Annotator {
     const base = { id: 'draft', page: s.pv.index + 1, color: this.style.color, width: this.style.width, opacity: this.style.opacity, rot: this.viewer.total(s.pv) };
     switch (s.tool) {
       case 'ink': return { ...base, kind: 'ink', paths: [s.pts.slice()] };
-      case 'rect': case 'ellipse': case 'redact': case 'freetext': return { ...base, kind: s.tool === 'ellipse' ? 'ellipse' : 'rect', ...box };
+      case 'rect': case 'ellipse': case 'redact': case 'freetext': case 'crop': return { ...base, kind: s.tool === 'ellipse' ? 'ellipse' : 'rect', ...box };
       case 'line': case 'arrow': return { ...base, kind: s.tool, points: [[p0.x, p0.y], [last.x, last.y]] };
       default: return null;
     }
@@ -377,6 +414,12 @@ export class Annotator {
     const a = this.draftAnnot(s);
     if (!a) return;
     const id = uid(s.tool === 'redact' ? 'r' : 'a');
+    if (s.tool === 'crop') {
+      if ((a.w ?? 0) < 4 || (a.h ?? 0) < 4) return;
+      this.setCrop({ id: 'crop', page: a.page, x: a.x ?? 0, y: a.y ?? 0, w: a.w ?? 0, h: a.h ?? 0 });
+      this.hooks.crop();
+      return;
+    }
     if (s.tool === 'redact') {
       if ((a.w ?? 0) < 2 || (a.h ?? 0) < 2) return;
       this.setAreas([...this.areas, { id, page: a.page, x: a.x ?? 0, y: a.y ?? 0, w: a.w ?? 0, h: a.h ?? 0 }]);

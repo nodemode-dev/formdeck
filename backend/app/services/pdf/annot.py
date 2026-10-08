@@ -27,6 +27,10 @@ SUBTYPE = {"highlight": "/Highlight", "underline": "/Underline", "strikeout": "/
 DEFAULT_COLOR = {"highlight": "#FFD400", "note": "#FFD400", "freetext": "#111111", "image": "#111111"}
 NOTE = 20.0
 MAX_ANNOTS = 2000
+STATES = {"none": "/None", "accepted": "/Accepted", "rejected": "/Rejected", "completed": "/Completed", "cancelled": "/Cancelled"}
+LISTED = {"/Text": "note", "/FreeText": "freetext", "/Line": "line", "/Square": "rect", "/Circle": "ellipse", "/Polygon": "polygon",
+          "/PolyLine": "polyline", "/Highlight": "highlight", "/Underline": "underline", "/Squiggly": "squiggly", "/StrikeOut": "strikeout",
+          "/Stamp": "stamp", "/Caret": "caret", "/Ink": "ink", "/FileAttachment": "attachment", "/Sound": "sound", "/Redact": "redact"}
 
 
 def rgb(value, default: str = "#000000") -> tuple[float, float, float]:
@@ -125,6 +129,24 @@ def _image(data_url: str):
     return img.convert("RGBA") if img.mode not in ("RGB", "RGBA") else img
 
 
+def _replies(v) -> list[str]:
+    out = []
+    for r in (v if isinstance(v, list) else [])[:200]:
+        text = str((r.get("text") if isinstance(r, dict) else r) or "").strip()[:8000]
+        if text:
+            out.append(text)
+    return out
+
+
+def _status(v) -> str | None:
+    if v in (None, ""):
+        return None
+    s = str(v).strip().lower()
+    if s not in STATES:
+        raise ValueError(f"A comment status is one of {', '.join(STATES)}")
+    return s
+
+
 def normalize(a: dict, sizes: list[tuple[float, float]]) -> dict:
     kind = a.get("kind")
     if kind not in KINDS:
@@ -139,7 +161,7 @@ def normalize(a: dict, sizes: list[tuple[float, float]]) -> dict:
     out = {"kind": kind, "page": page, "color": rgb(a.get("color"), DEFAULT_COLOR.get(kind, "#E11D48")), "rot": rot,
            "opacity": _clamp(a.get("opacity"), 0.05, 1, 0.4 if kind == "highlight" else 1), "width": _clamp(a.get("width"), 0.25, 48, 2),
            "text": str(a.get("text") or "")[:8000], "size": _clamp(a.get("size"), 4, 144, 12), "flatten": a.get("flatten"),
-           "fill": rgb(a["fill"]) if a.get("fill") else None}
+           "fill": rgb(a["fill"]) if a.get("fill") else None, "replies": _replies(a.get("replies")), "status": _status(a.get("status"))}
     try:
         if kind in MARKUP:
             out["rects"] = [_rect(r) for r in (a.get("rects") or [])][:400]
@@ -400,6 +422,139 @@ def _annot(a: dict, rect: list[float], ap, llx: float, lly: float, H: float, aut
     return d
 
 
+def _blank_ap(w: PdfWriter):
+    stream = DecodedStreamObject()
+    stream.set_data(b"")
+    stream[NameObject("/Type")] = NameObject("/XObject")
+    stream[NameObject("/Subtype")] = NameObject("/Form")
+    stream[NameObject("/BBox")] = _arr([0, 0, 1, 1])
+    return w._add_object(stream)
+
+
+def _thread(w: PdfWriter, page: int, parent, replies: list[str], status: str | None, author: str, blank) -> None:
+    rect = [float(v) for v in parent.get_object().get("/Rect", [0, 0, 0, 0])]
+    entries = [(t, None) for t in replies] + ([(None, status)] if status else [])
+    for text, state in entries:
+        stamp = _pdf_date()
+        d = DictionaryObject({
+            NameObject("/Type"): NameObject("/Annot"), NameObject("/Subtype"): NameObject("/Text"), NameObject("/Rect"): _arr(rect),
+            NameObject("/F"): NumberObject(30 if state else 28), NameObject("/IRT"): parent, NameObject("/M"): TextStringObject(stamp),
+            NameObject("/CreationDate"): TextStringObject(stamp), NameObject("/NM"): TextStringObject(f"fs-{uuid.uuid4().hex[:16]}"),
+            NameObject("/Name"): NameObject("/Comment"), NameObject("/Open"): BooleanObject(False),
+            NameObject("/AP"): DictionaryObject({NameObject("/N"): blank}),
+        })
+        if author:
+            d[NameObject("/T")] = TextStringObject(author)
+        if state:
+            d[NameObject("/State")] = NameObject(STATES[state])
+            d[NameObject("/StateModel")] = NameObject("/Review")
+            d[NameObject("/Contents")] = TextStringObject(f"{state.capitalize()} set by {author or 'a reviewer'}")
+        else:
+            d[NameObject("/RT")] = NameObject("/R")
+            d[NameObject("/Contents")] = TextStringObject(text)
+        w.add_annotation(page, d)
+
+
+def _target(w: PdfWriter, req: dict):
+    try:
+        p, index = int(req.get("page")), int((req.get("target") or {}).get("index"))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("A reply needs the page and target of the comment it answers") from None
+    if not 1 <= p <= len(w.pages):
+        raise ValueError(f"Page {p} is out of range (1 to {len(w.pages)})")
+    page = w.pages[p - 1]
+    arr = page.get("/Annots")
+    arr = arr.get_object() if arr is not None else ArrayObject()
+    nm = str((req.get("target") or {}).get("nm") or "")
+    k = index if 0 <= index < len(arr) else -1
+    if nm and (k < 0 or str(arr[k].get_object().get("/NM") or "") != nm):
+        k = next((j for j, ref in enumerate(arr) if str(ref.get_object().get("/NM") or "") == nm), -1)
+    if k < 0:
+        raise ValueError(f"The comment being answered on page {p} is no longer in this PDF")
+    ref = arr[k]
+    if not hasattr(ref, "idnum"):
+        ref = w._add_object(ref)
+        arr[k] = ref
+    return p - 1, ref
+
+
+def _when(v) -> str:
+    m = re.match(r"(?:D:)?(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?", str(v or "").strip())
+    if not m:
+        return ""
+    y, mo, d, hh, mi, ss = (m.group(k) or dflt for k, dflt in zip(range(1, 7), ("", "01", "01", "00", "00", "00")))
+    return f"{y}-{mo}-{d}T{hh}:{mi}:{ss}"
+
+
+def _text(v) -> str:
+    v = v.get_object() if hasattr(v, "get_object") else v
+    return str(v or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+
+
+def comments(path, passwords: list[str] | None = None, limit: int = 2000) -> list[dict]:
+    r = core.reader(path, passwords)
+    out: list[dict] = []
+    for pi, page in enumerate(r.pages):
+        arr = page.get("/Annots")
+        if arr is None:
+            continue
+        x0, y0, x1, y1 = core.view_box(page)
+        rows: list[tuple[int, int | None, DictionaryObject]] = []
+        for k, ref in enumerate(arr.get_object()):
+            a = ref.get_object()
+            if isinstance(a, DictionaryObject) and a.get("/Subtype") in LISTED:
+                rows.append((k, getattr(ref, "idnum", None), a))
+        by_id = {idn: (k, a) for k, idn, a in rows if idn is not None}
+        tops: dict[int, dict] = {}
+        children: list[tuple[int, DictionaryObject]] = []
+        for k, idn, a in rows:
+            irt = a.raw_get("/IRT") if "/IRT" in a else None
+            if irt is not None:
+                children.append((getattr(irt, "idnum", -1), a))
+                continue
+            if int(a.get("/F", 0) or 0) & 2:
+                continue
+            rx0, ry0, rx1, ry1 = (float(v) for v in (a.get("/Rect") or [0, 0, 0, 0]))
+            rx0, rx1 = sorted((rx0, rx1))
+            ry0, ry1 = sorted((ry0, ry1))
+            color = a.get("/C") or a.get("/IC") or []
+            hexc = "#" + "".join(f"{max(0, min(255, round(float(c) * 255))):02X}" for c in list(color)[:3]) if len(color) >= 3 else ""
+            tops[k] = {"page": pi + 1, "index": k, "nm": _text(a.get("/NM")), "kind": LISTED[a["/Subtype"]], "label": str(a["/Subtype"])[1:],
+                       "text": _text(a.get("/Contents")), "author": _text(a.get("/T")), "date": _when(a.get("/M") or a.get("/CreationDate")),
+                       "color": hexc, "rect": {"x": round(rx0 - x0, 2), "y": round(y1 - ry1, 2), "w": round(rx1 - rx0, 2), "h": round(ry1 - ry0, 2)},
+                       "replies": [], "status": "none", "statusBy": ""}
+        states: dict[int, tuple[str, str, str]] = {}
+        for parent_id, a in children:
+            seen: set[int] = set()
+            pid = parent_id
+            while pid in by_id and pid not in seen:
+                seen.add(pid)
+                k, pa = by_id[pid]
+                if k in tops:
+                    break
+                nxt = pa.raw_get("/IRT") if "/IRT" in pa else None
+                pid = getattr(nxt, "idnum", -1)
+            root = by_id.get(pid, (None, None))[0]
+            if root not in tops or str(a.get("/RT") or "/R") == "/Group":
+                continue
+            when = _when(a.get("/M") or a.get("/CreationDate"))
+            if "/State" in a:
+                if str(a.get("/StateModel") or "/Review") == "/Review":
+                    state = str(a["/State"])[1:].lower()
+                    if state in STATES and (root not in states or when >= states[root][1]):
+                        states[root] = (state, when, _text(a.get("/T")))
+                continue
+            tops[root]["replies"].append({"text": _text(a.get("/Contents")), "author": _text(a.get("/T")), "date": when})
+        for root, (state, _, who) in states.items():
+            tops[root]["status"], tops[root]["statusBy"] = state, who
+        for item in tops.values():
+            item["replies"].sort(key=lambda x: x["date"])
+            out.append(item)
+            if len(out) >= limit:
+                return out
+    return out
+
+
 def annotate(src, out, annotations: list[dict], *, flatten: bool = False, passwords: list[str] | None = None, author: str = "") -> int:
     if not annotations:
         raise ValueError("There are no annotations to apply")
@@ -410,7 +565,9 @@ def annotate(src, out, annotations: list[dict], *, flatten: bool = False, passwo
     for page in w.pages:
         x0, y0, x1, y1 = core.view_box(page)
         geo.append((x0, y0, x1 - x0, y1 - y0))
-    items = [normalize(a, [(g[2], g[3]) for g in geo]) for a in annotations]
+    asks = [a for a in annotations if isinstance(a, dict) and a.get("kind") == "reply"]
+    items = [normalize(a, [(g[2], g[3]) for g in geo]) for a in annotations if not (isinstance(a, dict) and a.get("kind") == "reply")]
+    blank = _blank_ap(w) if asks or any(a["replies"] or a["status"] for a in items) else None
     flat: list[dict] = []
     live: list[dict] = []
     for a in items:
@@ -446,7 +603,16 @@ def annotate(src, out, annotations: list[dict], *, flatten: bool = False, passwo
             x0, y0, x1, y1 = bbox(a)
             bb = [x0, H - y1, x1, H - y0]
             ap = _form(w, ov.pages[k], bb)
-            w.add_annotation(a["page"] - 1, _annot(a, [llx + bb[0], lly + bb[1], llx + bb[2], lly + bb[3]], ap, llx, lly, H, author))
+            added = w.add_annotation(a["page"] - 1, _annot(a, [llx + bb[0], lly + bb[1], llx + bb[2], lly + bb[3]], ap, llx, lly, H, author))
+            if a["replies"] or a["status"]:
+                _thread(w, a["page"] - 1, added.indirect_reference, a["replies"], a["status"], author, blank)
+    for req in asks:
+        texts = _replies([req.get("text")])
+        status = _status(req.get("status"))
+        if not texts and not status:
+            raise ValueError("A reply needs text or a status")
+        page, parent = _target(w, req)
+        _thread(w, page, parent, texts, status, author, blank)
     with open(out, "wb") as fh:
         w.write(fh)
     return len(w.pages)

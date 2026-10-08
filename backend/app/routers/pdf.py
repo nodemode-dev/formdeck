@@ -322,6 +322,39 @@ async def watermark(doc_id: str, body: dict) -> dict:
                          color=str(body.get("color") or "#888888"), pages=body.get("pages") or None, passwords=_pw(doc_id))
 
 
+@router.post("/pdf/{doc_id}/header-footer")
+async def header_footer(doc_id: str, body: dict) -> dict:
+    name = docs.meta(doc_id).get("name")
+    return await _derive(doc_id, pdfsvc.header_footer, header=body.get("header"), footer=body.get("footer"), size=body.get("size"),
+                         color=str(body.get("color") or "#333333"), font=str(body.get("font") or "sans"), margins=body.get("margins"),
+                         pages=body.get("pages") or None, start=body.get("start"), apply=str(body.get("apply") or "all"),
+                         bates=body.get("bates") or None, date=body.get("date") or None, file=name, passwords=_pw(doc_id))
+
+
+@router.post("/pdf/{doc_id}/crop")
+async def crop(doc_id: str, body: dict) -> dict:
+    box, margins = body.get("box"), body.get("margins")
+    if box is not None and not isinstance(box, dict):
+        raise HTTPException(400, "box must be {x, y, w, h} in points from the top left of the page")
+    if margins is not None and not isinstance(margins, (dict, int, float)):
+        raise HTTPException(400, "margins must be {l, t, r, b} in points")
+    return await _derive(doc_id, pdfsvc.crop, box=box, margins=margins, auto=bool(body.get("auto")), pad=body.get("pad"),
+                         pages=body.get("pages") or None, passwords=_pw(doc_id))
+
+
+@router.post("/pdf/{doc_id}/find")
+async def find(doc_id: str, body: dict) -> dict:
+    preset = body.get("preset") or None
+    return await _run(pdfsvc.find, _path(doc_id), None if preset else str(body.get("query") or ""), regex=bool(body.get("regex")),
+                      preset=preset, case_sensitive=bool(body.get("caseSensitive")), whole_word=bool(body.get("wholeWord")),
+                      pages=body.get("pages") or None, passwords=_pw(doc_id))
+
+
+@router.get("/pdf/{doc_id}/comments")
+async def get_comments(doc_id: str) -> dict:
+    return {"comments": await _run(pdfsvc.comments, _path(doc_id), _pw(doc_id))}
+
+
 @router.get("/pdf/{doc_id}/render/{page}")
 async def render(doc_id: str, page: int, scale: float = 2.0):
     data = await _run(pdfsvc.render_png, _path(doc_id), page, scale, _pw(doc_id))

@@ -22,7 +22,7 @@ const LOCAL = {
   fitWidth: '<path d="M3.5 4.5v15M20.5 4.5v15M7 12h10M9.5 9.5L7 12l2.5 2.5M14.5 9.5L17 12l-2.5 2.5"/>',
   underline: '<path d="M7 4.5v6a5 5 0 0 0 10 0v-6M5.5 20h13"/>',
 };
-const TABS: Array<[Tab, string]> = [['view', 'View'], ['comment', 'Comment'], ['fill', 'Fill & Sign'], ['organize', 'Organize'], ['extract', 'Extract'], ['protect', 'Protect'], ['convert', 'Convert']];
+const TABS: Array<[Tab, string]> = [['view', 'View'], ['comment', 'Comment'], ['fill', 'Fill & Sign'], ['edit', 'Edit'], ['organize', 'Organize'], ['extract', 'Extract'], ['protect', 'Protect'], ['convert', 'Convert']];
 const PALETTE = ['#FFD400', '#22C55E', '#38BDF8', '#F472B6', '#E11D48', '#2563EB', '#111111'];
 const TOOL_COLOR: Record<string, string> = { highlight: '#FFD400', underline: '#2563EB', strikeout: '#E11D48', note: '#FFD400', freetext: '#111111', ink: '#E11D48', rect: '#E11D48', ellipse: '#E11D48', line: '#111111', arrow: '#E11D48' };
 const HINTS: Partial<Record<Tool, string>> = {
@@ -30,6 +30,7 @@ const HINTS: Partial<Record<Tool, string>> = {
   highlight: 'Select text to highlight it.', underline: 'Select text to underline it.', strikeout: 'Select text to strike it through.',
   note: 'Click where the note goes.', freetext: 'Click or drag to add a text box.', ink: 'Drag to draw.', rect: 'Drag to draw a rectangle.',
   ellipse: 'Drag to draw an ellipse.', line: 'Drag to draw a line.', arrow: 'Drag to draw an arrow.', redact: 'Drag over everything that must disappear.',
+  crop: 'Drag a box around what to keep. Esc ends.',
 };
 const toolBtn = (t: Tool, label: string, ic: string): string => `<button class="fs-tb-btn" type="button" data-tool="${t}" title="${label}" aria-label="${label}">${ic}</button>`;
 
@@ -57,10 +58,11 @@ const SHELL = `<div class="fs-pdfwb" tabindex="-1" role="application" aria-label
 <div class="fs-tb fs-pdfwb-set" data-for="view">${toolBtn('select', 'Select', icon('cursor', 16))}${toolBtn('hand', 'Hand', icon('hand', 16))}<span class="fs-sep"></span><button class="fs-tb-btn" type="button" data-a="find" title="Find" aria-label="Find">${icon('search', 16)}</button></div>
 <div class="fs-tb fs-pdfwb-set" data-for="comment" hidden>${toolBtn('select', 'Select', icon('cursor', 16))}<span class="fs-sep"></span>${toolBtn('highlight', 'Highlight text', icon('highlighter', 16))}${toolBtn('underline', 'Underline text', svg(LOCAL.underline))}${toolBtn('strikeout', 'Strike through text', icon('strike', 16))}<span class="fs-sep"></span>${toolBtn('note', 'Sticky note', icon('sticky', 16))}${toolBtn('freetext', 'Text box', icon('textBox', 16))}${toolBtn('ink', 'Draw', icon('pen', 16))}${toolBtn('rect', 'Rectangle', svg(LOCAL.rect))}${toolBtn('ellipse', 'Ellipse', svg(LOCAL.ellipse))}${toolBtn('line', 'Line', icon('line', 16))}${toolBtn('arrow', 'Arrow', icon('arrow', 16))}<span class="fs-sep"></span><div class="fs-tb-group fs-pdfwb-palette">${PALETTE.map((c) => `<button class="fs-swatch" type="button" data-color="${c}" title="${c}" style="background:${c}"></button>`).join('')}<label class="fs-swatch fs-pdfwb-custom" title="Custom colour"><input type="color" data-a="custom-color" value="#E11D48"></label></div><span class="fs-sep"></span><select class="fs-pdfwb-width" aria-label="Line width" title="Line width"><option value="1">1 pt</option><option value="2" selected>2 pt</option><option value="3">3 pt</option><option value="5">5 pt</option><option value="8">8 pt</option></select><select class="fs-pdfwb-size" aria-label="Text size" title="Text size"><option value="9">9 pt</option><option value="10">10 pt</option><option value="12" selected>12 pt</option><option value="14">14 pt</option><option value="18">18 pt</option><option value="24">24 pt</option><option value="36">36 pt</option></select></div>
 <div class="fs-tb fs-pdfwb-set" data-for="fill" hidden>${toolBtn('select', 'Fill fields', icon('cursor', 16))}${toolBtn('freetext', 'Add text', icon('textBox', 16))}<button class="fs-tb-btn has-label" type="button" data-a="sign" title="Place your signature">${icon('signature', 16)}<span>Sign</span></button><button class="fs-tb-btn has-label" type="button" data-a="date" title="Place today's date">${icon('stamp', 16)}<span>Date</span></button></div>
+<div class="fs-tb fs-pdfwb-set" data-for="edit" hidden>${toolBtn('select', 'Select', icon('cursor', 16))}${toolBtn('crop', 'Draw a crop box', icon('crop', 16))}<span class="fs-sep"></span><span class="fs-pdfwb-settext">Headers and footers, Bates numbers, page numbers, watermarks and cropping.</span></div>
 <div class="fs-tb fs-pdfwb-set" data-for="organize" hidden><button class="fs-tb-btn" type="button" data-a="org-left" title="Rotate left">${icon('undo', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-right" title="Rotate right">${icon('redo', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-delete" title="Delete pages">${icon('delete', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-blank" title="Insert a blank page">${icon('pageInsert', 16)}</button><button class="fs-tb-btn" type="button" data-a="org-insert" title="Insert pages from a PDF">${icon('upload', 16)}</button><span class="fs-sep"></span><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="org-reset">Reset</button><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="org-apply">Apply changes</button></div>
 <div class="fs-tb fs-pdfwb-set" data-for="extract" hidden><span class="fs-pdfwb-settext">Text, pictures and tables, from all pages or a range.</span></div>
 <div class="fs-tb fs-pdfwb-set" data-for="protect" hidden>${toolBtn('select', 'Select', icon('cursor', 16))}${toolBtn('redact', 'Mark areas to redact', icon('eraser', 16))}</div>
-<div class="fs-tb fs-pdfwb-set" data-for="convert" hidden><span class="fs-pdfwb-settext">Decks, smaller files, page numbers, watermarks and pictures.</span></div>
+<div class="fs-tb fs-pdfwb-set" data-for="convert" hidden><span class="fs-pdfwb-settext">Decks, smaller files and pictures.</span></div>
 </div>
 <div class="fs-pdfwb-bar" hidden role="alert"><span class="fs-pdfwb-bar-icon">${icon('warning', 16)}</span><span class="fs-pdfwb-bar-text"></span><input class="fs-input fs-pdfwb-bar-input" hidden spellcheck="false"><div class="fs-pdfwb-bar-actions"></div></div>
 <div class="fs-pdfwb-main">
@@ -70,7 +72,7 @@ const SHELL = `<div class="fs-pdfwb" tabindex="-1" role="application" aria-label
 </aside>
 <main class="fs-pdfwb-center">
 <div class="fs-pdfwb-empty">
-<div class="fs-home-hero fs-pdfwb-hero"><span class="fs-home-hero-icon">${icon('filePdf', 26)}</span><div class="fs-home-hero-text"><div class="fs-home-hero-title">Open a PDF</div><div class="fs-home-hero-sub">Read, search, comment, fill and sign, reorder pages, extract text, pictures and tables, protect or redact, and turn any PDF into a deck. Drop a file anywhere here.</div></div><div class="fs-home-hero-actions"><button class="fs-btn fs-btn-primary" type="button" data-a="open">${icon('folderOpen', 14)}Open PDF</button></div></div>
+<div class="fs-home-hero fs-pdfwb-hero"><span class="fs-home-hero-icon">${icon('filePdf', 26)}</span><div class="fs-home-hero-text"><div class="fs-home-hero-title">Open a PDF</div><div class="fs-home-hero-sub">Read, search, comment and reply, fill and sign, add headers, footers and Bates numbers, crop and reorder pages, extract text, pictures and tables, find and redact, protect, and turn any PDF into a deck. Drop a file anywhere here.</div></div><div class="fs-home-hero-actions"><button class="fs-btn fs-btn-primary" type="button" data-a="open">${icon('folderOpen', 14)}Open PDF</button></div></div>
 <section class="fs-home-section fs-pdfwb-recents" hidden><div class="fs-home-section-head"><h2 class="fs-home-section-title">Recent PDFs</h2></div><div class="fs-card-grid fs-pdfwb-recent-grid"></div></section>
 </div>
 <div class="fs-pdfwb-find" hidden><label class="fs-search">${icon('search', 14)}<input type="search" class="fs-pdfwb-findin" placeholder="Find in document" spellcheck="false" aria-label="Find in document"></label><span class="fs-pdfwb-findcount"></span><button class="fs-icon-btn is-sm" type="button" data-a="find-prev" title="Previous" aria-label="Previous match">${icon('chevronUp', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-a="find-next" title="Next" aria-label="Next match">${icon('chevronDown', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-a="find-close" title="Close" aria-label="Close search">${icon('close', 14)}</button></div>
@@ -133,6 +135,7 @@ class Workbench {
       select: () => { this.panes.syncAnnots(); this.syncPalette(); },
       areas: () => this.panes.syncAreas(),
       toolDone: () => this.setTool('select'),
+      crop: () => this.panes.syncCrop('draw'),
     });
     this.fields = new Fields(this.viewer);
     this.fields.onChange = () => { this.panes.syncFields(); this.syncChrome(); };
@@ -780,6 +783,7 @@ class Workbench {
     this.closeFind();
     this.annot.setItems([]);
     this.annot.setAreas([]);
+    this.annot.setCrop(null);
     this.fields.reset();
     this.viewer.close();
     this.thumbs.sync([]);

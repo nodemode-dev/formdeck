@@ -16,12 +16,29 @@ export interface ImageItem { page: number; id: string; w: number; h: number; mim
 export interface TableItem { page: number; header: string[]; rows: string[][] }
 export interface Rect { x: number; y: number; w: number; h: number }
 export type Pt = [number, number];
-export type AnnotKind = 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'image';
+export type AnnotKind = 'highlight' | 'underline' | 'strikeout' | 'note' | 'freetext' | 'ink' | 'rect' | 'ellipse' | 'line' | 'arrow' | 'image' | 'reply';
+export type Status = 'none' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+export interface Reply { id: string; text: string }
+export interface Target { index: number; nm?: string }
 export interface Annot {
   id: string; page: number; kind: AnnotKind; color: string; opacity?: number; width?: number; rot?: number; flatten?: boolean; fill?: string;
   rects?: Rect[]; points?: Pt[]; paths?: Pt[][]; x?: number; y?: number; w?: number; h?: number; text?: string; size?: number; image?: string; quote?: string;
+  replies?: Reply[]; status?: Status; target?: Target;
 }
 export interface Area extends Rect { id: string; page: number }
+export interface PdfComment {
+  page: number; index: number; nm: string; kind: string; label: string; text: string; author: string; date: string; color: string; rect: Rect;
+  replies: Array<{ text: string; author: string; date: string }>; status: Status; statusBy: string;
+}
+export interface Band { left?: string; center?: string; right?: string }
+export interface HeaderFooter {
+  header: Band; footer: Band; size: number; color: string; font: 'sans' | 'serif' | 'mono'; margins: { top: number; bottom: number; left: number; right: number };
+  pages?: string; start: number; apply: 'all' | 'odd' | 'even'; bates?: { prefix: string; start: number; digits: number }; date?: string;
+}
+export interface Margins { l: number; t: number; r: number; b: number }
+export type Preset = 'email' | 'phone' | 'card' | 'date';
+export interface FindBody { query?: string; regex?: boolean; preset?: Preset; caseSensitive?: boolean; wholeWord?: boolean; pages?: string }
+export interface Match { page: number; text: string; before: string; after: string; context: string; rects: Rect[] }
 export type OrganizePage = { src: string; page: number; rotate: number } | { blank: true; w?: number; h?: number };
 
 const base = (id: string): string => `/api/pdf/${encodeURIComponent(id)}`;
@@ -67,6 +84,10 @@ export const pdfApi = {
   compress: (id: string, quality: number) => api.post<Derived>(`${base(id)}/compress`, { quality }),
   pageNumbers: (id: string, body: { position: string; start: number; format: string; size?: number }) => api.post<Derived>(`${base(id)}/page-numbers`, body),
   watermark: (id: string, body: { text: string; opacity: number; angle: number; size: number; color: string }) => api.post<Derived>(`${base(id)}/watermark`, body),
+  headerFooter: (id: string, body: HeaderFooter) => api.post<Derived>(`${base(id)}/header-footer`, body),
+  crop: (id: string, body: { box?: Rect; margins?: Margins; auto?: boolean; pages?: string }) => api.post<Derived & { cropped: number }>(`${base(id)}/crop`, body),
+  find: (id: string, body: FindBody) => api.post<{ matches: Match[]; count: number; pages: number; truncated: boolean }>(`${base(id)}/find`, body),
+  comments: (id: string) => api.get<{ comments: PdfComment[] }>(`${base(id)}/comments`),
   toDeck: (id: string, body: { mode: 'pages'; template?: string; title?: string }) => api.post<{ id: string; title: string; slides: number }>(`${base(id)}/to-deck`, body),
   imagesDeck: (media: string[], title: string) => api.post<{ id: string; title: string; slides: number }>('/api/pdf/images-deck', { media, title }),
   save: (id: string, path: string) => api.post<{ path: string; bytes: number }>(`${base(id)}/save`, { path }),

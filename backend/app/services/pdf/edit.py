@@ -1,4 +1,6 @@
+import datetime
 import io
+import re
 from pathlib import Path
 
 from pypdf import PageObject, PdfReader, PdfWriter, Transformation
@@ -12,6 +14,11 @@ INHERITED = ("/Resources", "/MediaBox", "/CropBox", "/Rotate")
 PERMS = {"print": P.PRINT | P.PRINT_TO_REPRESENTATION, "copy": P.EXTRACT, "modify": P.MODIFY, "annotate": P.ADD_OR_MODIFY,
          "fill": P.FILL_FORM_FIELDS, "assemble": P.ASSEMBLE_DOC}
 POSITIONS = ("bottom-center", "bottom-right", "bottom-left", "top-center", "top-right", "top-left")
+SLOTS = ("left", "center", "right")
+APPLY = ("all", "odd", "even")
+FACES = {"sans": "Helvetica", "serif": "Times-Roman", "mono": "Courier"}
+TOKEN = re.compile(r"<<\s*(page|pages|date|file|bates)\s*>>", re.IGNORECASE)
+MIN_CROP = 18.0
 
 
 def _write(w: PdfWriter, out) -> int:
@@ -554,24 +561,11 @@ def page_numbers(src, out, *, position: str = "bottom-center", start: int = 1, f
     fmt = str(fmt or "{n}")[:80]
     if "{n}" not in fmt:
         raise ValueError("The format needs {n} where the number goes")
-    size = max(5.0, min(48.0, float(size)))
-    margin = max(4.0, min(144.0, float(margin)))
-    rgb = annot.rgb(color, "#333333")
-
-    def paint(c, Dw, Dh, k, i, n, count):
-        label = fmt.replace("{n}", str(int(start) + k)).replace("{total}", str(int(start) + count - 1)).replace("{page}", str(i))
-        font = annot.font_for(label)
-        c.setFont(font, size)
-        c.setFillColorRGB(*rgb)
-        y = margin - size * 0.2 if position.startswith("bottom") else Dh - margin - size * 0.8
-        if position.endswith("center"):
-            c.drawCentredString(Dw / 2, y, label)
-        elif position.endswith("right"):
-            c.drawRightString(Dw - margin, y, label)
-        else:
-            c.drawString(margin, y, label)
-
-    return _stamp_pages(src, out, paint, pages, passwords)
+    vert, horiz = position.split("-")
+    band = {horiz: fmt.replace("{n}", "<<page>>").replace("{total}", "<<pages>>").replace("{page}", "<<page>>")}
+    return header_footer(src, out, header=band if vert == "top" else None, footer=band if vert == "bottom" else None,
+                         size=max(5.0, min(48.0, float(size))), color=color, margins=max(4.0, min(144.0, float(margin))), pages=pages,
+                         start=start, passwords=passwords)
 
 
 def watermark(src, out, *, text: str, opacity: float = 0.15, angle: float = 45, size: float = 64, color: str = "#888888", pages=None,
@@ -593,3 +587,204 @@ def watermark(src, out, *, text: str, opacity: float = 0.15, angle: float = 45, 
         c.drawCentredString(0, -size * 0.35, text)
 
     return _stamp_pages(src, out, paint, pages, passwords)
+
+
+def _number(v, lo: float, hi: float, default: float, what: str) -> float:
+    if v is None or v == "":
+        return default
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        raise ValueError(f"{what} must be a number") from None
+    if f != f:
+        raise ValueError(f"{what} must be a number")
+    return max(lo, min(hi, f))
+
+
+def _whole(v, default: int, what: str) -> int:
+    if v is None or v == "":
+        return default
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        raise ValueError(f"{what} must be a whole number") from None
+
+
+def _sides(v, default: float) -> dict[str, float]:
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        v = {k: v for k in ("top", "bottom", "left", "right")}
+    v = v if isinstance(v, dict) else {}
+    short = {"top": "t", "bottom": "b", "left": "l", "right": "r"}
+    return {k: _number(v.get(k, v.get(s)), 0, 2000, default, f"The {k} margin") for k, s in short.items()}
+
+
+def _band(v, what: str) -> dict[str, str]:
+    if v is None or v == "":
+        return {}
+    if isinstance(v, str):
+        v = {"center": v}
+    if not isinstance(v, dict):
+        raise ValueError(f"The {what} takes left, center and right text")
+    out = {}
+    for key in SLOTS:
+        raw = v.get(key)
+        if raw is None and key == "center":
+            raw = v.get("centre")
+        text = str(raw or "").replace("\r\n", "\n").replace("\r", "\n")[:500]
+        if text.strip():
+            out[key] = text
+    return out
+
+
+def _face(text: str, family: str) -> str:
+    try:
+        text.encode("cp1252")
+        return family
+    except UnicodeEncodeError:
+        return annot.text_font()
+
+
+def header_footer(src, out, *, header=None, footer=None, size: float = 10, color: str = "#333333", font: str = "sans", margins=None,
+                  pages=None, start: int = 1, apply: str = "all", bates: dict | None = None, date: str | None = None, file: str | None = None,
+                  passwords: list[str] | None = None) -> int:
+    head, foot = _band(header, "header"), _band(footer, "footer")
+    apply = str(apply or "all").lower()
+    if apply not in APPLY:
+        raise ValueError("apply must be all, odd or even")
+    family = FACES.get(str(font or "sans").lower())
+    if family is None:
+        raise ValueError(f"font must be one of {', '.join(FACES)}")
+    numbering = None
+    if bates:
+        if not isinstance(bates, dict):
+            raise ValueError("Bates numbering takes a prefix, a start number and a digit count")
+        b_start = _whole(bates.get("start"), 1, "The Bates start number")
+        if not 0 <= b_start < 10 ** 15:
+            raise ValueError("The Bates start number must be between 0 and 999999999999999")
+        numbering = (str(bates.get("prefix") or "")[:60], b_start, max(1, min(15, _whole(bates.get("digits"), 6, "The Bates digit count"))),
+                     str(bates.get("suffix") or "")[:60])
+        if not any(m.group(1).lower() == "bates" for band in (head, foot) for s in band.values() for m in TOKEN.finditer(s)):
+            foot["right"] = f"{foot['right']}  <<bates>>" if foot.get("right") else "<<bates>>"
+    if not head and not foot:
+        raise ValueError("Type the header or footer text")
+    size = _number(size, 4, 96, 10, "The font size")
+    side = _sides(margins, 36)
+    start = _whole(start, 1, "The start number")
+    rgb = annot.rgb(color, "#333333")
+    n = len(core.reader(src, passwords).pages)
+    rng = core.parse_pages(pages, n)
+    pos = {p: k for k, p in enumerate(rng)}
+    idx = [p for p in rng if apply == "all" or (p % 2 == 1) == (apply == "odd")]
+    if not idx:
+        raise ValueError(f"There are no {apply} pages in that range")
+    seq = {p: k for k, p in enumerate(idx)}
+    today = str(date).strip()[:60] if date and str(date).strip() else datetime.date.today().isoformat()
+    name = str(file or Path(src).name)[:200]
+
+    def fill(text: str, i: int) -> str:
+        def sub(m) -> str:
+            key = m.group(1).lower()
+            if key == "page":
+                return str(start + pos[i])
+            if key == "pages":
+                return str(start + len(rng) - 1)
+            if key == "date":
+                return today
+            if key == "file":
+                return name
+            if numbering is None:
+                return ""
+            prefix, first, digits, suffix = numbering
+            return f"{prefix}{first + seq[i]:0{digits}d}{suffix}"
+        return TOKEN.sub(sub, text)
+
+    asc, desc, lead = size * 0.74, size * 0.22, size * 1.2
+
+    def paint(c, Dw, Dh, k, i, total, count):
+        c.setFillColorRGB(*rgb)
+        for band, top in ((head, True), (foot, False)):
+            for slot, raw in band.items():
+                lines = fill(raw, i).split("\n")
+                for li, line in enumerate(lines):
+                    if not line.strip():
+                        continue
+                    c.setFont(_face(line, family), size)
+                    y = Dh - side["top"] - asc - li * lead if top else side["bottom"] + desc + (len(lines) - 1 - li) * lead
+                    if slot == "left":
+                        c.drawString(side["left"], y, line)
+                    elif slot == "right":
+                        c.drawRightString(Dw - side["right"], y, line)
+                    else:
+                        c.drawCentredString(Dw / 2, y, line)
+
+    return _stamp_pages(src, out, paint, idx, passwords)
+
+
+def _unrotate(m: tuple[float, float, float, float], rot: int) -> tuple[float, float, float, float]:
+    left, top, right, bottom = m
+    if rot == 90:
+        return top, right, bottom, left
+    if rot == 180:
+        return right, bottom, left, top
+    if rot == 270:
+        return bottom, left, top, right
+    return left, top, right, bottom
+
+
+@core.serial
+def _content_margins(src, idx: list[int], passwords: list[str] | None, pad: float) -> dict[int, tuple[float, float, float, float] | None]:
+    doc = core.pdfium_doc(src, passwords)
+    out: dict[int, tuple[float, float, float, float] | None] = {}
+    try:
+        for i in idx:
+            pg = doc[i - 1]
+            w, h = pg.get_size()
+            pil = core.render_pil(pg, max(0.1, min(1.5, 900 / max(w, h, 1)))).convert("L")
+            pg.close()
+            bb = pil.point(lambda v: 255 if v < 242 else 0).getbbox()
+            if not bb:
+                out[i] = None
+                continue
+            dw, dh = pil.size
+            kx, ky = w / dw, h / dh
+            out[i] = (max(0.0, bb[0] * kx - pad), max(0.0, bb[1] * ky - pad), max(0.0, (dw - bb[2]) * kx - pad), max(0.0, (dh - bb[3]) * ky - pad))
+    finally:
+        doc.close()
+    return out
+
+
+def crop(src, out, *, box=None, margins=None, auto: bool = False, pad: float = 4, pages=None, passwords: list[str] | None = None) -> dict:
+    if sum((box is not None, margins is not None, bool(auto))) != 1:
+        raise ValueError("Give one of a box, margins or auto")
+    if box is not None:
+        try:
+            bx, by, bw, bh = annot._rect(box)
+        except (KeyError, TypeError, ValueError, IndexError):
+            raise ValueError("The crop box needs x, y, w and h in points") from None
+    side = _sides(margins, 0) if margins is not None else None
+    w = PdfWriter(clone_from=core.reader(src, passwords))
+    idx = core.parse_pages(pages, len(w.pages))
+    found = _content_margins(src, idx, passwords, _number(pad, 0, 144, 4, "The padding")) if auto else {}
+    cropped = 0
+    for i in idx:
+        page = w.pages[i - 1]
+        _materialize(page)
+        x0, y0, x1, y1 = core.view_box(page)
+        if box is not None:
+            nx0, ny0, nx1, ny1 = x0 + bx, y1 - by - bh, x0 + bx + bw, y1 - by
+        else:
+            m = found.get(i) if auto else (side["left"], side["top"], side["right"], side["bottom"])
+            if m is None:
+                continue
+            left, top, right, bottom = _unrotate(m, core.rotation(page))
+            nx0, ny0, nx1, ny1 = x0 + left, y0 + bottom, x1 - right, y1 - top
+        nx0, ny0, nx1, ny1 = max(nx0, x0), max(ny0, y0), min(nx1, x1), min(ny1, y1)
+        if nx1 - nx0 < MIN_CROP or ny1 - ny0 < MIN_CROP:
+            raise ValueError(f"That crop leaves page {i} smaller than {MIN_CROP:g} points on a side")
+        if max(abs(nx0 - x0), abs(ny0 - y0), abs(nx1 - x1), abs(ny1 - y1)) < 0.01:
+            continue
+        page[NameObject("/CropBox")] = RectangleObject([round(v, 3) for v in (nx0, ny0, nx1, ny1)])
+        cropped += 1
+    if not cropped:
+        raise ValueError("Nothing to crop: the pages already end there" if not auto else "These pages have no white margins to remove")
+    return {"pages": _write(w, out), "cropped": cropped}
