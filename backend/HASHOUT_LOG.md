@@ -37,6 +37,8 @@ app/services/package.py      .fsld pack and unpack
 10. Content before arc in autodraft · services/autodraft.py
 11. Short note lines stay separate · services/intake/markdown.py
 12. Stats before big number on pptx import · services/pptx/read_layouts.py
+13. PDF page text in reading order · services/pdf/core.py to_deck
+14. One lint for people and agents · routers/decks.py check
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -85,3 +87,11 @@ Markdown joins consecutive lines into one paragraph, which merged "**$18.4M** re
 ## 12. Stats before big number on pptx import · _v0.2.1 (services/pptx/read_layouts.py STRONG_NAMES)
 
 The generator names the stats layout "Statistics", which the big-number rule matched first, so re-imported templates lost their stats layout and `layout: stats` fell back. The stats rule now runs first.
+
+## 13. PDF page text in reading order · _v0.2.2 (services/pdf/core.py to_deck)
+
+PDFium's text range follows the content stream, which many generators write bottom up, so speaker notes came out reversed. Notes now come from pdfplumber, which orders words by position; PDFium stays the fallback when pdfplumber cannot open the file. The workbench names the deck after the file when the PDF's title is a placeholder such as "untitled".
+
+## 14. One lint for people and agents · _v0.2.2 (routers/decks.py check)
+
+`POST /api/decks/{id}/check` runs `lint.lint` with the window's measurements, exactly as the `lint_deck` MCP tool does, and returns the report with `measured` saying whether overflow was measured. The last docstrings (media.py, ids.py, intake/__init__.py) are gone; the intake contract they described is in FORMAT.md and the formsld-skillset intake reference.

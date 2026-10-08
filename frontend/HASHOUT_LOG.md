@@ -34,6 +34,8 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 11. Background live preview · ui/dialogs-insert.ts
 12. Inspector sections are blocks, not section buttons · styles/panels.css
 13. Zero-height lines keep a 1pt box · render/slide.ts
+14. Check Deck asks the engine, which asks the window · ui/check-dialog.ts
+15. Opening files by path · app.ts openPaths, window.__formsldOpen
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -86,3 +88,11 @@ The family stylesheet defines `.fs-prop-section` as a 28 px collapsible header b
 ## 13. Zero-height lines keep a 1pt box · _v0.2.1 (render/slide.ts shapeSvg)
 
 Chrome does not paint an SVG whose box rounds to zero, so horizontal and vertical lines and connectors were invisible in the editor while the raster export drew them. Line geometry now gets at least a 1 pt box with overflow visible. Numbered bullet labels (`.fs-bu`) no longer wrap at small scales.
+
+## 14. Check Deck asks the engine, which asks the window · _v0.2.2 (ui/check-dialog.ts, editor/commands.ts check-deck)
+
+The dialog posts to `/api/decks/{id}/check`; the engine runs the same lint agents get and, when a window is connected, calls that window's `measure` tool over the live channel so overflow is measured on rendered slides rather than estimated. The round trip through the engine keeps one lint implementation for people and agents. Rows are patched by key, and clicking one selects the slide and element. Flip Horizontal, Flip Vertical and Rotate Right 90° are plain set ops on `flipH`, `flipV` and `rot`. The status bar's agent indicator shows the last agent step's label for eight seconds.
+
+## 15. Opening files by path · _v0.2.2 (app.ts openPaths, pdf/workbench.ts WorkbenchOptions.path)
+
+The desktop shell passes files it was asked to open as repeated `?open=` parameters on the first load, and later through `window.__formsldOpen(paths)`. Decks go through `/api/open-path` into the editor, PDFs through `/api/pdf/open-path` into the workbench. The query is cleared with replaceState so a reload does not import the file again.
