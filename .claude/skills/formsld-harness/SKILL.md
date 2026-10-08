@@ -26,7 +26,7 @@ formsld is a presentation editor running on this computer. Its MCP server (`form
 ```
 formsld-harness/
   SKILL.md                      this router and the doctrine
-  references/tools.md           all 24 MCP tools: arguments and what they return
+  references/tools.md           all 25 MCP tools: arguments and what they return
   EVALS.json                    evaluation prompts and trigger tests for this pack
   sub-skills/
     deck-director/              entry route: intake questions, the full loop, completion gate

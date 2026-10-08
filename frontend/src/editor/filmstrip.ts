@@ -4,6 +4,7 @@ import { icon } from '../ui/icons';
 import { el, setClass, setText } from '../ui/dom';
 import type { Editor } from './editor';
 import { moveSlidesOps } from './actions';
+import { hasAnimations } from './animation-pane';
 
 interface ThumbItem { node: HTMLElement; view: SlideView; num: HTMLElement; badges: HTMLElement }
 
@@ -99,7 +100,7 @@ export class Filmstrip {
       it.node.hidden = !!currentSection && this.collapsed.has(currentSection) && !sec;
       const review = s.review?.status;
       const comments = (deck.comments ?? []).filter((c) => c.slide === s.id && !c.resolved).length;
-      const badge = `${review && review !== 'draft' ? `<span class="fs-thumb-badge is-${review}"><span class="fs-st-dot"></span>${review === 'review' ? 'Review' : review === 'changes' ? 'Changes' : 'Approved'}</span>` : ''}${comments ? `<span class="fs-thumb-badge">${icon('comment', 10)}${comments}</span>` : ''}${s.hidden ? `<span class="fs-thumb-badge">${icon('eyeOff', 10)}</span>` : ''}`;
+      const badge = `${review && review !== 'draft' ? `<span class="fs-thumb-badge is-${review}"><span class="fs-st-dot"></span>${review === 'review' ? 'Review' : review === 'changes' ? 'Changes' : 'Approved'}</span>` : ''}${comments ? `<span class="fs-thumb-badge">${icon('comment', 10)}${comments}</span>` : ''}${hasAnimations(s) ? `<span class="fs-thumb-badge" title="Animations">${icon('animation', 10)}</span>` : ''}${s.hidden ? `<span class="fs-thumb-badge">${icon('eyeOff', 10)}</span>` : ''}`;
       if (it.badges.dataset.html !== badge) { it.badges.dataset.html = badge; it.badges.innerHTML = badge; }
       nodes.push(it.node);
     });

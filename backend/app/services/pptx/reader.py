@@ -17,7 +17,8 @@ from .ooxml import NS, emu_pt, find, findall, int_attr, parse, slugify
 from .read_context import ReadContext, ThemeStyles
 from .read_elements import read_shape_tree
 from .read_layouts import assign_semantics, assign_slots, match_layout_ph
-from .read_slide import clrmap_of, has_animations, read_notes, read_sections, read_transition
+from .read_anim import read_timing, read_tree_mapped
+from .read_slide import clrmap_of, read_notes, read_sections, read_transition
 from .read_style import background_fill
 from .read_table import classify_table_styles
 from .read_text import body_is_empty, read_level
@@ -224,7 +225,7 @@ class _Importer:
         clrmap = clrmap_of(override) if override is not None else self.layout_clrmaps.get(layout_key)
         self._enter(part, f"slide {number}", clrmap, slide_id)
         c_sld = find(el, "p:cSld")
-        elements = read_shape_tree(find(c_sld, "p:spTree"), self.ctx)
+        elements, shape_ids = read_tree_mapped(find(c_sld, "p:spTree"), self.ctx)
         layout_id = self.layout_ids.get(layout_key) or next(iter(self.layout_ids.values()), "")
         slide = {"id": slide_id, "layout": layout_id, "elements": self._finish_placeholders(elements, self.layout_elements.get(layout_key, [])), "notes": read_notes(part)}
         if c_sld.get("name"):
@@ -239,6 +240,9 @@ class _Importer:
         transition = read_transition(el)
         if transition is not None:
             slide["transition"] = transition
+        animations = read_timing(el, shape_ids, slide["elements"], self.ctx)
+        if animations:
+            slide["animations"] = animations
         return slide
 
     def _finish_placeholders(self, elements: list, layout_elements: list) -> list:
@@ -255,9 +259,6 @@ class _Importer:
         return kept
 
     def _deck_warnings(self, slide_entries: list) -> None:
-        animated = sum(1 for _, part, _ in slide_entries if has_animations(part._element))
-        if animated:
-            self.ctx.warn(f"animations on {animated} slide(s) were not imported")
         fonts = [f.get("typeface") for f in findall(self.prs_el, "p:embeddedFontLst/p:embeddedFont/p:font") if f.get("typeface")]
         if fonts:
             self.ctx.warn("embedded fonts not imported: " + ", ".join(dict.fromkeys(fonts)))

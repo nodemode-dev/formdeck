@@ -12,6 +12,7 @@ from .colors import SLOTS, solid_hex
 from .ooxml import NS, find, findall, make, parse, pt_emu, sub
 from .write_context import WriteContext
 from .write_elements import ElementWriter
+from .write_anim import insert_timing, write_mapped
 from .write_slide import append_presentation_ext, insert_transition, sections_element
 from .write_style import background_element
 from .write_text import level_element
@@ -261,12 +262,13 @@ class _Exporter:
         self._set_background(c_sld, slide.get("background"))
         layout = self.layouts_by_id.get(str(slide.get("layout")), {})
         writer = ElementWriter(self.ctx, layout_elements=layout.get("elements"), master_elements=self.master.get("elements"))
-        writer.write_all(slide.get("elements") or [], find(c_sld, "p:spTree"))
+        shape_ids = write_mapped(writer, slide.get("elements") or [], find(c_sld, "p:spTree"))
         if slide.get("hidden"):
             sld.set("show", "0")
         if slide.get("hideMasterShapes"):
             sld.set("showMasterSp", "0")
         insert_transition(sld, slide.get("transition"))
+        insert_timing(sld, slide, shape_ids, self.ctx)
         notes = str(slide.get("notes") or "").strip("\n")
         if notes:
             frame = pp_slide.notes_slide.notes_text_frame

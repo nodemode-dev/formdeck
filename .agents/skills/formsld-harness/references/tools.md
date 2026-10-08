@@ -1,6 +1,6 @@
 # formsld MCP tools
 
-The 24 tools of the formsld MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
+The 25 tools of the formsld MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
 
 ## Contents
 
@@ -8,7 +8,7 @@ The 24 tools of the formsld MCP server (engine 0.2.0), taken from a live `tools/
 - Look: get_context, list_templates, get_deck, lint_deck, render_slides
 - Material: ingest, get_source, add_media
 - Build: draft_spec, build_deck, add_slides
-- Fix: update_slide, set_text, edit_elements, apply_ops, slides
+- Fix: update_slide, set_text, edit_elements, apply_ops, slides, animate
 - Style: apply_template, set_theme
 - Hand over: review, comments, undo, export_deck, open_file
 - PDF: pdf
@@ -122,6 +122,18 @@ Returns: `Applied N ops · rev R · slides s1`. Structured `{rev}`. Shapes: `{op
 - action: move | delete | duplicate | hide | show
 - to: integer, 1-based target for move
 Returns: what changed and the full outline. Duplicates start in draft.
+
+### animate
+- deck, slide, action (required); action: list | add | update | remove | move | clear
+- element: add (or retarget on update), a top-level element id or slot (title, body, stat1...); elements inside a group are refused
+- effect: entrance appear, fadeIn, flyIn, floatIn, riseUp, wipeIn, split, zoomIn, growTurn, swivel, wheel, bounce; emphasis pulse, colorPulse, teeter, spin, grow, transparency; exit disappear, fadeOut, flyOut, floatOut, wipeOut, splitOut, zoomOut, shrinkTurn, swivel, wheel. Friendly names work (`fade`, `fly in`, `zoom`); class is inferred when the name is unique, else entrance.
+- class: entr | emph | exit
+- trigger: onClick (default) | withPrevious | afterPrevious
+- duration, delay: seconds (0 to 60); the effect's default duration when omitted
+- dir: fly and wipe take l, r, u, d; float u or d; split l (vertical) or u (horizontal); spin r (clockwise) or l
+- byParagraph: boolean, text elements only (each paragraph enters on its own click, or one after another)
+- id: the animation id for update, remove, move; to: 1-based position for move (or add)
+Returns: `Slide 3 (s3): 2 animations, 2 clicks` then one line each `1 · a1 · click 1 · entrance fadeIn · 0.5s · e68 [body] First point`. Structured `{slide, animations}`. update replaces only the fields you pass; animations play in the show and export to PowerPoint (pptx) and back.
 
 ## Style
 

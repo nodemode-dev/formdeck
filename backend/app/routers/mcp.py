@@ -46,7 +46,7 @@ GUIDE = """# formsld authoring guide
 3. draft_spec {intake, template, slides?}: a heuristic first draft as a slide script (about 80 percent there). Edit it: order the story, turn titles into claims, cut to 3 to 6 bullets, choose layouts.
 4. build_deck {script, intake, template}: compiles, stores and opens the deck in the window.
 5. render_slides {deck, slides?} shows contact sheets; lint_deck {deck} lists overflow, contrast, empty placeholders and more, each with a fix.
-6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), apply_template, set_theme, apply_ops (raw ops).
+6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis and exit animations per slide), apply_template, set_theme, apply_ops (raw ops).
 7. review {deck, status: review} hands slides to the person, who approves or asks for changes; comments {action: list} shows what they said.
 undo {deck} reverts your whole last turn (every change you made within 90 seconds of the previous one).
 
@@ -160,6 +160,15 @@ TOOLS = [
     _tool("apply_ops", "Applies raw deck ops (set, ins, del, move; formsld://guide) as one undoable step.", {"deck": _DECK, "ops": {"type": "array", "items": {"type": "object"}}, "label": _S}, ["deck", "ops"]),
     _tool("slides", "Moves (to a 1-based position), deletes, duplicates, hides or shows slides.",
           {"deck": _DECK, "action": {"type": "string", "enum": ["move", "delete", "duplicate", "hide", "show"]}, "slides": _SLIDES, "to": _INT}, ["deck", "action", "slides"], destructive=True),
+    _tool("animate", "Lists, adds, updates, removes, reorders or clears one slide's animations (entrance, emphasis, exit); they play in the show and export to PowerPoint.",
+          {"deck": _DECK, "slide": _SLIDE, "action": {"type": "string", "enum": ["list", "add", "update", "remove", "move", "clear"]},
+           "element": {"type": "string", "description": "add (or retarget on update): a top-level element id or slot (title, body...)"},
+           "effect": {"type": "string", "description": "entr: appear fadeIn flyIn floatIn riseUp wipeIn split zoomIn growTurn swivel wheel bounce; emph: pulse colorPulse teeter spin grow transparency; exit: disappear fadeOut flyOut floatOut wipeOut splitOut zoomOut shrinkTurn swivel wheel"},
+           "class": {"type": "string", "enum": ["entr", "emph", "exit"]}, "trigger": {"type": "string", "enum": ["onClick", "withPrevious", "afterPrevious"]},
+           "duration": {"type": "number", "description": "Seconds"}, "delay": {"type": "number", "description": "Seconds"},
+           "dir": {"type": "string", "enum": ["l", "r", "u", "d"], "description": "fly, wipe: side; float: u or d; split: l (vertical) or u (horizontal); spin: r clockwise, l counter-clockwise"},
+           "byParagraph": {"type": "boolean"}, "id": {"type": "string", "description": "Animation id (update, remove, move)"}, "to": {"type": "integer", "description": "1-based position (move, or add)"}},
+          ["deck", "slide", "action"]),
     _tool("apply_template", "Restyles a deck with another template, keeping its content.", {"deck": _DECK, "template": _S}, ["deck", "template"]),
     _tool("set_theme", "Changes theme colours (dk1, lt1, dk2, lt2, accent1..6, hlink as #RRGGBB) or fonts (major titles, minor body).",
           {"deck": _DECK, "colors": {"type": "object"}, "fonts": {"type": "object", "properties": {"major": _S, "minor": _S}}}, ["deck"]),
@@ -204,6 +213,8 @@ def _mutating(name: str, args: dict) -> bool:
         return bool(args.get("status"))
     if name == "pdf":
         return args.get("action") == "to_deck"
+    if name == "animate":
+        return (args.get("action") or "list") != "list"
     return False
 
 
@@ -671,6 +682,18 @@ async def t_get_deck(a: Agent, args: dict) -> dict:
     return _ok("\n".join(lines))
 
 
+def _follow_slots(old: dict, new: dict) -> list:
+    def key(e: dict):
+        ph = e.get("ph") or {}
+        return e.get("slot") or ((ph.get("type"), ph.get("idx") or 0) if ph else None)
+    fresh: dict = {}
+    for e in new.get("elements", []):
+        if key(e) is not None:
+            fresh.setdefault(key(e), e["id"])
+    moved = {e["id"]: fresh[key(e)] for e in old.get("elements", []) if key(e) in fresh}
+    return [{**an, "target": moved[an.get("target")]} for an in old.get("animations") or [] if an.get("target") in moved]
+
+
 def _rebuild(deck: dict, idx: int, sp: dict, it: dict | None) -> tuple[list, list[str], list[dict]]:
     old = deck["slides"][idx]
     work = copy.deepcopy(deck)
@@ -686,6 +709,8 @@ def _rebuild(deck: dict, idx: int, sp: dict, it: dict | None) -> tuple[list, lis
     for key in ("hidden", "transition", "background", "animations"):
         if key in old and key not in first:
             first[key] = copy.deepcopy(old[key])
+    if old.get("animations"):
+        first["animations"] = _follow_slots(old, first)
     rv = old.get("review") or {}
     if rv.get("status"):
         first["review"] = {**rv, "status": "review" if rv["status"] == "approved" else rv["status"]}
@@ -1004,6 +1029,168 @@ async def t_slides(a: Agent, args: dict) -> dict:
     await _apply(a, deck["id"], ops, label)
     deck = _deck(deck["id"])
     return _ok(f"{label[:1].upper() + label[1:]} · deck now {len(deck['slides'])} slides\n" + "\n".join(_outline(deck)))
+
+
+_ANIM_CLASS = {"entr": "entrance", "emph": "emphasis", "exit": "exit"}
+_ANIM_WORDS = {
+    "entr": {"fade": "fadeIn", "fly": "flyIn", "float": "floatIn", "wipe": "wipeIn", "zoom": "zoomIn", "grow": "growTurn", "rise": "riseUp"},
+    "emph": {"growshrink": "grow", "shrink": "grow", "colourpulse": "colorPulse", "rotate": "spin"},
+    "exit": {"fade": "fadeOut", "fly": "flyOut", "float": "floatOut", "wipe": "wipeOut", "zoom": "zoomOut", "shrink": "shrinkTurn", "split": "splitOut"},
+}
+
+
+def _anim_norm(s) -> str:
+    return re.sub(r"[^a-z]", "", str(s or "").lower())
+
+
+def _anim_effect(wa, raw, cls: str | None) -> tuple[str, str]:
+    key = _anim_norm(raw)
+    for c in [cls] if cls else ["entr", "emph", "exit"]:
+        for eid in wa.EFFECTS[c]:
+            if key in (_anim_norm(eid), _anim_norm(wa.LABELS.get(eid))):
+                return eid, c
+        if key in _ANIM_WORDS[c]:
+            return _ANIM_WORDS[c][key], c
+    if cls:
+        raise ToolError(f"{raw} is not a {_ANIM_CLASS[cls]} effect: use {', '.join(wa.EFFECTS[cls])}.")
+    raise ToolError(f"Unknown effect {raw}. Entrance: {', '.join(wa.EFFECTS['entr'])}. Emphasis: {', '.join(wa.EFFECTS['emph'])}. Exit: {', '.join(wa.EFFECTS['exit'])}.")
+
+
+def _anim_paras(el: dict | None) -> int:
+    if not el or el.get("type") != "shape" or not isinstance(el.get("text"), dict):
+        return 0
+    paras = el["text"].get("paras") or []
+    return sum(1 for p in paras if any(str(r.get("t") or "").strip() for r in p.get("runs") or []))
+
+
+def _anim_seconds(x, name: str) -> float | None:
+    if x is None:
+        return None
+    if isinstance(x, bool) or not isinstance(x, (int, float)) or not 0 <= x <= 60:
+        raise ToolError(f"{name} is seconds from 0 to 60 (got {x}).")
+    return round(float(x), 3)
+
+
+def _anim_fields(wa, args: dict, cur: dict | None, el: dict) -> dict:
+    cls = args.get("class")
+    if cls is not None and cls not in wa.CLASSES:
+        raise ToolError("class is entr (entrance), emph (emphasis) or exit.")
+    if args.get("effect"):
+        effect, cls = _anim_effect(wa, args["effect"], cls)
+    elif cur and (cls is None or cls == cur.get("class")):
+        effect, cls = cur.get("effect"), cur.get("class")
+    else:
+        cls = cls or "entr"
+        effect = {"entr": "fadeIn", "emph": "pulse", "exit": "fadeOut"}[cls]
+    trigger = args.get("trigger") or (cur or {}).get("trigger") or "onClick"
+    if trigger not in wa.TRIGGERS:
+        raise ToolError("trigger is onClick, withPrevious or afterPrevious.")
+    out = {"effect": effect, "class": cls, "trigger": trigger}
+    same = cur is not None and cur.get("effect") == effect and cur.get("class") == cls
+    duration = _anim_seconds(args.get("duration"), "duration")
+    if duration is None:
+        duration = cur.get("duration") if same and cur.get("duration") is not None else wa.effect_seconds(effect, cls)
+    if wa.effect_name(effect, cls) not in ("appear", "disappear"):
+        out["duration"] = duration
+    delay = _anim_seconds(args.get("delay"), "delay")
+    delay = delay if delay is not None else (cur or {}).get("delay") or 0
+    if delay:
+        out["delay"] = delay
+    allowed = wa.DIRECTIONS.get(effect, "")
+    d = args.get("dir") if args.get("dir") is not None else ((cur or {}).get("dir") if same else None)
+    if d is not None and allowed:
+        d = {"r": "l", "d": "u"}.get(d, d) if effect in ("split", "splitOut") else d
+        if d not in allowed:
+            raise ToolError(f"{effect} takes dir {', '.join(allowed)} (l left, r right, u up, d down).")
+        out["dir"] = d
+    para = args.get("byParagraph") if args.get("byParagraph") is not None else (cur or {}).get("byParagraph")
+    if para:
+        if not _anim_paras(el):
+            raise ToolError(f"byParagraph needs a text element; {el.get('id')} has no text.")
+        out["byParagraph"] = True
+    return out
+
+
+def _anim_text(deck: dict, idx: int) -> dict:
+    slide = deck["slides"][idx]
+    anims = slide.get("animations") or []
+    els = {e.get("id"): e for e in slide.get("elements", [])}
+    lines, clicks = [], 0
+    for i, an in enumerate(anims, 1):
+        el = els.get(an.get("target"))
+        if an.get("trigger") == "onClick":
+            n = max(1, _anim_paras(el) if an.get("byParagraph") else 1)
+            step = f"click {clicks + 1}" + (f"-{clicks + n}" if n > 1 else "")
+            clicks += n
+        else:
+            step = ("with previous" if an.get("trigger") == "withPrevious" else "after previous") + ("" if clicks else " (on entry)")
+        bits = [str(i), str(an.get("id")), step, f"{_ANIM_CLASS.get(an.get('class'), an.get('class'))} {an.get('effect')}" + (f" {an['dir']}" if an.get("dir") else "")]
+        timing = (f"{an['duration']:g}s" if isinstance(an.get("duration"), (int, float)) else "default") + (f" after {an['delay']:g}s" if an.get("delay") else "")
+        bits.append(timing + (" by paragraph" if an.get("byParagraph") else ""))
+        tag = (el.get("slot") or (el.get("ph") or {}).get("type") or el.get("name") or el.get("type")) if el else "missing"
+        bits.append(f"{an.get('target')} [{tag}] " + _clip(model.plain_text(el.get("text")) if el and el.get("text") else "", 40))
+        lines.append(" · ".join(b.strip() for b in bits))
+    head = f"Slide {idx + 1} ({slide['id']}): {len(anims)} animation{'s' if len(anims) != 1 else ''}, {clicks} click{'s' if clicks != 1 else ''}"
+    return _ok("\n".join([head] + lines), {"slide": slide["id"], "animations": anims})
+
+
+async def t_animate(a: Agent, args: dict) -> dict:
+    from app.services.pptx import write_anim as wa
+    deck = _deck(args.get("deck"))
+    idx = _index(deck, args.get("slide"))
+    slide = deck["slides"][idx]
+    action = args.get("action") or "list"
+    path = ["slides", {"id": slide["id"]}, "animations"]
+    anims = slide.get("animations") or []
+    if action == "list":
+        return _anim_text(deck, idx)
+    if action == "clear":
+        if not anims:
+            return _anim_text(deck, idx)
+        ops, label = [{"op": "set", "path": path, "value": []}], f"clear animations on slide {idx + 1}"
+    elif action == "add":
+        ref = args.get("element")
+        got = _element(slide, ref) if ref else None
+        if not got:
+            raise ToolError(f"add needs element: an element id or slot on slide {idx + 1}; get_deck {{detail: text}} lists them.")
+        el = got[0]
+        if not any(e.get("id") == el.get("id") for e in slide.get("elements", [])):
+            raise ToolError(f"{el.get('id')} is inside a group: animate the group instead.")
+        counter = model.counters(deck)
+        counter.used |= {x.get("id") for s in deck["slides"] for x in s.get("animations") or []}
+        anim = {"id": counter.next("a"), "target": el["id"], **_anim_fields(wa, args, None, el)}
+        at = args.get("to")
+        if at is not None and (not isinstance(at, int) or not 1 <= at <= len(anims) + 1):
+            raise ToolError(f"to is a 1-based position from 1 to {len(anims) + 1}.")
+        ins = {"op": "ins", "path": path, "value": anim, **({"index": at - 1} if at is not None else {})}
+        ops = [ins] if isinstance(slide.get("animations"), list) else [{"op": "set", "path": path, "value": [anim]}]
+        label = f"animate {el['id']} ({anim['effect']}) on slide {idx + 1}"
+    elif action in ("update", "remove", "move"):
+        aid = str(args.get("id") or "")
+        cur = next((x for x in anims if x.get("id") == aid), None)
+        if cur is None:
+            raise ToolError(f"Slide {idx + 1} has no animation {aid or '(missing id)'}; animate {{action: list}} shows them.")
+        if action == "remove":
+            ops, label = [{"op": "del", "path": path, "id": aid}], f"remove animation {aid} on slide {idx + 1}"
+        elif action == "move":
+            to = args.get("to")
+            if not isinstance(to, int) or not 1 <= to <= len(anims):
+                raise ToolError(f"move needs to: a 1-based position from 1 to {len(anims)}.")
+            ops, label = [{"op": "move", "path": path, "id": aid, "index": to - 1}], f"move animation {aid} to {to} on slide {idx + 1}"
+        else:
+            target = cur.get("target")
+            if args.get("element"):
+                got = _element(slide, args["element"])
+                if not got or not any(e.get("id") == got[0].get("id") for e in slide.get("elements", [])):
+                    raise ToolError(f"Slide {idx + 1} has no top-level element or slot {args['element']}.")
+                target = got[0]["id"]
+            el = next((e for e in slide.get("elements", []) if e.get("id") == target), {})
+            ops = [{"op": "set", "path": path + [{"id": aid}], "value": {"id": aid, "target": target, **_anim_fields(wa, args, cur, el)}}]
+            label = f"update animation {aid} on slide {idx + 1}"
+    else:
+        raise ToolError("action is list, add, update, remove, move or clear.")
+    await _apply(a, deck["id"], ops, label)
+    return _anim_text(_deck(deck["id"]), idx)
 
 
 async def t_apply_template(a: Agent, args: dict) -> dict:

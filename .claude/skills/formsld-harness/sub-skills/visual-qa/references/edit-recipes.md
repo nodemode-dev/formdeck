@@ -11,6 +11,7 @@ Copy-ready calls for the fix loop, each checked against a running engine. Elemen
 - Charts and tables
 - Position and order
 - Slides
+- Animations
 - Raw ops
 - Choosing the smallest tool
 
@@ -86,6 +87,20 @@ slides {deck, action: "delete", slides: ["4"]}
 
 Delete is destructive; prefer hide for slides the person might want back, and say which slides you removed.
 
+## Animations
+
+```
+animate {deck, slide: "3", action: "add", element: "body", effect: "fadeIn", byParagraph: true}
+animate {deck, slide: "3", action: "add", element: "e106", effect: "flyIn", dir: "l", trigger: "afterPrevious", duration: 0.6}
+animate {deck, slide: "3", action: "add", element: "stat1", effect: "pulse"}
+animate {deck, slide: "3", action: "update", id: "a2", effect: "wipeIn", dir: "u"}
+animate {deck, slide: "3", action: "move", id: "a3", to: 1}
+animate {deck, slide: "3", action: "list"}
+animate {deck, slide: "3", action: "clear"}
+```
+
+Animate only when the brief or the person asks, and keep it plain: one entrance per idea (fade or wipe), body text by paragraph, at most one emphasis on the number that matters, exits rarely. `onClick` makes a click step; `withPrevious` and `afterPrevious` ride on the step before (before the first click they run when the slide opens). Contact sheets show the final state, so nothing to check by eye; the list line `click n` tells you how many clicks the presenter needs. Animations follow their slot through update_slide rebuilds (an animation on a drawn shape is dropped when the rebuild removes it) and export to PowerPoint.
+
 ## Raw ops
 
 ```
@@ -107,5 +122,6 @@ Op shapes: `{op: "set", path, value}` (no value deletes the key), `{op: "ins", p
 | A different layout or a rewritten slide | update_slide |
 | New slides | add_slides |
 | Order, duplicate, hide, delete | slides |
+| Entrance, emphasis or exit animations | animate |
 | Transition, background, anything else in the contract | apply_ops |
 | The whole story changed | build_deck again (a new deck id) |
