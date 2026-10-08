@@ -1,6 +1,6 @@
 # formsld parity
 
-How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader and its common tools) formsld 0.3.0 covers, measured row by row against its own code. Compiled 8 October 2026 from the tree at 0.2.1, re-scored at 0.2.2 (flip and rotate, Check Deck) and at 0.3.0 (spacing, links, effects, picture adjustments and crop, table editing, theme editing, comment replies, the Animate tab and animations in .pptx).
+How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader and its common tools) formsld 0.4.0 covers, measured row by row against its own code. Compiled 8 October 2026 from the tree at 0.2.1, re-scored at 0.2.2 (flip and rotate, Check Deck), at 0.3.0 (spacing, links, effects, picture adjustments and crop, table editing, theme editing, comment replies, the Animate tab and animations in .pptx) and at 0.4.0 (slide master view, caps, superscript and subscript, reflections, motion paths, PDF comment replies and status, crop, headers and footers, find and redact).
 
 ## Method
 
@@ -16,16 +16,16 @@ How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader an
 | --- | --- | --- | --- |
 | File and templates | 8 of 8 · 100% | 8 of 8 · 100% | not offered |
 | Slides and layouts | 10 of 10 · 100% | 7 of 7 · 100% | not offered |
-| Masters and themes | 1.5 of 3 · 50% | 1.5 of 3 · 50% | not offered |
-| Text | 9 of 12 · 75% | 8 of 9 · 89% | not offered |
-| Shapes and drawing | 4 of 7 · 57% | 4 of 6 · 67% | not offered |
+| Masters and themes | 2.5 of 3 · 83% | 2.5 of 3 · 83% | not offered |
+| Text | 9.5 of 12 · 79% | 8.5 of 9 · 94% | not offered |
+| Shapes and drawing | 4.5 of 7 · 64% | 4.5 of 6 · 75% | not offered |
 | Pictures and media | 5.5 of 8 · 69% | 5.5 of 8 · 69% | not offered |
 | Tables | 3 of 3 · 100% | 3 of 3 · 100% | not offered |
 | Charts | 4 of 5 · 80% | 4 of 5 · 80% | not offered |
 | Diagrams and SmartArt | 0.5 of 2 · 25% | 0.5 of 1 · 50% | not offered |
 | Arrange and align | 5 of 7 · 71% | 4 of 5 · 80% | not offered |
 | Transitions | 3 of 3 · 100% | 2 of 2 · 100% | not offered |
-| Animations | 3 of 4 · 75% | 3 of 3 · 100% | not offered |
+| Animations | 4 of 4 · 100% | 3 of 3 · 100% | not offered |
 | Slideshow and presenter | 5 of 9 · 56% | 5 of 9 · 56% | not offered |
 | Review and comments | 1.5 of 3 · 50% | 1.5 of 2 · 75% | 1.5 of 3 · 50% |
 | Collaboration and sharing | 1.5 of 4 · 38% | 1.5 of 4 · 38% | 1 of 2 · 50% |
@@ -33,33 +33,33 @@ How much of Microsoft PowerPoint, Google Slides and Adobe Acrobat (the reader an
 | Import and export | 4.5 of 8 · 56% | 4.5 of 6 · 75% | 3 of 3 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | PDF viewing | not offered | not offered | 4.5 of 6 · 75% |
-| PDF annotation | not offered | not offered | 5 of 6 · 83% |
+| PDF annotation | not offered | not offered | 5.5 of 6 · 92% |
 | PDF forms and signing | not offered | not offered | 3 of 6 · 50% |
-| PDF organize | not offered | not offered | 4.5 of 6 · 75% |
-| PDF protect and redact | not offered | not offered | 3 of 5 · 60% |
+| PDF organize | not offered | not offered | 6 of 6 · 100% |
+| PDF protect and redact | not offered | not offered | 4 of 5 · 80% |
 | PDF convert | not offered | not offered | 6 of 10 · 60% |
 | Automation and agents | 1 of 3 · 33% | 1 of 3 · 33% | 1 of 3 · 33% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **73.5 of 105 · 70.0%** | **66.5 of 88 · 75.6%** | **36 of 56 · 64.3%** |
+| **Overall** | **76.5 of 105 · 72.9%** | **68.5 of 88 · 77.8%** | **39 of 56 · 69.6%** |
 
-Across all 151 scored rows (the union of the three products plus the rows where formsld leads), formsld has 96 full, 21 partial and 34 none: 106.5 of 151 points, 70.5%.
+Across all 151 scored rows (the union of the three products plus the rows where formsld leads), formsld has 104 full, 17 partial and 30 none: 112.5 of 151 points, 74.5%.
 
 ## Where formsld leads
 
 Rows formsld implements that the product does not offer:
 
-- **Over PowerPoint (37 rows):** the whole PDF workbench (viewing, annotation, fill and sign, organize, protect and redact, convert: 30 rows), per-slide review status, and six agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, and a headless `build-deck` command.
-- **Over Google Slides (44 rows):** the same 37, plus sections, outline view, reset slide, text columns, object lock, morph and the Check Deck accessibility checker.
-- **Over Acrobat (75 rows):** the whole deck editor, from templates and layouts through charts, transitions, animations and the show, plus review status and the agent rows.
+- **Over PowerPoint (39 rows):** the whole PDF workbench (viewing, annotation, fill and sign, organize, protect and redact, convert: 32 rows), per-slide review status, and six agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, and a headless `build-deck` command.
+- **Over Google Slides (47 rows):** the same 39, plus sections, outline view, reset slide, text columns, object lock, morph, motion paths and the Check Deck accessibility checker.
+- **Over Acrobat (77 rows):** the whole deck editor, from templates, layouts and slide master editing through charts, transitions, animations with motion paths and the show, plus review status and the agent rows.
 - **Drafting from material:** PowerPoint (Copilot) and Google Slides (Gemini) both draft decks, so this row scores against them, but formsld does it locally from md, pdf, docx, pptx, csv, xlsx, pictures and notes in one dialog (`backend/app/services/autodraft.py draft`), with no model and no account, and hands the same intake to an outside agent.
 
 ## Where formsld trails most
 
-- **Motion paths.** The Animate tab, the show and the .pptx round trip cover entrance, emphasis and exit effects; motion paths are not built and are dropped on import with a warning.
-- **Masters and themes, 1.5 of 3.** Theme colours and fonts are edited in the Design tab, but there is no master view and only one master per deck.
+- **Slideshow and presenter, 5 of 9.** The show, presenter view, pen and laser, blank screens and rehearsed timings work; recording with narration, live captions, looping and custom shows, and remote audience Q&A do not exist.
+- **Masters and themes, 2.5 of 3.** View, Slide Master edits the master and each layout (placeholders, background, hide graphics, insert, duplicate, rename, delete); a deck still carries one master.
 - **Diagrams, accessibility, review and sharing.** No SmartArt editor, no reading order or tagged PDF, no @mentions, no share links, and co-editing stops at one computer.
 - **PDF forms and signing, 3 of 6.** Filling, flattening and placed signatures work; certificate signatures, signature requests and form creation do not exist.
-- **A few model-only rows remain.** Caps, superscript and subscript, and shape reflections are rendered and round-trip through .pptx but have no control in the editor yet; the ops already exist (`frontend/src/editor/actions.ts`).
+- **Shapes and pictures.** No freeform or scribble tool, no edit points or merge shapes, connectors do not glue to shapes, no stock or AI pictures, and video has no trim control.
 
 ## Line by line
 
@@ -96,7 +96,7 @@ Rows formsld implements that the product does not offer:
 | Capability | PowerPoint | Slides | Acrobat | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Theme colours and fonts | yes | yes | no | Full | `inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme` |
-| Edit slide masters and layouts | yes | yes | no | None | no master view in `frontend/src/editor`; masters arrive from templates and imports |
+| Edit slide masters and layouts | yes | yes | no | Full | View > Slide Master (`editor/master-view.ts`, `engine/holders.ts`, `ops.ts setHolderResolver`): edit master and layout elements, placeholders, level styles, backgrounds; insert, duplicate, rename, delete layouts; slides update live |
 | Several masters in one deck | yes | yes | no | Partial | `model.ts Deck.masters` is a list, but `services/pptx/reader.py` keeps the first master's theme and warns |
 
 ### Text
@@ -109,7 +109,7 @@ Rows formsld implements that the product does not offer:
 | Autofit (shrink text, grow box) | yes | yes | no | Full | `frontend/src/render/text.ts fitText`, `inspector.ts` Autofit |
 | Text columns | yes | no | no | Full | `inspector.ts` Columns 1 to 3 |
 | Line and paragraph spacing controls | yes | yes | no | Full | `inspector.ts` Text box: Line spacing, Paragraph before and after (`paraStyleOps`) |
-| Character spacing, caps, superscript, subscript | yes | yes | no | Partial | Character spacing in `inspector.ts` (`runStyleOps spc`); `Run.caps, sup, sub` rendered without a control |
+| Character spacing, caps, superscript, subscript | yes | yes | no | Full | Character spacing in `inspector.ts`; Format > Superscript, Subscript, All Caps, Small Caps and toolbar buttons (`commands.ts scriptToggle, capsToggle`) |
 | Hyperlinks | yes | yes | no | Full | Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py` |
 | Find and replace | yes | yes | no | Full | `dialogs-insert.ts FindPanel` (match case, whole word) |
 | Spell check | yes | yes | no | Partial | browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings |
@@ -123,7 +123,7 @@ Rows formsld implements that the product does not offer:
 | Preset shapes gallery | yes | yes | no | Full | `frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop` |
 | Lines, arrows and connectors | yes | yes | no | Partial | `commands.ts insert-line, insert-arrow`; connectors do not glue to shapes |
 | Shape fill and outline colour | yes | yes | no | Full | `commands.ts colorOps`, `frontend/src/ui/colorpop.ts pickColor` |
-| Shape effects: shadow, glow, soft edge, reflection | yes | yes | no | Partial | `inspector.ts` Effects: shadow presets, glow, soft edges for shapes and pictures; no reflection |
+| Shape effects: shadow, glow, soft edge, reflection | yes | yes | no | Full | `inspector.ts` Effects: shadow presets, glow, reflection (`slide.ts boxStyle`), soft edges for shapes and pictures; round-tripped in `pptx/write_style.py` |
 | Freeform and scribble drawing | yes | yes | no | None | custom `path` exists in the model but no drawing tool |
 | Edit points and merge shapes | yes | no | no | None | nothing found |
 | Smart guides and snapping | yes | yes | no | Full | `editor/stage.ts snap` and guides; Alt-drag skips snapping |
@@ -192,7 +192,7 @@ Rows formsld implements that the product does not offer:
 | --- | --- | --- | --- | --- | --- |
 | Entrance, emphasis and exit effects in the show | yes | yes | no | Full | `present/show.ts buildSteps`, `effects.ts effectFx` play `slide.animations`; added in the Animate tab or by agents (`mcp.py animate`) |
 | Animation pane, order and triggers | yes | yes | no | Full | `editor/animation-pane.ts AnimationPane`: add, reorder, edit start, duration, delay, direction, by paragraph; preview on the stage |
-| Motion paths | yes | no | no | None | nothing found |
+| Motion paths | yes | no | no | Full | Animate tab Motion paths: line, arc, turn, circle and drawn custom paths (`animation-pane.ts beginDraw`), played by `effects.ts pathFx`, round-tripped as `p:animMotion` (`write_anim.py ppt_motion`) |
 | Animations kept in .pptx | yes | yes | no | Full | `pptx/write_anim.py insert_timing`, `read_anim.py read_timing`: main sequence with PowerPoint preset ids both ways; motion paths dropped with a warning |
 
 ### Slideshow and presenter
@@ -275,7 +275,7 @@ Rows formsld implements that the product does not offer:
 | Sticky notes and text boxes | no | no | yes | Full | `annotate.ts` note and freetext tools |
 | Drawing: ink, rectangle, ellipse, line, arrow | no | no | yes | Full | `annotate.ts` tools, `annot.py draw` |
 | Stamps | no | no | yes | Partial | date, check, cross and text stamps in Fill & Sign (`panels.ts`); no stamp library |
-| Comment list with replies and status | no | no | yes | Partial | comment count and list in the Comment panel (`panels.ts`); no replies |
+| Comment list with replies and status | no | no | yes | Full | Comment panel threads with replies and status (`panels.ts syncAnnots`), written as /IRT reply and /State annotations (`annot.py _thread`), read by `GET /pdf/{id}/comments` |
 | Flatten annotations into the page | no | no | yes | Full | `panels.ts` Flatten into the page, `annot.py annotate(flatten)` |
 
 ### PDF forms and signing
@@ -297,8 +297,8 @@ Rows formsld implements that the product does not offer:
 | Extract pages | no | no | yes | Full | `panels.ts` Extract selected |
 | Split by ranges | no | no | yes | Full | `services/pdf/core.py split` |
 | Merge PDFs | no | no | yes | Full | `core.py merge`, `routers/pdf.py /pdf/merge` |
-| Crop pages | no | no | yes | None | nothing found |
-| Page numbers, headers and footers, watermark | no | no | yes | Partial | `edit.py page_numbers, watermark`; no header or footer text, no Bates numbering |
+| Crop pages | no | no | yes | Full | Edit > Crop pages by margins, a drawn box or white-margin detection (`edit.py crop`, `annotate.ts` crop tool, `POST /pdf/{id}/crop`) |
+| Page numbers, headers and footers, watermark | no | no | yes | Full | Edit > Header and footer with tokens and Bates numbering (`edit.py header_footer`), page numbers and watermark |
 
 ### PDF protect and redact
 
@@ -307,7 +307,7 @@ Rows formsld implements that the product does not offer:
 | Password protection with permissions | no | no | yes | Full | `edit.py protect`, `panels.ts` Password and permissions |
 | Remove protection | no | no | yes | Full | `edit.py unlock` |
 | Redact marked areas | no | no | yes | Partial | `edit.py redact` removes the content by re-rendering each redacted page as a picture, so the rest of that page loses its text |
-| Find and redact text or patterns | no | no | yes | None | nothing found |
+| Find and redact text or patterns | no | no | yes | Full | Protect > Find text to redact: words, regex, email, phone, card and date presets (`search.py find`), redacted through `edit.py redact`; MCP `pdf redact` |
 | Remove metadata and hidden information | no | no | yes | Partial | `edit.py metadata(strip)`; scripts, attachments and hidden layers are not cleaned |
 
 ### PDF convert

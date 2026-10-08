@@ -1,6 +1,6 @@
 # formsld manual
 
-formsld makes presentations, pitch decks and PDFs. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.3.0. Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formsld makes presentations, pitch decks and PDFs. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.4.0. Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -105,13 +105,13 @@ Click a thumbnail to go to a slide; Shift or Mod click to select several; drag t
 
 ### Text
 
-Use the toolbar or Format menu for font, size, bold, italic, underline, strikethrough, colour, highlight, alignment, bullets, numbering, list levels and vertical alignment. Increase and Decrease Font Size step through the usual sizes; Clear Formatting removes run formatting. In the Format tab, Autofit chooses Off, Shrink (text shrinks to fit) or Grow (the box grows), Columns splits a text box into 1 to 3 columns, Line spacing sets the spacing between lines, Paragraph sets the space before and after each paragraph, and Character spacing loosens or tightens the letters. Fonts come from the theme (heading and body) or the font list, which can be searched.
+Use the toolbar or Format menu for font, size, bold, italic, underline, strikethrough, colour, highlight, alignment, bullets, numbering, list levels and vertical alignment. Increase and Decrease Font Size step through the usual sizes; Clear Formatting removes run formatting. Format > Superscript (Shift+Mod+=) and Subscript (Shift+Mod+-) raise or lower the selected text, and All Caps (Shift+Mod+A) and Small Caps change its case without retyping it; the toolbar has buttons for superscript and subscript. In the Format tab, Autofit chooses Off, Shrink (text shrinks to fit) or Grow (the box grows), Columns splits a text box into 1 to 3 columns, Line spacing sets the spacing between lines, Paragraph sets the space before and after each paragraph, and Character spacing loosens or tightens the letters. Fonts come from the theme (heading and body) or the font list, which can be searched.
 
 **Links** (Insert > Link or Mod+K): while typing, select some text and link it to a web address or to a slide in the deck; with an object selected instead, the whole object becomes the link. Remove link takes it off. Links are followed in the slideshow and kept in PowerPoint files.
 
 ### Shapes
 
-Insert > Shapes (or the toolbar) opens a gallery of the Office preset shapes in groups; click one to place it in the middle of the slide. Line and Arrow draw a straight line or arrow. Fill Colour and Outline Colour offer the theme colours with their tints and shades, standard colours, a custom colour and No fill or No outline. Double-click a shape to type in it. The Effects section of the Format tab adds a shadow (Soft, Below, Hard, Long), a glow (Small, Medium, Large) or soft edges to shapes and pictures.
+Insert > Shapes (or the toolbar) opens a gallery of the Office preset shapes in groups; click one to place it in the middle of the slide. Line and Arrow draw a straight line or arrow. Fill Colour and Outline Colour offer the theme colours with their tints and shades, standard colours, a custom colour and No fill or No outline. Double-click a shape to type in it. The Effects section of the Format tab adds a shadow (Soft, Below, Hard, Long), a glow (Small, Medium, Large), a reflection (Tight, Half, Full) or soft edges to shapes and pictures.
 
 ### Pictures
 
@@ -141,16 +141,27 @@ Arrange holds Bring to Front, Bring Forward, Send Backward, Send to Back, Align 
 
 Two tab groups, each collapsible:
 
-- **Format**: position, size, rotation and opacity for the selection; Autofit, Columns, Line spacing, Paragraph and Character spacing for text; shadow, glow and soft edges under Effects; Fit, Shape, the picture adjustments, Crop and Alt text for pictures. With nothing selected it says how to start.
+- **Format**: position, size, rotation and opacity for the selection; Autofit, Columns, Line spacing, Paragraph and Character spacing for text; shadow, glow, reflection and soft edges under Effects; Fit, Shape, the picture adjustments, Crop and Alt text for pictures. With nothing selected it says how to start.
 - **Slide**: the layout grid for the current slide (click a layout to apply it), Background, Hidden, Transition (None, Fade, Push, Wipe, Split, Cover, Uncover, Zoom, Reveal, Flip, Cube, Morph), Duration and Apply to all.
 - **Design**: the current template with Change template, the theme colours (click one to change it on every slide), the heading and body fonts (pick from the list), and the slide size.
-- **Animate**: add an entrance, emphasis or exit effect to the selected object, with its start (On click, With previous, After previous), duration, delay, direction and By paragraph for text. The list below shows the slide's animations in order with their click numbers; select one to edit it, move it up or down, or delete it. Preview plays them on the slide. Numbers beside objects on the slide show their order while the tab is open, and a badge marks animated slides in the slides panel. Animations are kept in PowerPoint files both ways.
+- **Animate**: add an entrance, emphasis, exit or motion path effect to the selected object, with its start (On click, With previous, After previous), duration, delay, direction and By paragraph for text. Motion paths are Line, Arc, Turn and Circle in a chosen direction, or Custom path: click points on the slide, then Enter or double-click to finish (Backspace removes the last point, Esc cancels). The path is drawn on the slide while the tab is open; Orient along path turns the object with it and Reverse direction runs it backwards. The list below shows the slide's animations in order with their click numbers; select one to edit it, move it up or down, or delete it. Preview plays them on the slide. Numbers beside objects on the slide show their order while the tab is open, and a badge marks animated slides in the slides panel. Animations are kept in PowerPoint files both ways.
 - **Review**: the slide's status (Draft, Review, Changes, Approved), the open comments with their replies, a Reply box under each comment, Resolve, and a box to post a comment (Enter posts).
 - **Agent**: the switch that lets outside agents edit, Copy a prompt for your agent, and an Activity list of recent agent steps.
 
 ### Slide size and background
 
 Slide > Slide Size offers Widescreen 16:9, Google Slides 16:9, Standard 4:3, 16:10, A4 landscape and portrait, Letter, Square and Story 9:16, or a custom size in inches, centimetres or points; Scale content resizes everything to the new size, Keep size leaves it. Slide > Format Background sets a solid colour, a two-colour linear or radial gradient, a picture (Fill, Fit, Stretch or Tile, with transparency) or a pattern, and can hide the layout's background graphics.
+
+### Slide master
+
+View > Slide Master edits the design every slide is built on. The slides panel lists the slide master first and its layouts under it (hover one to see how many slides use it); the status bar says Slide Master, and Close Master View in the toolbar returns to the slides.
+
+- **The master** holds what every layout shares: the background, logos and other graphics, and the title and body placeholders. Formatting a placeholder on the master (font, size, colour, bold, alignment, bullets per list level) changes every layout and slide that has not overridden it.
+- **A layout** holds its own placeholders and graphics on top of the master's. Hide Background Graphics leaves out the master's graphics on that layout; Format Background sets a background for it alone.
+- **Placeholders**: Slide > Insert Placeholder adds a content, text, picture, chart, table, title, footer, date or slide number placeholder; type in a layout's placeholder to change the prompt text slides show before anything is typed. Shapes, pictures and text boxes inserted here appear on every slide that uses the layout.
+- **Layouts**: Insert Layout, Duplicate Layout, Rename and Delete Layout. Only a layout no slide uses can be deleted, and a master keeps at least one layout. The Slide tab names the selected layout or master (type to rename it), has the Hide graphics switch for a layout, and says how many slides use it.
+
+Every change shows on the slides at once and is one undo step. Presenting, review status, comments, sections and the slide sorter are off while the master is open.
 
 ### Slide sorter and outline
 
@@ -194,12 +205,14 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | Slide | New Slide | Mod+M |
 | | Duplicate Slide | Shift+Mod+D |
 | Format | Bold, Italic, Underline | Mod+B, Mod+I, Mod+U |
-| Insert | Link | Mod+K |
 | | Strikethrough | Shift+Mod+X |
+| | Superscript, Subscript | Shift+Mod+=, Shift+Mod+- |
+| | All Caps | Shift+Mod+A |
 | | Increase, Decrease Font Size | Shift+Mod+. and Shift+Mod+, |
 | | Clear Formatting | Mod+\ |
 | | Align Left, Center, Align Right, Justify | Mod+L, Mod+E, Mod+R, Mod+J |
 | | Bullets, Numbering | Shift+Mod+8, Shift+Mod+7 |
+| Insert | Link | Mod+K |
 | Arrange | Bring to Front, Send to Back | Shift+Mod+], Shift+Mod+[ |
 | | Bring Forward, Send Backward | Mod+], Mod+[ |
 | | Group, Ungroup | Mod+G, Shift+Mod+G |
@@ -250,16 +263,17 @@ File > Open PDF Workbench, Home > PDF workbench, or open or drop a .pdf. The wor
 | Tab | What it does |
 | --- | --- |
 | View | Read the PDF; Select and Hand tools, Find in document, the document's properties (pages, title, author, version) |
-| Comment | Highlight, underline and strike through text; sticky notes, text boxes, freehand ink, rectangles, ellipses, lines and arrows in any colour and line width. Apply to PDF writes them as real PDF annotations, or flattened into the page when Flatten into the page is on |
+| Comment | Highlight, underline and strike through text; sticky notes, text boxes, freehand ink, rectangles, ellipses, lines and arrows in any colour and line width. Select a comment to reply to it or set its status (Accepted, Rejected, Completed); comments already in the PDF are listed with their replies. Apply to PDF writes them as real PDF annotations with their replies and status, or flattened into the page when Flatten into the page is on |
 | Fill & Sign | Fill the PDF's form fields and Apply to form (optionally flattened); add text; draw or type a signature in blue or black ink and place it; stamp today's date, a check, a cross or text |
+| Edit | Header and footer: left, centre and right text for each, with Page, Pages, Date, File and Bates tokens, a live preview, font, size, colour, margins, a page range, odd or even pages and a starting number; Bates numbering with a prefix, start and digits. Crop pages by typed margins, a box drawn on the page, or Remove white margins, for this page, all pages or a range. Page numbers (position, format, start) and a text watermark (opacity) |
 | Organize | Rotate, delete and reorder pages, insert a blank page or pages from another PDF, extract the selected pages; Apply changes. Split into files by ranges such as `1-3, 4-6, 7-`; Merge PDFs |
 | Extract | From this page, all pages or a range: text (copy, .txt or .md), pictures (download, or add to the open deck) and tables (copy as CSV or download as .xlsx) |
-| Protect | Add a password with an optional owner password and permissions; remove a password; mark areas and Apply redactions (the content under them is removed and the page is re-rendered as a picture); edit or remove the title, author, subject and keywords |
-| Convert | PDF to deck: Pages as slides (each page a picture slide with its text in the notes) or Rebuild editable (formsld reads the text, tables and pictures and drafts real slides in your template); Compress at a chosen quality; add page numbers (position, format, start); add a text watermark (opacity); export pages as PNG pictures at 72, 144 or 216 dpi |
+| Protect | Add a password with an optional owner password and permissions; remove a password; Find text to redact (words or a phrase, email addresses, phone numbers, card numbers, dates or a regular expression, with Match case and Whole words), tick the matches and mark or redact them; mark areas and Apply redactions (the content under them is removed and the page is re-rendered as a picture); edit or remove the title, author, subject and keywords |
+| Convert | PDF to deck: Pages as slides (each page a picture slide with its text in the notes) or Rebuild editable (formsld reads the text, tables and pictures and drafts real slides in your template); Compress at a chosen quality; export pages as PNG pictures at 72, 144, 216 or 300 dpi |
 
 ## Import, export and print
 
-- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx, .pptm and .pdf. A toast lists anything PowerPoint content formsld could not keep (for example motion paths, ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx or .pdf) opens it: decks open in the editor, PDFs in the workbench.
+- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx, .pptm and .pdf. A toast lists anything PowerPoint content formsld could not keep (for example ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx or .pdf) opens it: decks open in the editor, PDFs in the workbench.
 - **Google Slides**: download your presentation as .pptx and open it; to go back, export .pptx and upload it to Drive, then Open with Google Slides.
 - **Export** (File > Export or the Export button):
   - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts are not embedded; the computer that opens it needs the template's fonts or substitutes similar ones.

@@ -43,7 +43,7 @@ row(a, "Reset slide to its layout", 1, 0, 0, F, "`commands.ts reset-slide`")
 
 a = "Masters and themes"
 row(a, "Theme colours and fonts", 1, 1, 0, F, "`inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme`")
-row(a, "Edit slide masters and layouts", 1, 1, 0, N, "no master view in `frontend/src/editor`; masters arrive from templates and imports")
+row(a, "Edit slide masters and layouts", 1, 1, 0, F, "View > Slide Master (`editor/master-view.ts`, `engine/holders.ts`, `ops.ts setHolderResolver`): edit master and layout elements, placeholders, level styles, backgrounds; insert, duplicate, rename, delete layouts; slides update live")
 row(a, "Several masters in one deck", 1, 1, 0, P, "`model.ts Deck.masters` is a list, but `services/pptx/reader.py` keeps the first master's theme and warns")
 
 a = "Text"
@@ -53,7 +53,7 @@ row(a, "Paragraph alignment and vertical anchor", 1, 1, 0, F, "`commands.ts text
 row(a, "Autofit (shrink text, grow box)", 1, 1, 0, F, "`frontend/src/render/text.ts fitText`, `inspector.ts` Autofit")
 row(a, "Text columns", 1, 0, 0, F, "`inspector.ts` Columns 1 to 3")
 row(a, "Line and paragraph spacing controls", 1, 1, 0, F, "`inspector.ts` Text box: Line spacing, Paragraph before and after (`paraStyleOps`)")
-row(a, "Character spacing, caps, superscript, subscript", 1, 1, 0, P, "Character spacing in `inspector.ts` (`runStyleOps spc`); `Run.caps, sup, sub` rendered without a control")
+row(a, "Character spacing, caps, superscript, subscript", 1, 1, 0, F, "Character spacing in `inspector.ts`; Format > Superscript, Subscript, All Caps, Small Caps and toolbar buttons (`commands.ts scriptToggle, capsToggle`)")
 row(a, "Hyperlinks", 1, 1, 0, F, "Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py`")
 row(a, "Find and replace", 1, 1, 0, F, "`dialogs-insert.ts FindPanel` (match case, whole word)")
 row(a, "Spell check", 1, 1, 0, P, "browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings")
@@ -64,7 +64,7 @@ a = "Shapes and drawing"
 row(a, "Preset shapes gallery", 1, 1, 0, F, "`frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop`")
 row(a, "Lines, arrows and connectors", 1, 1, 0, P, "`commands.ts insert-line, insert-arrow`; connectors do not glue to shapes")
 row(a, "Shape fill and outline colour", 1, 1, 0, F, "`commands.ts colorOps`, `frontend/src/ui/colorpop.ts pickColor`")
-row(a, "Shape effects: shadow, glow, soft edge, reflection", 1, 1, 0, P, "`inspector.ts` Effects: shadow presets, glow, soft edges for shapes and pictures; no reflection")
+row(a, "Shape effects: shadow, glow, soft edge, reflection", 1, 1, 0, F, "`inspector.ts` Effects: shadow presets, glow, reflection (`slide.ts boxStyle`), soft edges for shapes and pictures; round-tripped in `pptx/write_style.py`")
 row(a, "Freeform and scribble drawing", 1, 1, 0, N, "custom `path` exists in the model but no drawing tool")
 row(a, "Edit points and merge shapes", 1, 0, 0, N, "nothing found")
 row(a, "Smart guides and snapping", 1, 1, 0, F, "`editor/stage.ts snap` and guides; Alt-drag skips snapping")
@@ -112,7 +112,7 @@ row(a, "Duration, apply to all, advance after a time", 1, 1, 0, F, "`inspector.t
 a = "Animations"
 row(a, "Entrance, emphasis and exit effects in the show", 1, 1, 0, F, "`present/show.ts buildSteps`, `effects.ts effectFx` play `slide.animations`; added in the Animate tab or by agents (`mcp.py animate`)")
 row(a, "Animation pane, order and triggers", 1, 1, 0, F, "`editor/animation-pane.ts AnimationPane`: add, reorder, edit start, duration, delay, direction, by paragraph; preview on the stage")
-row(a, "Motion paths", 1, 0, 0, N, "nothing found")
+row(a, "Motion paths", 1, 0, 0, F, "Animate tab Motion paths: line, arc, turn, circle and drawn custom paths (`animation-pane.ts beginDraw`), played by `effects.ts pathFx`, round-tripped as `p:animMotion` (`write_anim.py ppt_motion`)")
 row(a, "Animations kept in .pptx", 1, 1, 0, F, "`pptx/write_anim.py insert_timing`, `read_anim.py read_timing`: main sequence with PowerPoint preset ids both ways; motion paths dropped with a warning")
 
 a = "Slideshow and presenter"
@@ -171,7 +171,7 @@ row(a, "Highlight, underline, strike through text", 0, 0, 1, F, "`frontend/src/p
 row(a, "Sticky notes and text boxes", 0, 0, 1, F, "`annotate.ts` note and freetext tools")
 row(a, "Drawing: ink, rectangle, ellipse, line, arrow", 0, 0, 1, F, "`annotate.ts` tools, `annot.py draw`")
 row(a, "Stamps", 0, 0, 1, P, "date, check, cross and text stamps in Fill & Sign (`panels.ts`); no stamp library")
-row(a, "Comment list with replies and status", 0, 0, 1, P, "comment count and list in the Comment panel (`panels.ts`); no replies")
+row(a, "Comment list with replies and status", 0, 0, 1, F, "Comment panel threads with replies and status (`panels.ts syncAnnots`), written as /IRT reply and /State annotations (`annot.py _thread`), read by `GET /pdf/{id}/comments`")
 row(a, "Flatten annotations into the page", 0, 0, 1, F, "`panels.ts` Flatten into the page, `annot.py annotate(flatten)`")
 
 a = "PDF forms and signing"
@@ -187,14 +187,14 @@ row(a, "Reorder, rotate, delete, insert blank and insert pages from a PDF", 0, 0
 row(a, "Extract pages", 0, 0, 1, F, "`panels.ts` Extract selected")
 row(a, "Split by ranges", 0, 0, 1, F, "`services/pdf/core.py split`")
 row(a, "Merge PDFs", 0, 0, 1, F, "`core.py merge`, `routers/pdf.py /pdf/merge`")
-row(a, "Crop pages", 0, 0, 1, N, "nothing found")
-row(a, "Page numbers, headers and footers, watermark", 0, 0, 1, P, "`edit.py page_numbers, watermark`; no header or footer text, no Bates numbering")
+row(a, "Crop pages", 0, 0, 1, F, "Edit > Crop pages by margins, a drawn box or white-margin detection (`edit.py crop`, `annotate.ts` crop tool, `POST /pdf/{id}/crop`)")
+row(a, "Page numbers, headers and footers, watermark", 0, 0, 1, F, "Edit > Header and footer with tokens and Bates numbering (`edit.py header_footer`), page numbers and watermark")
 
 a = "PDF protect and redact"
 row(a, "Password protection with permissions", 0, 0, 1, F, "`edit.py protect`, `panels.ts` Password and permissions")
 row(a, "Remove protection", 0, 0, 1, F, "`edit.py unlock`")
 row(a, "Redact marked areas", 0, 0, 1, P, "`edit.py redact` removes the content by re-rendering each redacted page as a picture, so the rest of that page loses its text")
-row(a, "Find and redact text or patterns", 0, 0, 1, N, "nothing found")
+row(a, "Find and redact text or patterns", 0, 0, 1, F, "Protect > Find text to redact: words, regex, email, phone, card and date presets (`search.py find`), redacted through `edit.py redact`; MCP `pdf redact`")
 row(a, "Remove metadata and hidden information", 0, 0, 1, P, "`edit.py metadata(strip)`; scripts, attachments and hidden layers are not cleaned")
 
 a = "PDF convert"

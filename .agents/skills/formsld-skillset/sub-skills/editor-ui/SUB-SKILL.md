@@ -23,6 +23,8 @@ Change the window without breaking its two promises: the person and agents edit 
 | `src/editor/commands.ts` | `registerCommands(cmds, hooks)` (every command id, label, keys, enabled, checked), `layoutCommands`, `colorOps` |
 | `src/editor/actions.ts` | op builders for every UI action |
 | `src/editor/views.ts` | `AltViews`: slide sorter and outline (manual Enter, Backspace, Delete handling; 400 ms debounced commits) |
+| `src/editor/master-view.ts`, `src/engine/holders.ts` | Slide Master view: `registerMasterCommands`, `MASTER_MENU`, `gateSlideCommands`; holders are edited through `slidePath` once `setHolderResolver` maps ids to `layouts` or `masters`, and `holderOps` turns placeholder text edits into `textStyles`, `lstStyle` or prompts |
+| `src/editor/animation-pane.ts`, `src/editor/table-edit.ts` | the Animate tab (effects, motion paths, drawn custom paths, preview) and table cell commands |
 | `src/ui/*` | `dom.ts` helpers, `dialogs.ts` (`Dialog`, `confirmAction`, `promptName`, `anyDialogOpen`), `dialogs-file.ts`, `dialogs-insert.ts`, `menu.ts`, `dropdown.ts`, `commands.ts` (`Commands`, `comboOf`, `formatKeys`), `icons.ts`, `themes.ts` (15 UI themes, accent, intensity), `toast.ts`, `colorpop.ts`, `home.ts`, `panel-group.ts` |
 | `src/styles/*` | `tokens.css` (the only z-index source), `shell.css`, `panels.css`, `dialogs.css`, `app-dialogs.css`, `insert-dialogs.css`, `views.css`, `slides.css`, `present.css`, `pdf.css`, `scrollbars.css`, `fonts.css`, `light-mode.css` |
 
