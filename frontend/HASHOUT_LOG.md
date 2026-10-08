@@ -36,6 +36,10 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 13. Zero-height lines keep a 1pt box · render/slide.ts
 14. Check Deck asks the engine, which asks the window · ui/check-dialog.ts
 15. Opening files by path · app.ts openPaths, window.__formsldOpen
+16. Typed formatting survives the save · render/text.ts readParas, inlineDelta
+17. Table cells are edited in place · editor/stage.ts, render/table.ts, editor/table-edit.ts
+18. The Animate tab · editor/animation-pane.ts
+19. Links, spacing, effects, picture adjustments, theme editing, replies · ui/link-dialog.ts, editor/inspector.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -96,3 +100,19 @@ The dialog posts to `/api/decks/{id}/check`; the engine runs the same lint agent
 ## 15. Opening files by path · _v0.2.2 (app.ts openPaths, pdf/workbench.ts WorkbenchOptions.path)
 
 The desktop shell passes files it was asked to open as repeated `?open=` parameters on the first load, and later through `window.__formsldOpen(paths)`. Decks go through `/api/open-path` into the editor, PDFs through `/api/pdf/open-path` into the workbench. The query is cleared with replaceState so a reload does not import the file again.
+
+## 16. Typed formatting survives the save · _v0.3.0 (render/text.ts readParas, inlineDelta, cssHex)
+
+Bold, italic, colour and the rest applied while typing (execCommand with styleWithCSS) showed on screen but were dropped on commit, because readParas took each run's style from the model and ignored the DOM. Every rendered run now carries its rendered CSS in `data-s`; readParas compares the run's live inline style with that and turns each difference into run properties, including a removed property (Chrome un-bolds by deleting `font-weight` rather than writing `normal`). Nested spans, `<b>`, `<i>`, `<u>`, `<s>`, `<font>` and `<a href>` are read as well, so links typed with createLink become `Run.link`. Verified: toggling bold three times across reloads stores `b: false`, `b: true`, `b: false` and renders 400, 700, 400.
+
+## 17. Table cells are edited in place · _v0.3.0 (editor/stage.ts beginCell, stepCell, commitCell, setCells; render/table.ts tableGrid; editor/table-edit.ts)
+
+Cell editing reuses `SlideView.editingId`, so the table node is not repainted while typing and moving between cells only moves contenteditable. Coverage of merged cells is computed from spans, clamped, as the pptx writer does, so bad data never shifts cells; spans are `[columns, rows]` as FORMAT.md says. The first click on a table selects the table (drag still moves it, Delete still deletes it); a second click selects cells; grips outside the edges move a selected table. Table commands build the desired table and diff it per cell, so concurrent edits elsewhere survive. A capture-phase key listener handles Enter, F2, Delete, arrows and Esc on selected cells before the global handler would nudge or delete the table.
+
+## 18. The Animate tab · _v0.3.0 (editor/animation-pane.ts AnimationPane, hasAnimations)
+
+All edits are ops on `slides[{id}].animations`, patched by key. Stage order badges come from one generated stylesheet keyed by `data-id`, because painting resets element classes; they show only while the tab is visible. Preview holds hidden states with zero-length animations and cancels everything at the end, so nodes return exactly to their painted state. Durations are stored explicitly and reset with the effect only while still at the old default.
+
+## 19. Links, spacing, effects, picture adjustments, theme editing, replies · _v0.3.0 (ui/link-dialog.ts, editor/inspector.ts)
+
+The link dialog saves the editing selection before it takes focus and restores it before `createLink`; with no text selected, or with objects selected, the link goes on the element instead. Spacing uses `paraStyleOps` and `runStyleOps` (an empty choice clears back to the template). Effects use four shadow presets, three glow sizes and a soft-edge slider; reflection is not offered because the renderer does not draw it. Picture sliders apply live with a coalesce key per control, and the change event skips range inputs so a drag is one undo step. Theme colour swatches are built once and patched; a pick writes `theme.colors[slot]` as hex. Fonts load with ensureFont before the theme step so the change lands without a font swap. Replies insert into `comments[{id}].replies` and render as a patched sub-list.

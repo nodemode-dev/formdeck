@@ -39,6 +39,9 @@ app/services/package.py      .fsld pack and unpack
 12. Stats before big number on pptx import · services/pptx/read_layouts.py
 13. PDF page text in reading order · services/pdf/core.py to_deck
 14. One lint for people and agents · routers/decks.py check
+15. Animations in PowerPoint files · services/pptx/write_anim.py, read_anim.py
+16. The animate MCP tool · routers/mcp.py
+17. Covered merged cells read as span 1 · services/pptx/read_table.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -95,3 +98,15 @@ PDFium's text range follows the content stream, which many generators write bott
 ## 14. One lint for people and agents · _v0.2.2 (routers/decks.py check)
 
 `POST /api/decks/{id}/check` runs `lint.lint` with the window's measurements, exactly as the `lint_deck` MCP tool does, and returns the report with `measured` saying whether overflow was measured. The last docstrings (media.py, ids.py, intake/__init__.py) are gone; the intake contract they described is in FORMAT.md and the formsld-skillset intake reference.
+
+## 15. Animations in PowerPoint files · _v0.3.0 (services/pptx/write_anim.py insert_timing, write_mapped; read_anim.py read_timing, read_tree_mapped)
+
+The writer emits `p:timing` with a main sequence of click groups using PowerPoint preset ids (fly 2, fade 10, wipe 22, split 16, zoom 53, pulse 26, spin 8 and the rest), subtypes for direction, visibility sets, animEffect filters and `p:bldP build="p"` for by-paragraph builds. Exit presets are time-reversed entrances, so exit float up is 47 and float down 42. Shape ids are mapped without touching the element reader or writer: each top-level element is written or read alone and its `cNvPr` id recorded. When python-pptx already wrote video timing, the main sequence is merged in first and node ids continue from the highest. Unknown presets map to the nearest effect with a warning; motion paths and trigger sequences are dropped with a warning. Every written slide validates against pml.xsd.
+
+## 16. The animate MCP tool · _v0.3.0 (routers/mcp.py animate, _follow_slots)
+
+`animate` lists, adds, updates, moves, removes and clears a slide's animations by element or slot with friendly effect names; it counts as mutating except for list. `update_slide` now remaps animation targets by slot or placeholder, because recompiling a slide gives its elements new ids.
+
+## 17. Covered merged cells read as span 1 · _v0.3.0 (services/pptx/read_table.py _read_cell)
+
+python-pptx-made merges put gridSpan and rowSpan on covered cells too, which leaked into deck JSON; covered (hMerge or vMerge) cells now always read as span [1, 1].
