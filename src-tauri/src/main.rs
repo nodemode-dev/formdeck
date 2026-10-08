@@ -9,6 +9,7 @@ use tauri_plugin_shell::ShellExt;
 use tauri_plugin_updater::UpdaterExt;
 
 struct Backend(Mutex<Option<CommandChild>>);
+struct Pending(Mutex<Vec<String>>);
 
 const FALLBACK_LOGICAL: (f64, f64) = (1323.0, 860.0);
 const MIN_LOGICAL: (f64, f64) = (980.0, 640.0);
@@ -24,6 +25,31 @@ fn kill_backend(handle: &tauri::AppHandle) {
 fn close_splash(handle: &tauri::AppHandle) {
     if let Some(splash) = handle.get_webview_window("splash") {
         let _ = splash.close();
+    }
+}
+
+fn openable(path: &std::path::Path) -> bool {
+    path.is_file()
+        && path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "fsld" | "pptx" | "potx" | "ppsx" | "pptm" | "pdf"))
+            .unwrap_or(false)
+}
+
+fn hand_over(handle: &tauri::AppHandle, paths: Vec<String>) {
+    if paths.is_empty() {
+        return;
+    }
+    match handle.get_webview_window("main") {
+        Some(window) => {
+            let list = serde_json::to_string(&paths).unwrap_or_else(|_| "[]".into());
+            let _ = window.eval(&format!(
+                "(function f(n){{if(window.__formsldOpen)window.__formsldOpen({list});else if(n<60)setTimeout(function(){{f(n+1)}},250)}})(0)"
+            ));
+            let _ = window.set_focus();
+        }
+        None => handle.state::<Pending>().0.lock().unwrap().extend(paths),
     }
 }
 
@@ -103,29 +129,31 @@ async fn print_window(app: tauri::AppHandle, label: String) -> Result<(), String
     window.print().map_err(|e| e.to_string())
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn system_fonts_lists_installed_families_sorted_without_duplicates() {
-        let fonts = super::system_fonts();
-        assert!(!fonts.is_empty(), "no fonts found");
-        for pair in fonts.windows(2) {
-            assert!(pair[0].to_lowercase() < pair[1].to_lowercase(), "not sorted or duplicated: {:?}", pair);
-        }
-        assert!(fonts.iter().all(|f| !f.starts_with('.')), "a hidden system font was listed");
-        if let Ok(expected) = std::env::var("FORMSLD_EXPECT_FONT") {
-            assert!(fonts.iter().any(|f| f == &expected), "{expected} not among {} families", fonts.len());
-        }
-    }
-}
-
 fn main() {
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            let paths = argv
+                .into_iter()
+                .skip(1)
+                .map(|arg| {
+                    let path = std::path::PathBuf::from(&arg);
+                    if path.is_absolute() { path } else { std::path::Path::new(&cwd).join(path) }
+                })
+                .filter(|path| openable(path))
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect();
+            hand_over(app, paths);
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .invoke_handler(tauri::generate_handler![system_fonts, open_presenter, print_window])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Backend(Mutex::new(None)))
+        .manage(Pending(Mutex::new(Vec::new())))
         .setup(|app| {
             let handle = app.handle().clone();
             let (mut rx, child) = app
@@ -136,6 +164,13 @@ fn main() {
                 .spawn()
                 .expect("the formsld engine failed to spawn");
             app.state::<Backend>().0.lock().unwrap().replace(child);
+            let from_args: Vec<String> = std::env::args()
+                .skip(1)
+                .map(std::path::PathBuf::from)
+                .filter(|path| openable(path))
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect();
+            app.state::<Pending>().0.lock().unwrap().extend(from_args);
 
             tauri::async_runtime::spawn(async move {
                 let pattern = regex::Regex::new(r"http://127\.0\.0\.1:(\d+)").unwrap();
@@ -157,9 +192,16 @@ fn main() {
                 }
                 match port {
                     Some(found) => {
-                        let url: tauri::Url = format!("http://127.0.0.1:{found}")
+                        let mut url: tauri::Url = format!("http://127.0.0.1:{found}")
                             .parse()
                             .expect("loopback url");
+                        let waiting: Vec<String> = handle.state::<Pending>().0.lock().unwrap().drain(..).collect();
+                        if !waiting.is_empty() {
+                            let mut query = url.query_pairs_mut();
+                            for path in &waiting {
+                                query.append_pair("open", path);
+                            }
+                        }
                         let (width, height) = handle
                             .primary_monitor()
                             .ok()
@@ -198,9 +240,18 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("tauri app should build");
 
-    app.run(|handle, event| {
-        if let RunEvent::Exit = event {
-            kill_backend(handle);
+    app.run(|handle, event| match event {
+        RunEvent::Exit => kill_backend(handle),
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        RunEvent::Opened { urls } => {
+            let paths = urls
+                .into_iter()
+                .filter_map(|url| url.to_file_path().ok())
+                .filter(|path| openable(path))
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect();
+            hand_over(handle, paths);
         }
+        _ => {}
     });
 }

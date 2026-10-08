@@ -19,7 +19,7 @@ The 67 built-in templates, their layouts, motifs and sample text are original wo
 | --- | --- | --- |
 | Inter, JetBrains Mono and the template typefaces (via @fontsource) | SIL OFL 1.1 fonts, MIT packaging | bundled font files |
 | pdf.js (pdfjs-dist) | Apache-2.0 | PDF rendering, text layer, annotations and forms in the window |
-| @tauri-apps/api; tauri, tauri-plugin-shell, tauri-plugin-dialog, tauri-plugin-updater, regex, serde, serde_json, fontdb | MIT or Apache-2.0 | desktop shell |
+| @tauri-apps/api; tauri, tauri-plugin-shell, tauri-plugin-dialog, tauri-plugin-updater, tauri-plugin-single-instance, regex, serde, serde_json, fontdb | MIT or Apache-2.0 | desktop shell |
 | fastapi, uvicorn, python-multipart, httpx | MIT, BSD-3-Clause, Apache-2.0, BSD-3-Clause | engine |
 | Pillow | MIT-CMU | engine, images |
 | lxml | BSD-3-Clause | engine, Office XML |
