@@ -187,6 +187,22 @@ def normalize(deck: dict) -> dict:
         deck.setdefault(key, [])
     deck.setdefault("media", {})
     deck.setdefault("meta", {})
+    if "customShows" in deck:
+        shows = deck["customShows"] if isinstance(deck["customShows"], list) else []
+        deck["customShows"] = [{**c, "slides": [str(s) for s in c.get("slides") or [] if isinstance(s, str)]} for c in shows if isinstance(c, dict) and c.get("id")]
+    if "show" in deck and not isinstance(deck["show"], dict):
+        deck.pop("show")
+    if "guides" in deck:
+        guides = [g for g in deck["guides"] if isinstance(g, dict) and g.get("axis") in ("x", "y") and isinstance(g.get("pos"), (int, float))] if isinstance(deck["guides"], list) else []
+        used: set[str] = set()
+        for n, g in enumerate(guides, 1):
+            if not g.get("id") or str(g["id"]) in used:
+                g["id"] = next(f"g{k}" for k in range(n, n + len(guides) + 2) if f"g{k}" not in used)
+            used.add(str(g["id"]))
+        if guides:
+            deck["guides"] = guides
+        else:
+            deck.pop("guides")
     for s in deck["slides"]:
         s.setdefault("elements", [])
     seen: set[str] = set()

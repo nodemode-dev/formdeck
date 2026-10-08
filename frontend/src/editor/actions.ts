@@ -1,7 +1,8 @@
 import type { DeckDoc } from '../engine/doc';
 import type { Color, Deck, Fill, Layout, Line, Master, Para, PhType, Run, ShapeElement, Slide, SlideElement, TextBody } from '../engine/model';
-import { elPath, slidePath, type Op } from '../engine/ops';
+import { elPath, slidePath, type Op, type PathKey } from '../engine/ops';
 import { chain, frameOf, layoutOf, levelStyle, TITLE_KINDS, type Frame } from '../engine/resolve';
+import { remapCopies } from './connectors';
 
 export const clone = <T>(v: T): T => structuredClone(v);
 
@@ -22,6 +23,23 @@ export function setFrameOps(deck: Deck, slide: Slide, el: SlideElement, f: Parti
     if (el[k] !== v) ops.push({ op: 'set', path: [...elPath(slide.id, el.id), k], value: v });
   }
   if (f.rot !== undefined && (el.rot ?? 0) !== f.rot) ops.push({ op: 'set', path: [...elPath(slide.id, el.id), 'rot'], value: Math.round(f.rot * 100) / 100 });
+  if (el.type === 'shape' && el.path && !el.pathSize && (Math.abs(next.w - cur.w) > 0.005 || Math.abs(next.h - cur.h) > 0.005)) ops.push({ op: 'set', path: [...elPath(slide.id, el.id), 'pathSize'], value: [cur.w, cur.h] });
+  if (el.type === 'group') ops.push(...childFrameOps(el.children, elPath(slide.id, el.id), cur, next));
+  return ops;
+}
+
+function childFrameOps(kids: SlideElement[], base: PathKey[], from: Frame, to: Frame): Op[] {
+  const sx = from.w > 0 ? to.w / from.w : 1, sy = from.h > 0 ? to.h / from.h : 1;
+  const r2 = (v: number): number => Math.round(v * 100) / 100;
+  const ops: Op[] = [];
+  for (const k of kids) {
+    const p: PathKey[] = [...base, 'children', { id: k.id }];
+    const kx = k.x ?? 0, ky = k.y ?? 0, kw = k.w ?? 0, kh = k.h ?? 0;
+    const want = { x: r2(to.x + (kx - from.x) * sx), y: r2(to.y + (ky - from.y) * sy), w: r2(kw * sx), h: r2(kh * sy) };
+    for (const key of ['x', 'y', 'w', 'h'] as const) if (k[key] !== want[key] && (key === 'x' || key === 'y' || Math.abs(want[key] - (k[key] ?? 0)) > 0.005)) ops.push({ op: 'set', path: [...p, key], value: want[key] });
+    if (k.type === 'shape' && k.path && !k.pathSize && (sx !== 1 || sy !== 1)) ops.push({ op: 'set', path: [...p, 'pathSize'], value: [kw, kh] });
+    if (k.type === 'group') ops.push(...childFrameOps(k.children, p, { x: kx, y: ky, w: kw, h: kh }, want));
+  }
   return ops;
 }
 
@@ -56,6 +74,7 @@ export function duplicateSlideOps(doc: DeckDoc, ids: string[]): { ops: Op[]; ids
     const copy = clone(s);
     copy.id = doc.nextId('s', used);
     copy.elements = s.elements.map((e) => reid(doc, e, used));
+    remapCopies(s.elements, copy.elements);
     copy.animations = [];
     const at = doc.slideIndex(sid) + 1 + offset;
     ops.push({ op: 'ins', path: ['slides'], index: at, value: copy });

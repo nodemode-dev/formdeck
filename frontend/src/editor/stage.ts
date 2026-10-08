@@ -1,6 +1,6 @@
 import type { Para, Slide, SlideElement, TableElement } from '../engine/model';
 import { chain, frameOf, geomOf, adjOf, type Frame } from '../engine/resolve';
-import { handleValue, isLineGeom, presetGeometry } from '../engine/geometry/presets';
+import { handleAdjust, presetGeometry } from '../engine/geometry/presets';
 import { elPath, type Op, type Touched } from '../engine/ops';
 import { holderOf, layoutUsage, type HolderKind } from '../engine/holders';
 import { SlideView } from '../render/slide';
@@ -10,8 +10,15 @@ import { anyDialogOpen } from '../ui/dialogs';
 import { el as html, setClass, setHidden, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import type { Editor } from './editor';
-import { bounds, dirtyOp, fillPlaceholderOps, resolvedFrame, setFrameOps } from './actions';
-import { clearCellsOps, insertRowOps } from './table-edit';
+import { bounds, dirtyOp, fillPlaceholderOps, setFrameOps } from './actions';
+import { clearCellsOps, fitFrameOps, insertRowOps } from './table-edit';
+import type { ConnEnd, ConnKind, Connection, ShapeElement } from '../engine/model';
+import { connectorMid, lineEnds, nearestSite, routeConnector, slideToLocal, type Site } from '../engine/geometry/connectors';
+import type { Pt } from '../engine/geometry/path';
+import { endPoint, geometryOps, glueOps, isLineLike, kindOf, sitesOf, targetAt, xfOf } from './connectors';
+import { aidPrefs, StageAids } from './rulers';
+import { DrawTool } from './draw-tool';
+import { PointsEdit } from './points-edit';
 
 type Drag =
   | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean }
@@ -20,7 +27,9 @@ type Drag =
   | { kind: 'adjust'; id: string; index: number; key: string; f: Frame }
   | { kind: 'marquee'; x0: number; y0: number; add: boolean; base: string[] }
   | { kind: 'pan'; x0: number; y0: number; px: number; py: number }
-  | { kind: 'cells'; el: string; r: number; c: number };
+  | { kind: 'cells'; el: string; r: number; c: number }
+  | { kind: 'end'; id: string; which: 0 | 1; ck: ConnKind; fixed: Pt; fixedDir: Pt | null; fixedEnd?: ConnEnd }
+  | { kind: 'mid'; id: string };
 
 export interface CellSel { el: string; r0: number; c0: number; r1: number; c1: number; ar: number; ac: number; fr: number; fc: number; active: boolean; one: boolean }
 
@@ -50,6 +59,13 @@ export class Stage {
   private cell: { r: number; c: number } | null = null;
   private space = false;
   onZoom: ((pct: number) => void) | null = null;
+  readonly aids: StageAids;
+  readonly draw: DrawTool;
+  readonly points: PointsEdit;
+  private sites: Site[] | null = null;
+  private siteHot = -1;
+  private live: { ops: Op[]; label: string; key: string } | null = null;
+  private liveFrame = 0;
 
   constructor(private readonly ed: Editor, readonly root: HTMLElement) {
     this.viewport = document.createElement('div');
@@ -75,18 +91,52 @@ export class Stage {
     window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !this.editing && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) this.space = true; });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') this.space = false; });
     window.addEventListener('keydown', (e) => this.tableKey(e), true);
+    const apply = ed.apply.bind(ed);
+    ed.apply = (ops, label, coalesce) => apply(ed.holderKind === 'slide' ? glueOps(ed.doc.deck, ed.slide, ops) : ops, label, coalesce);
+    for (const n of Array.from(root.querySelectorAll(':scope > .fs-ruler, :scope > .fs-ruler-corner'))) n.remove();
+    this.aids = new StageAids(this, ed);
+    this.draw = new DrawTool(this, ed);
+    this.points = new PointsEdit(this, ed);
+  }
+
+  slidePoint(e: { clientX: number; clientY: number }): { x: number; y: number } { return this.toSlide(e); }
+
+  setSites(sites: Site[] | null, hot = -1): void {
+    if (this.sites === sites && this.siteHot === hot) return;
+    this.sites = sites;
+    this.siteHot = hot;
+    this.drawOverlay();
+  }
+
+  private liveApply(ops: Op[], label: string, key: string): void {
+    this.live = { ops, label, key };
+    if (this.liveFrame) return;
+    this.liveFrame = requestAnimationFrame(() => { this.liveFrame = 0; this.flushLive(); });
+  }
+
+  private flushLive(): void {
+    const l = this.live;
+    this.live = null;
+    if (this.liveFrame) { cancelAnimationFrame(this.liveFrame); this.liveFrame = 0; }
+    const s = this.slide();
+    if (l && s && l.ops.length) this.ed.apply([...l.ops, ...dirtyOp(s)], l.label, l.key);
   }
 
   show(slideId: string | null, kind: HolderKind = 'slide'): void {
     if (this.editing) this.endEdit();
     this.syncBanner(slideId ? kind : 'slide');
     if (!slideId) {
+      this.draw.cancel();
+      this.points.end();
       this.view?.el.remove();
       this.view = null;
       this.drawOverlay();
+      this.aids.sync();
       return;
     }
     if (this.view && this.view.slideId === slideId && this.view.holder === kind) return;
+    this.draw.cancel();
+    this.points.end();
     const next = new SlideView(() => this.ed.doc.deck, slideId, 'edit', kind);
     next.update();
     if (this.view) this.canvas.replaceChild(next.el, this.view.el);
@@ -117,6 +167,7 @@ export class Stage {
       if (!node || !this.ed.element(this.editing)) this.endEdit(false);
     }
     this.drawOverlay();
+    this.points.sync();
   }
 
   layout(): void {
@@ -137,6 +188,9 @@ export class Stage {
     this.view?.setScale(k);
     this.onZoom?.(Math.round((k / (96 / 72)) * 100));
     this.drawOverlay();
+    this.aids.sync();
+    this.draw.sync();
+    this.points.sync();
   }
 
   setZoom(z: number | 'fit', anchor?: { x: number; y: number }): void {
@@ -183,13 +237,15 @@ export class Stage {
       const els = sel.map((id) => slide.elements.find((e) => e.id === id)).filter((e): e is SlideElement => !!e);
       const k = this.k;
       for (const el of els) {
+        if (this.points?.id === el.id || (els.length === 1 && isLineLike(this.ed.doc.deck, slide, el))) continue;
         const f = this.frameOf(el);
         const rot = this.rotOf(el);
         const cls = `fs-sel${els.length > 1 ? ' is-multi' : ''}${this.editing === el.id ? ' is-editing' : ''}`;
         parts.push(`<div class="${cls}" style="left:${this.ox + f.x * k}px;top:${this.oy + f.y * k}px;width:${f.w * k}px;height:${f.h * k}px;transform:rotate(${rot}deg)"></div>`);
         if (els.length === 1 && el.type === 'table') parts.push(...this.tableParts(el, f, rot));
       }
-      if (els.length === 1 && !this.editing && !els[0].locked) {
+      if (els.length === 1 && !this.editing && !els[0].locked && this.points?.id !== els[0].id && isLineLike(this.ed.doc.deck, slide, els[0])) parts.push(...this.lineParts(slide, els[0] as ShapeElement));
+      else if (els.length === 1 && !this.editing && !els[0].locked && this.points?.id !== els[0].id) {
         const el = els[0];
         const f = this.frameOf(el);
         const rot = this.rotOf(el);
@@ -198,20 +254,16 @@ export class Stage {
         const at = (lx: number, ly: number): [number, number] => [cx + lx * cos - ly * sin, cy + lx * sin + ly * cos];
         const hw = (f.w * k) / 2, hh = (f.h * k) / 2;
         const pos: Record<string, [number, number]> = { nw: [-hw, -hh], n: [0, -hh], ne: [hw, -hh], e: [hw, 0], se: [hw, hh], s: [0, hh], sw: [-hw, hh], w: [-hw, 0] };
-        const isLine = el.type === 'shape' && (isLineGeom(geomOf(chain(this.ed.doc.deck, slide, el))) || geomOf(chain(this.ed.doc.deck, slide, el)) === 'line');
         const small = f.w * k < 24 || f.h * k < 24;
         for (const h of HANDLES) {
-          if (isLine && !['nw', 'se'].includes(h)) continue;
-          if (small && ['n', 's', 'e', 'w'].includes(h) && !isLine) continue;
+          if (small && ['n', 's', 'e', 'w'].includes(h)) continue;
           const [x, y] = at(...pos[h]);
           parts.push(`<div class="fs-handle" data-h="${h}" style="left:${x}px;top:${y}px"></div>`);
         }
-        if (!isLine) {
-          const [rx, ry] = at(0, -hh - 24);
-          const [sx, sy] = at(0, -hh);
-          parts.push(`<div class="fs-rot-stem" style="left:${(rx + sx) / 2}px;top:${Math.min(ry, sy)}px;height:${Math.abs(ry - sy) || 24}px;transform:rotate(${rot}deg)"></div>`);
-          parts.push(`<div class="fs-handle is-rot" data-h="rot" style="left:${rx}px;top:${ry}px"></div>`);
-        }
+        const [rx, ry] = at(0, -hh - 24);
+        const [sx, sy] = at(0, -hh);
+        parts.push(`<div class="fs-rot-stem" style="left:${(rx + sx) / 2}px;top:${Math.min(ry, sy)}px;height:${Math.abs(ry - sy) || 24}px;transform:rotate(${rot}deg)"></div>`);
+        parts.push(`<div class="fs-handle is-rot" data-h="rot" style="left:${rx}px;top:${ry}px"></div>`);
         if (el.type === 'shape' && !el.path) {
           const c = chain(this.ed.doc.deck, slide, el);
           const g = presetGeometry(geomOf(c), Math.max(1, f.w), Math.max(1, f.h), adjOf(c));
@@ -233,12 +285,28 @@ export class Stage {
           parts.push(`<div class="fs-presence" style="--peer:${p.color};left:${this.ox + f.x * k - 2}px;top:${this.oy + f.y * k - 2}px;width:${f.w * k + 4}px;height:${f.h * k + 4}px"><span class="fs-presence-name">${p.name}</span></div>`);
         }
       }
+      if (this.sites) this.sites.forEach((s, i) => parts.push(`<div class="fs-site${i === this.siteHot ? ' is-hot' : ''}" style="left:${this.ox + s.x * k}px;top:${this.oy + s.y * k}px"></div>`));
     }
     const html = parts.join('');
     if (this.overlayHtml !== html) {
       this.overlayHtml = html;
       this.overlay.innerHTML = html;
     }
+  }
+
+  private lineParts(slide: Slide, el: ShapeElement): string[] {
+    const xf = xfOf(this.ed.doc.deck, slide, el);
+    const pend = this.pendingOps.get(el.id);
+    if (pend) Object.assign(xf, { x: pend.x, y: pend.y, w: pend.w, h: pend.h });
+    const k = this.k;
+    const out: string[] = [];
+    lineEnds(xf).forEach(([x, y], i) => {
+      const glued = !!(i === 0 ? el.conn?.start : el.conn?.end);
+      out.push(`<div class="fs-handle is-end${glued ? ' is-glued' : ''}" data-h="end${i}" style="left:${this.ox + x * k}px;top:${this.oy + y * k}px"></div>`);
+    });
+    const mid = connectorMid(xf, el.geom ?? '', el.adj);
+    if (mid) out.push(`<div class="fs-handle is-adj" data-h="mid" style="left:${this.ox + mid[0] * k}px;top:${this.oy + mid[1] * k}px"></div>`);
+    return out;
   }
 
   private overlayHtml = '';
@@ -283,7 +351,16 @@ export class Stage {
       if (!el) return;
       const f = this.frameOf(el);
       const h = handle.dataset.h ?? '';
-      if (h === 'rot') this.drag = { kind: 'rotate', id, cx: f.x + f.w / 2, cy: f.y + f.h / 2 };
+      if (h === 'end0' || h === 'end1') {
+        const deck = this.ed.doc.deck;
+        const which = h === 'end0' ? 0 : 1;
+        const conn = el.type === 'shape' ? el.conn : undefined;
+        const ends = lineEnds(xfOf(deck, slide, el));
+        const otherEnd = which === 0 ? conn?.end : conn?.start;
+        const g = endPoint(deck, slide, otherEnd);
+        this.drag = { kind: 'end', id, which, ck: kindOf(el) ?? 'straight', fixed: g?.p ?? ends[1 - which], fixedDir: g?.d ?? null, fixedEnd: g ? otherEnd : undefined };
+      } else if (h === 'mid') this.drag = { kind: 'mid', id };
+      else if (h === 'rot') this.drag = { kind: 'rotate', id, cx: f.x + f.w / 2, cy: f.y + f.h / 2 };
       else if (h === 'adj') {
         const c = chain(this.ed.doc.deck, slide, el);
         const g = presetGeometry(geomOf(c), Math.max(1, f.w), Math.max(1, f.h), adjOf(c));
@@ -393,6 +470,38 @@ export class Stage {
     const slide = this.slide();
     if (!slide) return;
     const deck = this.ed.doc.deck;
+    if (d.kind === 'end' || d.kind === 'mid') {
+      const el = slide.elements.find((x) => x.id === d.id);
+      if (!el || el.type !== 'shape') return;
+      if (d.kind === 'mid') {
+        const xf = xfOf(deck, slide, el);
+        const lx = slideToLocal(xf, p.x, p.y)[0];
+        const ops: Op[] = [{ op: 'set', path: [...elPath(slide.id, el.id), 'adj'], value: { adj1: xf.w > 0.01 ? Math.round((lx / xf.w) * 1e5) : 50000 } }];
+        if (el.conn) ops.push({ op: 'set', path: [...elPath(slide.id, el.id), 'conn'], value: el.conn });
+        this.liveApply(ops, 'Adjust connector', `mid:${d.id}`);
+        return;
+      }
+      let q: Pt = [p.x, p.y];
+      if (e.shiftKey && d.ck === 'straight') {
+        const dx = q[0] - d.fixed[0], dy = q[1] - d.fixed[1], a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4), l = Math.hypot(dx, dy);
+        q = [d.fixed[0] + Math.cos(a) * l, d.fixed[1] + Math.sin(a) * l];
+      }
+      const t = e.altKey ? null : targetAt(deck, slide, q, 6 / this.k, new Set([d.id, ...(d.fixedEnd ? [d.fixedEnd.id] : [])]));
+      let dir: Pt | null = null, end: ConnEnd | undefined;
+      if (t) {
+        const sites = sitesOf(deck, slide, t);
+        const i = nearestSite(sites, q);
+        this.setSites(sites, i);
+        if (i >= 0) { q = [sites[i].x, sites[i].y]; dir = [sites[i].dx, sites[i].dy]; end = { id: t.id, site: i }; }
+      } else this.setSites(null);
+      const g = d.which === 0 ? routeConnector(d.ck, q, dir, d.fixed, d.fixedDir) : routeConnector(d.ck, d.fixed, d.fixedDir, q, dir);
+      const conn: Connection = { kind: d.ck };
+      const s0 = d.which === 0 ? end : d.fixedEnd, s1 = d.which === 0 ? d.fixedEnd : end;
+      if (s0) conn.start = s0;
+      if (s1) conn.end = s1;
+      this.liveApply(geometryOps(slide.id, el, d.ck, g, conn, true), 'Move connector end', `end:${d.id}`);
+      return;
+    }
     if (d.kind === 'marquee') {
       const m = { x: Math.min(d.x0, p.x), y: Math.min(d.y0, p.y), w: Math.abs(p.x - d.x0), h: Math.abs(p.y - d.y0) };
       this.marquee = m;
@@ -459,11 +568,7 @@ export class Stage {
       const cx = d.f.x + d.f.w / 2, cy = d.f.y + d.f.h / 2;
       const lx = (p.x - cx) * Math.cos(rad) - (p.y - cy) * Math.sin(rad) + d.f.w / 2;
       const ly = (p.x - cx) * Math.sin(rad) + (p.y - cy) * Math.cos(rad) + d.f.h / 2;
-      const adj = { ...(adjOf(c) ?? {}) };
-      if (hd.dx !== 0 && hd.dy !== 0 && hd.key === 'adj1' && (geomOf(c).includes('Callout') || geomOf(c).startsWith('wedge') || geomOf(c) === 'cloudCallout')) {
-        adj.adj1 = Math.round(((lx - d.f.w / 2) / d.f.w) * 1e5);
-        adj.adj2 = Math.round(((ly - d.f.h / 2) / d.f.h) * 1e5);
-      } else adj[hd.key] = handleValue(hd, lx, ly);
+      const adj = { ...(adjOf(c) ?? {}), ...handleAdjust(hd, lx, ly) };
       const now = performance.now();
       if (now - this.lastAdj > 30) {
         this.lastAdj = now;
@@ -511,21 +616,28 @@ export class Stage {
     const slide = this.slide();
     const deck = this.ed.doc.deck;
     const tol = SNAP_PX / this.k;
-    const vx: Array<{ at: number; from: number; to: number }> = [{ at: 0, from: 0, to: deck.size.h }, { at: deck.size.w / 2, from: 0, to: deck.size.h }, { at: deck.size.w, from: 0, to: deck.size.h }];
-    const hy: Array<{ at: number; from: number; to: number }> = [{ at: 0, from: 0, to: deck.size.w }, { at: deck.size.h / 2, from: 0, to: deck.size.w }, { at: deck.size.h, from: 0, to: deck.size.w }];
-    for (const el of slide?.elements ?? []) {
+    const prefs = aidPrefs();
+    type Cand = { at: number; from: number; to: number; quiet?: boolean };
+    const vx: Cand[] = prefs.smart ? [{ at: 0, from: 0, to: deck.size.h }, { at: deck.size.w / 2, from: 0, to: deck.size.h }, { at: deck.size.w, from: 0, to: deck.size.h }] : [];
+    const hy: Cand[] = prefs.smart ? [{ at: 0, from: 0, to: deck.size.w }, { at: deck.size.h / 2, from: 0, to: deck.size.w }, { at: deck.size.h, from: 0, to: deck.size.w }] : [];
+    for (const el of prefs.smart ? slide?.elements ?? [] : []) {
       if (moving.has(el.id) || el.hidden) continue;
       const f = this.frameOf(el);
       for (const x of [f.x, f.x + f.w / 2, f.x + f.w]) vx.push({ at: x, from: Math.min(f.y, b.y), to: Math.max(f.y + f.h, b.y + b.h) });
       for (const y of [f.y, f.y + f.h / 2, f.y + f.h]) hy.push({ at: y, from: Math.min(f.x, b.x), to: Math.max(f.x + f.w, b.x + b.w) });
     }
+    const lines = this.aids.snapLines();
+    for (const x of lines.xs) vx.push({ at: x, from: 0, to: deck.size.h, quiet: true });
+    for (const y of lines.ys) hy.push({ at: y, from: 0, to: deck.size.w, quiet: true });
     let dx = 0, dy = 0, bx = tol + 1, by = tol + 1;
-    let gx: { at: number; from: number; to: number } | null = null, gy: { at: number; from: number; to: number } | null = null;
+    let gx: Cand | null = null, gy: Cand | null = null;
     for (const s of [b.x, b.x + b.w / 2, b.x + b.w]) for (const c of vx) { const dd = c.at - s; if (Math.abs(dd) < Math.abs(bx) && Math.abs(dd) <= tol) { bx = dd; gx = c; } }
     for (const s of [b.y, b.y + b.h / 2, b.y + b.h]) for (const c of hy) { const dd = c.at - s; if (Math.abs(dd) < Math.abs(by) && Math.abs(dd) <= tol) { by = dd; gy = c; } }
     const guides: Array<{ axis: 'h' | 'v'; at: number; from: number; to: number }> = [];
-    if (gx) { dx = bx; guides.push({ axis: 'v', ...gx }); }
-    if (gy) { dy = by; guides.push({ axis: 'h', ...gy }); }
+    if (gx) { dx = bx; if (!gx.quiet) guides.push({ axis: 'v', at: gx.at, from: gx.from, to: gx.to }); }
+    else if (prefs.snapGrid && prefs.spacing > 0) dx = Math.round(b.x / prefs.spacing) * prefs.spacing - b.x;
+    if (gy) { dy = by; if (!gy.quiet) guides.push({ axis: 'h', at: gy.at, from: gy.from, to: gy.to }); }
+    else if (prefs.snapGrid && prefs.spacing > 0) dy = Math.round(b.y / prefs.spacing) * prefs.spacing - b.y;
     return { dx, dy, guides };
   }
 
@@ -558,6 +670,7 @@ export class Stage {
     this.drag = null;
     setClass(this.viewport, 'is-cell-range', false);
     if (this.frame) { cancelAnimationFrame(this.frame); this.frame = 0; }
+    if (d.kind === 'end' || d.kind === 'mid') { this.flushLive(); this.sites = null; }
     if (this.pendingOps.size) this.flush(d.kind === 'move' ? 'Move' : d.kind === 'resize' ? 'Resize' : 'Rotate', `${d.kind}:end`);
     this.guides = [];
     this.marquee = null;
@@ -757,33 +870,16 @@ export class Stage {
     this.ed.emit('selection');
   }
 
-  fitRows(id: string, r0: number, r1: number, label: string, coalesce?: string): void {
+  fitRows(id: string, label: string, coalesce?: string): void {
     const slide = this.slide();
     const el = slide?.elements.find((x) => x.id === id);
     if (!slide || !el || el.type !== 'table' || this.editing === id) return;
-    const ops = this.growOps(slide, el, r0, r1);
+    const ops = this.growOps(slide, el);
     if (ops.length) this.ed.apply([...ops, ...dirtyOp(slide)], label, coalesce);
   }
 
-  private growOps(slide: Slide, el: TableElement, r0: number, r1: number): Op[] {
-    const trs = this.view?.nodeFor(el.id)?.querySelectorAll<HTMLElement>('table.fs-table > tbody > tr');
-    if (!trs) return [];
-    const base = elPath(slide.id, el.id);
-    const ops: Op[] = [];
-    let total = 0;
-    el.table.rows.forEach((row, r) => {
-      const tr = trs[r];
-      let h = row.h;
-      if (tr && r >= r0 && r <= r1 && tr.offsetHeight > row.h + 0.5) {
-        h = tr.offsetHeight;
-        ops.push({ op: 'set', path: [...base, 'table', 'rows', r, 'h'], value: h });
-      }
-      total += h;
-    });
-    if (!ops.length) return [];
-    const f = resolvedFrame(this.ed.doc.deck, slide, el);
-    if (total > f.h + 0.5) ops.push(...setFrameOps(this.ed.doc.deck, slide, el, { h: total }));
-    return ops;
+  private growOps(slide: Slide, el: TableElement): Op[] {
+    return fitFrameOps(this.ed.doc.deck, slide, el, this.view?.nodeFor(el.id)?.querySelector<HTMLTableElement>(':scope > table.fs-table') ?? null);
   }
 
   private beginCell(id: string, r: number, c: number, caret: { x: number; y: number } | 'start' | 'end' | 'all'): void {
@@ -863,10 +959,8 @@ export class Stage {
     const paras = readParas(flow, orig);
     const empty = (ps: Para[]): boolean => ps.every((p) => p.runs.every((x) => !x.t));
     if (JSON.stringify(paras) === JSON.stringify(orig) || (paras.length <= 1 && empty(paras) && empty(orig))) return;
-    const g = tableGrid(el.table);
-    const rs = g.spans[at.r * g.cols + at.c]?.[1] || 1;
     const ops: Op[] = [{ op: 'set', path: [...elPath(slide.id, id), 'table', 'rows', at.r, 'cells', at.c, 'text'], value: { ...(cell.text ?? {}), paras } }];
-    ops.push(...this.growOps(slide, el, at.r, at.r + rs - 1));
+    ops.push(...this.growOps(slide, el));
     this.ed.apply([...ops, ...dirtyOp(slide)], 'Typing', `cell:${id}:${at.r}:${at.c}`);
   }
 
@@ -900,7 +994,10 @@ export class Stage {
       const n = fresh.table.rows.length;
       const ops = insertRowOps(this.ed.doc.deck, slide, fresh, n, n - 1);
       this.endEdit(false);
-      if (this.ed.apply(ops, 'Insert row')) this.beginCell(id, n, 0, 'start');
+      const key = `cell-row:${id}:${n}`;
+      if (!this.ed.apply(ops, 'Insert row', key)) return;
+      this.fitRows(id, 'Insert row', key);
+      this.beginCell(id, n, 0, 'start');
       return;
     }
     if (ev.altKey || ev.metaKey || ev.ctrlKey || ev.shiftKey) return;

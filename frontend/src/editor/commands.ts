@@ -7,6 +7,7 @@ import { promptName, confirmAction } from '../ui/dialogs';
 import { toast } from '../ui/toast';
 import type { Editor } from './editor';
 import { alignOps, bodyPropOps, deleteSlideOps, dirtyOp, distributeOps, groupOps, newShape, newTextBox, paraStyleOps, runStyleOps, ungroupOps, zOrderOps } from './actions';
+import { tableColorOps } from './table-edit';
 
 export interface AppHooks {
   editor(): Editor | null;
@@ -269,6 +270,8 @@ export function layoutCommands(cmds: Commands, ed: Editor): void {
 export function colorOps(ed: Editor, kind: 'text' | 'fill' | 'line' | 'hl', c: Color | null): Op[] {
   const s = ed.slide;
   if (!s) return [];
+  const cells = tableColorOps(ed, kind, c);
+  if (cells) return cells;
   const els = ed.selected();
   if (kind === 'text') return runStyleOps(ed.doc.deck, s, els, { color: c ?? undefined });
   if (kind === 'hl') return runStyleOps(ed.doc.deck, s, els, { hl: c ?? undefined });

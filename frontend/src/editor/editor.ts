@@ -11,6 +11,7 @@ import { toast } from '../ui/toast';
 import { setText } from '../ui/dom';
 import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, resolvedFrame } from './actions';
 import { Filmstrip } from './filmstrip';
+import { remapCopies } from './connectors';
 import { Stage } from './stage';
 
 export type EditorEvent = 'selection' | 'current' | 'doc' | 'edit' | 'view';
@@ -248,7 +249,7 @@ export class Editor {
     }
     if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: this.doc.deck.layouts.map((l) => `layout:${l.id}`).filter((id) => this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste'];
     else if (kind === 'element' && this.selected()[0]?.type === 'table') items = ['table-merge', 'table-split', '-', { label: 'Insert', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right'] }, { label: 'Delete', items: ['table-delete-row', 'table-delete-col', 'delete'] }, { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, '-', 'table-distribute-rows', 'table-distribute-cols', 'table-header-row', 'table-banded-rows', '-', 'cut', 'copy', 'paste', 'duplicate', '-', 'add-comment', 'alt-text'];
-    else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', '-', 'insert-link', 'add-comment', 'alt-text'];
+    else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', ...(this.selected()[0]?.type === 'shape' ? ['edit-points'] : []), '-', 'insert-link', 'add-comment', 'alt-text'];
     else items = ['paste', '-', 'new-slide', { label: 'Layout', items: this.doc.deck.layouts.map((l) => `layout:${l.id}`).filter((id) => this.commands.get(id)) }, 'reset-slide', 'format-background', '-', 'add-comment'];
     this.menu.setItems(items);
     this.menu.openAt(x, y);
@@ -369,6 +370,7 @@ export class Editor {
         ids.push(copy.id);
         return { op: 'ins', path: [...slidePath(s.id), 'elements'], value: copy } as Op;
       });
+      remapCopies(c.items, ops.map((o) => (o as { value: SlideElement }).value));
       this.clip = { kind: 'elements', items: c.items.map((e) => ({ ...e, x: (e.x ?? 0) + 12, y: (e.y ?? 0) + 12 })) };
       if (this.apply([...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
     } else if (c.kind === 'slides' && this.holderKind === 'slide') {
@@ -378,6 +380,7 @@ export class Editor {
         const copy = clone(sl);
         copy.id = this.doc.nextId('s', used);
         for (const e of copy.elements) e.id = this.doc.nextId('e', used);
+        remapCopies(sl.elements, copy.elements);
         ids.push(copy.id);
         return { op: 'ins', path: ['slides'], index: at + i, value: copy } as Op;
       });

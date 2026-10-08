@@ -179,8 +179,10 @@ TOOLS = [
     _tool("lint_deck", "Checks a deck (measured in the window when it is open): issues per slide with a fix each, and a score.", {"deck": _DECK, "slides": _SLIDES}, ["deck"], read=True),
     _tool("render_slides", "Contact-sheet images of slides, rendered by the formsld window.", {"deck": _DECK, "slides": _SLIDES, "width": {"type": "integer", "description": "Cell width px (default 320)"}, "cols": _INT},
           ["deck"], read=True),
-    _tool("export_deck", "Writes a deck as pptx, potx, fsld, pdf or png to an absolute path (default the Exports folder).",
-          {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fsld", "pdf", "png"]}, "path": _S, "slides": _SLIDES}, ["deck", "format"]),
+    _tool("export_deck", "Writes a deck as pptx, potx, fsld, pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
+          "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
+          {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fsld", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
+           "notes": {"type": "boolean"}, "width": _INT}, ["deck", "format"]),
     _tool("open_file", "Opens a .pptx, .potx or .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
     _tool("comments", "Lists, adds, replies to or resolves review comments.",
           {"deck": _DECK, "action": {"type": "string", "enum": ["list", "add", "reply", "resolve"]}, "slide": _SLIDE, "element": _S, "text": _S, "id": _S}, ["deck", "action"]),
@@ -188,8 +190,10 @@ TOOLS = [
           {"deck": _DECK, "slides": _SLIDES, "status": {"type": "string", "enum": ["draft", "review", "changes", "approved"]}}, ["deck"]),
     _tool("undo", "Undoes your last turn (default) or last step on a deck.", {"deck": _DECK, "scope": {"type": "string", "enum": ["turn", "step"]}}, ["deck"], destructive=True),
     _tool("pdf", "PDF tools: info, text, images, tables, merge, split, to_deck (each page a slide), header_footer (headers, footers, page and Bates numbers), "
-          "crop, find (words, phrases, regex or presets) and redact (true redaction of areas or of every match).",
-          {"action": {"type": "string", "enum": ["info", "text", "images", "tables", "merge", "split", "to_deck", "header_footer", "crop", "find", "redact"]},
+          "crop, find (words, phrases, regex or presets), redact (true redaction of areas or of every match) and to_docx (a Word document with headings, "
+          "styles, pictures and tables; out defaults to [name].docx beside the input).",
+          {"action": {"type": "string", "enum": ["info", "text", "images", "tables", "merge", "split", "to_deck", "header_footer", "crop", "find", "redact",
+                                                 "to_docx"]},
            "path": _S, "paths": {"type": "array", "items": _S},
            "pages": {"type": "string", "description": "1-based pages: 3, 1-4, 2,5, 4-"}, "ranges": {"type": "array", "items": _S},
            "out": {"type": "string", "description": "Output file or folder; header_footer, crop and redact default to [name]-[action].pdf beside the input"},
@@ -1355,7 +1359,24 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
             payload["path"] = str(_abs(args["path"], must_exist=False))
         res = await bridge.window_call("export_raster", payload, deck["id"], 300)
         return res if res is not None else _fail("The formsld window closed before the export finished.")
-    raise ToolError("format is pptx, potx, fsld, pdf or png.")
+    if fmt in ("txt", "rtf", "gif"):
+        from app.routers import exports
+        if fmt == "gif":
+            if not bridge.window_connected():
+                return _fail("gif export renders the slides in the formsld window, and none is open. Ask the person to open formsld (./formsld), then retry.")
+            data, name, n = await exports.gif_from_window(deck, _sel(deck, args["slides"]) if args.get("slides") else None, int(args.get("width") or 960))
+        else:
+            picked = {**deck, "slides": [deck["slides"][i] for i in _sel(deck, args["slides"])]} if args.get("slides") else deck
+            data, name = await asyncio.to_thread(exports.outline_bytes, picked, fmt, bool(args.get("notes")), bool(args.get("slides")))
+            n = len([s for s in picked["slides"] if args.get("slides") or not s.get("hidden")])
+        p = _abs(args["path"], must_exist=False) if args.get("path") else config.exports_dir() / name
+        if p.is_dir():
+            p = p / name
+        elif not p.parent.is_dir():
+            raise ToolError(f"The folder {p.parent} does not exist.")
+        await asyncio.to_thread(p.write_bytes, data)
+        return _ok(f"Wrote {p} ({max(1, len(data) // 1024):,} KB, {n} slides).", {"path": str(p), "bytes": len(data)})
+    raise ToolError("format is pptx, potx, fsld, pdf, png, gif, txt or rtf.")
 
 
 async def t_open_file(a: Agent, args: dict) -> dict:
@@ -1533,6 +1554,21 @@ async def t_pdf(a: Agent, args: dict) -> dict:
             more = " (first 200 listed)" if got["count"] > 200 else ""
             return _ok(head + more + (":\n" + "\n".join(lines) if lines else "."), {"count": got["count"], "truncated": got["truncated"],
                                                                                    "matches": got["matches"][:500]})
+        if action == "to_docx":
+            src = _abs(args.get("path"))
+            out = _abs(args.get("out"), must_exist=False) if args.get("out") else src.with_suffix(".docx")
+            if out.is_dir():
+                out = out / f"{src.stem}.docx"
+            if not out.parent.is_dir():
+                raise ToolError(f"The folder {out.parent} does not exist.")
+            tmp = out.with_name(f".{out.name}.tmp")
+            try:
+                got = await asyncio.to_thread(lambda: pdfmod.to_docx(src, tmp, pages=pages))
+                tmp.replace(out)
+            finally:
+                tmp.unlink(missing_ok=True)
+            return _ok(f"Wrote {out} ({got['pages']} pages, {got['headings']} headings, {got['paragraphs']} paragraphs, {got['tables']} tables, "
+                       f"{got['pictures']} pictures).", {"path": str(out), **got})
         if action in ("header_footer", "crop", "redact"):
             src = _abs(args.get("path"))
             out = _pdf_out(src, args.get("out"), {"header_footer": "header-footer", "crop": "cropped", "redact": "redacted"}[action])
@@ -1569,7 +1605,7 @@ async def t_pdf(a: Agent, args: dict) -> dict:
         raise
     except Exception as exc:
         return _fail(f"pdf {action} failed: {type(exc).__name__}: {_clip(str(exc), 300)}")
-    raise ToolError("action is info, text, images, tables, merge, split, to_deck, header_footer, crop, find or redact.")
+    raise ToolError("action is info, text, images, tables, merge, split, to_deck, header_footer, crop, find, redact or to_docx.")
 
 
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}

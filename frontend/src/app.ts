@@ -18,8 +18,10 @@ import { Editor } from './editor/editor';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
-import { registerTableCommands } from './editor/table-edit';
+import { registerTableCommands, TABLE_BORDER_MENU } from './editor/table-edit';
 import { gateSlideCommands, MASTER_MENU, registerMasterCommands } from './editor/master-view';
+import { registerShowCommands } from './present/show-commands';
+import { registerDrawCommands } from './editor/draw-commands';
 import * as dialogs from './ui/app-dialogs';
 import { AgentBridge } from './automation/agent-bridge';
 import { VERSION } from './version';
@@ -57,7 +59,7 @@ const SHELL = `<div class="fs-app">
 <aside class="fs-props-col" aria-label="Properties"></aside>
 </div>
 <footer class="fs-status">
-<div class="fs-status-left"><span class="fs-st fs-st-slide"></span><span class="fs-st fs-st-save"><span class="fs-st-dot"></span><span class="fs-st-save-text"></span></span><span class="fs-st fs-st-agent" hidden>${icon('agent', 12)}<span></span></span><span class="fs-st-hint"></span></div>
+<div class="fs-status-left"><span class="fs-st fs-st-slide"></span><span class="fs-st fs-st-save"><span class="fs-st-dot"></span><span class="fs-st-save-text"></span></span><span class="fs-st-hint"></span><span class="fs-st fs-st-agent" hidden>${icon('agent', 12)}<span></span></span></div>
 <div class="fs-status-right">
 <div class="fs-seg is-quiet" role="tablist"><button type="button" data-cmd="view-normal" title="Normal">${icon('slide', 14)}</button><button type="button" data-cmd="view-sorter" title="Slide sorter">${icon('sorter', 14)}</button><button type="button" data-cmd="view-outline" title="Outline">${icon('outline', 14)}</button><button type="button" data-cmd="present-current" title="Present">${icon('present', 14)}</button></div>
 <button class="fs-icon-btn" type="button" data-cmd="zoom-out" title="Zoom out">${icon('zoomOut', 14)}</button>
@@ -137,6 +139,7 @@ export async function startApp(): Promise<void> {
     layoutCommands(commands, ed);
     toolbar.attach(ed);
     inspector.attach(ed);
+    drawTools.attach(ed);
     ed.stage.onZoom = (pct) => { setText(status.zoom, `${pct}%`); setValue(zoomSlider, String(pct)); };
     ed.stage.layout();
     const refresh = (): void => { toolbar.sync(); inspector.sync(); syncChrome(); };
@@ -209,7 +212,7 @@ export async function startApp(): Promise<void> {
     save: (as) => { const ed = editor; if (ed) void dialogs.saveDialog(ed, !!as); },
     exportAs: (format) => { const ed = editor; if (ed) void dialogs.exportDialog(ed, format, bridge); },
     print: () => { const ed = editor; if (ed) void dialogs.printDeck(ed); },
-    present: (from, presenter) => { const ed = editor; if (ed) void import('./present/show').then((m) => m.startShow({ doc: ed.doc, start: from === 'start' ? 0 : Math.max(0, ed.doc.slideIndex(ed.current)), presenter: !!presenter, live, onEnd: (id) => { if (editor === ed && ed.doc.slide(id)) ed.setSlideSelection([id], id); } })); },
+    present: (from, presenter) => { const ed = editor; if (ed) void import('./present/show').then((m) => m.startShow({ doc: ed.doc, start: from === 'start' ? 0 : Math.max(0, ed.doc.slideIndex(ed.current)), from, presenter: !!presenter, live, onEnd: (id) => { if (editor === ed && ed.doc.slide(id)) ed.setSlideSelection([id], id); } })); },
     view: (v) => {
       const ed = editor;
       if (!ed) return;
@@ -271,18 +274,20 @@ export async function startApp(): Promise<void> {
   registerCommands(commands, hooks);
   registerTableCommands(commands, () => editor);
   registerMasterCommands(commands, () => editor);
+  registerShowCommands(commands, () => editor, live, bridge);
   gateSlideCommands(commands, () => editor);
+  const drawTools = registerDrawCommands(commands, () => editor, q(root, '.fs-props-col'));
 
   const menus: MenuDef[] = [
-    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-pdf', 'export-png', 'export-fsld'] }, 'print', '-', 'pdf-tools', '-', 'delete-deck'] },
+    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-pdf', 'export-png', 'export-fsld', '-', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', 'pdf-tools', '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
-    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'toggle-strip', 'toggle-props', 'toggle-notes'] },
-    { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-image', 'insert-media', 'insert-shapes', 'insert-line', 'insert-arrow', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', '-', 'insert-link', 'add-comment'] },
-    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }] },
+    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes'] },
+    { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-image', 'insert-media', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', '-', 'insert-link', 'add-comment'] },
+    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', 'edit-points', '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: (editor?.doc.deck.layouts ?? []).map((l) => `layout:${l.id}`).filter((id) => commands.get(id)) }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
-    { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock'] },
+    { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock', '-', 'selection-pane'] },
     { label: 'Review', items: ['check-deck', '-', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
-    { label: 'Present', items: ['present-start', 'present-current', 'presenter-view'] },
+    { label: 'Present', items: ['present-start', 'present-current', 'presenter-view', '-', 'custom-shows', 'show-setup', '-', 'record-start', 'record-current', { label: 'Clear', items: ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'] }] },
     { label: 'Help', items: ['help', 'shortcuts', 'preferences'] },
   ];
   new MenuBar(q(root, '.fs-menubar'), commands, menus);

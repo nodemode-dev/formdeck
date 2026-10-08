@@ -55,6 +55,17 @@ The contracts every part of formsld reads and writes: the deck model (`deck.json
 | `slides` | in order. `layout` names a layout id |
 | `sections` | a section starts at its slide and runs to the next section's start |
 | `media` | every picture, video, audio and font the deck uses, keyed by media id. The bytes live in the package or the library, never in deck.json |
+| `show` | optional Set Up Show settings (below); absent means a speaker-led show of all slides that uses timings when present |
+| `customShows` | optional named slide lists: `[ { "id": "cs1", "name": "Short version", "slides": ["s1", "s4", "s2"] } ]`. Order is play order, a slide may repeat, and hidden slides play when listed |
+| `guides` | optional drawing guides shared by every slide: `[ { "id": "g1", "axis": "x", "pos": 480 } ]`. `axis` `x` is a vertical guide at `pos` points from the slide's left edge, `y` a horizontal guide at `pos` points from the top. Objects snap to them while they are shown. In .pptx they are the `p15:sldGuideLst` extension of presentation.xml (`pos` in eighths of a point, `orient="horz"` for `y`) |
+
+### Show settings
+
+```json
+"show": { "kiosk": false, "loop": true, "range": { "from": 2, "to": 9 }, "customShow": null, "useTimings": true, "noAnimation": false, "noNarration": false, "pen": "#EF4444" }
+```
+
+`kiosk` is a show browsed at a kiosk: it loops, and only timings, hyperlinks and media clicks move it. `loop` repeats the show until Esc. `range` limits a show started from the beginning to slide numbers `from` to `to` (1-based, inclusive); `customShow` names a custom show id to play instead (it wins over `range`). `useTimings` false advances only by click or key, ignoring `transition.advanceAfter`. `noAnimation` shows every slide fully built with no animation, `noNarration` keeps recorded narration silent, and `pen` is the starting ink colour. A show started from the current slide plays the deck in order from there. In .pptx these are `p:showPr` in presProps.xml (`loop`, `showNarration`, `showAnimation`, `useTimings`, `p:present` or `p:kiosk`, `p:sldAll`, `p:sldRg`, `p:custShow`, `p:penClr`) and custom shows are `p:custShowLst` in presentation.xml.
 
 ### Slide
 
@@ -108,18 +119,20 @@ Every element has:
 | --- | --- |
 | `id` | unique in the deck |
 | `type` | `shape`, `image`, `table`, `chart`, `group`, `media` |
-| `name` | optional label (PowerPoint's shape name, kept through .pptx import and export) |
+| `name` | optional label (PowerPoint's shape name, `cNvPr name`, kept through .pptx import and export; the Selection pane shows and renames it). A slide's `elements` run back to front, which is also the order a screen reader reads them, so reordering either one is a `move` of the element |
 | `x`, `y`, `w`, `h` | the frame in points before rotation; may be absent on a placeholder (inherited) |
 | `rot`, `flipH`, `flipV` | rotation about the centre in degrees, mirror flags |
 | `ph` | `{ "type": "title", "idx": 0 }` when the element fills a placeholder (see below) |
 | `slot` | the semantic slot a template layout gives this placeholder (`title`, `subtitle`, `body`, `body2`, `image`, `caption`, `number`, `quote`, `by`, `kicker`, ...) |
-| `hidden`, `locked` | hidden in the show and the editor; locked against selection by drag |
+| `hidden`, `locked` | hidden in the show and the editor (`cNvPr hidden="1"` in .pptx); locked against selection by drag |
 | `alt` | alternative text for screen readers |
 | `link` | `{ "url": "https://..." }` or `{ "slide": "s7" }`, followed in the show |
 | `opacity` | 0 to 1 |
 | `anim` | not stored here; animations live on the slide and point at element ids |
 
-**shape**: `geom` (an Office preset name such as `rect`, `roundRect`, `ellipse`, `triangle`, `rightArrow`, `chevron`, `star5`, `line`, `wedgeRectCallout`, `flowChartDecision`; default `rect`), `adj` (adjust values in the file convention, ratios in 1/100,000, angles in 1/60,000 degree, for example `{ "adj": 16667 }`), `path` (a custom outline as SVG path data in the shape's own 0..w, 0..h space, used when `geom` is `custom`), `fill`, `line`, `effects`, `text`. A text box is a `rect` shape with fill `none` and line `none`. A line is a `line` geometry (its frame is the bounding box, flipped to choose the diagonal) with `line` set.
+**shape**: `geom` (an Office preset name such as `rect`, `roundRect`, `ellipse`, `triangle`, `rightArrow`, `chevron`, `star5`, `line`, `wedgeRectCallout`, `flowChartDecision`; default `rect`), `adj` (adjust values in the file convention, ratios in 1/100,000, angles in 1/60,000 degree, for example `{ "adj": 16667 }`), `path` (a custom outline as SVG path data in the shape's own 0..w, 0..h space, used when `geom` is `custom`), `pathSize` (`[w, h]`, the box the `path` coordinates were drawn in; the path is stretched from it to the frame, as OOXML's `a:path w h`, so resizing a freeform needs no path rewrite; absent means the frame itself), `fill`, `line`, `effects`, `text`. A text box is a `rect` shape with fill `none` and line `none`. A line is a `line` geometry (its frame is the bounding box, flipped to choose the diagonal) with `line` set. Custom outlines fill with the even-odd rule and export to .pptx as `a:custGeom` with four connection sites (top, left, bottom, right). An outline with no `Z` is open (a freeform line or scribble).
+
+**Connectors** are shapes with geometry `straightConnector1`, `bentConnector3` (elbow) or `curvedConnector3` (a `line` may also connect) and `conn`: `{ "kind": "elbow", "start": { "id": "e4", "site": 3 }, "end": { "id": "e7", "site": 1 } }`. `kind` is `straight`, `elbow` or `curved`; `start` and `end` name the glued element and its connection site index (the preset's sites in PowerPoint's order, for a rectangle 0 top, 1 left, 2 bottom, 3 right) and are absent for a free end. The frame follows PowerPoint: the path runs from the frame's top-left to its bottom-right before `flipH`, `flipV` and `rot` (an elbow that leaves vertically is rotated 90 degrees), and `adj` `{ "adj1": 50000 }` places the elbow's middle segment along the frame in 1/100,000 (below 0 or above 100,000 for a route that doubles back). Editors reroute a glued connector when its shapes move, resize, rotate or flip, in the same step; deleting a glued shape leaves the connector in place without that end. In .pptx a connector is a `p:cxnSp` with `a:stCxn` and `a:endCxn` (`id` the target's shape id, `idx` the site).
 
 **image**: `src` (media id), `crop` (`{ "l": 0, "t": 0.1, "r": 0, "b": 0.1 }`, fractions of the source cut from each side), `fit` (`cover` fills the frame and crops, `contain` letterboxes, `stretch`; `cover` by default), `focus` (`[0.5, 0.35]`, the point of the picture kept in view by `cover`), `mask` (a preset geometry name to crop to a shape), `line`, `effects`, `adjust` (`{ "brightness": 0, "contrast": 0, "saturation": 1, "grayscale": false, "blur": 0 }`). Animated GIFs play in the editor and the show and export as animated GIFs to PowerPoint.
 
@@ -127,7 +140,7 @@ Every element has:
 
 **group**: `children`, elements whose frames are in slide coordinates. The group's frame is their bounds.
 
-**media**: `src` (media id), `kind` (`video` or `audio`), `poster` (an image media id), `autoplay`, `loop`, `start`, `end` (seconds), `volume` 0 to 1.
+**media**: `src` (media id), `kind` (`video` or `audio`), `poster` (an image media id), `autoplay`, `loop`, `start`, `end` (seconds), `volume` 0 to 1, `hideInShow` (the icon or frame is not drawn in the show or in video and GIF exports, as PowerPoint's Hide During Show), `narration` (recorded by Record Slide Show: audio that plays when its slide starts unless the show is set to play without narration, removed by Clear Narration). In .pptx, audio is a `p:pic` with `a:audioFile`; `autoplay` is a `mediacall` play effect at the start of the main sequence and `hideInShow` is `showWhenStopped="0"`; narration is the audio named `Narration`.
 
 ## Text
 
@@ -162,6 +175,8 @@ A run with no `sz`, `font` or `color` takes them from the placeholder chain and 
 ```
 
 `span` is `[columns, rows]` on the cell that starts a merge; covered cells carry `merged: true` and are not drawn. Table style ids: `none`, `light1`, `medium2`, `dark1`, `lines`, `grid`; `accent` picks the scheme colour.
+
+`cols` are column widths in points; when they add up to less than the element's `w` they stretch in proportion to fill it. A row's `h` is its minimum height (PowerPoint's `a:tr h`): a row is drawn at the larger of `h` and what its text needs, an empty cell still holds one line, and the element's `h` follows the drawn height of the whole table. Cell margins are the cell's `text.inset` `[left, top, right, bottom]` (default `[7.2, 3.6, 7.2, 3.6]`, `a:tcPr` `marL`, `marT`, `marR`, `marB`); `anchor` is the vertical alignment (`t`, `m`, `b`); `fill` is any fill (`{ "type": "none" }` for no fill, omitted for the table style's). `borders` sides are lines (`{ "type": "none" }` for no border, omitted for the table style's). Neighbouring cells share an edge: editors write a border on both cells, and when the two sides disagree the cell on the left or above wins.
 
 ```json
 { "kind": "column", "categories": ["Q1", "Q2", "Q3"], "series": [ { "name": "Revenue", "values": [2.1, 3.0, 4.2], "color": null } ],

@@ -49,8 +49,11 @@ interface ElementBase {
   id: string; name?: string; x?: number; y?: number; w?: number; h?: number; rot?: number; flipH?: boolean; flipV?: boolean;
   ph?: Placeholder; slot?: string; hidden?: boolean; locked?: boolean; alt?: string; link?: Link; opacity?: number;
 }
+export type ConnKind = 'straight' | 'elbow' | 'curved';
+export interface ConnEnd { id: string; site: number }
+export interface Connection { kind: ConnKind; start?: ConnEnd; end?: ConnEnd }
 export interface ShapeElement extends ElementBase {
-  type: 'shape'; geom?: string; adj?: Record<string, number>; path?: string; fill?: Fill | null; line?: Line | null; effects?: Effects; text?: TextBody;
+  type: 'shape'; geom?: string; adj?: Record<string, number>; path?: string; pathSize?: [number, number]; conn?: Connection; fill?: Fill | null; line?: Line | null; effects?: Effects; text?: TextBody;
 }
 export interface ImageElement extends ElementBase {
   type: 'image'; src: string; crop?: { l: number; t: number; r: number; b: number }; fit?: 'cover' | 'contain' | 'stretch';
@@ -78,6 +81,7 @@ export interface ChartElement extends ElementBase { type: 'chart'; chart: ChartD
 export interface GroupElement extends ElementBase { type: 'group'; children: SlideElement[] }
 export interface MediaElement extends ElementBase {
   type: 'media'; src: string; kind: 'video' | 'audio'; poster?: string; autoplay?: boolean; loop?: boolean; start?: number; end?: number; volume?: number;
+  hideInShow?: boolean; narration?: boolean;
 }
 export type SlideElement = ShapeElement | ImageElement | TableElement | ChartElement | GroupElement | MediaElement;
 
@@ -102,11 +106,18 @@ export interface Section { id: string; name: string; start: string; collapsed?: 
 export interface CommentReply { author: string; kind: 'user' | 'agent'; text: string; at: string }
 export interface Comment { id: string; slide: string; element?: string; author: string; kind: 'user' | 'agent'; text: string; at: string; resolved?: boolean; replies?: CommentReply[] }
 export interface MediaInfo { name: string; mime: string; w?: number; h?: number; bytes?: number; frames?: number; duration?: number }
+export interface CustomShow { id: string; name: string; slides: string[] }
+export interface ShowSettings {
+  kiosk?: boolean; loop?: boolean; range?: { from: number; to: number } | null; customShow?: string | null;
+  useTimings?: boolean; noAnimation?: boolean; noNarration?: boolean; pen?: string;
+}
 export interface DeckMeta { created?: string; modified?: string; author?: string; template?: string; app?: string; [k: string]: unknown }
+export interface Guide { id: string; axis: 'x' | 'y'; pos: number }
 
 export interface Deck {
   format: 'formsld/deck'; formatVersion: 1; id: string; title: string; size: { w: number; h: number }; theme: Theme;
   masters: Master[]; layouts: Layout[]; slides: Slide[]; sections?: Section[]; comments?: Comment[]; media: Record<string, MediaInfo>; meta: DeckMeta;
+  show?: ShowSettings | null; customShows?: CustomShow[]; guides?: Guide[];
   template?: { id: string; name: string; category?: string; tags?: string[]; source?: string; license?: string; description?: string } | null;
 }
 

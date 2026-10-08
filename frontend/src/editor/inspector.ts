@@ -10,6 +10,7 @@ import { PanelGroup } from '../ui/panel-group';
 import type { Editor } from './editor';
 import { dirtyOp, holderNameOps, paraStyleOps, runStyleOps, setFrameOps } from './actions';
 import { AnimationPane } from './animation-pane';
+import { TablePanel } from './table-panel';
 
 const SLOT_NAMES: Record<SchemeName, string> = {
   dk1: 'Text dark', lt1: 'Background light', dk2: 'Dark 2', lt2: 'Light 2', accent1: 'Accent 1', accent2: 'Accent 2', accent3: 'Accent 3',
@@ -38,6 +39,7 @@ export class Inspector {
   private readonly layoutViews = new Map<string, SlideView>();
   readonly activity: ActivityItem[] = [];
   readonly animate = new AnimationPane();
+  readonly table = new TablePanel();
   private docOff: (() => void) | null = null;
   hooks: { templates: () => void; background: () => void; slideSize: () => void; comment: (text: string) => void; agentsAllowed: () => boolean; setAgents: (on: boolean) => void; copyPrompt: () => void; mcpStatus: () => string } | null = null;
 
@@ -86,6 +88,7 @@ export class Inspector {
 <div class="fs-prop-row" data-ms="slide"><span class="fs-prop-label">Duration</span><div class="fs-prop-ctl fs-pair">${num('tdur', 'S', 's')}<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="transition-all">Apply to all</button></div></div></div>
 </div>`);
     this.layoutGrid = this.slidePage.querySelector('.fs-layout-grid') as HTMLElement;
+    this.format.appendChild(this.table.el);
     this.design = el(`<div class="fs-insp">
 <div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Template</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Current</span><div class="fs-prop-ctl"><span class="fs-tpl-name"></span></div></div>
@@ -180,8 +183,8 @@ export class Inspector {
 
   attach(ed: Editor | null): void {
     this.ed = ed;
-    if (ed) this.animate.attach(ed);
-    else this.animate.dispose();
+    if (ed) { this.animate.attach(ed); this.table.attach(ed); }
+    else { this.animate.dispose(); this.table.dispose(); }
     for (const v of this.layoutViews.values()) v.el.remove();
     this.layoutViews.clear();
     this.layoutGrid.textContent = '';
@@ -444,6 +447,13 @@ export class Inspector {
         v.update();
       }
       setClass(v.el.closest('.fs-layout-card') as HTMLElement, 'is-on', l.id === current);
+    }
+    let cursor = this.layoutGrid.firstElementChild;
+    for (const l of deck.layouts) {
+      const card = this.layoutViews.get(l.id)?.el.closest('.fs-layout-card');
+      if (!card) continue;
+      if (card !== cursor) this.layoutGrid.insertBefore(card, cursor);
+      else cursor = cursor.nextElementSibling;
     }
     if (this.layoutGrid.isConnected) for (const v of this.layoutViews.values()) v.fitAll();
   }

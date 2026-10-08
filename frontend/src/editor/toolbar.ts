@@ -7,6 +7,7 @@ import { enhanceSelect } from '../ui/dropdown';
 import { icon } from '../ui/icons';
 import type { Editor } from './editor';
 import { runStyleOps } from './actions';
+import { tableRunProbe, tableTextFormat } from './table-edit';
 
 type Ctx = 'slide' | 'text' | 'shape' | 'image' | 'table' | 'chart' | 'multi' | 'none';
 
@@ -48,7 +49,7 @@ export class Toolbar {
 <span class="fs-sep" data-g="image"></span>
 <div class="fs-tb-group" data-g="chart">${lbtn('edit-chart', 'chartBar', 'Edit data')}</div>
 <span class="fs-sep" data-g="chart"></span>
-<div class="fs-tb-group" data-g="table">${btn('table-row-above', 'tableRowAbove', 'Insert row above')}${btn('table-row-below', 'tableRowBelow', 'Insert row below')}${btn('table-col-left', 'tableColLeft', 'Insert column left')}${btn('table-col-right', 'tableColRight', 'Insert column right')}${btn('table-delete-row', 'tableRowDelete', 'Delete row')}${btn('table-delete-col', 'tableColDelete', 'Delete column')}${btn('table-merge', 'tableMerge', 'Merge cells')}${btn('table-split', 'tableSplit', 'Split cell')}${btn('table-distribute-rows', 'tableDistRows', 'Distribute rows')}${btn('table-distribute-cols', 'tableDistCols', 'Distribute columns')}${btn('table-header-row', 'tableHeader', 'Header row')}${btn('table-banded-rows', 'tableBanded', 'Banded rows')}</div>
+<div class="fs-tb-group" data-g="table">${btn('table-row-above', 'tableRowAbove', 'Insert row above')}${btn('table-row-below', 'tableRowBelow', 'Insert row below')}${btn('table-col-left', 'tableColLeft', 'Insert column left')}${btn('table-col-right', 'tableColRight', 'Insert column right')}${btn('table-delete-row', 'tableRowDelete', 'Delete row')}${btn('table-delete-col', 'tableColDelete', 'Delete column')}${btn('table-merge', 'tableMerge', 'Merge cells')}${btn('table-split', 'tableSplit', 'Split cell')}${btn('table-distribute-rows', 'tableDistRows', 'Distribute rows')}${btn('table-distribute-cols', 'tableDistCols', 'Distribute columns')}${btn('table-header-row', 'tableHeader', 'Header row')}${btn('table-banded-rows', 'tableBanded', 'Banded rows')}<button class="fs-tb-btn fs-tb-color" type="button" data-act="fill" title="Cell fill" aria-label="Cell fill">${icon('fill', 16)}</button>${btn('table-borders', 'borderAll', 'Borders')}</div>
 <span class="fs-sep" data-g="table"></span>
 <div class="fs-tb-group" data-g="arrange">${btn('bring-forward', 'bringForward', 'Bring forward')}${btn('send-backward', 'sendBackward', 'Send backward')}${btn('align-center', 'alignHcenterEdge', 'Align centre')}${btn('align-middle', 'alignVcenterEdge', 'Align middle')}${btn('group', 'group', 'Group')}${btn('ungroup', 'ungroup', 'Ungroup')}${btn('delete', 'delete', 'Delete')}</div>
 <span class="fs-sep" data-g="arrange"></span>
@@ -90,9 +91,7 @@ export class Toolbar {
     this.ed = ed;
     if (ed) {
       const deck = ed.doc.deck;
-      const opts = deck.layouts.map((l) => `<option value="${l.id}">${l.name.replace(/</g, '&lt;')}</option>`).join('');
-      const key = deck.layouts.map((l) => l.id + l.name).join('|');
-      if (this.layout.dataset.key !== key) { this.layout.dataset.key = key; this.layout.innerHTML = opts; }
+      this.layoutOptions();
       const fkey = `${deck.theme.fonts.major}|${deck.theme.fonts.minor}`;
       if (this.font.dataset.key !== fkey) {
         this.font.dataset.key = fkey;
@@ -117,16 +116,28 @@ export class Toolbar {
     return 'multi';
   }
 
+  private layoutOptions(): void {
+    const deck = this.ed?.doc.deck;
+    if (!deck) return;
+    const key = deck.layouts.map((l) => l.id + l.name).join('|');
+    if (this.layout.dataset.key === key) return;
+    this.layout.dataset.key = key;
+    this.layout.innerHTML = deck.layouts.map((l) => `<option value="${l.id}">${l.name.replace(/</g, '&lt;')}</option>`).join('');
+    const s = this.ed?.slide;
+    if (s) this.layout.value = s.layout;
+  }
+
   sync(): void {
     const ed = this.ed;
+    this.layoutOptions();
     const ctx = this.context();
     this.ctx = ctx;
-    const cellTyping = ctx === 'table' && !!ed?.stage.editing;
+    const cells = ctx === 'table';
     const inMaster = !!ed && ed.holderKind !== 'slide';
     const show: Record<string, boolean> = {
       slide: ctx === 'slide' && !inMaster, master: inMaster && (ctx === 'slide' || ctx === 'none'), insert: ctx === 'slide' || ctx === 'none', table: ctx === 'table',
-      font: ctx === 'text' || ctx === 'shape' || cellTyping, style: ctx === 'text' || ctx === 'shape' || cellTyping, para: ctx === 'text' || ctx === 'shape',
-      list: ctx === 'text', anchor: ctx === 'text' || ctx === 'shape', paint: ctx === 'shape' || ctx === 'text',
+      font: ctx === 'text' || ctx === 'shape' || cells, style: ctx === 'text' || ctx === 'shape' || cells, para: ctx === 'text' || ctx === 'shape' || cells,
+      list: ctx === 'text', anchor: ctx === 'text' || ctx === 'shape' || cells, paint: ctx === 'shape' || ctx === 'text',
       image: ctx === 'image', chart: ctx === 'chart', arrange: ctx !== 'slide' && ctx !== 'none', review: ctx === 'slide' && !inMaster,
     };
     for (const [g, node] of Object.entries(this.groups)) {
@@ -167,6 +178,17 @@ export class Toolbar {
       const line = t.line ?? null;
       if (lc) setStyleVar(lc, '--swatch', line && line.type !== 'none' && 'color' in line && line.color ? colorCss(line.color, theme) : 'transparent');
       void themeFont;
+    } else if (s && ctx === 'table') {
+      const p = tableRunProbe(ed);
+      const theme = ed.doc.deck.theme;
+      if (p) {
+        setValue(this.font, p.font.startsWith('+') ? p.font.slice(0, 3) : p.font);
+        setValue(this.size, String(Math.round(p.sz * 10) / 10));
+        const tc = this.root.querySelector<HTMLElement>('[data-act="text-color"]');
+        if (tc) setStyleVar(tc, '--swatch', colorCss(p.color, theme));
+        const fc = this.root.querySelector<HTMLElement>('[data-g="table"] [data-act="fill"]');
+        if (fc) setStyleVar(fc, '--swatch', p.fill ? colorCss(p.fill, theme) : 'transparent');
+      }
     }
   }
 
@@ -177,6 +199,7 @@ export class Toolbar {
     const fam = v === '+mj' ? ed.doc.deck.theme.fonts.major : v === '+mn' ? ed.doc.deck.theme.fonts.minor : v;
     void ensureFont(fam).then(() => ed.stage.view?.refit());
     if (ed.stage.editing && ed.stage.editFormat('fontName', fam)) return;
+    if (tableTextFormat(ed, { font: v }, 'Font')) return;
     ed.apply(runStyleOps(ed.doc.deck, s, ed.selected(), { font: v }), 'Font');
   }
 
@@ -184,6 +207,7 @@ export class Toolbar {
     const ed = this.ed;
     const s = ed?.slide;
     if (!ed || !s || !Number.isFinite(v) || v <= 0) return;
+    if (tableTextFormat(ed, { sz: Math.min(400, Math.max(1, v)) }, 'Font size')) return;
     ed.stage.commit();
     ed.apply(runStyleOps(ed.doc.deck, s, ed.selected(), { sz: Math.min(400, Math.max(1, v)) }), 'Font size');
   }
