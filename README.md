@@ -2,11 +2,11 @@
 
 Presentations, pitch decks and PDFs in the form family. An open alternative to Google Slides, PowerPoint and the Acrobat reader tools, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live, while you watch, then hand it to you for review.
 
-Version 0.5.0 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.5.1 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
-| Area | In 0.5.0 |
+| Area | In 0.5.1 |
 | --- | --- |
 | Start from material | Drop md, pdf, docx, pptx, txt, csv, xlsx, images, gifs or meeting notes, add a brief, pick a template, and get a drafted deck (about 80% there) in seconds, or hand the intake to an agent |
 | Templates | 67 original templates in 9 categories, each with 21 semantic layouts and a 17-slide sample; import any .pptx or .potx as a template; export every template as .pptx |
@@ -61,10 +61,10 @@ docs/       FORMAT.md (the deck contract)
 
 The engine is authoritative: every change is a JSON op step with an inverse, broadcast over `/api/live` to every window and agent, autosaved, and undoable per step or per agent turn.
 
-## Known gaps in 0.5.0
+## Known gaps in 0.5.1
 
 - Co-authoring across machines, share links and publishing to the web are not built.
-- One slide master per deck; no SmartArt editor, merge shapes, OCR or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Google Slides and Acrobat (0.5.0: 81.4%, 84.1% and 78.6%).
+- One slide master per deck; no SmartArt editor, merge shapes, OCR or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Google Slides and Acrobat (0.5.1: 82.4%, 84.7% and 80.4%).
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in formsld; in .pptx they round-trip as native charts for the common kinds.
 - Embedded fonts in .pptx are not written; templates use bundled open fonts that PowerPoint substitutes when missing.
