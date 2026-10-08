@@ -165,10 +165,12 @@ Returns: list gives `N open, M resolved` then `c1 · slide 4 (s3) · author (kin
 Returns: `Undo Agent: theme (11 steps) · deck now 8 slides`. Refuses when the newest change is the person's. There is no redo tool.
 
 ### export_deck
-- deck, format (required): pptx | potx | fsld | pdf | png
+- deck, format (required): pptx | potx | fsld | pdf | png | gif | txt | rtf
 - path: absolute file or existing folder (default the Exports folder in the formsld data folder)
-- slides: array (pdf and png)
-Returns: `Wrote /path/file.pptx (70 KB, 9 slides).` or `Exported 9 slides as PDF: /path (0.8 MB).` Structured `{path, bytes}`. pptx, potx and fsld are written by the engine; pdf and png are drawn by the window (several png slides arrive as a zip).
+- slides: array (pdf, png and gif)
+- notes: boolean, txt and rtf include the speaker notes
+- width: integer, gif frame width in pixels
+Returns: `Wrote /path/file.pptx (70 KB, 9 slides).` or `Exported 9 slides as PDF: /path (0.8 MB).` Structured `{path, bytes}`. pptx, potx, fsld, txt and rtf are written by the engine; pdf, png and gif are drawn by the window (several png slides arrive as a zip; a gif uses each slide's timing or 3 s). Video export exists only in the window (File > Export > Video).
 
 ### open_file
 - path (required): .pptx, .potx or .fsld
@@ -178,12 +180,13 @@ Returns: `Opened d_... · N slides` with the outline and import notes, or `Saved
 ## PDF
 
 ### pdf
-- action (required): info | text | images | tables | merge | split | to_deck | header_footer | crop | find | redact
+- action (required): info | text | images | tables | merge | split | to_deck | header_footer | crop | find | redact | to_docx
 - path: the PDF; paths: PDFs to merge
 - pages: string, `3`, `1-4`, `2,5`, `4-`
 - ranges: array for split, `["1-3", "4-"]`
 - out: output file (merge; header_footer, crop and redact default to `[stem]-[action].pdf` beside the input) or existing folder (split)
 - template, title: to_deck only
+- to_docx: writes a Word document (headings, paragraphs with sizes, bold and italic, pictures, tables, a page break per page); `out` defaults to `[stem].docx` beside the input; pages limits it
 - header, footer: header_footer, `{left, center, right}` with tokens `<<page>>`, `<<pages>>`, `<<date>>`, `<<file>>`, `<<bates>>`; size, color, font (sans | serif | mono), margins `{top, bottom, left, right}`, start, apply (all | odd | even), bates `{prefix, start, digits, suffix}`, date
 - margins `{l, t, r, b}` | box `{x, y, w, h}` | auto: crop, one of them
 - query, regex, preset (email | phone | card | date), caseSensitive, wholeWord: find, and redact of every match

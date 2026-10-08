@@ -1,6 +1,6 @@
 # formsld manual
 
-formsld makes presentations, pitch decks and PDFs. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.4.0. Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formsld makes presentations, pitch decks and PDFs. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.5.0. Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -111,7 +111,13 @@ Use the toolbar or Format menu for font, size, bold, italic, underline, striketh
 
 ### Shapes
 
-Insert > Shapes (or the toolbar) opens a gallery of the Office preset shapes in groups; click one to place it in the middle of the slide. Line and Arrow draw a straight line or arrow. Fill Colour and Outline Colour offer the theme colours with their tints and shades, standard colours, a custom colour and No fill or No outline. Double-click a shape to type in it. The Effects section of the Format tab adds a shadow (Soft, Below, Hard, Long), a glow (Small, Medium, Large), a reflection (Tight, Half, Full) or soft edges to shapes and pictures.
+Insert > Shapes (or the toolbar) opens the shape gallery in PowerPoint's groups and names, plus More Shapes for the rest of the 187 Office presets; click one to place it in the middle of the slide. Each shape is drawn from the published Office Open XML definitions, so it looks and adjusts exactly as it does in PowerPoint; drag a yellow handle to change its corners, arrowheads or callout tail. Line and Arrow draw a straight line or arrow.
+
+- **Freeform and Scribble** (the Lines group, or Insert > Freeform): for a freeform, click to place each corner, or press and drag to draw a curved stretch; click the first point again to close and fill the shape, or double-click or press Enter to finish it as an open line. Backspace takes back the last point, Esc cancels and Shift keeps angles to 45 degrees. For a scribble, press, draw and let go; the stroke is smoothed for you.
+- **Edit Points** (right-click a shape, or Format > Edit Points): drag a point to move it or a round handle to bend the curve beside it, click the outline to add a point, and press Delete (or Mod-click a point) to remove one. Right-click a point to make it smooth, straight or a corner, or the outline to add a point or open or close the path. Esc or a click elsewhere finishes. A standard shape becomes a freeform the first time you edit its points.
+- **Connectors** (the Lines group, or Insert > Connector: straight, elbow and curved, each with or without an arrow): drag from one shape to another. Blue dots show where the line can attach and the end snaps to the nearest; a glued end shows a green handle. Move, resize, rotate or flip a shape and its connectors follow. Drag an end away from a shape to detach it, and the yellow handle of an elbow connector to move its middle segment. Connectors stay glued in PowerPoint files.
+
+ Fill Colour and Outline Colour offer the theme colours with their tints and shades, standard colours, a custom colour and No fill or No outline. Double-click a shape to type in it. The Effects section of the Format tab adds a shadow (Soft, Below, Hard, Long), a glow (Small, Medium, Large), a reflection (Tight, Half, Full) or soft edges to shapes and pictures.
 
 ### Pictures
 
@@ -121,9 +127,11 @@ Insert > Picture, drop, or paste a picture. In the Format tab: Fit (Fill, Fit, S
 
 Insert > Table: hover the grid to pick a size or type columns and rows, then choose a style and whether to show a header row and banded rows. A table placeholder on a layout opens the same dialog.
 
-- **Typing**: double-click a cell (or press Enter or F2 with the table selected). Tab moves to the next cell and adds a row at the end of the table; Shift+Tab goes back; the arrow keys cross into the next cell at the edge of the text; Esc stops typing. Rows grow to fit what you type. Bold, italic, colours and the other text buttons work on the selected text in a cell.
+- **Typing**: double-click a cell (or press Enter or F2 with the table selected). Tab moves to the next cell and adds a row at the end of the table; Shift+Tab goes back; the arrow keys cross into the next cell at the edge of the text; Esc stops typing. Rows grow to fit what you type and shrink back when you delete text, never below their set height.
 - **Selecting cells**: click a selected table once more to select a cell, then drag or Shift+click for a range (it grows to include whole merged cells); the arrow keys and Shift+arrows move and extend it; Delete clears the text. Drag the thin strips just outside a selected table's edges to move it.
 - **Rows, columns and merges** (Insert > Table, the table toolbar, or right-click): insert rows above or below and columns left or right, delete rows or columns, merge and split cells, distribute rows and columns evenly, select the whole table, and toggle the header row and banded rows. Format > Table Style switches between None, Light, Medium, Dark, Lines and Grid. Merged cells stay merged in PowerPoint files.
+- **Resizing**: point at a line between two columns or rows until the pointer becomes a resize arrow, and drag. A column border takes width from its neighbour, so the table keeps its width; a row can be made taller, or shorter down to what its text needs. Drag the table's right or bottom edge to change just the last column or row. Borders snap to whole points, the slide and other objects; hold Alt to place them freely, press Esc to cancel. Each drag is one undo step.
+- **Formatting cells**: click a table once to format all of it, or select cells first, then use the toolbar, the Format menu or the Table section of the Format tab: bold, italic, underline, font, size and colour; left, centre, right or justified and top, middle or bottom alignment; a fill (or No fill); Borders (All, Outside, Inside, each side, Inside horizontal, Inside vertical, No border) with a border colour and width; cell margins; and the minimum row height and column width, with buttons to even them out. Fills, borders, alignment and margins are kept in PowerPoint files.
 
 ### Charts
 
@@ -135,7 +143,11 @@ Insert > Video or Audio places an MP4, WebM or audio file. It plays in the show,
 
 ### Arrange
 
-Arrange holds Bring to Front, Bring Forward, Send Backward, Send to Back, Align Left, Center, Right, Top, Middle and Bottom (one object aligns to the slide), Distribute Horizontally and Vertically (three or more objects), Flip Horizontal, Flip Vertical, Rotate Right 90°, Group, Ungroup and Lock. Locked objects are skipped by Select All and marquee selection.
+Arrange holds Bring to Front, Bring Forward, Send Backward, Send to Back, Align Left, Center, Right, Top, Middle and Bottom (one object aligns to the slide), Distribute Horizontally and Vertically (three or more objects), Flip Horizontal, Flip Vertical, Rotate Right 90°, Group, Ungroup and Lock. Locked objects are skipped by Select All and marquee selection. Moving or resizing a group moves and scales everything in it.
+
+**Selection Pane** (Arrange > Selection Pane, Alt+F10) lists every object on the slide with the front object at the top. Click a row to select it (Shift or Mod adds), double-click a name to rename it, use the eye and lock buttons to hide or lock an object (hidden objects do not show in the slideshow either), Show all and Hide all, and drag rows to change the stacking order. The Reading order view shows the order a screen reader uses, first at the top, flags objects without alt text (click the flag to add it), and dragging there changes the reading order.
+
+**Rulers, gridlines and guides** (View > Ruler, Alt+Shift+F9; View > Gridlines, Shift+F9; View > Guides, Alt+F9): the rulers follow zoom and scroll, in inches or centimetres as set in Preferences, and shade the selection. Drag from the top ruler for a horizontal guide or the left ruler for a vertical one, drag a guide to move it, and drag it off the slide to remove it; objects snap to guides. View > Grid and Guides sets the grid spacing, Snap objects to grid, and whether smart guides show. The ruler and grid choices are remembered on this computer; guides are saved with the deck and in PowerPoint files.
 
 ### The properties panel
 
@@ -159,7 +171,7 @@ View > Slide Master edits the design every slide is built on. The slides panel l
 - **The master** holds what every layout shares: the background, logos and other graphics, and the title and body placeholders. Formatting a placeholder on the master (font, size, colour, bold, alignment, bullets per list level) changes every layout and slide that has not overridden it.
 - **A layout** holds its own placeholders and graphics on top of the master's. Hide Background Graphics leaves out the master's graphics on that layout; Format Background sets a background for it alone.
 - **Placeholders**: Slide > Insert Placeholder adds a content, text, picture, chart, table, title, footer, date or slide number placeholder; type in a layout's placeholder to change the prompt text slides show before anything is typed. Shapes, pictures and text boxes inserted here appear on every slide that uses the layout.
-- **Layouts**: Insert Layout, Duplicate Layout, Rename and Delete Layout. Only a layout no slide uses can be deleted, and a master keeps at least one layout. The Slide tab names the selected layout or master (type to rename it), has the Hide graphics switch for a layout, and says how many slides use it.
+- **Layouts**: Insert Layout, Duplicate Layout, Rename and Delete Layout; drag a layout up or down in the slides panel to reorder it within its master (the order is kept in PowerPoint files). Only a layout no slide uses can be deleted, and a master keeps at least one layout. The Slide tab names the selected layout or master (type to rename it), has the Hide graphics switch for a layout, and says how many slides use it.
 
 Every change shows on the slides at once and is one undo step. Presenting, review status, comments, sections and the slide sorter are off while the master is open.
 
@@ -248,6 +260,7 @@ Present in the title bar starts from the current slide; its arrow offers From Be
 | S | pause or resume automatic advance |
 | F | full screen |
 | Mod+H | hide the control bar |
+| J | live captions on or off |
 | Esc | closes a popup, then leaves the pen or laser, then unblanks, then ends the show |
 
 Links on slides open in the show. Videos and audio play with their start, end and loop settings.
@@ -256,20 +269,31 @@ Links on slides open in the show. Videos and audio play with their start, end an
 
 **Rehearse** (in presenter view) records how long each slide takes; at the end choose Keep timings to save them as each slide's automatic advance, or discard them. Transitions and their durations are set in the Slide tab.
 
+**Set Up Show** (Present > Set Up Show): Presented by a speaker, or Browsed at a kiosk (a kiosk show loops and moves on only by its timings, links and media; Esc still ends it). Loop continuously until Esc repeats the show; Show without narration keeps recorded voice silent; Show without animation shows every slide fully built. Show slides chooses All, a From and To range, or a custom show; Advance slides chooses Manually or Using timings, if present; and the pen colour sets the starting ink. From Beginning and presenter view follow these settings; From Current Slide plays the deck in order from where you are. The settings are kept in PowerPoint files.
+
+**Custom Shows** (Present > Custom Shows): click New, type a name and click slides in the left list to add them (a slide can appear more than once, and hidden slides play when added); reorder with the arrows and remove with the cross; Copy and Delete work on the selected show; Show presents it. Custom shows are kept in PowerPoint files.
+
+**Record** (Present > Record From Beginning or From Current Slide): click Record and, after a three-second countdown, talk and move through the slides as usual. Pause stops the clock and the microphone, Retake starts the current slide again, and the bar shows the microphone level and the time on the slide and in total. Stop or Esc saves: each slide gets its narration, as a small speaker icon at the bottom right that is hidden in the show, and its timing, in one step you can undo. Without a microphone only timings are saved. Present > Clear removes timings or narration from the current slide or from all slides. Narration plays automatically in the show and in PowerPoint.
+
+**Captions**: in the show, click CC or press J and your speech appears on the slide and on the audience window; the More menu sets the position (bottom or top), the size and the language you speak. Captions need Chrome or Edge, a microphone and a network connection; elsewhere the button is off and says so.
+
 ## The PDF workbench
 
 File > Open PDF Workbench, Home > PDF workbench, or open or drop a .pdf. The workbench has its own title bar (Undo, Redo, Open, Print, Save, Close), a page and bookmark sidebar, the pages, a side panel for the current tab, and a status bar with the page number, zoom, Fit width, Fit page and Rotate view. Password-protected PDFs ask for their password. Changes build up as a working copy; Save writes the PDF (and offers to save before closing or opening another one).
 
 | Tab | What it does |
 | --- | --- |
-| View | Read the PDF; Select and Hand tools, Find in document, the document's properties (pages, title, author, version) |
+| View | Read the PDF; Select and Hand tools, Find in document, the document's properties (pages, title, author, version). Page display: Single page, Single page continuous, Two-page, Two-page continuous and Show cover page (also from the page button in the status bar); in the paged layouts Page Up and Page Down move a page or spread and scrolling past the edge turns the page. Reading turns the PDF into one readable column, page after page with headings and tables, and the text size buttons (or Mod with plus or minus) resize it; Esc goes back to the same page. Read aloud reads this page or to the end, highlights the sentence (and the word where the voice allows), and pauses, resumes and stops, with a voice and speed. Compare checks this PDF against an older or newer one (optionally pictures too): insertions show in green, changes in amber, deletions as red marks and picture changes in purple, the panel lists every difference with its before and after text, and nothing in either file changes |
 | Comment | Highlight, underline and strike through text; sticky notes, text boxes, freehand ink, rectangles, ellipses, lines and arrows in any colour and line width. Select a comment to reply to it or set its status (Accepted, Rejected, Completed); comments already in the PDF are listed with their replies. Apply to PDF writes them as real PDF annotations with their replies and status, or flattened into the page when Flatten into the page is on |
-| Fill & Sign | Fill the PDF's form fields and Apply to form (optionally flattened); add text; draw or type a signature in blue or black ink and place it; stamp today's date, a check, a cross or text |
+| Fill & Sign | Fill the PDF's form fields and Apply to form (optionally flattened); add text; draw or type a signature in blue or black ink and place it. Stamps (also on the Comment toolbar): twelve business stamps (Approved, Not Approved, Draft, Final, Confidential and the rest), dynamic stamps that carry your name and the date and time, sign-here tags, check and cross marks, date and text, and a stamp from a picture; click a stamp, click the page, drag to move or resize; they stay as stamp comments unless flattened |
+| Prepare form | Draw text, multi-line, check box, radio (consecutive radios join one group), dropdown, list box, date and signature fields by dragging a box or clicking; select a field to move or resize it and set its name, tooltip, default, options, date format, font size, alignment, required and read-only. Fields already in the PDF are listed with their names to rename or delete. Apply to PDF (or Save) writes real form fields that Fill & Sign and other readers can fill |
 | Edit | Header and footer: left, centre and right text for each, with Page, Pages, Date, File and Bates tokens, a live preview, font, size, colour, margins, a page range, odd or even pages and a starting number; Bates numbering with a prefix, start and digits. Crop pages by typed margins, a box drawn on the page, or Remove white margins, for this page, all pages or a range. Page numbers (position, format, start) and a text watermark (opacity) |
 | Organize | Rotate, delete and reorder pages, insert a blank page or pages from another PDF, extract the selected pages; Apply changes. Split into files by ranges such as `1-3, 4-6, 7-`; Merge PDFs |
 | Extract | From this page, all pages or a range: text (copy, .txt or .md), pictures (download, or add to the open deck) and tables (copy as CSV or download as .xlsx) |
-| Protect | Add a password with an optional owner password and permissions; remove a password; Find text to redact (words or a phrase, email addresses, phone numbers, card numbers, dates or a regular expression, with Match case and Whole words), tick the matches and mark or redact them; mark areas and Apply redactions (the content under them is removed and the page is re-rendered as a picture); edit or remove the title, author, subject and keywords |
-| Convert | PDF to deck: Pages as slides (each page a picture slide with its text in the notes) or Rebuild editable (formsld reads the text, tables and pictures and drafts real slides in your template); Compress at a chosen quality; export pages as PNG pictures at 72, 144, 216 or 300 dpi |
+| Protect | Add a password with an optional owner password and permissions; remove a password; Find text to redact (words or a phrase, email addresses, phone numbers, card numbers, dates or a regular expression, with Match case and Whole words), tick the matches and mark or redact them; mark areas and Apply redactions (the content under them is removed and the page is re-rendered as a picture); edit or remove the title, author, subject and keywords. Remove hidden information: Find hidden information counts metadata, JavaScript and actions, attachments, comments, form fields, hidden layers, links, bookmarks, thumbnails, private application data and hidden text; untick what to keep and Remove ticked (form fields are flattened so their values stay, hidden layers are dropped); Undo steps back until you save |
+| Convert | PDF to deck: Pages as slides (each page a picture slide with its text in the notes) or Rebuild editable (formsld reads the text, tables and pictures and drafts real slides in your template); Compress at a chosen quality; export pages as PNG pictures at 72, 144, 216 or 300 dpi; Save as Word (.docx) for a page range, with paragraphs, headings, pictures and tables as editable Word content and a page break after each page (multi-column pages flow into one column) |
+
+**Create PDF**: Create PDF from pictures or Combine files (from the Open menu, the empty workbench, or Home): add or drop pictures and PDFs, set the order by dragging or with the arrows, choose Fit to picture, A4 or Letter, margins and orientation, and Create PDF. The new PDF opens in the workbench; save it to keep it. Dropping pictures on the workbench starts the same dialog.
 
 ## Import, export and print
 
@@ -281,6 +305,8 @@ File > Open PDF Workbench, Home > PDF workbench, or open or drop a .pdf. The wor
   - PDF: one page per slide with searchable text and an outline of slide titles. Choose All, Current, Selected or Custom slides (`1-3, 5, 8-`), Standard or High quality, and whether to include hidden slides.
   - PNG or JPEG: the current slide or all slides at 1x, 2x or 3x; several slides arrive as a .zip.
   - formsld (.fsld): one file with every slide, picture and the template.
+  - Video (MP4 where the browser can record it, otherwise WebM; 720p or 1080p) and Animated GIF (480, 720 or 960 px wide): seconds per slide for slides without a timing, recorded timings and narration, animations as build steps and transitions as fades. A video records in real time, so keep the window open; Cancel stops it. Hidden slides are skipped.
+  - Outline as Text (.txt) or Rich Text (.rtf): each slide's title with its bullets indented by level, optionally with the speaker notes and hidden slides; the .rtf opens in Word's outline view.
   In the desktop app exports go to a path you choose (default the Exports folder); the browser downloads them.
 - **Print** (Mod+P): Full page slides, Notes pages, Outline, or Handouts with 2, 3 (with lines for notes), 4, 6 or 9 slides per page; A4 or Letter paper; colour or grayscale; include hidden slides; frame slides. Choose Save as PDF in the print window for a quick PDF; File > Export > PDF gives searchable text.
 

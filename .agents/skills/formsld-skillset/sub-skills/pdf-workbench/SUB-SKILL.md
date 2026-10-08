@@ -22,6 +22,8 @@ Read, edit and convert PDFs locally with permissive libraries only, never alteri
 | `routers/exports.py` | `compose`: window rasters plus text items to a searchable PDF (reportlab, invisible text render mode 3, outline per slide) |
 | `frontend/src/pdf/workbench.ts` | `openWorkbench`: document history (`{id, annots, label}` states), `commit`, `run` with delayed indicator, save and deliver, close guard |
 | `frontend/src/pdf/viewer.ts`, `annotate.ts`, `fill.ts`, `organize.ts`, `panels.ts`, `find.ts`, `api.ts` | pdf.js viewer and thumbnails, annotation tools, form fields and signature pad, page organizer, side panes (view, comment, fill, organize, extract, protect, convert), text search, `pdfApi` |
+| `frontend/src/pdf/reading.ts`, `form.ts`, `stamps.ts`, `compare.ts`, `create.ts` | reading mode and read aloud, Prepare form, the stamp palette, PDF compare, Create PDF |
+| `services/pdf/layout.py`, `word.py`, `forms.py`, `sanitize.py`, `create.py`, `compare.py`, `search.py` | reflow and reading order, PDF to Word, form field creation, hidden information, PDF from pictures, compare, find |
 
 ## Invariants
 

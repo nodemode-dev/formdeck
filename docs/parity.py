@@ -43,7 +43,7 @@ row(a, "Reset slide to its layout", 1, 0, 0, F, "`commands.ts reset-slide`")
 
 a = "Masters and themes"
 row(a, "Theme colours and fonts", 1, 1, 0, F, "`inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme`")
-row(a, "Edit slide masters and layouts", 1, 1, 0, F, "View > Slide Master (`editor/master-view.ts`, `engine/holders.ts`, `ops.ts setHolderResolver`): edit master and layout elements, placeholders, level styles, backgrounds; insert, duplicate, rename, delete layouts; slides update live")
+row(a, "Edit slide masters and layouts", 1, 1, 0, F, "View > Slide Master (`editor/master-view.ts`, `engine/holders.ts`, `ops.ts setHolderResolver`): edit master and layout elements, placeholders, level styles, backgrounds; insert, duplicate, rename, delete and drag to reorder layouts (`filmstrip.ts dragLayout`); slides update live")
 row(a, "Several masters in one deck", 1, 1, 0, P, "`model.ts Deck.masters` is a list, but `services/pptx/reader.py` keeps the first master's theme and warns")
 
 a = "Text"
@@ -62,12 +62,12 @@ row(a, "Equations", 1, 0, 0, N, "nothing found")
 
 a = "Shapes and drawing"
 row(a, "Preset shapes gallery", 1, 1, 0, F, "`frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop`")
-row(a, "Lines, arrows and connectors", 1, 1, 0, P, "`commands.ts insert-line, insert-arrow`; connectors do not glue to shapes")
+row(a, "Lines, arrows and connectors", 1, 1, 0, F, "Straight, elbow and curved connectors glued to connection sites and rerouted in the same step (`engine/geometry/connectors.ts routeConnector`, `editor/connectors.ts glueOps`); `p:cxnSp` with `a:stCxn`, `a:endCxn` (`pptx/write_elements.py _connector`, `read_elements.py read_connector`)")
 row(a, "Shape fill and outline colour", 1, 1, 0, F, "`commands.ts colorOps`, `frontend/src/ui/colorpop.ts pickColor`")
 row(a, "Shape effects: shadow, glow, soft edge, reflection", 1, 1, 0, F, "`inspector.ts` Effects: shadow presets, glow, reflection (`slide.ts boxStyle`), soft edges for shapes and pictures; round-tripped in `pptx/write_style.py`")
-row(a, "Freeform and scribble drawing", 1, 1, 0, N, "custom `path` exists in the model but no drawing tool")
-row(a, "Edit points and merge shapes", 1, 0, 0, N, "nothing found")
-row(a, "Smart guides and snapping", 1, 1, 0, F, "`editor/stage.ts snap` and guides; Alt-drag skips snapping")
+row(a, "Freeform and scribble drawing", 1, 1, 0, F, "`editor/draw-tool.ts DrawTool` (freeform, scribble), `engine/geometry/path.ts fitCurve`; `pathSize` keeps outlines through resizing; `pptx/geom.py svg_to_cust_geom`")
+row(a, "Edit points and merge shapes", 1, 0, 0, P, "`editor/points-edit.ts PointsEdit` (move, add, delete, smooth, straight, corner, open and close path); no merge shapes")
+row(a, "Smart guides and snapping", 1, 1, 0, F, "`editor/stage.ts snap`: smart guides, guides and the grid; Alt-drag skips snapping")
 
 a = "Pictures and media"
 row(a, "Insert pictures by file, drop or paste", 1, 1, 0, F, "`editor/editor.ts pickImage, insertFiles`, `app.ts` paste and drop")
@@ -81,8 +81,8 @@ row(a, "Alt text", 1, 1, 0, F, "`dialogs-insert.ts AltDlg`, `inspector.ts` Alt t
 
 a = "Tables"
 row(a, "Insert a table with a style", 1, 1, 0, F, "`dialogs-insert.ts TableDlg` (size grid, six styles, header row, banded rows)")
-row(a, "Type in table cells", 1, 1, 0, F, "`editor/stage.ts beginCell, stepCell, commitCell`: double-click, Enter or F2, Tab between cells, rows grow to fit")
-row(a, "Merge cells, add and remove rows and columns", 1, 1, 0, F, "`editor/table-edit.ts registerTableCommands` (rows, columns, merge, split, distribute, styles), round-tripped in `pptx/read_table.py, write_table.py`")
+row(a, "Type in table cells", 1, 1, 0, F, "`editor/stage.ts beginCell, stepCell, commitCell`: double-click, Enter or F2, Tab between cells; rows grow to fit and shrink back (`table-edit.ts fitFrameOps`, `h` is a minimum)")
+row(a, "Merge cells, add and remove rows and columns", 1, 1, 0, F, "`editor/table-edit.ts registerTableCommands` (rows, columns, merge, split, distribute, styles), border drag (`editor/table-drag.ts TableDrag`), cell range fill, borders, alignment and margins (`editor/table-panel.ts TablePanel`), round-tripped in `pptx/read_table.py, write_table.py`")
 
 a = "Charts"
 row(a, "Native charts: column, bar, line, area, pie, doughnut, scatter, radar, combo", 1, 1, 0, F, "`frontend/src/render/chart.ts chartSvg`, `dialogs-insert.ts ChartDlg`")
@@ -101,12 +101,12 @@ row(a, "Align and distribute", 1, 1, 0, F, "`actions.ts alignOps, distributeOps`
 row(a, "Group and ungroup", 1, 1, 0, F, "`actions.ts groupOps, ungroupOps`")
 row(a, "Rotate and flip", 1, 1, 0, F, "rotate handle and Rotation field (`stage.ts`, `inspector.ts`); `commands.ts flip-h, flip-v, rotate-90` in the Arrange menu")
 row(a, "Lock objects", 1, 0, 0, F, "`commands.ts lock`")
-row(a, "Selection pane", 1, 0, 0, N, "nothing found")
-row(a, "Rulers and gridlines", 1, 1, 0, N, "icons `ruler`, `grid` exist but no command uses them")
+row(a, "Selection pane", 1, 0, 0, F, "`editor/selection-pane.ts SelectionPane` (rename, hide, lock, drag to reorder, Show all, Hide all, groups)")
+row(a, "Rulers and gridlines", 1, 1, 0, F, "`editor/rulers.ts StageAids, gridGuidesDialog`: rulers, gridlines, guides dragged from the rulers; guides in `deck.guides`, round-tripped by `pptx/guides.py`")
 
 a = "Transitions"
 row(a, "Slide transitions (fade, push, wipe, split, cover, uncover, zoom, reveal, flip, cube)", 1, 1, 0, F, "`frontend/src/present/effects.ts transitionPlan`, `inspector.ts` Transition, `pptx/write_slide.py insert_transition`")
-row(a, "Morph", 1, 0, 0, F, "`present/effects.ts morph`")
+row(a, "Morph", 1, 0, 0, F, "`present/effects.ts morph`, starting from where a motion path left an element (`present/steps.ts displaced`)")
 row(a, "Duration, apply to all, advance after a time", 1, 1, 0, F, "`inspector.ts` Duration and Apply to all; `Transition.advanceAfter` from rehearsal")
 
 a = "Animations"
@@ -121,15 +121,15 @@ row(a, "Presenter view: notes, next slide, timer, audience window", 1, 1, 0, F, 
 row(a, "Pen, eraser and laser pointer", 1, 1, 0, F, "`show.ts` modes pen, eraser, laser")
 row(a, "Black or white screen, all-slides grid", 1, 1, 0, F, "`show.ts setBlank, toggleGrid`")
 row(a, "Rehearse timings and automatic advance", 1, 1, 0, F, "`show.ts toggleRehearse, keepTimings, toggleAuto`")
-row(a, "Record the show with narration", 1, 1, 0, N, "nothing found")
-row(a, "Live captions and subtitles", 1, 1, 0, N, "nothing found")
-row(a, "Loop until Esc and custom shows", 1, 1, 0, N, "nothing found")
+row(a, "Record the show with narration", 1, 1, 0, F, "`present/recorder.ts Recorder` (per-slide narration, timings, retake), `pptx/write_media.py write_audio`, `write_anim.py _media_entries` (autoplay audio)")
+row(a, "Live captions and subtitles", 1, 1, 0, P, "`present/captions.ts Captions` (Web Speech, Chrome and Edge only), `show.ts toggleCaptions` synced to the audience window; no translation")
+row(a, "Loop until Esc and custom shows", 1, 1, 0, F, "`present/show-dialogs.ts SetupShowDialog, CustomShowsDialog`, `show.ts playlist`, `pptx/show_props.py write_show, read_show`")
 row(a, "Present to a remote audience with Q&A", 1, 1, 0, N, "nothing found")
 
 a = "Review and comments"
 row(a, "Comments: add, list, resolve", 1, 1, 1, F, "`inspector.ts` Review tab: add, reply, resolve; `dialogs-insert.ts addComment`; agents through `mcp.py comments`; no @mentions")
 row(a, "Review status per slide (draft, review, changes, approved)", 0, 0, 0, F, "`commands.ts reviewStatus`, `inspector.ts` Review tab, `mcp.py review`")
-row(a, "Compare two versions", 1, 0, 1, N, "nothing found")
+row(a, "Compare two versions", 1, 0, 1, P, "two PDFs page by page with text and picture differences (`pdf/compare.ts Comparer`, `services/pdf/compare.py compare`); decks are not compared yet")
 row(a, "Activity: who changed what", 1, 1, 1, P, "`inspector.ts addActivity` lists agent steps; labelled undo history in `store.py`")
 
 a = "Collaboration and sharing"
@@ -140,7 +140,7 @@ row(a, "Publish to the web or embed", 1, 1, 0, N, "nothing found")
 
 a = "Accessibility"
 row(a, "Accessibility checker", 1, 0, 1, F, "`backend/app/services/lint.py` checks alt text, contrast, tiny text and overflow measured in the window; Review > Check Deck (`frontend/src/ui/check-dialog.ts`, `decks.py check`) and agents (`lint_deck`)")
-row(a, "Reading order", 1, 0, 1, N, "nothing found")
+row(a, "Reading order", 1, 0, 1, P, "`editor/selection-pane.ts` Reading order view (missing alt text flagged, drag reorders the shape tree); exported PDFs are untagged")
 row(a, "Screen reader labels in the app", 1, 1, 1, P, "ARIA roles and labels on dialogs, lists, menus and the show (`show.ts` aria-roledescription); not audited")
 row(a, "Tagged accessible PDF export", 1, 1, 1, N, "`routers/exports.py compose` writes an image PDF with an invisible text layer, untagged")
 
@@ -149,10 +149,10 @@ row(a, "Open .pptx, .potx, .ppsx, .pptm", 1, 1, 1, F, "`backend/app/services/ppt
 row(a, "Save .pptx and .potx", 1, 1, 0, F, "`backend/app/services/pptx/writer.py write_pptx`")
 row(a, "PDF export with searchable text and a slide outline", 1, 1, 1, F, "`frontend/src/automation/agent-bridge.ts exportRaster`, `routers/exports.py compose`")
 row(a, "Slides as PNG or JPEG", 1, 1, 1, F, "`frontend/src/render/raster.ts rasterSlide`, `ExportDialog`")
-row(a, "Export video or animated GIF", 1, 0, 0, N, "nothing found")
+row(a, "Export video or animated GIF", 1, 0, 0, F, "`present/video-export.ts renderFrames, recordVideo` (MP4 or WebM with narration, builds as steps, fades), `routers/exports.py gif_bytes`")
 row(a, "OpenDocument .odp", 1, 1, 0, N, "nothing found")
 row(a, "Embed fonts in .pptx", 1, 0, 0, N, "README Known gaps; `reader.py` warns embedded fonts are not imported")
-row(a, "Export the outline as text", 1, 1, 0, P, "Print > Outline (`dialogs-file.ts renderPrint`); no .txt or .rtf export")
+row(a, "Export the outline as text", 1, 1, 0, F, "File > Export > Outline as .txt or .rtf with levels and notes (`routers/exports.py outline_bytes`), MCP `export_deck` txt and rtf")
 
 a = "Print"
 row(a, "Print slides, notes pages, outline and handouts (2, 3, 4, 6, 9)", 1, 1, 1, F, "`frontend/src/ui/dialogs-file.ts PrintDialog, renderPrint`")
@@ -163,14 +163,14 @@ row(a, "View with thumbnails, zoom, fit width or page, rotate view", 0, 0, 1, F,
 row(a, "Search text", 0, 0, 1, F, "`frontend/src/pdf/find.ts`")
 row(a, "Bookmarks and links", 0, 0, 1, F, "`workbench.ts` Bookmarks side panel, `viewer.ts` link layer")
 row(a, "Open password-protected PDFs", 0, 0, 1, F, "`workbench.ts askPassword`, `services/pdf/core.py reader(passwords)`")
-row(a, "Read aloud, reflow, two-page layout", 0, 0, 1, N, "nothing found")
+row(a, "Read aloud, reflow, two-page layout", 0, 0, 1, F, "`viewer.ts setLayout` (single, continuous, two-page, two-page continuous, cover), `reading.ts Reflow` over `layout.py reflow`, `reading.ts Speaker` (speechSynthesis with sentence and word highlight)")
 row(a, "Summarize or ask questions of a PDF", 0, 0, 1, P, "no built-in model; an outside agent reads it through `mcp.py pdf` (text, tables)")
 
 a = "PDF annotation"
 row(a, "Highlight, underline, strike through text", 0, 0, 1, F, "`frontend/src/pdf/annotate.ts`, `backend/app/services/pdf/annot.py annotate`")
 row(a, "Sticky notes and text boxes", 0, 0, 1, F, "`annotate.ts` note and freetext tools")
 row(a, "Drawing: ink, rectangle, ellipse, line, arrow", 0, 0, 1, F, "`annotate.ts` tools, `annot.py draw`")
-row(a, "Stamps", 0, 0, 1, P, "date, check, cross and text stamps in Fill & Sign (`panels.ts`); no stamp library")
+row(a, "Stamps", 0, 0, 1, F, "`pdf/stamps.ts STAMPS` (standard, dynamic with name and date, sign-here, marks, picture stamps), `annot.py _stamp` Stamp annotations with appearance streams")
 row(a, "Comment list with replies and status", 0, 0, 1, F, "Comment panel threads with replies and status (`panels.ts syncAnnots`), written as /IRT reply and /State annotations (`annot.py _thread`), read by `GET /pdf/{id}/comments`")
 row(a, "Flatten annotations into the page", 0, 0, 1, F, "`panels.ts` Flatten into the page, `annot.py annotate(flatten)`")
 
@@ -180,7 +180,7 @@ row(a, "Flatten a filled form", 0, 0, 1, F, "`edit.py fill_fields(flatten)`")
 row(a, "Place a drawn or typed signature", 0, 0, 1, F, "`panels.ts` signature pad (Draw, Type), `placeSignature`")
 row(a, "Certificate-based digital signatures", 0, 0, 1, N, "nothing found")
 row(a, "Request signatures from others", 0, 0, 1, N, "nothing found")
-row(a, "Create form fields", 0, 0, 1, N, "nothing found")
+row(a, "Create form fields", 0, 0, 1, F, "Prepare form tab (`pdf/form.ts FormBuilder`: text, multi-line, check box, radio groups, dropdown, list box, date, signature; rename, delete), `forms.py prepare` writes AcroForm fields with appearance streams")
 
 a = "PDF organize"
 row(a, "Reorder, rotate, delete, insert blank and insert pages from a PDF", 0, 0, 1, F, "`frontend/src/pdf/organize.ts Organizer`, `services/pdf/edit.py organize`")
@@ -195,7 +195,7 @@ row(a, "Password protection with permissions", 0, 0, 1, F, "`edit.py protect`, `
 row(a, "Remove protection", 0, 0, 1, F, "`edit.py unlock`")
 row(a, "Redact marked areas", 0, 0, 1, P, "`edit.py redact` removes the content by re-rendering each redacted page as a picture, so the rest of that page loses its text")
 row(a, "Find and redact text or patterns", 0, 0, 1, F, "Protect > Find text to redact: words, regex, email, phone, card and date presets (`search.py find`), redacted through `edit.py redact`; MCP `pdf redact`")
-row(a, "Remove metadata and hidden information", 0, 0, 1, P, "`edit.py metadata(strip)`; scripts, attachments and hidden layers are not cleaned")
+row(a, "Remove metadata and hidden information", 0, 0, 1, F, "Protect > Remove hidden information (`sanitize.py scan, sanitize`: metadata, JavaScript, attachments, comments, flattened fields, hidden layers, links, bookmarks, thumbnails, private data, hidden text)")
 
 a = "PDF convert"
 row(a, "PDF to an editable presentation", 0, 0, 1, F, "`panels.ts` Rebuild editable (intake draft) and Pages as slides (`core.py to_deck`)")
@@ -204,10 +204,10 @@ row(a, "Extract pictures", 0, 0, 1, F, "`core.py extract_images`")
 row(a, "Tables to Excel", 0, 0, 1, P, "`core.py extract_tables, tables_xlsx` (detected tables only, not page layout)")
 row(a, "Pages to pictures", 0, 0, 1, F, "`core.py pages_zip`")
 row(a, "Compress", 0, 0, 1, F, "`edit.py compress`")
-row(a, "PDF to Word", 0, 0, 1, N, "nothing found")
+row(a, "PDF to Word", 0, 0, 1, P, "Convert > Word (`word.py to_docx`: headings, styled paragraphs, pictures, tables, page breaks), MCP `pdf to_docx`; multi-column pages flow into one column")
 row(a, "OCR for scanned pages", 0, 0, 1, N, "nothing found")
 row(a, "Edit PDF text and pictures in place", 0, 0, 1, N, "nothing found")
-row(a, "Create a PDF from pictures", 0, 0, 1, P, "`routers/pdf.py /pdf/images-deck` makes a deck of pictures, then Export > PDF")
+row(a, "Create a PDF from pictures", 0, 0, 1, F, "`create.py from_files` (one page per picture, fit, A4 or Letter, margins, orientation; PDFs combined in order), `pdf/create.ts` from Home and the Open menu")
 
 a = "Automation and agents"
 row(a, "Built-in AI assistant", 1, 1, 1, P, "no built-in model; `autodraft.py` drafts heuristically and outside agents do the rest")

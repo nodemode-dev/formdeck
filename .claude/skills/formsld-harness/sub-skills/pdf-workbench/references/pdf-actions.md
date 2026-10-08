@@ -1,6 +1,6 @@
 # pdf actions
 
-The `pdf` MCP tool, action by action, as checked against formsld 0.4.0. All paths are absolute. Any failure inside an action answers `pdf [action] failed: [reason]` with isError. Locked (password protected) PDFs fail every action; the tool has no password input.
+The `pdf` MCP tool, action by action, as checked against formsld 0.5.0. All paths are absolute. Any failure inside an action answers `pdf [action] failed: [reason]` with isError. Locked (password protected) PDFs fail every action; the tool has no password input.
 
 ## Contents
 
@@ -16,6 +16,7 @@ The `pdf` MCP tool, action by action, as checked against formsld 0.4.0. All path
 - crop
 - find
 - redact
+- to_docx
 
 ## Page syntax
 
@@ -107,3 +108,9 @@ Sets each page's CropBox (the MediaBox stays), so the hidden area remains in the
 - With `query` or `preset` (and the find options), every match is redacted; with no match nothing is written and the answer says so.
 - With `areas`, those boxes (points from the page's top left) are redacted.
 - Each page with something to redact is re-rendered at 200 dpi as a picture with black boxes, so nothing under a box survives and the rest of that page loses its selectable text; comments and form fields on those pages are removed. Other pages are untouched. Structured `{path, pages, areas, matches?}`.
+
+## to_docx
+
+`pdf {action: "to_docx", path, pages: "1-5"}`
+
+Writes a Word document: paragraphs in reading order (multi-column pages flow into one column) with their sizes, bold and italic, headings detected by size, pictures placed inline near where they sit, detected tables as Word tables, a page break after each page and the page margins. Without `out` the file lands beside the input as `[stem].docx`; `out` may be a file or an existing folder. Scanned pages have no text and give only their pictures. Returns `Wrote /abs/file.docx (N pages, H headings, P paragraphs, T tables, I pictures).` and structured `{path, pages, headings, paragraphs, tables, pictures}`.

@@ -16,7 +16,8 @@ Draw any deck identically on the stage, in thumbnails, in the show, in print and
 | `render/slide.ts` | `SlideView(getDeck, slideId, mode)`: `.fs-slide` with `.fs-slide-inner` scaled by one transform; layers `bg`, `master`, `layout`, `content`; `setScale`, `update(touched)`, `fitAll`, `refit`, `fit`, `nodeFor`; `elementHtml`, `decorations`, prompts for empty placeholders in edit mode; `mediaUrl` |
 | `render/text.ts` | `textHtml` (paragraph and run CSS from the level chain, bullets and `autoNumber`, prompts), `fitText` (binary search of `--k`, floor to 1/40), `readParas` (contenteditable back to paras), `paraLevel` |
 | `render/paint.ts` | `cssBackground`, `svgFill` (solid, gradient, image, pattern), `svgStroke` (dash, caps, arrowheads), `cssFilter` (shadow, glow, soft edge), `cssColor` |
-| `engine/geometry/presets.ts` | 150 Office preset geometries with adjust handles (`presetGeometry`, `handleValue`, `isLineGeom`, `PRESET_GROUPS`) |
+| `engine/geometry/presets.ts`, `ooxml-presets.json` | an interpreter for the 187 ECMA-376 preset definitions: guide formulas, paths, text rectangle, connection sites, solved adjust handles (`presetGeometry`, `handleAdjust`, `handleValue`, `isLineGeom`, `PRESET_GROUPS` with PowerPoint's gallery groups plus More Shapes) |
+| `engine/geometry/path.ts`, `connectors.ts` | path parsing, scaling and curve fitting for freeforms; connector routing and connection sites |
 | `render/chart.ts` | `chartSvg(chart, w, h, theme)` for column, bar, line, area, pie, doughnut, scatter, radar, combo; `niceTicks`, `formatValue`, legends |
 | `render/table.ts` | `tableHtml(table, theme, textCtx)` with spans, borders, style bands |
 | `render/fonts.ts` | `FAMILIES` (lazy @fontsource imports), `BUNDLED_FONTS`, `ensureFont(s)`, `fontsOfDeck`, `systemFontsAvailable` |
