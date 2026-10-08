@@ -2,7 +2,7 @@
 
 Presentations, pitch decks and PDFs in the form family. An open alternative to Google Slides, PowerPoint and the Acrobat reader tools, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live, while you watch, then hand it to you for review.
 
-Version 0.2.0 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.2.1 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
