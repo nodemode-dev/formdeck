@@ -130,3 +130,23 @@ Replies are Text annotations with `/IRT` pointing at the parent and the reply fl
 ## 22. The library says whether a thumbnail exists · _v0.4.0 (services/store.py library)
 
 Each library entry gets `thumb: true` only when `thumb.webp` is on disk, computed at list time rather than kept in info.json, so a thumbnail written later by the window shows without rewriting the summary.
+
+## 23. Table borders and margins in PowerPoint files · _v0.5.0 (services/pptx/write_table.py _origins, _slot_borders; read_table.py)
+
+Each shared edge is written as one resolved line on both cells (and on covered merge cells) so PowerPoint draws exactly what the editor draws; `lnL`, `lnR`, `lnT`, `lnB` precede the fill in `a:tcPr`, as the schema orders them, and `marL`, `marT`, `marR`, `marB` and `anchor` are attributes. Grid columns that add up to less than the frame are scaled up to it, matching how the editor stretches them. A round trip may therefore add `borders` to `merged: true` cells; the renderer ignores those.
+
+## 24. Connectors, freeforms and guides in PowerPoint files · _v0.5.0 (services/pptx/write_elements.py _connector, read_elements.py read_connector, geom.py, guides.py)
+
+`a:stCxn` and `a:endCxn` need the target's shape id, known only once the target is written, so `ElementWriter` keeps pending links and fills them in after each element; a link to a target that never appears is dropped. The reader resolves them through `ctx.shape_map` and `ctx.cxn_links` per slide part. Site indices follow the preset's site list in PowerPoint's order, which now comes straight from the ECMA definitions. Freeforms carry `pathSize` as the `a:path` box. Guides are written as `p15:sldGuideLst` in presentation.xml and read back.
+
+## 25. Show settings, custom shows and narration in PowerPoint files · _v0.5.0 (services/pptx/show_props.py, write_media.py; write_anim.py _media_entries)
+
+`p:showPr` is always written, with `showNarration="1"` unless narration is off; on read, the schema default (a missing `showNarration` means off) applies only when `showPr` exists. `custShowLst` goes before `photoAlbum` and `defaultTextStyle`. Narration is a `p:pic` with an `a:audioFile` link, a `p14:media` embed and a generated speaker picture; autoplay is a `playFrom` media call in the first automatic group, kept out of the after-previous offset so later effects do not wait for the audio; hide in show is `showWhenStopped="0"`.
+
+## 26. Outline and GIF export · _v0.5.0 (routers/exports.py outline_bytes, gif_bytes, gif_from_window)
+
+The outline is produced by the engine so agents get it through `export_deck` as txt or rtf (rtf with outline levels that Word shows in outline view). The GIF uses a palette per frame (exact when a frame has 256 colours or fewer, otherwise Floyd-Steinberg) and blends cross-fades in the engine, so the window uploads only key frames; from MCP it asks the window's `export_raster` for PNGs and uses the slide timings.
+
+## 27. PDF reflow, Word, forms, sanitising and compare · _v0.5.0 (services/pdf/layout.py, word.py, forms.py, sanitize.py, create.py, compare.py)
+
+Reading order is an XY-cut that prefers vertical gutters and merges bands that share one, so aligned paragraph gaps do not interleave columns; tables and pictures take part in the cut. Words use pdfplumber with `x_tolerance_ratio=0.15` because the 3 pt default glues tight words. Form fields get upright appearance streams with `/Matrix` and `/MK /R` for rotated pages, `NeedAppearances`, Acrobat's AFDate actions for date fields, and radio groups as a parent with widget kids. Sanitising flattens widgets by painting their normal appearance, drops hidden layers by filtering `/OC` marked content, drops text drawn in render mode 3 (tracking q/Q because the mode persists across BT/ET), and prunes orphans so removed data leaves the file. Compare pairs pages by exact text first, then aligns the rest by word-set similarity, and computes rectangles only for changed spans.
