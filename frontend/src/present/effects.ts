@@ -259,7 +259,7 @@ function sameContent(a: SlideElement, b: SlideElement): boolean {
 
 const clampScale = (v: number): number => Math.min(100, Math.max(0.01, v));
 
-export function morph(from: SlideView, to: SlideView, deck: Deck, a: Slide, b: Slide, dur: number): Animation[] | null {
+export function morph(from: SlideView, to: SlideView, deck: Deck, a: Slide, b: Slide, dur: number, moved?: Map<string, [number, number]>): Animation[] | null {
   const phKey = (e: SlideElement): string => (e.ph ? `${e.ph.type}:${e.ph.idx ?? 0}` : '');
   const byName = new Map<string, SlideElement>(), byPh = new Map<string, SlideElement>(), bySlot = new Map<string, SlideElement>();
   for (const e of a.elements) {
@@ -287,12 +287,13 @@ export function morph(from: SlideView, to: SlideView, deck: Deck, a: Slide, b: S
     const on = from.nodeFor(oe.id), nn = to.nodeFor(ne.id);
     if (!nn) continue;
     const f0 = frameOf(chain(deck, a, oe), deck), f1 = frameOf(chain(deck, b, ne), deck);
-    const dx = f0.x + f0.w / 2 - (f1.x + f1.w / 2), dy = f0.y + f0.h / 2 - (f1.y + f1.h / 2);
+    const [ox, oy] = moved?.get(oe.id) ?? [0, 0];
+    const dx = f0.x + ox + f0.w / 2 - (f1.x + f1.w / 2), dy = f0.y + oy + f0.h / 2 - (f1.y + f1.h / 2);
     const sx = clampScale(f1.w ? f0.w / f1.w : 1), sy = clampScale(f1.h ? f0.h / f1.h : 1), dr = (oe.rot ?? 0) - (ne.rot ?? 0);
     const o0 = oe.opacity ?? 1, o1 = ne.opacity ?? 1;
     const same = sameContent(oe, ne);
     out.push(nn.animate([{ translate: px(dx, dy), scale: `${sx} ${sy}`, rotate: `${dr}deg`, opacity: same ? o0 : 0 }, { translate: '0px 0px', scale: '1 1', rotate: '0deg', opacity: o1 }], opt));
-    if (on) out.push(on.animate(same ? [{ opacity: 0 }, { opacity: 0 }] : [{ translate: '0px 0px', scale: '1 1', rotate: '0deg', opacity: o0 }, { translate: px(-dx, -dy), scale: `${1 / sx} ${1 / sy}`, rotate: `${-dr}deg`, opacity: 0 }], opt));
+    if (on) out.push(on.animate(same ? [{ opacity: 0 }, { opacity: 0 }] : [{ translate: px(ox, oy), scale: '1 1', rotate: '0deg', opacity: o0 }, { translate: px(ox - dx, oy - dy), scale: `${1 / sx} ${1 / sy}`, rotate: `${-dr}deg`, opacity: 0 }], opt));
   }
   return out;
 }

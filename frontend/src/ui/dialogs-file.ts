@@ -735,7 +735,7 @@ export async function saveDialog(ed: Editor, saveAs: boolean): Promise<void> {
   }
 }
 
-type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fsld';
+type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fsld' | 'video' | 'gif' | 'txt' | 'rtf';
 const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }> = {
   pptx: { label: 'PowerPoint', ext: 'pptx', sub: 'Editable slides for PowerPoint, Keynote and Google Slides.' },
   pdf: { label: 'PDF', ext: 'pdf', sub: 'One page per slide with searchable text and an outline of slide titles.' },
@@ -743,8 +743,32 @@ const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }>
   jpeg: { label: 'JPEG', ext: 'jpg', sub: 'Smaller pictures of your slides. Several slides arrive together in a .zip.' },
   potx: { label: 'Template', ext: 'potx', sub: 'A PowerPoint template with this deck’s masters, layouts, colours and fonts.' },
   fsld: { label: 'formsld', ext: 'fsld', sub: 'One file with every slide, picture and the template, for formsld on any computer.' },
+  video: { label: 'Video', ext: 'mp4', sub: 'A movie of the show with its timings, narration, builds and fades. It records in real time.' },
+  gif: { label: 'GIF', ext: 'gif', sub: 'A looping animated picture of your slides for chat, email and web pages.' },
+  txt: { label: 'Outline', ext: 'txt', sub: 'Slide titles and bullet points as plain text, indented by level.' },
+  rtf: { label: 'Rich text', ext: 'rtf', sub: 'Slide titles and bullets with outline levels, for Word and other word processors.' },
 };
 const isRaster = (f: ExportFormat): f is 'pdf' | 'png' | 'jpeg' => f === 'pdf' || f === 'png' || f === 'jpeg';
+const isMotion = (f: ExportFormat): f is 'video' | 'gif' => f === 'video' || f === 'gif';
+const isOutline = (f: ExportFormat): f is 'txt' | 'rtf' => f === 'txt' || f === 'rtf';
+
+function saveBlob(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.hidden = true;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) { let d = res.statusText; try { const j = await res.json() as { detail?: unknown }; if (j.detail) d = String(j.detail); } catch { void 0; } throw new Error(d || `the engine answered ${res.status}`); }
+  return await res.json() as T;
+}
 
 function parseRange(text: string, n: number): number[] | null {
   const parts = text.replace(/\s*-\s*/g, '-').split(/[,;\s]+/).filter(Boolean);
@@ -773,9 +797,15 @@ class ExportDialog extends Dialog {
   private scale = 2;
   private touched = false;
   private running = false;
+  private res = 720;
+  private gifW = 720;
+  private abort: AbortController | null = null;
+  private readonly secs: HTMLInputElement;
+  private readonly motionNote: HTMLElement;
+  private readonly bar: HTMLElement;
   private readonly formats: HTMLElement;
   private readonly sub: HTMLElement;
-  private readonly groups: Record<'office' | 'fsld' | 'pdf' | 'raster', HTMLElement>;
+  private readonly groups: Record<'office' | 'fsld' | 'pdf' | 'raster' | 'motion' | 'outline', HTMLElement>;
   private readonly custom: HTMLInputElement;
   private readonly quality: HTMLSelectElement;
   private readonly hidden: HTMLInputElement;
@@ -805,9 +835,25 @@ class ExportDialog extends Dialog {
 <div class="fs-field"><span>Size</span><div class="fs-seg is-quiet" data-seg="scale"><button type="button" data-v="1">1x</button><button type="button" data-v="2">2x</button><button type="button" data-v="3">3x</button></div></div>
 <div class="fs-field"><span></span><span class="fs-note fs-dlg-px"></span></div>
 </div>`);
+    const motion = el(`<div class="fs-dlg-stack">
+<div class="fs-field fs-dlg-res"><span>Resolution</span><div class="fs-seg is-quiet" data-seg="res"><button type="button" data-v="720">720p</button><button type="button" data-v="1080">1080p</button></div></div>
+<div class="fs-field fs-dlg-gifw"><span>Width</span><div class="fs-seg is-quiet" data-seg="gifw"><button type="button" data-v="480">480 px</button><button type="button" data-v="720">720 px</button><button type="button" data-v="960">960 px</button></div></div>
+<label class="fs-field"><span>Per slide</span><span class="fs-dlg-secs"><input class="fs-input" type="number" min="0.5" max="600" step="0.5" aria-label="Seconds per slide"><span class="fs-note">seconds, when a slide has no timing</span></span></label>
+<div class="fs-field is-top"><span></span><div class="fs-dlg-checks fs-dlg-col"><label class="fs-check"><input type="checkbox" data-f="timings" checked><span>Use recorded timings and narration</span></label><label class="fs-check"><input type="checkbox" data-f="builds" checked><span>Include animations as build steps</span></label><label class="fs-check"><input type="checkbox" data-f="fades" checked><span>Show transitions as fades</span></label></div></div>
+<div class="fs-field"><span></span><span class="fs-note fs-dlg-motion-note"></span></div>
+<div class="fs-field"><span></span><span class="fs-dlg-progress" aria-hidden="true"><span class="fs-dlg-progress-fill"></span></span></div>
+</div>`);
+    const outline = el(`<div class="fs-dlg-stack"><div class="fs-field is-top"><span></span><div class="fs-dlg-checks fs-dlg-col"><label class="fs-check"><input type="checkbox" data-f="notes"><span>Include speaker notes</span></label><label class="fs-check"><input type="checkbox" data-f="ohidden"><span>Include hidden slides</span></label></div></div></div>`);
+    this.secs = q<HTMLInputElement>(motion, '.fs-dlg-secs input');
+    this.motionNote = q(motion, '.fs-dlg-motion-note');
+    this.bar = q(motion, '.fs-dlg-progress');
+    segOn(q(motion, '[data-seg="res"]'), (v) => { this.res = Number(v) || 720; this.sync(); });
+    segOn(q(motion, '[data-seg="gifw"]'), (v) => { this.gifW = Number(v) || 720; this.sync(); });
+    this.secs.addEventListener('input', () => this.sync());
+    for (const c of Array.from(motion.querySelectorAll('input[type="checkbox"]'))) c.addEventListener('change', () => this.sync());
     this.pathRow = el('<label class="fs-field fs-dlg-path"><span>Save to</span><input class="fs-input" type="text" spellcheck="false" aria-label="File path"></label>');
-    this.groups = { office, fsld, pdf, raster };
-    this.body.append(this.formats, this.sub, office, fsld, pdf, raster, this.pathRow);
+    this.groups = { office, fsld, pdf, raster, motion, outline };
+    this.body.append(this.formats, this.sub, office, fsld, pdf, raster, motion, outline, this.pathRow);
     this.custom = q<HTMLInputElement>(pdf, '.fs-dlg-custom input');
     this.quality = q<HTMLSelectElement>(pdf, '.fs-dlg-quality');
     this.hidden = q<HTMLInputElement>(pdf, '[data-f="hidden"]');
@@ -815,8 +861,9 @@ class ExportDialog extends Dialog {
     this.fonts = q(office, '.fs-dlg-fonts');
     this.path = q<HTMLInputElement>(this.pathRow, 'input');
     this.foot.appendChild(this.status.node);
-    this.button('Cancel', 'ghost', () => this.close());
+    this.button('Cancel', 'ghost', () => { if (this.abort) this.abort.abort(); else this.close(); });
     this.go = this.button('Export', 'primary', () => void this.run());
+    this.onClose = () => this.abort?.abort();
     segOn(this.formats, (v) => { this.fmt = v as ExportFormat; if (!this.running) this.status.reset(); this.sync(); });
     segOn(q(pdf, '[data-seg="range"]'), (v) => { this.range = v; this.sync(); if (v === 'custom') this.custom.focus(); });
     segOn(q(raster, '[data-seg="which"]'), (v) => { this.which = v; this.sync(); });
@@ -838,6 +885,7 @@ class ExportDialog extends Dialog {
     const { major, minor } = deck.theme.fonts;
     setText(this.fonts, major === minor ? major : `${major} and ${minor}`);
     this.path.value = '';
+    if (!this.secs.value) this.secs.value = this.fmt === 'gif' ? '3' : '5';
     if (isTauri()) void exportPath(deck.title, this.ext()).then((p) => { if (this.ed === ed && !this.touched) this.path.value = withExt(p, this.ext()); });
     this.sync();
     this.open(this.go);
@@ -846,7 +894,34 @@ class ExportDialog extends Dialog {
   private ext(): string {
     const f = this.fmt;
     if ((f === 'png' || f === 'jpeg') && this.which === 'all' && (this.ed?.doc.deck.slides.length ?? 0) > 1) return 'zip';
+    if (f === 'video') return typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4') ? 'mp4' : 'webm';
     return EXPORTS[f].ext;
+  }
+
+  private motionOpts(): { secs: number; timings: boolean; builds: boolean; fades: boolean } {
+    const box = this.groups.motion;
+    const on = (k: string): boolean => q<HTMLInputElement>(box, `[data-f="${k}"]`).checked;
+    const secs = Number(this.secs.value);
+    return { secs: Number.isFinite(secs) && secs >= 0.5 ? Math.min(600, secs) : 5, timings: on('timings'), builds: on('builds'), fades: on('fades') };
+  }
+
+  private syncMotion(): void {
+    const f = this.fmt, deck = this.ed?.doc.deck;
+    segSet(q(this.groups.motion, '[data-seg="res"]'), String(this.res));
+    segSet(q(this.groups.motion, '[data-seg="gifw"]'), String(this.gifW));
+    setHidden(q(this.groups.motion, '.fs-dlg-res'), f !== 'video');
+    setHidden(q(this.groups.motion, '.fs-dlg-gifw'), f !== 'gif');
+    const canVideo = typeof MediaRecorder !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
+    setDisabled(this.go, this.running || (f === 'video' && !canVideo));
+    if (!deck || !isMotion(f)) return;
+    const o = this.motionOpts();
+    const shown = deck.slides.filter((s) => !s.hidden);
+    const secs = shown.reduce((sum, s) => { const a = s.transition?.advanceAfter; return sum + (o.timings && typeof a === 'number' && a > 0 ? a : o.secs); }, 0);
+    const whole = Math.round(secs);
+    const len = `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+    setText(this.motionNote, f === 'gif' ? `${plural(shown.length, 'slide')}, about ${len} per loop. Hidden slides are skipped.`
+      : !canVideo ? 'This window cannot record video. Use Chrome, Edge or the formsld desktop app.'
+      : `About ${len} long as ${this.ext().toUpperCase()}, recorded in real time, so keep this window open. Hidden slides are skipped.`);
   }
 
   private sync(): void {
@@ -857,6 +932,8 @@ class ExportDialog extends Dialog {
     setHidden(this.groups.fsld, f !== 'fsld');
     setHidden(this.groups.pdf, f !== 'pdf');
     setHidden(this.groups.raster, f !== 'png' && f !== 'jpeg');
+    setHidden(this.groups.motion, !isMotion(f));
+    setHidden(this.groups.outline, !isOutline(f));
     segSet(q(this.groups.pdf, '[data-seg="range"]'), this.range);
     segSet(q(this.groups.raster, '[data-seg="which"]'), this.which);
     segSet(q(this.groups.raster, '[data-seg="scale"]'), String(this.scale));
@@ -864,7 +941,8 @@ class ExportDialog extends Dialog {
     const size = this.ed?.doc.deck.size ?? { w: 960, h: 540 };
     setText(this.px, `About ${Math.round(size.w * this.scale)} × ${Math.round(size.h * this.scale)} pixels per slide`);
     if (this.path.value) this.path.value = withExt(this.path.value, this.ext());
-    setText(this.go, isTauri() || isRaster(f) ? 'Export' : 'Download');
+    setText(this.go, isTauri() || isRaster(f) || isMotion(f) || isOutline(f) ? 'Export' : 'Download');
+    this.syncMotion();
   }
 
   private slideIds(ed: Editor): string[] | null {
@@ -899,7 +977,17 @@ class ExportDialog extends Dialog {
     this.running = true;
     setDisabled(this.go, true);
     try {
-      if (isRaster(f)) {
+      if (isOutline(f)) {
+        this.status.busy('Writing the outline');
+        const on = (k: string): boolean => q<HTMLInputElement>(this.groups.outline, `[data-f="${k}"]`).checked;
+        const r = await postJson<{ path: string; url: string; name: string }>(`/api/decks/${encodeURIComponent(deck.id)}/outline`, { format: f, notes: on('notes'), hidden: on('ohidden'), path: path || undefined });
+        this.status.done();
+        this.close();
+        if (tauri) savedToast('Exported to', r.path);
+        else { download(r.url); toast(`Exported the outline as ${f === 'rtf' ? 'Rich Text' : 'plain text'}`); }
+      } else if (isMotion(f)) {
+        await this.runMotion(deck, f, path);
+      } else if (isRaster(f)) {
         this.status.busy(`Rendering ${plural(slides.length, 'slide')}`);
         const r = await bridge.exportRaster(ed, { format: f, slides, scale: f === 'pdf' ? Number(this.quality.value) || 2 : this.scale, path: path || undefined });
         this.status.done();
@@ -918,11 +1006,64 @@ class ExportDialog extends Dialog {
         toast(`Downloading ${safeName(deck.title)}.${EXPORTS[f].ext}`);
       }
     } catch (e) {
-      this.status.error(`Export failed: ${errText(e)}`);
-      toast(`Export failed: ${errText(e)}`, 'error');
+      if (e instanceof DOMException && e.name === 'AbortError') { this.status.reset(); toast('Export cancelled'); }
+      else {
+        this.status.error(`Export failed: ${errText(e)}`);
+        toast(`Export failed: ${errText(e)}`, 'error');
+      }
     } finally {
       this.running = false;
-      setDisabled(this.go, false);
+      this.abort = null;
+      this.bar.style.removeProperty('--p');
+      setClass(this.bar, 'is-on', false);
+      this.syncMotion();
+    }
+  }
+
+  private async runMotion(deck: Deck, f: 'video' | 'gif', path: string): Promise<void> {
+    const ac = new AbortController();
+    this.abort = ac;
+    const m = await import('../present/video-export');
+    const fmt = f === 'video' ? m.videoFormat() : null;
+    if (f === 'video' && !fmt) throw new Error('this window cannot record video');
+    const progress = (text: string, frac: number): void => { this.status.stage(text); this.bar.style.setProperty('--p', String(Math.max(0, Math.min(1, frac)))); };
+    setClass(this.bar, 'is-on', true);
+    this.status.busy('Rendering frames');
+    const o = { kind: f, height: this.res, width: this.gifW, signal: ac.signal, progress, ...this.motionOpts() };
+    const { frames, total, narration } = await m.renderFrames(deck, o);
+    if (!frames.length) throw new Error('there are no visible slides to export');
+    const name = `${safeName(deck.title)}.${f === 'gif' ? 'gif' : fmt?.ext ?? 'webm'}`;
+    if (f === 'gif') {
+      progress('Building the GIF', 1);
+      const { holds, fades } = m.gifTiming(frames, total);
+      const fd = new FormData();
+      fd.append('meta', JSON.stringify({ holds, fades, loop: true, ...(path ? { path } : {}) }));
+      frames.forEach((fr, i) => { if (fr.blob) fd.append('images', fr.blob, `frame-${String(i + 1).padStart(4, '0')}.png`); });
+      const res = await fetch(`/api/decks/${encodeURIComponent(deck.id)}/gif`, { method: 'POST', body: fd, signal: ac.signal });
+      if (!res.ok) { let d = res.statusText; try { const j = await res.json() as { detail?: unknown }; if (j.detail) d = String(j.detail); } catch { void 0; } throw new Error(d); }
+      const r = await res.json() as { path: string; url: string };
+      this.status.done();
+      this.close();
+      if (isTauri()) savedToast('Exported to', r.path);
+      else { download(r.url); toast(`Exported ${plural(frames.length, 'frame')} as an animated GIF`); }
+      return;
+    }
+    const blob = await m.recordVideo(frames, total, narration, o, fmt as { mime: string });
+    this.status.done();
+    if (isTauri()) {
+      const fd = new FormData();
+      fd.append('name', name);
+      fd.append('path', path);
+      fd.append('file', blob, name);
+      const res = await fetch(`/api/decks/${encodeURIComponent(deck.id)}/export-file`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(res.statusText || `the engine answered ${res.status}`);
+      const r = await res.json() as { path: string };
+      this.close();
+      savedToast('Exported to', r.path);
+    } else {
+      this.close();
+      saveBlob(blob, name);
+      toast(`Exported the video as ${name}`);
     }
   }
 }

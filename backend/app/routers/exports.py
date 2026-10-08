@@ -2,10 +2,12 @@ import asyncio
 import io
 import json
 import re
+import shutil
+import tempfile
 import zipfile
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.core import config
@@ -169,3 +171,212 @@ def get_export(name: str):
     if not p.is_file():
         raise HTTPException(404, "no such export")
     return FileResponse(p, filename=name, headers={"Cache-Control": "no-cache"})
+
+
+def _deck_name(deck: dict) -> str:
+    name = re.sub(r"[^\w\s.-]+", "", deck.get("title") or "slides").strip() or "slides"
+    return re.sub(r"\s+", " ", name)[:80]
+
+
+def _para_text(para: dict) -> str:
+    text = "".join(" " if r.get("t") == "\n" else str(r.get("t") or "") for r in para.get("runs") or [] if isinstance(r, dict))
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _is_title(el: dict) -> bool:
+    return ((el.get("ph") or {}).get("type") in ("title", "ctrTitle")) if isinstance(el.get("ph"), dict) else False
+
+
+def _text_lines(elements: list, out: list, titles: bool) -> None:
+    for el in elements or []:
+        if not isinstance(el, dict) or el.get("hidden"):
+            continue
+        if el.get("type") == "group":
+            _text_lines(el.get("children") or [], out, titles)
+            continue
+        if el.get("type") != "shape" or not isinstance(el.get("text"), dict) or _is_title(el) != titles:
+            continue
+        for para in el["text"].get("paras") or []:
+            if isinstance(para, dict) and _para_text(para):
+                out.append((_para_text(para), max(0, min(8, int(para.get("lvl") or 0)))))
+
+
+def outline_of(deck: dict, hidden: bool = False) -> list[dict]:
+    slides = []
+    for n, slide in enumerate(deck.get("slides") or [], 1):
+        if not isinstance(slide, dict) or (slide.get("hidden") and not hidden):
+            continue
+        heads: list = []
+        body: list = []
+        _text_lines(slide.get("elements") or [], heads, True)
+        _text_lines(slide.get("elements") or [], body, False)
+        title = " ".join(t for t, _ in heads) or (body.pop(0)[0] if body else "") or str(slide.get("name") or "") or "Untitled slide"
+        slides.append({"n": n, "title": title, "lines": body, "notes": str(slide.get("notes") or "").strip()})
+    return slides
+
+
+def _rtf_text(text: str) -> str:
+    out = []
+    for ch in text:
+        code = ord(ch)
+        if ch in "\\{}":
+            out.append("\\" + ch)
+        elif ch == "\t":
+            out.append("\\tab ")
+        elif code < 128:
+            out.append(ch)
+        else:
+            units = [code] if code < 0x10000 else [0xD800 + ((code - 0x10000) >> 10), 0xDC00 + ((code - 0x10000) & 0x3FF)]
+            out.extend(f"\\u{u if u < 32768 else u - 65536}?" for u in units)
+    return "".join(out)
+
+
+def outline_bytes(deck: dict, fmt: str, notes: bool = False, hidden: bool = False) -> tuple[bytes, str]:
+    title = deck.get("title") or "Untitled deck"
+    slides = outline_of(deck, hidden)
+    name = _deck_name(deck)
+    if fmt == "rtf":
+        doc = ["{\\rtf1\\ansi\\ansicpg1252\\deff0\\uc1{\\fonttbl{\\f0\\fswiss\\fcharset0 Helvetica;}}{\\colortbl;\\red90\\green90\\blue90;}",
+               "{\\info{\\title " + _rtf_text(title) + "}}\\viewkind4\\f0",
+               "\\pard\\sa240\\b\\fs40 " + _rtf_text(title) + "\\b0\\par"]
+        for s in slides:
+            doc.append(f"\\pard\\outlinelevel0\\keepn\\sb240\\sa80\\b\\fs30 {s['n']}. " + _rtf_text(s["title"]) + "\\b0\\par")
+            for text, lvl in s["lines"]:
+                left = 360 * (lvl + 1)
+                doc.append(f"\\pard\\outlinelevel{min(lvl + 1, 8)}\\li{left + 220}\\fi-220\\sa40\\fs22 \\bullet\\tab " + _rtf_text(text) + "\\par")
+            if notes and s["notes"]:
+                for line in s["notes"].split("\n"):
+                    doc.append("\\pard\\li360\\sa40\\cf1\\i\\fs20 " + _rtf_text(line) + "\\i0\\cf0\\par")
+        doc.append("}")
+        return "\n".join(doc).encode("ascii"), f"{name} outline.rtf"
+    lines = [title, "=" * min(72, max(3, len(title))), ""]
+    for s in slides:
+        lines.append(f"{s['n']}. {s['title']}")
+        for text, lvl in s["lines"]:
+            lines.append("   " + "  " * lvl + "- " + text)
+        if notes and s["notes"]:
+            lines.append("   Notes:")
+            lines.extend("     " + line for line in s["notes"].split("\n"))
+        lines.append("")
+    return ("\n".join(lines).rstrip("\n") + "\n").encode("utf-8"), f"{name} outline.txt"
+
+
+def _rgb(data: bytes, size: tuple[int, int] | None):
+    from PIL import Image
+    with Image.open(io.BytesIO(data)) as im:
+        rgb = im.convert("RGB")
+    return rgb.resize(size, Image.Resampling.LANCZOS) if size and rgb.size != size else rgb
+
+
+def _palette(im):
+    from PIL import Image
+    if im.getcolors(256) is not None:
+        return im.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    return im.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG)
+
+
+def gif_bytes(images: list[bytes], holds: list[int], fades: list[int] | None = None, loop: bool = True) -> bytes:
+    if not images:
+        raise ValueError("no frames")
+    fades = fades or []
+    first = _rgb(images[0], None)
+    frames, durations = [], []
+    prev = None
+    for i, data in enumerate(images):
+        im = first if i == 0 else _rgb(data, first.size)
+        fade = int(fades[i]) if i < len(fades) and prev is not None else 0
+        if fade >= 100:
+            from PIL import Image
+            steps = max(2, min(8, fade // 50))
+            for k in range(1, steps):
+                frames.append(_palette(Image.blend(prev, im, k / steps)))
+                durations.append(max(20, fade // steps))
+        hold = max(20, int(holds[i]) if i < len(holds) else 2000)
+        frames.append(_palette(im))
+        durations.append(hold)
+        prev = im
+    buf = io.BytesIO()
+    extra = {"loop": 0} if loop else {}
+    frames[0].save(buf, "GIF", save_all=True, append_images=frames[1:], duration=durations, optimize=False, disposal=1, **extra)
+    return buf.getvalue()
+
+
+async def gif_from_window(deck: dict, picked: list[int] | None, width: int = 960) -> tuple[bytes, str, int]:
+    from app.services import bridge
+    slides = [deck["slides"][i] for i in picked] if picked is not None else [s for s in deck.get("slides") or [] if not s.get("hidden")]
+    if not slides:
+        raise ValueError("there are no slides to export")
+    tmp = Path(tempfile.mkdtemp(prefix="gif-", dir=config.exports_dir()))
+    try:
+        scale = max(0.25, min(4.0, width / float((deck.get("size") or {}).get("w") or 960)))
+        payload = {"deck": deck["id"], "format": "png", "slides": [s["id"] for s in slides], "path": str(tmp), "scale": scale}
+        res = await bridge.window_call("export_raster", payload, deck["id"], 300)
+        if res is None or res.get("isError"):
+            raise ValueError(((res or {}).get("content") or [{}])[0].get("text") or "the formsld window closed before rendering")
+        pngs: list[bytes] = []
+        for f in sorted(tmp.iterdir()):
+            if f.suffix.lower() == ".zip":
+                with zipfile.ZipFile(f) as z:
+                    pngs.extend(z.read(n) for n in z.namelist())
+            elif f.suffix.lower() == ".png":
+                pngs.append(f.read_bytes())
+        holds, fades = [], []
+        for n, s in enumerate(slides):
+            tr = s.get("transition") if isinstance(s.get("transition"), dict) else {}
+            after = tr.get("advanceAfter")
+            total = int(round((after if isinstance(after, (int, float)) and after > 0 else 3) * 1000))
+            fade = min(1500, total // 2, int(round(float(tr.get("duration") or 0.7) * 1000))) if n and tr.get("type") not in (None, "none") else 0
+            fades.append(fade)
+            holds.append(max(40, total - fade))
+        data = await asyncio.to_thread(gif_bytes, pngs, holds, fades, True)
+        return data, f"{_deck_name(deck)}.gif", len(pngs)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@router.post("/decks/{deck_id}/outline")
+async def export_outline(deck_id: str, body: dict = Body(...)) -> dict:
+    fmt = str(body.get("format") or "txt").lower()
+    if fmt not in ("txt", "rtf"):
+        raise HTTPException(400, "format is txt or rtf")
+    try:
+        deck = STORE.session(deck_id).deck
+    except KeyError:
+        raise HTTPException(404, "no such deck")
+    data, name = await asyncio.to_thread(outline_bytes, deck, fmt, bool(body.get("notes")), bool(body.get("hidden")))
+    path, served = _target(name, body.get("path"))
+    await asyncio.to_thread(path.write_bytes, data)
+    return {"path": str(path), "bytes": len(data), "name": path.name, "url": f"/api/exports/{path.name}" if served else ""}
+
+
+@router.post("/decks/{deck_id}/gif")
+async def export_gif(deck_id: str, meta: str = Form("{}"), images: list[UploadFile] = File(default=[])) -> dict:
+    try:
+        info = json.loads(meta or "{}")
+    except ValueError:
+        raise HTTPException(400, "meta is not JSON")
+    blobs = [b for b in [await f.read() for f in images] if b]
+    if not blobs:
+        raise HTTPException(400, "no frames")
+    holds = [int(v) for v in info.get("holds") or []]
+    fades = [int(v) for v in info.get("fades") or []]
+    try:
+        data = await asyncio.to_thread(gif_bytes, blobs, holds, fades, info.get("loop", True) is not False)
+    except Exception as exc:
+        raise HTTPException(400, f"Could not build the GIF: {exc}")
+    path, served = _target(f"{_title(deck_id)}.gif", info.get("path"))
+    await asyncio.to_thread(path.write_bytes, data)
+    return {"path": str(path), "bytes": len(data), "name": path.name, "url": f"/api/exports/{path.name}" if served else ""}
+
+
+@router.post("/decks/{deck_id}/export-file")
+async def export_file(deck_id: str, name: str = Form(...), path: str = Form(""), file: UploadFile = File(...)) -> dict:
+    clean = re.sub(r"\s+", " ", re.sub(r"[^\w .()-]+", " ", name)).strip(" .-()")[:120]
+    if not _NAME.match(clean or ""):
+        raise HTTPException(400, "bad name")
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "empty file")
+    target, served = _target(clean, path or None)
+    await asyncio.to_thread(target.write_bytes, data)
+    return {"path": str(target), "bytes": len(data), "name": target.name, "url": f"/api/exports/{target.name}" if served else ""}

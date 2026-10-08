@@ -68,6 +68,10 @@ export function rasterSlide(deck: Deck, slideId: string, scale = 1): Promise<Ras
   return serial(() => mounted(deck, slideId, (view) => render(collect(deck, view, scale))));
 }
 
+export function rasterSlideWith(deck: Deck, slideId: string, scale: number, prep: (view: SlideView) => void): Promise<Raster> {
+  return serial(() => mounted(deck, slideId, (view) => { prep(view); return render(collect(deck, view, scale)); }));
+}
+
 export function toBlob(canvas: HTMLCanvasElement, mime: 'image/png' | 'image/jpeg' | 'image/webp' = 'image/png', quality?: number): Promise<Blob> {
   return new Promise((ok, no) => canvas.toBlob((b) => (b ? ok(b) : no(new Error('The picture could not be encoded.'))), mime, quality));
 }

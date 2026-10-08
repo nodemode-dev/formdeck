@@ -2,6 +2,7 @@ import math
 
 from .geom import parse_svg_path
 from .ooxml import EMU_PER_PT, find, int_attr, make, sub, xpath
+from .write_media import audio_seconds
 
 CLASSES = ("entr", "emph", "exit", "path")
 TRIGGERS = ("onClick", "withPrevious", "afterPrevious")
@@ -431,8 +432,51 @@ def _build_list(entries: list[dict]):
     return bld if len(bld) else None
 
 
+def _top_media(slide: dict, shape_ids: dict) -> list[dict]:
+    return [e for e in slide.get("elements") or [] if isinstance(e, dict) and e.get("type") == "media" and str(e.get("id")) in shape_ids]
+
+
+def _media_entries(slide: dict, shape_ids: dict, ctx) -> list[dict]:
+    out = []
+    for el in _top_media(slide, shape_ids):
+        if not el.get("autoplay"):
+            continue
+        loaded = ctx.media_bytes(str(el.get("src") or "")) if el.get("kind") == "audio" else None
+        secs = audio_seconds(loaded[0], (loaded[1] or {}).get("mime", "")) if loaded else 0.0
+        out.append({"spid": shape_ids[str(el["id"])], "para": None, "effect": "play", "cls": "mediacall", "dir": None, "preset": 1, "subtype": 0, "dur": 0,
+                    "grp": None, "trigger": "withPrevious", "delay": 0, "el": el, "byPara": False, "motion": None, "media": max(1, int(round(secs * 1000))),
+                    "from": max(0.0, float(el.get("start") or 0))})
+    return out
+
+
+def _play(ids: _Ids, entry: dict):
+    cmd = make("p:cmd", {"type": "call", "cmd": f"playFrom({entry['from']:.1f})"})
+    cb = sub(cmd, "p:cBhvr")
+    sub(cb, "p:cTn", {"id": ids.next(), "dur": entry["media"], "fill": "hold"})
+    sub(sub(cb, "p:tgtEl"), "p:spTgt", {"spid": entry["spid"]})
+    return cmd
+
+
+def _media_nodes(root, slide: dict, shape_ids: dict, first_id: int) -> None:
+    ids = _Ids(first_id)
+    for el in _top_media(slide, shape_ids):
+        spid = str(shape_ids[str(el["id"])])
+        node = next((n for n in xpath(root, "./p:video/p:cMediaNode | ./p:audio/p:cMediaNode") if any(t.get("spid") == spid for t in xpath(n, "./p:tgtEl/p:spTgt"))), None)
+        if node is None:
+            if el.get("kind") != "audio":
+                continue
+            node = sub(sub(root, "p:audio"), "p:cMediaNode", {"vol": 80000})
+            ctn = sub(node, "p:cTn", {"id": ids.next(), "fill": "hold", "display": 0})
+            sub(sub(ctn, "p:stCondLst"), "p:cond", {"delay": "indefinite"})
+            end = sub(sub(ctn, "p:endCondLst"), "p:cond", {"evt": "onStopAudio", "delay": 0})
+            sub(sub(end, "p:tgtEl"), "p:sldTgt")
+            sub(sub(node, "p:tgtEl"), "p:spTgt", {"spid": spid})
+        if el.get("hideInShow") or el.get("narration"):
+            node.set("showWhenStopped", "0")
+
+
 def timing_element(slide: dict, shape_ids: dict, ctx, first_id: int = 2):
-    entries = _entries(slide, shape_ids, ctx)
+    entries = _media_entries(slide, shape_ids, ctx) + _entries(slide, shape_ids, ctx)
     if not entries:
         return None, None
     ids = _Ids(first_id)
@@ -457,9 +501,12 @@ def timing_element(slide: dict, shape_ids: dict, ctx, first_id: int = 2):
                 ectn = _ctn_par(effects, {"id": ids.next(), "presetID": entry["preset"], "presetClass": entry["cls"], "presetSubtype": entry["subtype"], "accel": ease,
                                           "decel": ease, "fill": "hold", "grpId": entry["grp"], "nodeType": NODE_TYPES[entry["trigger"]]}, entry["delay"])
                 kids = sub(ectn, "p:childTnLst")
+                if entry.get("media"):
+                    kids.append(_play(ids, entry))
+                    continue
                 for node in behaviours(_Behaviours(ids, entry["spid"], entry["para"]), entry["effect"], entry["cls"], entry["dir"], entry["dur"], entry["motion"]):
                     kids.append(node)
-            at += max(e["delay"] + max(e["dur"], 1) for e in members)
+            at += max((e["delay"] + max(e["dur"], 1) for e in members if not e.get("media")), default=0)
     for tag, evt in (("p:prevCondLst", "onPrev"), ("p:nextCondLst", "onNext")):
         cond = sub(sub(seq, tag), "p:cond", {"evt": evt, "delay": 0})
         sub(sub(cond, "p:tgtEl"), "p:sldTgt")
@@ -481,12 +528,13 @@ def write_mapped(writer, elements: list, sp_tree) -> dict:
 
 
 def insert_timing(sld, slide: dict, shape_ids: dict, ctx) -> None:
-    if not slide.get("animations"):
+    audio = any(e.get("kind") == "audio" or e.get("hideInShow") for e in _top_media(slide, shape_ids))
+    if not slide.get("animations") and not audio and not any(e.get("autoplay") for e in _top_media(slide, shape_ids)):
         return
     timing = find(sld, "p:timing")
     used = [int(v) for v in xpath(timing, ".//p:cTn/@id") if str(v).isdigit()] if timing is not None else []
     seq, builds = timing_element(slide, shape_ids, ctx, max(used + [1]) + 1)
-    if seq is None:
+    if seq is None and not audio:
         return
     root = xpath(timing, "./p:tnLst/p:par/p:cTn[@nodeType='tmRoot']/p:childTnLst") if timing is not None else []
     if not root:
@@ -500,7 +548,9 @@ def insert_timing(sld, slide: dict, shape_ids: dict, ctx) -> None:
             ext.addprevious(timing)
         else:
             sld.append(timing)
-    root[0].insert(0, seq)
+    if seq is not None:
+        root[0].insert(0, seq)
+    _media_nodes(root[0], slide, shape_ids, max([int(v) for v in xpath(timing, ".//p:cTn/@id") if str(v).isdigit()] + [1]) + 1)
     if builds is not None:
         old = find(timing, "p:bldLst")
         if old is None:

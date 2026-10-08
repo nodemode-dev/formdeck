@@ -120,10 +120,36 @@ def _effects(main):
                 yield ctn, trigger
 
 
+def _media_flags(timing, shape_ids: dict, elements: list) -> None:
+    media = {e.get("id"): e for e in elements if isinstance(e, dict) and e.get("type") == "media"}
+    if not media:
+        return
+
+    def element(node):
+        tgt = xpath(node, ".//p:tgtEl/p:spTgt")
+        return media.get(shape_ids.get(str(tgt[0].get("spid")))) if tgt else None
+
+    for node in xpath(timing, ".//p:cMediaNode[@showWhenStopped='0' or @showWhenStopped='false']"):
+        el = element(node)
+        if el is not None:
+            el["hideInShow"] = True
+    for group in xpath(timing, "./p:tnLst/p:par/p:cTn/p:childTnLst/p:seq/p:cTn[@nodeType='mainSeq']/p:childTnLst/p:par[1]/p:cTn"):
+        if not any(c.get("evt") == "onBegin" for c in findall(group, "p:stCondLst/p:cond")):
+            continue
+        for ctn in xpath(group, ".//p:cTn[@presetClass='mediacall'][@presetID='1']"):
+            el = element(ctn)
+            if el is not None:
+                el["autoplay"] = True
+    for el in media.values():
+        if el.get("kind") == "audio" and str(el.get("name") or "").startswith("Narration"):
+            el["narration"] = True
+
+
 def read_timing(sld, shape_ids: dict, elements: list, ctx) -> list[dict]:
     timing = find(sld, "p:timing")
     if timing is None:
         return []
+    _media_flags(timing, shape_ids, elements)
     if xpath(timing, ".//p:cTn[@nodeType='interactiveSeq']"):
         ctx.warn("trigger animations (started by clicking a shape) were not imported")
     mains = xpath(timing, "./p:tnLst/p:par/p:cTn/p:childTnLst/p:seq/p:cTn[@nodeType='mainSeq']")
