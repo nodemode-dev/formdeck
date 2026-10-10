@@ -4,11 +4,11 @@ Presentations and pitch decks in the form family. An open alternative to PowerPo
 
 The PDF workbench that shipped with formsld up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In formsld a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
-Version 0.6.0 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.7.0 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
-| Area | In 0.6.0 |
+| Area | In 0.7.0 |
 | --- | --- |
 | Start from material | Drop md, pdf, docx, pptx, txt, csv, xlsx, images, gifs or meeting notes, add a brief, pick a template, and get a drafted deck (about 80% there) in seconds, or hand the intake to an agent; a PDF opened or dropped anywhere in the app lands here as material |
 | Templates | 67 original templates in 9 categories, each with 21 semantic layouts and a 17-slide sample; import any .pptx or .potx as a template; export every template as .pptx |
@@ -63,7 +63,7 @@ docs/       FORMAT.md (the deck contract), MANUAL.md, PARITY.md and parity.py
 
 The engine is authoritative: every change is a JSON op step with an inverse, broadcast over `/api/live` to every window and agent, autosaved, and undoable per step or per agent turn.
 
-## Known gaps in 0.6.0
+## Known gaps in 0.7.0
 
 - Co-authoring across machines, share links and publishing to the web are not built.
 - No SmartArt editor, 3-D models, bevel or 3-D text, stock or AI pictures, charts linked to a live workbook, or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.7.0: 87.0%, 91.5% and 87.5%).
