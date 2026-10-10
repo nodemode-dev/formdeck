@@ -33,7 +33,7 @@ fn openable(path: &std::path::Path) -> bool {
         && path
             .extension()
             .and_then(|ext| ext.to_str())
-            .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "fsld" | "pptx" | "potx" | "ppsx" | "pptm" | "pdf"))
+            .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "fsld" | "pptx" | "potx" | "ppsx" | "pptm"))
             .unwrap_or(false)
 }
 

@@ -1,6 +1,7 @@
 import type { Deck } from '../engine/model';
 
 export interface DeckSummary { id: string; title: string; slides: number; size: { w: number; h: number }; template?: string; modified?: string; review?: Record<string, number>; warnings?: string[]; thumb?: boolean }
+export interface PdfPages { name: string; pages: number; truncated: boolean; slides: Array<{ page: number; w: number; h: number; text: string; media: { id: string; name: string; mime: string; w?: number; h?: number; bytes: number } }> }
 export interface ActivityEntry { id: string; at: string; who: string; origin: string; label: string; slides: string[] }
 export interface TemplateSummary { id: string; name: string; category: string; tags: string[]; description: string; source: string; colors: Record<string, string>; fonts: { major: string; minor: string }; dark?: boolean; motif?: string; layouts: number }
 
@@ -50,6 +51,11 @@ export const api = {
     for (const f of files) fd.append('files', f, f.name);
     const res = await fetch('/api/media', { method: 'POST', body: fd });
     return (await json<{ media: Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number }> }>(res)).media;
+  },
+  async pdfPages(file: File): Promise<PdfPages> {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return json<PdfPages>(await fetch('/api/media/pdf-pages', { method: 'POST', body: fd }));
   },
   async importFile(file: File, asTemplate = false): Promise<DeckSummary & { template?: string }> {
     const fd = new FormData();

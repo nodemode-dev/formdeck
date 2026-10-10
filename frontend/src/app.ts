@@ -102,7 +102,6 @@ export async function startApp(): Promise<void> {
     },
     openFiles: (files) => void openFiles(files),
     intake: (files, template) => dialogs.intakeDialog(files, template, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') }),
-    pdf: () => void openPdf(),
     preferences: () => commands.run('preferences'),
     agents: () => commands.run('agents'),
   });
@@ -236,7 +235,7 @@ export async function startApp(): Promise<void> {
     background: () => { const ed = editor; if (ed) void dialogs.backgroundDialog(ed); },
     preferences: () => dialogs.preferencesDialog({ agentsAllowed: () => agentsAllowed, setAgents }),
     intake: () => { home.open(); },
-    pdf: () => void openPdf(),
+    pdfPages: () => { const ed = editor; if (ed) void ed.insertPdfPages(); },
     help: () => dialogs.helpDialog(),
     shortcuts: () => dialogs.shortcutsDialog(commands),
     versions: () => { const ed = editor; if (ed) void dialogs.versionsDialog(ed); },
@@ -279,10 +278,10 @@ export async function startApp(): Promise<void> {
   const drawTools = registerDrawCommands(commands, () => editor, q(root, '.fs-props-col'));
 
   const menus: MenuDef[] = [
-    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-pdf', 'export-png', 'export-fsld', '-', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', 'pdf-tools', '-', 'delete-deck'] },
+    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-pdf', 'export-png', 'export-fsld', '-', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
     { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes'] },
-    { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-image', 'insert-media', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', '-', 'insert-link', 'add-comment'] },
+    { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-image', 'insert-media', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', '-', 'insert-pdf-pages', '-', 'insert-link', 'add-comment'] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', 'edit-points', '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: (editor?.doc.deck.layouts ?? []).map((l) => `layout:${l.id}`).filter((id) => commands.get(id)) }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
     { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock', '-', 'selection-pane'] },
@@ -404,7 +403,6 @@ export async function startApp(): Promise<void> {
   async function openFiles(files: File[]): Promise<void> {
     for (const f of files) {
       const lower = f.name.toLowerCase();
-      if (lower.endsWith('.pdf')) { await openPdf(f); continue; }
       if (/\.(fsld|pptx|potx|ppsx|pptm)$/.test(lower)) {
         try {
           const d = await api.importFile(f);
@@ -418,14 +416,8 @@ export async function startApp(): Promise<void> {
     }
   }
 
-  async function openPdf(file?: File, path?: string): Promise<void> {
-    const m = await import('./pdf/workbench');
-    m.openWorkbench({ file, path, toDeck: (id: string) => void openDeck(id), close: () => { if (!editor) home.open(); } });
-  }
-
   async function openPaths(paths: string[]): Promise<void> {
     for (const p of paths) {
-      if (/\.pdf$/i.test(p)) { await openPdf(undefined, p); continue; }
       try {
         const d = await api.openPath(p);
         if (d.warnings?.length) toast(`${p.split(/[\\/]/).pop()} opened. ${d.warnings.length} item${d.warnings.length === 1 ? '' : 's'} could not be kept.`);

@@ -332,6 +332,48 @@ export class Editor {
     if (this.apply([...ops, ...dirtyOp(s)], files.length > 1 ? 'Insert pictures' : 'Insert picture')) this.select(ids);
   }
 
+  pickPdfPages(): Promise<File | null> {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,application/pdf';
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.click();
+    });
+  }
+
+  async insertPdfPages(file?: File): Promise<void> {
+    if (this.holderKind !== 'slide') return;
+    const f = file ?? await this.pickPdfPages();
+    if (!f) return;
+    toast(`Reading the pages of ${f.name}`);
+    let got;
+    try { got = await api.pdfPages(f); } catch (e) { toast(`Could not read ${f.name}: ${e instanceof Error ? e.message : e}`, 'error'); return; }
+    const deck = this.doc.deck;
+    const layout = deck.layouts.find((l) => l.semantic === 'blank') ?? deck.layouts.find((l) => l.semantic === 'titleOnly') ?? deck.layouts[0];
+    if (!layout || !got.slides.length) return;
+    const used = this.doc.usedIds();
+    const ops: Op[] = [];
+    const ids: string[] = [];
+    let at = this.slide ? this.doc.slideIndex(this.slide.id) + 1 : deck.slides.length;
+    const W = deck.size.w, H = deck.size.h;
+    for (const p of got.slides) {
+      const m = p.media;
+      if (!deck.media[m.id]) ops.push({ op: 'set', path: ['media', m.id], value: { name: m.name, mime: m.mime, w: m.w, h: m.h, bytes: m.bytes } });
+      const k = Math.min(W / Math.max(p.w, 1), H / Math.max(p.h, 1));
+      const w = p.w * k, h = p.h * k;
+      const label = `Page ${p.page}`;
+      const sid = this.doc.nextId('s', used);
+      const eid = this.doc.nextId('e', used);
+      const img: SlideElement = { id: eid, type: 'image', name: label, src: m.id, x: Math.round((W - w) / 2 * 100) / 100, y: Math.round((H - h) / 2 * 100) / 100, w: Math.round(w * 100) / 100, h: Math.round(h * 100) / 100, fit: 'contain', alt: `${got.name} ${label.toLowerCase()}` } as SlideElement;
+      ops.push({ op: 'ins', path: ['slides'], index: at++, value: { id: sid, layout: layout.id, elements: [img], notes: p.text, background: { type: 'solid', color: '#FFFFFF' }, hideMasterShapes: true, review: { status: 'draft' } } });
+      ids.push(sid);
+    }
+    if (!this.apply(ops, got.slides.length > 1 ? 'Slides from PDF pages' : 'Slide from a PDF page')) return;
+    this.setSlideSelection(ids, ids[0]);
+    toast(`Added ${ids.length} slide${ids.length === 1 ? '' : 's'} from ${got.name}${got.truncated ? ` (the first ${ids.length} of ${got.pages} pages)` : ''}. Each page's text is in its speaker notes.`);
+  }
+
   copy(cut = false): void {
     if (this.selection.length) {
       const els = this.holderKind === 'slide' ? this.selected() : this.selection.map((id) => this.element(id)).filter((e): e is SlideElement => !!e);

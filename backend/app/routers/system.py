@@ -31,7 +31,7 @@ def version() -> dict:
 def capabilities() -> dict:
     return {
         "pptx": _available("pptx"),
-        "pdf": _available("pypdf") and _available("pypdfium2"),
+        "pdf": _available("pypdfium2"),
         "pdfTables": _available("pdfplumber"),
         "docx": _available("docx"),
         "xlsx": _available("openpyxl"),

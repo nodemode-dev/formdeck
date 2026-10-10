@@ -7,7 +7,6 @@ lxml
 python-pptx
 python-docx
 openpyxl
-pypdf
 pypdfium2
 pdfplumber
 reportlab

@@ -43,11 +43,6 @@ app.include_router(decks.router, prefix="/api")
 app.include_router(media.router, prefix="/api")
 app.include_router(intake.router, prefix="/api")
 app.include_router(exports.router, prefix="/api")
-try:
-    from app.routers import pdf as pdf_router
-    app.include_router(pdf_router.router, prefix="/api")
-except ImportError:
-    pass
 app.include_router(live.router)
 app.include_router(mcp.router)
 

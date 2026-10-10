@@ -13,7 +13,7 @@ vpy="$FORMSLD_ROOT/backend/venv/bin/python"
 if [ -x "$vpy" ]; then ok "backend venv"; else warn "backend venv" "run ./formsld install"; fi
 if [ -d "$FORMSLD_ROOT/frontend/node_modules" ]; then ok "frontend node_modules"; else warn "frontend deps" "run ./formsld install"; fi
 if [ -x "$vpy" ]; then
-  for pair in pptx:python-pptx pypdf:pypdf pypdfium2:pypdfium2 pdfplumber:pdfplumber docx:python-docx openpyxl:openpyxl PIL:Pillow reportlab:reportlab; do
+  for pair in pptx:python-pptx pypdfium2:pypdfium2 pdfplumber:pdfplumber docx:python-docx openpyxl:openpyxl PIL:Pillow reportlab:reportlab; do
     if "$vpy" -c "import ${pair%%:*}" >/dev/null 2>&1; then ok "${pair#*:}"; else warn "${pair#*:}" "missing from the venv, rerun ./formsld install"; fi
   done
 fi

@@ -9,7 +9,7 @@ where py >nul 2>nul && ( echo   ok     python launcher ) || ( where python >nul 
 set "VPY=backend\venv\Scripts\python.exe"
 if exist "%VPY%" ( echo   ok     backend venv ) else ( echo   warn   backend venv, run formsld.bat install )
 if exist frontend\node_modules ( echo   ok     frontend node_modules ) else ( echo   warn   frontend deps, run formsld.bat install )
-if exist "%VPY%" for %%m in (pptx:python-pptx pypdf:pypdf pypdfium2:pypdfium2 pdfplumber:pdfplumber docx:python-docx openpyxl:openpyxl PIL:Pillow reportlab:reportlab) do call :module %%m
+if exist "%VPY%" for %%m in (pptx:python-pptx pypdfium2:pypdfium2 pdfplumber:pdfplumber docx:python-docx openpyxl:openpyxl PIL:Pillow reportlab:reportlab) do call :module %%m
 where cargo >nul 2>nul && ( echo   ok     rust for desktop builds ) || ( echo   warn   rust, desktop builds need https://rustup.rs )
 if not defined FORMSLD_PORT set "FORMSLD_PORT=8197"
 for %%p in (5197 %FORMSLD_PORT%) do call :port %%p

@@ -28,7 +28,7 @@ export interface AppHooks {
   background(): void;
   preferences(): void;
   intake(): void;
-  pdf(): void;
+  pdfPages(): void;
   help(): void;
   shortcuts(): void;
   versions(): void;
@@ -135,7 +135,6 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'export-png', label: 'Export Slides as Pictures', icon: 'fileImage', enabled: has, run: () => h.exportAs('png') },
     { id: 'export-fsld', label: 'Download formsld File (.fsld)', icon: 'download', enabled: has, run: () => h.exportAs('fsld') },
     { id: 'print', label: 'Print or Save as PDF...', keys: ['Mod+P'], enabled: has, run: () => h.print() },
-    { id: 'pdf-tools', label: 'Open PDF Workbench', icon: 'pdf', run: () => h.pdf() },
     { id: 'undo', label: 'Undo', keys: ['Mod+Z'], icon: 'undo', enabled: () => !!E()?.doc.canUndo, run: () => { const ed = E(); if (!ed) return; ed.stage.endEdit(); ed.live.undo(ed.doc.id); } },
     { id: 'redo', label: 'Redo', keys: ['Shift+Mod+Z', 'Mod+Y'], icon: 'redo', enabled: () => !!E()?.doc.canRedo, run: () => { const ed = E(); if (ed) ed.live.redo(ed.doc.id); } },
     { id: 'undo-agent', label: 'Undo Agent Turn', enabled: () => !!E()?.doc.canUndo, run: () => { const ed = E(); if (ed) ed.live.undo(ed.doc.id, 'turn'); } },
@@ -182,6 +181,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'insert-arrow', label: 'Arrow', icon: 'arrow', enabled: has, run: () => { const ed = E(); if (!ed) return; const d = ed.doc.deck.size; ed.insert({ ...newShape('straightConnector1', { x: d.w / 2 - 100, y: d.h / 2, w: 200, h: 1 }), line: { color: 'tx1', width: 2, tail: { type: 'triangle' } } } as SlideElement, 'Insert arrow'); } },
     { id: 'insert-table', label: 'Table...', icon: 'table', enabled: has, run: () => h.insertTable() },
     { id: 'insert-chart', label: 'Chart...', icon: 'chart', enabled: has, run: () => h.insertChart() },
+    { id: 'insert-pdf-pages', label: 'Slides from PDF Pages...', icon: 'filePdf', enabled: () => E()?.holderKind === 'slide', run: () => h.pdfPages() },
     { id: 'edit-chart', label: 'Edit Chart Data...', icon: 'chartBar', enabled: () => sel().some((e) => e.type === 'chart'), run: () => h.editChart() },
     { id: 'replace-image', label: 'Replace Picture...', icon: 'image', enabled: () => sel().some((e) => e.type === 'image'), run: () => { const ed = E(); const s = slide(); const img = sel().find((e) => e.type === 'image'); if (!ed || !s || !img) return; const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async () => { const f = input.files?.[0]; if (!f) return; const { api } = await import('../io/api'); const [m] = await api.upload([f]); apply([{ op: 'set', path: ['media', m.id], value: { name: m.name, mime: m.mime, w: m.w, h: m.h, bytes: m.bytes } }, { op: 'set', path: [...elPath(s.id, img.id), 'src'], value: m.id }, { op: 'set', path: [...elPath(s.id, img.id), 'crop'] }, ...dirtyOp(s)], 'Replace picture'); }; input.click(); } },
     { id: 'alt-text', label: 'Alt Text...', enabled: hasSel, run: () => h.altText() },

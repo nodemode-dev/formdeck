@@ -13,7 +13,6 @@ export interface HomeHooks {
   createDeck(template: string, title?: string): Promise<void>;
   openFiles(files: File[]): void;
   intake(files: File[], template?: string): void;
-  pdf(): void;
   preferences(): void;
   agents(): void;
 }
@@ -67,8 +66,6 @@ export class Home {
 <button class="fs-home-nav-item is-active" type="button" data-v="start">${icon('sparkle', 16)}<span>Start</span></button>
 <button class="fs-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fs-badge is-count fs-deck-count">0</span></button>
 <button class="fs-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fs-badge is-count fs-tpl-count">0</span></button>
-<button class="fs-home-nav-item" type="button" data-a="pdf">${icon('filePdf', 16)}<span>PDF workbench</span></button>
-<button class="fs-home-nav-item" type="button" data-a="pdf" data-create="pictures">${icon('fileImage', 16)}<span>Create PDF from pictures</span></button>
 <div class="fs-home-nav-sep"></div>
 <div class="fs-home-nav-title">Agents</div>
 <button class="fs-home-nav-item" type="button" data-a="agents">${icon('agent', 16)}<span>Claude Code, Codex, Cursor</span></button>
@@ -122,7 +119,6 @@ export class Home {
       else if (a === 'open') this.pick(false);
       else if (a === 'choose') this.pick(true);
       else if (a === 'paste') void this.pasteText();
-      else if (a === 'pdf') { const k = (t.closest('[data-create]') as HTMLElement | null)?.dataset.create; if (k) void import('../pdf/intent').then((m) => { m.requestCreate(k === 'files' ? 'files' : 'pictures'); this.hooks.pdf(); }); else this.hooks.pdf(); }
       else if (a === 'prefs') this.hooks.preferences();
       else if (a === 'agents') this.hooks.agents();
       else if (a === 'local') toast('Your decks, templates and pictures stay in your Formsld folder on this computer.');

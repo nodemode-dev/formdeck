@@ -1848,7 +1848,7 @@ class HelpDialog extends Dialog {
   constructor() {
     super('formsld Help', 560);
     this.body.appendChild(el(`<div class="fs-dlg-stack">
-<div class="fs-dlg-about">${brandMark(36)}<div><div class="fs-dlg-about-name">formsld</div><div class="fs-note">Version ${escapeHtml(VERSION)} · presentations, decks and PDFs in the form family</div></div></div>
+<div class="fs-dlg-about">${brandMark(36)}<div><div class="fs-dlg-about-name">formsld</div><div class="fs-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div></div></div>
 <section class="fs-dlg-section"><div class="fs-dlg-section-title">Quick start</div><ol class="fs-dlg-steps">
 <li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck on Home and formsld drafts the slides in your template.</li>
 <li><strong>Pick a template.</strong> Change it any time with Slide &gt; Apply Template. Your content follows.</li>
@@ -1873,7 +1873,7 @@ export function helpDialog(): void {
 }
 
 const KEY_GROUPS: Array<[string, RegExp]> = [
-  ['File', /^(home|new-deck|open|save|save-as|save-version|save-template|export-.+|print|pdf-tools|delete-deck)$/],
+  ['File', /^(home|new-deck|open|save|save-as|save-version|save-template|export-.+|print|delete-deck)$/],
   ['Edit', /^(undo|redo|undo-agent|cut|copy|paste|duplicate|delete|select-all|find)$/],
   ['View', /^(view-.+|zoom-.+|toggle-.+)$/],
   ['Slide', /^(new-slide|duplicate-slide|delete-slide|hide-slide|reset-slide|add-section|rename-section|format-background|slide-size|apply-template)$/],
