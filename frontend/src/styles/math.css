@@ -1,0 +1,52 @@
+.fs-math {
+  white-space: nowrap;
+  text-indent: 0;
+  letter-spacing: normal;
+  text-transform: none;
+  font-style: normal;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.fs-math math {
+  font-family: "Cambria Math", "STIX Two Math", "STIXTwoMath-Regular", "Latin Modern Math", "Noto Sans Math", math;
+  font-style: normal;
+  font-weight: inherit;
+  line-height: normal;
+  font-size: 1em;
+  color: inherit;
+  direction: ltr;
+}
+.fs-math math * { border-color: currentColor; }
+.fs-math mtd { padding: 0.2em 0.4em; }
+.fs-math-src { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.8em; opacity: 0.8; }
+.fs-math menclose { position: relative; padding: 0.5ex 0; }
+.fs-math .tml-overline { padding: 0.1em 0 0 0; border-top: 0.065em solid; }
+.fs-math .tml-underline { padding: 0 0 0.1em 0; border-bottom: 0.065em solid; }
+.fs-math .tml-fbox { padding: 3pt; border: 0.065em solid; }
+.fs-math .tml-right { text-align: right; }
+.fs-math .tml-left { text-align: left; }
+.fs-math mtable.tml-jot > mtr > mtd { padding-top: 0.7ex; padding-bottom: 0.7ex; }
+.fs-math mtable.tml-small mtd { padding-top: 0.35ex; padding-bottom: 0.35ex; }
+@supports (not (-webkit-backdrop-filter: blur(1px))) {
+  .fs-math .chr-sml { transform: translate(0.07em, 0); }
+  .fs-math .chr-sml-vec { transform: scale(0.75) translate(0.07em, 0); }
+  .fs-math .chr-med { transform: translate(0.14em, 0); }
+  .fs-math .chr-med-vec { transform: scale(0.75) translate(0.14em, 0); }
+  .fs-math .chr-lrg { transform: translate(0.21em, 0); }
+  .fs-math .chr-lrg-vec { transform: scale(0.75) translate(0.21em, 0); }
+  .fs-math .tml-sml-pad { padding-left: 0.05em; }
+  .fs-math .tml-med-pad { padding-left: 0.1em; }
+  .fs-math .tml-lrg-pad { padding-left: 0.15em; }
+}
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .fs-math .wbk-acc { transform: translate(0, 0.431em); }
+  .fs-math .wbk-sml { transform: translate(0.07em, 0); }
+  .fs-math .wbk-sml-acc { transform: translate(0.07em, 0.431em); }
+  .fs-math .wbk-sml-vec { transform: scale(0.75) translate(0.07em, 0); }
+  .fs-math .wbk-med-acc { transform: translate(0.14em, 0.431em); }
+  .fs-math .wbk-med-vec { transform: scale(0.75) translate(0.14em, 0); }
+  .fs-math .wbk-lrg-acc { transform: translate(0.21em, 0.431em); }
+  .fs-math .wbk-lrg-vec { transform: scale(0.75) translate(0.21em, 0); }
+}
+.fs-stage .fs-flow[contenteditable="true"] .fs-math { cursor: pointer; border-radius: 2px; }
+.fs-stage .fs-flow[contenteditable="true"] .fs-math:hover { outline: 1px dashed color-mix(in srgb, currentColor 45%, transparent); outline-offset: 2px; }
