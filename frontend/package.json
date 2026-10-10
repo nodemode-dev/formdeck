@@ -1,7 +1,7 @@
 {
   "name": "formsld",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "formsld · presentations and decks in the form family",
   "license": "Apache-2.0",
   "type": "module",
