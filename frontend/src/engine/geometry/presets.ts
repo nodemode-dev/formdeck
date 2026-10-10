@@ -347,3 +347,8 @@ export function handleValue(h: GeomHandle, px: number, py: number): number {
 export function isLineGeom(name: string): boolean {
   return LINES.has(name);
 }
+
+export function addPresets(raw: string): void {
+  const t = table();
+  for (const [name, def] of Object.entries(JSON.parse(raw) as Record<string, ShapeDef>)) if (!t.has(name)) t.set(name, { av: compile(def.av), gd: compile(def.gd), def });
+}
