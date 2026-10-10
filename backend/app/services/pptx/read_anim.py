@@ -2,6 +2,7 @@ import math
 
 from .ooxml import find, findall, int_attr, xpath
 from .read_elements import read_shape_tree
+from .read_media import media_only_interactive, read_media_timing
 from .write_anim import INSTANT, LABELS, PATH_OF, effect_name, format_path, path_segments, reverse_segments, slide_size
 
 TRIGGER_OF = {"clickEffect": "onClick", "withEffect": "withPrevious", "afterEffect": "afterPrevious"}
@@ -140,6 +141,7 @@ def _media_flags(timing, shape_ids: dict, elements: list) -> None:
             el = element(ctn)
             if el is not None:
                 el["autoplay"] = True
+    read_media_timing(timing, element, media)
     for el in media.values():
         if el.get("kind") == "audio" and str(el.get("name") or "").startswith("Narration"):
             el["narration"] = True
@@ -150,7 +152,7 @@ def read_timing(sld, shape_ids: dict, elements: list, ctx) -> list[dict]:
     if timing is None:
         return []
     _media_flags(timing, shape_ids, elements)
-    if xpath(timing, ".//p:cTn[@nodeType='interactiveSeq']"):
+    if xpath(timing, ".//p:cTn[@nodeType='interactiveSeq']") and not media_only_interactive(timing):
         ctx.warn("trigger animations (started by clicking a shape) were not imported")
     mains = xpath(timing, "./p:tnLst/p:par/p:cTn/p:childTnLst/p:seq/p:cTn[@nodeType='mainSeq']")
     if not mains:

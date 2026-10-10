@@ -2,7 +2,7 @@ import math
 
 from .geom import parse_svg_path
 from .ooxml import EMU_PER_PT, find, int_attr, make, sub, xpath
-from .write_media import audio_seconds
+from .write_media import clip_seconds
 
 CLASSES = ("entr", "emph", "exit", "path")
 TRIGGERS = ("onClick", "withPrevious", "afterPrevious")
@@ -436,17 +436,38 @@ def _top_media(slide: dict, shape_ids: dict) -> list[dict]:
     return [e for e in slide.get("elements") or [] if isinstance(e, dict) and e.get("type") == "media" and str(e.get("id")) in shape_ids]
 
 
-def _media_entries(slide: dict, shape_ids: dict, ctx) -> list[dict]:
+def _media_entries(slide: dict, shape_ids: dict, ctx, sequence: bool = False) -> list[dict]:
     out = []
     for el in _top_media(slide, shape_ids):
-        if not el.get("autoplay"):
+        if not (el.get("sequence") and not el.get("autoplay") and not el.get("narration") if sequence else el.get("autoplay")):
             continue
-        loaded = ctx.media_bytes(str(el.get("src") or "")) if el.get("kind") == "audio" else None
-        secs = audio_seconds(loaded[0], (loaded[1] or {}).get("mime", "")) if loaded else 0.0
+        loaded = ctx.media_bytes(str(el.get("src") or ""))
+        info = (loaded[1] or {}) if loaded else {}
+        total = clip_seconds(info, loaded[0] if loaded else None, str(info.get("mime") or ""))
+        start = max(0.0, float(el.get("start") or 0))
+        stop = min(total, float(el["end"])) if el.get("end") and total else float(el.get("end") or 0) or total
+        secs = max(0.0, stop - start)
         out.append({"spid": shape_ids[str(el["id"])], "para": None, "effect": "play", "cls": "mediacall", "dir": None, "preset": 1, "subtype": 0, "dur": 0,
-                    "grp": None, "trigger": "withPrevious", "delay": 0, "el": el, "byPara": False, "motion": None, "media": max(1, int(round(secs * 1000))),
-                    "from": max(0.0, float(el.get("start") or 0))})
+                    "grp": None, "trigger": "onClick" if sequence else "withPrevious", "delay": 0, "el": el, "byPara": False, "motion": None,
+                    "media": max(1, int(round(secs * 1000))), "from": start})
     return out
+
+
+def _click_seq(ids: _Ids, spid: str):
+    seq = make("p:seq", {"concurrent": True, "nextAc": "seek"})
+    ctn = sub(seq, "p:cTn", {"id": ids.next(), "restart": "whenNotActive", "fill": "hold", "evtFilter": "cancelBubble", "nodeType": "interactiveSeq"})
+    click = sub(sub(ctn, "p:stCondLst"), "p:cond", {"evt": "onClick", "delay": 0})
+    sub(sub(click, "p:tgtEl"), "p:spTgt", {"spid": spid})
+    sub(sub(ctn, "p:endSync", {"evt": "end", "delay": 0}), "p:rtn", {"val": "all"})
+    outer = _ctn_par(sub(ctn, "p:childTnLst"), {"id": ids.next(), "fill": "hold"}, 0)
+    inner = _ctn_par(sub(outer, "p:childTnLst"), {"id": ids.next(), "fill": "hold"}, 0)
+    eff = _ctn_par(sub(inner, "p:childTnLst"), {"id": ids.next(), "presetID": 2, "presetClass": "mediacall", "presetSubtype": 0, "fill": "hold", "nodeType": "clickEffect"}, 0)
+    cb = sub(sub(sub(eff, "p:childTnLst"), "p:cmd", {"type": "call", "cmd": "togglePause"}), "p:cBhvr")
+    sub(cb, "p:cTn", {"id": ids.next(), "dur": 1, "fill": "hold"})
+    sub(sub(cb, "p:tgtEl"), "p:spTgt", {"spid": spid})
+    nxt = sub(sub(seq, "p:nextCondLst"), "p:cond", {"evt": "onClick", "delay": 0})
+    sub(sub(nxt, "p:tgtEl"), "p:spTgt", {"spid": spid})
+    return seq
 
 
 def _play(ids: _Ids, entry: dict):
@@ -463,20 +484,38 @@ def _media_nodes(root, slide: dict, shape_ids: dict, first_id: int) -> None:
         spid = str(shape_ids[str(el["id"])])
         node = next((n for n in xpath(root, "./p:video/p:cMediaNode | ./p:audio/p:cMediaNode") if any(t.get("spid") == spid for t in xpath(n, "./p:tgtEl/p:spTgt"))), None)
         if node is None:
-            if el.get("kind") != "audio":
-                continue
-            node = sub(sub(root, "p:audio"), "p:cMediaNode", {"vol": 80000})
+            video = el.get("kind") == "video"
+            node = sub(sub(root, "p:video" if video else "p:audio"), "p:cMediaNode", {"vol": 80000})
             ctn = sub(node, "p:cTn", {"id": ids.next(), "fill": "hold", "display": 0})
             sub(sub(ctn, "p:stCondLst"), "p:cond", {"delay": "indefinite"})
-            end = sub(sub(ctn, "p:endCondLst"), "p:cond", {"evt": "onStopAudio", "delay": 0})
-            sub(sub(end, "p:tgtEl"), "p:sldTgt")
+            if not video:
+                end = sub(sub(ctn, "p:endCondLst"), "p:cond", {"evt": "onStopAudio", "delay": 0})
+                sub(sub(end, "p:tgtEl"), "p:sldTgt")
             sub(sub(node, "p:tgtEl"), "p:spTgt", {"spid": spid})
         if el.get("hideInShow") or el.get("narration"):
             node.set("showWhenStopped", "0")
+        vol = el.get("volume")
+        node.set("vol", str(int(round(min(1.0, max(0.0, float(vol))) * 100000))) if isinstance(vol, (int, float)) else "100000")
+        if el.get("muted"):
+            node.set("mute", "1")
+        ctn = find(node, "p:cTn")
+        if ctn is not None:
+            ctn.set("fill", "remove" if el.get("rewind") else "hold")
+            if el.get("loop"):
+                ctn.set("repeatCount", "indefinite")
+        if el.get("kind") == "video" and el.get("fullScreen"):
+            node.getparent().set("fullScrn", "1")
+        if not el.get("autoplay") and not el.get("sequence") and not el.get("narration"):
+            main = xpath(root, "./p:seq[p:cTn/@nodeType='mainSeq']")
+            seq = _click_seq(ids, spid)
+            if main:
+                main[-1].addnext(seq)
+            else:
+                root.insert(0, seq)
 
 
 def timing_element(slide: dict, shape_ids: dict, ctx, first_id: int = 2):
-    entries = _media_entries(slide, shape_ids, ctx) + _entries(slide, shape_ids, ctx)
+    entries = _media_entries(slide, shape_ids, ctx) + _entries(slide, shape_ids, ctx) + _media_entries(slide, shape_ids, ctx, True)
     if not entries:
         return None, None
     ids = _Ids(first_id)
@@ -528,8 +567,8 @@ def write_mapped(writer, elements: list, sp_tree) -> dict:
 
 
 def insert_timing(sld, slide: dict, shape_ids: dict, ctx) -> None:
-    audio = any(e.get("kind") == "audio" or e.get("hideInShow") for e in _top_media(slide, shape_ids))
-    if not slide.get("animations") and not audio and not any(e.get("autoplay") for e in _top_media(slide, shape_ids)):
+    audio = bool(_top_media(slide, shape_ids))
+    if not slide.get("animations") and not audio:
         return
     timing = find(sld, "p:timing")
     used = [int(v) for v in xpath(timing, ".//p:cTn/@id") if str(v).isdigit()] if timing is not None else []

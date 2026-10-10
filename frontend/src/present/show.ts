@@ -9,6 +9,7 @@ import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
 import { Captions, CAPTION_LANGS, captionsSupported, type CaptionPrefs } from './captions';
 import { effectFx, morph, transitionPlan, type Box, type Dir } from './effects';
+import { mutedOf, preparePlayback, seekBookmark } from './media-play';
 import { Recorder } from './recorder';
 import { buildState, buildSteps, displaced, type Item, type Step, type Unit } from './steps';
 
@@ -208,6 +209,7 @@ class Show {
   private readonly previews = new Map<string, SlideView>();
   private readonly ink = new Map<string, Stroke[]>();
   private readonly audio = new Map<string, HTMLAudioElement>();
+  private readonly mediaSteps = new WeakMap<Step, MediaElement>();
   private holds: Array<{ view: SlideView; anim: Animation }> = [];
   private running: Animation[] = [];
   private readonly offs: Array<() => void> = [];
@@ -586,6 +588,7 @@ class Show {
       else if (mod && low === 'e') this.clearInk();
       else if (mod && low === 'h') { this.root.classList.toggle('is-bar-off'); this.closePops(); }
       else if (mod && low === 'a') this.setMode('pointer');
+      else if (e.altKey && !mod && (k === 'Home' || k === 'End')) this.bookmark(k === 'End' ? 1 : -1);
       else return;
       e.preventDefault();
       return;
@@ -722,6 +725,7 @@ class Show {
     if (this.atEnd) { this.setEnd(false); return; }
     if (this.step > 0) {
       this.step--;
+      this.stepMedia(this.step, false);
       this.post({ type: 'goto', slide: this.cur, step: this.step });
       const v = this.views.get(this.cur);
       if (v) this.applyState(v, this.steps, this.step);
@@ -787,7 +791,32 @@ class Show {
 
   private stepsFor(view: SlideView): Step[] {
     const s = view.slide;
-    return s && !this.set.noAnimation ? buildSteps(s, (id) => this.paras(view, id).length, this.doc.deck.size) : [[]];
+    const steps = s && !this.set.noAnimation ? buildSteps(s, (id) => this.paras(view, id).length, this.doc.deck.size) : [[]];
+    for (const m of s ? mediaOf(s.elements) : []) {
+      if (!m.sequence || m.autoplay || m.narration) continue;
+      const st: Step = [];
+      this.mediaSteps.set(st, m);
+      steps.push(st);
+    }
+    return steps;
+  }
+
+  private stepMedia(upto: number, play: boolean): void {
+    for (let i = this.steps.length - 1; i >= 0; i--) {
+      const m = this.mediaSteps.get(this.steps[i]);
+      if (!m || (play ? i !== upto : i <= upto)) continue;
+      const a = this.mediaNode(this.cur, m.id);
+      if (!a) continue;
+      if (play) this.playMedia(a);
+      else { a.pause(); this.prep(a, m, a.closest<HTMLElement>('.fs-el')); }
+    }
+  }
+
+  private bookmark(dir: 1 | -1): void {
+    const s = this.doc.slide(this.cur);
+    const nodes = (s ? mediaOf(s.elements) : []).filter((m) => m.bookmarks?.length).map((m) => this.mediaNode(this.cur, m.id)).filter((a): a is HTMLMediaElement => !!a);
+    const a = nodes.find((n) => !n.paused) ?? nodes.find((n) => n.currentTime > 0) ?? nodes[0];
+    if (a && !seekBookmark(a, dir)) this.flash(dir > 0 ? 'No later bookmark' : 'No earlier bookmark');
   }
 
   private nodeOf(view: SlideView, id: string): HTMLElement | null {
@@ -952,6 +981,7 @@ class Show {
     if (!view) return;
     this.clearAuto();
     this.step++;
+    this.stepMedia(this.step, true);
     this.rec?.click(this.step);
     this.post({ type: 'goto', slide: this.cur, step: this.step });
     this.busy++;
@@ -1028,14 +1058,15 @@ class Show {
     if (!slide) return;
     const isCur = view.slideId === this.cur && !this.busy;
     for (const m of mediaOf(slide.elements)) {
-      if (m.hideInShow || m.narration) this.nodeOf(view, m.id)?.classList.add('is-show-hidden');
+      if ((m.hideInShow && m.kind === 'audio') || m.narration) this.nodeOf(view, m.id)?.classList.add('is-show-hidden');
       if (m.kind !== 'video') continue;
       const v = this.nodeOf(view, m.id)?.querySelector('video');
+      if (v?.dataset.tamed) this.prep(v, m, this.nodeOf(view, m.id), false);
       if (!v || v.dataset.tamed) continue;
       v.dataset.tamed = '1';
       v.autoplay = false;
       v.pause();
-      this.prep(v, m);
+      this.prep(v, m, this.nodeOf(view, m.id));
       const sid = view.slideId;
       v.addEventListener('play', () => this.post({ type: 'media', slide: sid, id: m.id, play: true, t: v.currentTime }));
       v.addEventListener('pause', () => this.post({ type: 'media', slide: sid, id: m.id, play: false, t: v.currentTime }));
@@ -1043,12 +1074,8 @@ class Show {
     }
   }
 
-  private prep(a: HTMLMediaElement, m: MediaElement): void {
-    a.loop = !!m.loop && !m.end;
-    a.volume = clamp(m.volume ?? 1, 0, 1);
-    a.muted = this.muted;
-    if (a.paused) a.currentTime = m.start ?? 0;
-    a.ontimeupdate = () => { if (m.end && a.currentTime >= m.end) { if (m.loop) a.currentTime = m.start ?? 0; else a.pause(); } };
+  private prep(a: HTMLMediaElement, m: MediaElement, node: HTMLElement | null = null, reset = true): void {
+    preparePlayback(a, m, node, this.muted, reset);
   }
 
   private audioFor(slideId: string, m: MediaElement): HTMLAudioElement {
@@ -1075,7 +1102,7 @@ class Show {
   }
 
   private playMedia(a: HTMLMediaElement): void {
-    a.muted = this.muted;
+    a.muted = this.muted || mutedOf(a);
     void a.play().catch(() => { a.muted = true; return a.play().catch(() => undefined); });
   }
 
@@ -1084,7 +1111,7 @@ class Show {
       if (m.kind === 'video') {
         const v = this.nodeOf(view, m.id)?.querySelector('video');
         if (!v) continue;
-        this.prep(v, m);
+        this.prep(v, m, this.nodeOf(view, m.id));
         if (m.autoplay) this.playMedia(v);
       } else if (m.autoplay && !(m.narration && (this.set.noNarration || this.rec))) this.playMedia(this.audioFor(slide.id, m));
     }

@@ -76,4 +76,35 @@ def write_audio(writer, el: dict, container, data: bytes, mime: str) -> bool:
         sub(xfrm, "a:ext", {"cx": pt_emu(36), "cy": pt_emu(36)})
     sp_pr.append(xfrm)
     sub(sub(sp_pr, "a:prstGeom", {"prst": "rect"}), "a:avLst")
+    media_settings(holder[0], el, writer.ctx.media.info(str(el.get("src"))) or {}, data, mime)
     return True
+
+
+def clip_seconds(info: dict, data: bytes | None, mime: str) -> float:
+    secs = info.get("duration") if isinstance(info.get("duration"), (int, float)) else 0.0
+    if not secs and data:
+        from ..av_probe import av_seconds
+        secs = av_seconds(data, mime)
+    return float(secs or 0.0)
+
+
+def _ms(seconds: float) -> str:
+    return f"{max(0.0, seconds) * 1000:.0f}"
+
+
+def media_settings(media, el: dict, info: dict, data: bytes | None, mime: str) -> None:
+    p14 = {"p14": NS["p14"]}
+    start = float(el.get("start") or 0)
+    end = el.get("end")
+    total = clip_seconds(info, data, mime) if end else 0.0
+    cut = total - float(end) if end and total and float(end) < total else 0.0
+    if start > 0 or cut > 0:
+        sub(media, "p14:trim", {"st": _ms(start) if start > 0 else None, "end": _ms(cut) if cut > 0 else None}, nsmap=p14)
+    fade_in, fade_out = float(el.get("fadeIn") or 0), float(el.get("fadeOut") or 0)
+    if fade_in > 0 or fade_out > 0:
+        sub(media, "p14:fade", {"in": _ms(fade_in) if fade_in > 0 else None, "out": _ms(fade_out) if fade_out > 0 else None}, nsmap=p14)
+    marks = [m for m in el.get("bookmarks") or [] if isinstance(m, dict) and isinstance(m.get("t"), (int, float))]
+    if marks:
+        lst = sub(media, "p14:bmkLst", nsmap=p14)
+        for m in sorted(marks, key=lambda m: m["t"]):
+            sub(lst, "p14:bmk", {"name": str(m.get("name") or "Bookmark"), "time": _ms(m["t"])}, nsmap=p14)
