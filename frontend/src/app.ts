@@ -411,9 +411,17 @@ export async function startApp(): Promise<void> {
         } catch (err) { toast(`Could not open ${f.name}: ${err instanceof Error ? err.message : err}`, 'error'); }
         continue;
       }
-      dialogs.intakeDialog(files, undefined, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') });
+      const material = files.filter((m) => !/\.(fsld|pptx|potx|ppsx|pptm)$/i.test(m.name));
+      dialogs.intakeDialog(material, undefined, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') });
+      if (material.some((m) => /\.pdf$/i.test(m.name))) pdfMaterialNote();
       return;
     }
+  }
+
+  function pdfMaterialNote(): void {
+    const key = 'formsld.pdfAsMaterial';
+    try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch { }
+    toast('PDFs open as material for a new deck. To edit a PDF itself, use formpdf.');
   }
 
   async function openPaths(paths: string[]): Promise<void> {
