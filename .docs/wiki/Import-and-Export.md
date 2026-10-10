@@ -8,7 +8,7 @@
 
 ## Slides from PDF pages
 
-Insert > Slides from PDF Pages adds one slide per page of a PDF after the current slide: the page as a picture fitted to the slide, its text in the speaker notes, all in one undo step (`backend/app/services/pdf_pages.py`, `frontend/src/editor/editor.ts insertPdfPages`). A PDF opened or dropped anywhere else goes to Start from your material and becomes editable slides. Editing PDFs themselves is [formpdf](https://github.com/nodemode-ai/formpdf)'s job.
+Insert > Slides from PDF Pages adds one slide per page of a PDF at the end of the deck: the page as a picture fitted to the slide, its text in the speaker notes, all in one undo step (`backend/app/services/pdf_pages.py`, `frontend/src/editor/editor.ts insertPdfPages`). A PDF opened or dropped anywhere else goes to Start from your material and becomes editable slides. Editing PDFs themselves is [formpdf](https://github.com/nodemode-ai/formpdf)'s job.
 
 ## PDF and pictures
 

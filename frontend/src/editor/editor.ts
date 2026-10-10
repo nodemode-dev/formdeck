@@ -346,16 +346,16 @@ export class Editor {
     if (this.holderKind !== 'slide') return;
     const f = file ?? await this.pickPdfPages();
     if (!f) return;
-    toast(`Reading the pages of ${f.name}`);
     let got;
-    try { got = await api.pdfPages(f); } catch (e) { toast(`Could not read ${f.name}: ${e instanceof Error ? e.message : e}`, 'error'); return; }
+    document.body.style.cursor = 'progress';
+    try { got = await api.pdfPages(f); } catch (e) { toast(`Could not read ${f.name}: ${e instanceof Error ? e.message : e}`, 'error'); return; } finally { document.body.style.cursor = ''; }
     const deck = this.doc.deck;
     const layout = deck.layouts.find((l) => l.semantic === 'blank') ?? deck.layouts.find((l) => l.semantic === 'titleOnly') ?? deck.layouts[0];
     if (!layout || !got.slides.length) return;
     const used = this.doc.usedIds();
     const ops: Op[] = [];
     const ids: string[] = [];
-    let at = this.slide ? this.doc.slideIndex(this.slide.id) + 1 : deck.slides.length;
+    let at = deck.slides.length;
     const W = deck.size.w, H = deck.size.h;
     for (const p of got.slides) {
       const m = p.media;
@@ -370,8 +370,7 @@ export class Editor {
       ids.push(sid);
     }
     if (!this.apply(ops, got.slides.length > 1 ? 'Slides from PDF pages' : 'Slide from a PDF page')) return;
-    this.setSlideSelection(ids, ids[0]);
-    toast(`Added ${ids.length} slide${ids.length === 1 ? '' : 's'} from ${got.name}${got.truncated ? ` (the first ${ids.length} of ${got.pages} pages)` : ''}. Each page's text is in its speaker notes.`);
+    toast(`Added ${ids.length} slide${ids.length === 1 ? '' : 's'} from ${got.name} at the end of the deck${got.truncated ? ` (the first ${ids.length} of ${got.pages} pages)` : ''}. Each page's text is in its speaker notes.`);
   }
 
   copy(cut = false): void {
