@@ -1,0 +1,24 @@
+.fs-icons { display: grid; gap: var(--space-3); min-width: 0; }
+.fs-icons-bar { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.fs-icons-search { flex: 1 1 auto; min-width: 0; }
+.fs-icons-style { flex: none; }
+.fs-icons-style button { min-width: 72px; }
+.fs-icons-main { display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: var(--space-3); height: 420px; min-width: 0; }
+.fs-icons-cats { display: flex; flex-direction: column; gap: 1px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.fs-icons-cat { display: flex; align-items: center; flex: none; height: 28px; padding: 0 10px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--fs-12); text-align: left; cursor: pointer; }
+.fs-icons-cat:hover { background: var(--surface-1); color: var(--text-primary); }
+.fs-icons-cat.is-on { background: var(--accent-soft); color: var(--text-primary); }
+.fs-icons-cat[hidden] { display: none; }
+.fs-icons-cat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-icons-scroll { position: relative; min-height: 0; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-2); border-radius: var(--radius-md); background: var(--surface-field); contain: strict; }
+.fs-icons-sizer { position: relative; min-height: 100%; }
+.fs-icons-cell { position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-primary); cursor: pointer; }
+.fs-icons-cell:hover { background: var(--surface-1); }
+.fs-icons-cell.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.fs-icons-cell:focus-visible { outline: 2px solid var(--accent-color); outline-offset: -2px; }
+.fs-icons-cell > svg { pointer-events: none; }
+.fs-icons-cell[hidden], .fs-icons-status[hidden], .fs-icons-empty[hidden] { display: none; }
+.fs-icons-status, .fs-icons-empty { position: absolute; top: 50%; left: 0; right: 0; margin: 0; transform: translateY(-50%); text-align: center; pointer-events: none; }
+.fs-icons-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-width: 0; }
+.fs-icons-count { font-variant-numeric: tabular-nums; }
+.fs-icons-credit { color: var(--text-muted); }
