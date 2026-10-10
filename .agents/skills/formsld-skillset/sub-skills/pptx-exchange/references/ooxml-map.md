@@ -69,6 +69,8 @@ Speaker notes use the notes slide. Transitions map to `p:transition` (fade, push
 
 - Animations: not imported (warning) and not exported.
 - Embedded fonts: not imported (warning) and not written.
-- Multiple masters: the theme comes from the first.
+- Multiple masters: one master part and one theme part per master, written by `writer.py _add_master_part` and read by `reader.py _load_theme`; `preserve` round-trips.
+- Equations: `a14:m` with `m:oMath` or `m:oMathPara` in `mc:AlternateContent` with a picture fallback (`services/pptx/omml.py`, `math_picture.py`); read back from the Choice as LaTeX.
+- Media: `p14:trim`, `p14:fade`, `p14:bmkLst`, and `vol`, `mute`, `repeatCount`, `fill`, `fullScrn` on the media timing node (`write_media.py media_settings`, `read_media.py`, `write_anim.py _media_nodes`); trim end needs the clip length (`av_probe.py`).
 - Built-in stats layout named "Statistics" re-imports without the stats semantic (the strong name rule matches it to bigNumber first).
-- WordArt warps are approximated with a font size; ink is skipped; OLE objects import as preview pictures.
+- Ink is skipped; OLE objects import as preview pictures. WordArt round-trips: `a:prstTxWarp` (`services/pptx/text_fx.py read_warp`, `warp_element`) and run `a:ln`, gradient or no fill and `a:effectLst` (`read_run_fx`, `append_run_fx`); text reflection distance and bevel or 3-D text are not kept.

@@ -13,7 +13,7 @@ Move decks between formsld and PowerPoint (and Google Slides through pptx) witho
 
 | Path | Role |
 | --- | --- |
-| `services/pptx/reader.py` | `read_pptx(source, media, as_template)`: package, theme, first master (warns on more), layouts, slides, deck warnings (animations, embedded fonts), `meta.importWarnings` |
+| `services/pptx/reader.py` | `read_pptx(source, media, as_template)`: package, every master with its own theme (`_load_theme`, `_use_theme`), layouts, slides, deck warnings (animations, embedded fonts), `meta.importWarnings` |
 | `services/pptx/read_context.py` | `ReadContext` (media, ids, warnings, group fill, part) and `Transform` for group coordinates |
 | `services/pptx/read_layouts.py` | `assign_semantics` (type map, strong and weak name rules, structural guess; each semantic used once), `assign_slots`, `match_layout_ph` |
 | `services/pptx/read_elements.py` | shapes, connectors, pictures (crop, masks, linked or legacy media to poster), groups, graphic frames (tables, charts, SmartArt as groups, OLE as preview pictures) |
@@ -30,7 +30,7 @@ Move decks between formsld and PowerPoint (and Google Slides through pptx) witho
 - Lengths convert with `emu_pt` and 12,700 EMU per point; angles in 60,000ths and adjust values in the file convention stay as FORMAT.md describes.
 - Layout semantics are assigned once per semantic per master; rules live in `read_layouts.py` and decide which imported layouts the compiler can target.
 - Export writes placeholders that reference real layout placeholders, so PowerPoint's Reset slide and layout switching work.
-- Not round-tripped today: animations (dropped on import with a warning, not written), embedded fonts (not written; open fonts substituted when missing), multiple masters (only the first theme).
+- Not round-tripped today: animations (dropped on import with a warning, not written), embedded fonts (not written; open fonts substituted when missing), bevel and 3-D text. OpenDocument .odp and .otp go through `services/odp/` (`OdpWriter`, `OdpReader`), not this package.
 - `.fsld` writers store `mimetype` first and uncompressed; readers ignore unknown files.
 
 ## Procedure

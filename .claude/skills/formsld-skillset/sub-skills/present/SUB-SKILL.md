@@ -16,6 +16,7 @@ Present a deck with no blank frames, no layout jumps and both windows in sync, e
 | `present/show.ts` | `Show` class: shell, layers, slide cache, step list per slide (`buildSteps` from animations and paragraphs), navigation (next, prev, jump, grid), modes (pointer, pen, eraser, laser), black screen, auto-advance and rehearsal, media playback, keyboard map, presenter UI (current, next, notes, timers, Swap displays), audience boot; `startShow(opts)`, `bootAudience()` |
 | `present/effects.ts` | `effectName`, `effectSeconds`, `effectFx` (keyframes per effect and direction), `transitionPlan(type, dir)`, `morph(fromView, toView, deck, a, b, dur)`, easing constants, `HOLD` effects |
 | `present/steps.ts`, `recorder.ts`, `captions.ts`, `video-export.ts`, `show-dialogs.ts`, `show-commands.ts` | build steps and motion offsets, narration recording, live captions, video and GIF export, Set Up Show and Custom Shows, the Present menu commands |
+| `present/media-play.ts` | `preparePlayback`: trim, fades, volume and mute, loop, rewind to the poster, hide while not playing, full screen; click-sequence clips are extra steps after the animations (`show.ts stepsFor`, `stepMedia`), Alt+End and Alt+Home jump between bookmarks |
 | `src/main.ts` | `?audience=1` boots the audience window |
 | `src-tauri/src/main.rs` `open_presenter` | the desktop audience window |
 | `styles/present.css` | show, presenter and audience styles |

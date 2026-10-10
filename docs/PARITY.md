@@ -17,13 +17,13 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides formsld 0.6.0 
 | --- | --- | --- | --- |
 | File and templates | 8 of 8 · 100% | 8 of 8 · 100% | 8 of 8 · 100% |
 | Slides and layouts | 10 of 10 · 100% | 10 of 10 · 100% | 7 of 7 · 100% |
-| Masters and themes | 2.5 of 3 · 83% | 1 of 1 · 100% | 2.5 of 3 · 83% |
-| Text | 9.5 of 12 · 79% | 8.5 of 11 · 77% | 8.5 of 9 · 94% |
-| Shapes and drawing | 6.5 of 7 · 93% | 6.5 of 7 · 93% | 6 of 6 · 100% |
-| Pictures and media | 5.5 of 8 · 69% | 5.5 of 8 · 69% | 5.5 of 8 · 69% |
+| Masters and themes | 3 of 3 · 100% | 1 of 1 · 100% | 3 of 3 · 100% |
+| Text | 11 of 12 · 92% | 10 of 11 · 91% | 8.5 of 9 · 94% |
+| Shapes and drawing | 7 of 7 · 100% | 7 of 7 · 100% | 6 of 6 · 100% |
+| Pictures and media | 6.5 of 8 · 81% | 6.5 of 8 · 81% | 6.5 of 8 · 81% |
 | Tables | 3 of 3 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
 | Charts | 4 of 5 · 80% | 3 of 3 · 100% | 4 of 5 · 80% |
-| Diagrams and SmartArt | 0.5 of 2 · 25% | 0 of 1 · 0% | 0.5 of 1 · 50% |
+| Diagrams and SmartArt | 1 of 2 · 50% | 0.5 of 1 · 50% | 0.5 of 1 · 50% |
 | Arrange and align | 7 of 7 · 100% | 7 of 7 · 100% | 5 of 5 · 100% |
 | Transitions | 3 of 3 · 100% | 3 of 3 · 100% | 2 of 2 · 100% |
 | Animations | 4 of 4 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
@@ -31,30 +31,29 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides formsld 0.6.0 
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Collaboration and sharing | 1.5 of 4 · 38% | 1.5 of 4 · 38% | 0.5 of 3 · 17% |
 | Accessibility | 2 of 4 · 50% | 0.5 of 2 · 25% | 0.5 of 2 · 25% |
-| Import and export | 6 of 8 · 75% | 5 of 5 · 100% | 6 of 7 · 86% |
+| Import and export | 7 of 8 · 88% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Automation and agents | 1 of 3 · 33% | 0.5 of 1 · 50% | 1 of 3 · 33% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **85.5 of 104 · 82.2%** | **77 of 88 · 87.5%** | **74.5 of 88 · 84.7%** |
+| **Overall** | **90.5 of 104 · 87.0%** | **80.5 of 88 · 91.5%** | **77 of 88 · 87.5%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where formsld leads), formsld has 88 full, 11 partial and 13 none: 93.5 of 112 points, 83.5%.
+Across all 112 scored rows (the union of the three products plus the rows where formsld leads), formsld has 93 full, 11 partial and 8 none: 98.5 of 112 points, 87.9%.
 
 ## Where formsld leads
 
 Rows formsld implements that the product does not offer:
 
 - **Over PowerPoint (8 rows):** per-slide review status, comparing a deck with a saved version or another file, and six agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, and a headless `build-deck` command.
-- **Over Keynote (19 rows):** the same 8, plus theme colours and fonts changed deck-wide, several masters in the model, shrink-to-fit autofit, charts and animations that stay native in .pptx, diagram layouts from a script, live captions, the Check Deck accessibility checker and reading order, outline export as text, and raw ops for scripting.
-- **Over Google Slides (20 rows):** the same 8, plus sections, outline view, reset slide, text columns, edit points, object lock, the selection pane with reading order, morph, motion paths, local files that work offline and the Check Deck accessibility checker.
+- **Over Keynote (20 rows):** the same 8, plus theme colours and fonts changed deck-wide, several masters in one deck, shrink-to-fit autofit, charts and animations that stay native in .pptx, diagram layouts from a script, live captions, the Check Deck accessibility checker and reading order, OpenDocument .odp, outline export as text, and raw ops for scripting.
+- **Over Google Slides (23 rows):** the same 8, plus sections, outline view, reset slide, text columns, WordArt and text effects, equations, edit points and merge shapes, an icon library, object lock, the selection pane with reading order, morph, motion paths, local files that work offline and the Check Deck accessibility checker.
 - **Drafting from material:** PowerPoint (Copilot), Keynote and Google Slides (Gemini) all draft decks, so this row scores against them, but formsld does it locally from md, pdf, docx, pptx, csv, xlsx, pictures and notes in one dialog (`backend/app/services/autodraft.py draft`), with no model and no account, and hands the same intake to an outside agent. A PDF opened or dropped in formsld lands in that dialog as material, and Insert > Slides from PDF Pages turns each page into a slide.
 
 ## Where formsld trails most
 
 - **Collaboration and sharing, 1.5 of 4.** Windows and agents co-edit live on one computer; there are no share links, no publishing to the web and no co-editing across machines.
-- **Diagrams and SmartArt, 0.5 of 2.** The compiler draws timelines, processes, teams and stats from a script, but there is no SmartArt editor and no icon or 3-D model library.
+- **Diagrams and SmartArt, 1 of 2.** The compiler draws timelines, processes, teams and stats from a script and Insert > Icons has 5,817 icons, but there is no SmartArt editor and no 3-D models.
 - **Accessibility, 2 of 4 against PowerPoint.** Check Deck and the reading order view work; the window's own screen reader labels are incomplete and exported PDFs are untagged.
-- **Masters and themes, 2.5 of 3.** View, Slide Master edits the master and each layout (placeholders, background, hide graphics, insert, duplicate, rename, delete, reorder); a deck still carries one master.
-- **Pictures and the rest.** No stock or AI pictures, no video trim control, no merge shapes, no tagged PDF, and captions need Chrome or Edge.
+- **Pictures and the rest.** No stock photos or AI pictures, no bevel or 3-D text, no charts linked to a live workbook, no fonts embedded in .pptx, no tagged PDF, and captions need Chrome or Edge.
 
 Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slide Clean Up layout suggestions, PowerPoint Speaker Coach, a live camera on slides (PowerPoint Cameo, Keynote live video), nonlinear zoom and linked navigation (PowerPoint Zoom, Keynote linked objects), and Keynote's multipresenter and FaceTime presenting.
 
@@ -94,7 +93,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 | --- | --- | --- | --- | --- | --- |
 | Theme colours and fonts | yes | no | yes | Full | `inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme` |
 | Edit slide masters and layouts | yes | yes | yes | Full | View > Slide Master (`editor/master-view.ts`, `engine/holders.ts`, `ops.ts setHolderResolver`): edit master and layout elements, placeholders, level styles, backgrounds; insert, duplicate, rename, delete and drag to reorder layouts (`filmstrip.ts dragLayout`); slides update live |
-| Several masters in one deck | yes | no | yes | Partial | `model.ts Deck.masters` is a list, but `services/pptx/reader.py` keeps the first master's theme and warns |
+| Several masters in one deck | yes | no | yes | Full | `engine/resolve.ts themedDeck` renders each slide in its master's theme; `editor/master-view.ts registerMasterCommands` inserts, duplicates, deletes and preserves masters; `services/pptx/writer.py _add_master_part` and `reader.py _load_theme` round-trip one theme part per master; MCP `masters` |
 
 ### Text
 
@@ -110,8 +109,8 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 | Hyperlinks | yes | yes | yes | Full | Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py` |
 | Find and replace | yes | yes | yes | Full | `dialogs-insert.ts FindPanel` (match case, whole word) |
 | Spell check | yes | yes | yes | Partial | browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings |
-| WordArt and text effects | yes | yes | no | None | `pptx/read_elements.py` approximates WordArt with a font size |
-| Equations | yes | yes | no | None | nothing found |
+| WordArt and text effects | yes | yes | no | Partial | `render/text-fx.ts drawTextFx, paintTfx` (text fill, outline, shadow, glow, reflection, all 40 transforms), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; no bevel, 3-D text or picture fill |
+| Equations | yes | yes | no | Full | `editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras` |
 
 ### Shapes and drawing
 
@@ -122,7 +121,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 | Shape fill and outline colour | yes | yes | yes | Full | `commands.ts colorOps`, `frontend/src/ui/colorpop.ts pickColor` |
 | Shape effects: shadow, glow, soft edge, reflection | yes | yes | yes | Full | `inspector.ts` Effects: shadow presets, glow, reflection (`slide.ts boxStyle`), soft edges for shapes and pictures; round-tripped in `pptx/write_style.py` |
 | Freeform and scribble drawing | yes | yes | yes | Full | `editor/draw-tool.ts DrawTool` (freeform, scribble), `engine/geometry/path.ts fitCurve`; `pathSize` keeps outlines through resizing; `pptx/geom.py svg_to_cust_geom` |
-| Edit points and merge shapes | yes | yes | no | Partial | `editor/points-edit.ts PointsEdit` (move, add, delete, smooth, straight, corner, open and close path); no merge shapes |
+| Edit points and merge shapes | yes | yes | no | Full | `editor/points-edit.ts PointsEdit` (move, add, delete, smooth, straight, corner, open and close path); `editor/merge-shapes.ts mergeShapes` (Union, Combine, Fragment, Intersect, Subtract over `engine/geometry/boolean.ts mergeRegions`) |
 | Smart guides and snapping | yes | yes | yes | Full | `editor/stage.ts snap`: smart guides, guides and the grid; Alt-drag skips snapping |
 
 ### Pictures and media
@@ -133,8 +132,8 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 | Crop and crop to shape | yes | yes | yes | Full | `inspector.ts` Crop (left, right, top, bottom), Fit (fill, fit, stretch) and Shape mask (square, round, circle); no drag crop handles |
 | Picture adjustments | yes | yes | yes | Full | `inspector.ts` Brightness, Contrast, Saturation, Blur, Grayscale and Reset picture |
 | Generate or edit pictures with AI | yes | yes | yes | None | nothing found |
-| Stock pictures and icons library | yes | yes | yes | None | nothing found |
-| Video and audio with start, end, loop and autoplay | yes | yes | yes | Partial | `editor.ts pickImage` inserts media, `present/show.ts` plays start, end and loop; no trim UI |
+| Stock pictures and icons library | yes | yes | yes | Partial | `ui/dialogs-icons.ts IconsDlg` offline library of 5,817 icons with search, categories and recents; no stock photos |
+| Video and audio with start, end, loop and autoplay | yes | yes | yes | Full | `editor/media-panel.ts MediaPanel`, `ui/dialogs-media.ts MediaDlg` (trim, frame stepping, poster frame, bookmarks), `present/media-play.ts preparePlayback` (fades, volume, mute, rewind, hide, full screen), `show.ts stepsFor` (click sequence), `pptx/write_media.py media_settings` and `read_media.py` (p14:trim, p14:fade, p14:bmkLst, vol, mute, repeatCount, fill, fullScrn) |
 | Animated GIFs | yes | yes | yes | Full | rendered as images; `pptx/write_context.py NATIVE_IMAGE_MIMES` keeps GIF bytes |
 | Alt text | yes | yes | yes | Full | `dialogs-insert.ts AltDlg`, `inspector.ts` Alt text |
 
@@ -161,7 +160,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 | Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Diagram layouts (process, timeline, cycle, hierarchy) | yes | no | yes | Partial | timeline, process, team and stats drawn by `backend/app/services/compiler/compile.py` from a script; SmartArt imports as a group (`read_elements.py`); no diagram editor |
-| Icons and 3D models | yes | yes | no | None | nothing found |
+| Icons and 3D models | yes | yes | no | Partial | `ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; no 3D models |
 
 ### Arrange and align
 
@@ -242,7 +241,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 | PDF export with searchable text and a slide outline | yes | yes | yes | Full | `frontend/src/automation/agent-bridge.ts exportRaster`, `routers/exports.py compose` |
 | Slides as PNG or JPEG | yes | yes | yes | Full | `frontend/src/render/raster.ts rasterSlide`, `ExportDialog` |
 | Export video or animated GIF | yes | yes | yes | Full | `present/video-export.ts renderFrames, recordVideo` (MP4 or WebM with narration, builds as steps, fades), `routers/exports.py gif_bytes` |
-| OpenDocument .odp | yes | no | yes | None | nothing found |
+| OpenDocument .odp | yes | no | yes | Full | `services/odp/writer.py OdpWriter` (ODF 1.3, schema-valid) and `odp/reader.py OdpReader`, `routers/decks.py export_bytes, import_bytes`, `ui/dialogs-file.ts EXPORTS.odp`, `src-tauri/tauri.conf.json fileAssociations` |
 | Embed fonts in .pptx | yes | no | no | None | README Known gaps; `reader.py` warns embedded fonts are not imported |
 | Export the outline as text | yes | no | yes | Full | File > Export > Outline as .txt or .rtf with levels and notes (`routers/exports.py outline_bytes`), MCP `export_deck` txt and rtf |
 

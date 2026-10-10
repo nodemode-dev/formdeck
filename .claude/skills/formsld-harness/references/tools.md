@@ -9,7 +9,7 @@ The 24 tools of the formsld MCP server (engine 0.2.0), taken from a live `tools/
 - Material: ingest, get_source, add_media
 - Build: draft_spec, build_deck, add_slides
 - Fix: update_slide, set_text, edit_elements, apply_ops, slides, animate
-- Style: apply_template, set_theme
+- Style: apply_template, set_theme, masters
 - Hand over: review, comments, undo, export_deck, open_file
 - Resources and prompt
 
@@ -105,12 +105,14 @@ Returns: `Slide 6 rebuilt: ...` or `Slide 6 layout comparison: ...`, empty place
 - deck, slide, element, text (all required)
 - element: an element id or a slot (title, subtitle, body, body2, caption, kicker, number, quote, by, heading, heading2, stat1, label1...)
 - text: inline markdown; `- ` lines are bullets, two spaces per level; `**bold**`, `*italic*`, links work
+- equations are LaTeX: `\( \frac{a}{b} \)` inside a line is an inline equation run; a line that is only `$$ \sum_{i=1}^{n} i $$` (or `\[ ... \]`) is a centred display equation. Single `$` is left alone, so prices stay text. Equations take the run's size and colour, export to PowerPoint as native equations and stay editable in the window
 Returns: `Set e88 on slide 5 (3 paragraphs).` Structured `{element}`. Refuses images, tables, charts and groups.
 
 ### edit_elements
 - deck, slide, changes (all required)
 - changes: array of `{op: "add", element, index?}`, `{op: "update", id, set: {key: value}}` (null removes a key), `{op: "delete", id}`, `{op: "z", id, to: front|back|forward|backward}`
 Returns: `Slide 4: updated e86 (fit).` An added image takes `src` as an asset id, media id or absolute path; an added shape defaults to a centred half-slide `rect`.
+- WordArt on update: `warp` is a transform preset (`textArchUp`, `textArchDown`, `textCircle`, `textButton`, `textWave1`, `textWave2`, `textInflate`, `textDeflate`, `textSlantUp`, `textSlantDown`, `textTriangle`, `textChevron`, `textCanUp` and the rest of PowerPoint's 40), `{preset, adj}` or null; `textEffects` is `{fill, ln, fx, color}` set on every run (`fill` solid, gradient or `{type: "none"}`; `ln` an outline `{color, width, dash}`; `fx` `{shadow, glow, reflection}`; null removes a key, `textEffects: null` clears them). get_deck detail text shows a warped element as `[shape textArchUp]`.
 
 ### apply_ops
 - deck, ops (required); label: string
@@ -146,7 +148,15 @@ Returns: `Applied boardroom · d_... · 9 slides` and a lint summary. Content st
 - deck (required)
 - colors: `{accent1: "#C2410C", dk1: ...}` (dk1, lt1, dk2, lt2, accent1 to accent6, hlink, folHlink; tx1, bg1, tx2, bg2 alias)
 - fonts: `{major: "Inter", minor: "Inter"}` (major titles, minor body)
+- master: id, name or number of the slide master to change (default the first); each master has its own theme
 Returns: the resulting accents, dk1, lt1 and fonts.
+
+### masters
+- deck (required)
+- action: list (default) | add | duplicate | rename | delete | preserve
+- template: for add, a template id whose master, layouts and theme are added beside the current design; without it add makes a blank master
+- master: id, name or number for duplicate, rename, delete and preserve; name: the new name for add or rename
+Returns: the masters with their layouts and themes. Deleting a master moves its slides to matching layouts of the first remaining master; preserved masters stay when apply_template runs.
 
 ## Hand over
 
@@ -164,7 +174,7 @@ Returns: list gives `N open, M resolved` then `c1 · slide 4 (s3) · author (kin
 Returns: `Undo Agent: theme (11 steps) · deck now 8 slides`. Refuses when the newest change is the person's. There is no redo tool.
 
 ### export_deck
-- deck, format (required): pptx | potx | fsld | pdf | png | gif | txt | rtf
+- deck, format (required): pptx | potx | odp | fsld | pdf | png | gif | txt | rtf
 - path: absolute file or existing folder (default the Exports folder in the formsld data folder)
 - slides: array (pdf, png and gif)
 - notes: boolean, txt and rtf include the speaker notes

@@ -75,12 +75,12 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 
 | Menu | Holds |
 | --- | --- |
-| File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, PDF, Pictures, formsld file, Video, Animated GIF, Outline as Text, Outline as Rich Text), Print or Save as PDF, Delete Deck |
+| File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, OpenDocument Presentation, PDF, Pictures, formsld file, Video, Animated GIF, Outline as Text, Outline as Rich Text), Print or Save as PDF, Delete Deck |
 | Edit | Undo, Redo, Undo Agent Turn, Cut, Copy, Paste, Duplicate, Delete, Select All, Find and Replace |
 | View | Normal, Slide Sorter, Outline, Slide Master, zoom, Ruler, Gridlines, Guides, Grid and Guides, show or hide the slides panel, properties panel and speaker notes |
-| Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Connector, Freeform and Scribble, Table, Table (rows, columns, merge, split, distribute, header and banded rows), Chart, Slides from PDF Pages, Link, New Comment |
-| Format | Bold, Italic, Underline, Strikethrough, Superscript, Subscript, All Caps, Small Caps, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Alt Text, Edit Points, Table Style, Table Borders |
-| Slide | New, Duplicate, Delete, Hide Slide, Layout, Reset Slide, Format Background, Change Template, Slide Size, Add Section, Rename Section |
+| Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Connector, Freeform and Scribble, Table, Table (rows, columns, merge, split, distribute, header and banded rows), Chart, WordArt, Equation, Icons, Slides from PDF Pages, Link, New Comment |
+| Format | Bold, Italic, Underline, Strikethrough, Superscript, Subscript, All Caps, Small Caps, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Text Effects, Transform Text, Clear Text Effects, Alt Text, Edit Points, Merge Shapes (Union, Combine, Fragment, Intersect, Subtract), media Playback (Trim, Poster Frame), Table Style, Table Borders |
+| Slide | New, Duplicate, Delete, Hide Slide, Layout (grouped by master), Reset Slide, Format Background, Change Template, Slide Size, Add Section, Rename Section; in Master view also Insert Slide Master, Insert Slide Master from Template, Duplicate, Delete and Preserve Master |
 | Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock, Selection Pane |
 | Review | Check Deck, Activity, Compare, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
 | Present | From Beginning, From Current Slide, Presenter View, Custom Shows, Set Up Show, Record, Clear timings and narration |
@@ -108,6 +108,14 @@ Use the toolbar or Format menu for font, size, bold, italic, underline, striketh
 
 **Links** (Insert > Link or Mod+K): while typing, select some text and link it to a web address or to a slide in the deck; with an object selected instead, the whole object becomes the link. Remove link takes it off. Links are followed in the slideshow and kept in PowerPoint files.
 
+**WordArt** (Insert > WordArt, or the WordArt button on the toolbar): click a style. A text box appears in the middle of the slide with "Your text here" selected; type your words, then press Esc. Styles use your theme colours, so they change with the template.
+
+**Text effects** (the Text effects section of the Format tab): select a text box, or select some words while typing. Text fill sets solid, gradient (two colours and a direction) or no fill for outlined letters; Outline sets a solid or dashed line around the letters, with colour and width; Shadow, Glow and Reflection add those effects. WordArt styles applies a whole look at once, and Clear text effects removes everything. The Text effects button on the toolbar opens the styles together with the transforms.
+
+**Transform** (Transform in the Text effects section, or Format > Transform Text): pick a shape. Follow-path shapes (Arch up, Arch down, Circle, Button) bend each line along a curve and keep its size; warp shapes (Square, Wave, Inflate, Slant, Chevron, Can and the rest) stretch the text to fill the shape, so resizing the box reshapes the words. Drag the pink diamond, or use the Amount sliders, to bend it more or less. While you type, the text shows flat with its effects. No transform puts it back. WordArt, effects and transforms travel to PowerPoint as native WordArt.
+
+**Equations** (Insert > Equation, Alt+=, or Equation on the toolbar): type LaTeX such as `\frac{a+b}{2}`, or switch to Linear and type `(a+b)/2`; the preview updates as you type, and a mistake is described under it. Click a structure (fraction, script, radical, integral, large operator, bracket, function, accent, limit, matrix) to see its variants and click one to insert it at the cursor; selected text goes into its first slot. Symbols are grouped below. While you are typing in a text box, the equation goes in at the cursor and takes that text's size and colour; otherwise formsld adds a new equation box. Tick "Display equation on its own line" for a centred display equation. Double-click an equation to change it. Equations travel to PowerPoint as real equations PowerPoint can edit; Keynote, Google Slides and LibreOffice show the picture PowerPoint files carry with them.
+
 ### Shapes
 
 Insert > Shapes (or the toolbar) opens the shape gallery in PowerPoint's groups and names, plus More Shapes for the rest of the 187 Office presets; click one to place it in the middle of the slide. Each shape is drawn from the published Office Open XML definitions, so it looks and adjusts exactly as it does in PowerPoint; drag a yellow handle to change its corners, arrowheads or callout tail. Line and Arrow draw a straight line or arrow.
@@ -117,6 +125,10 @@ Insert > Shapes (or the toolbar) opens the shape gallery in PowerPoint's groups 
 - **Connectors** (the Lines group, or Insert > Connector: straight, elbow and curved, each with or without an arrow): drag from one shape to another. Blue dots show where the line can attach and the end snaps to the nearest; a glued end shows a green handle. Move, resize, rotate or flip a shape and its connectors follow. Drag an end away from a shape to detach it, and the yellow handle of an elbow connector to move its middle segment. Connectors stay glued in PowerPoint files.
 
  Fill Colour and Outline Colour offer the theme colours with their tints and shades, standard colours, a custom colour and No fill or No outline. Double-click a shape to type in it. The Effects section of the Format tab adds a shadow (Soft, Below, Hard, Long), a glow (Small, Medium, Large), a reflection (Tight, Half, Full) or soft edges to shapes and pictures.
+
+**Merge Shapes** (Format > Merge Shapes, or right-click with two or more shapes selected): the first shape you click decides the result's colour and outline. Union joins them into one outline; Combine joins them but cuts out where they overlap; Fragment splits them into separate pieces along every edge; Intersect keeps only the overlap; Subtract cuts the other shapes out of the first one. The result is a freeform you can resize or reshape with Edit Points, and Undo takes it back in one step. Pictures, lines, connectors and groups are not merged.
+
+**Icons** (Insert > Icons, or the toolbar): type a word such as chart or rocket, or pick a category, and switch between Filled and Outline. Click icons to select several, then choose Insert; double-click inserts one straight away. Icons you have used appear under Recently used. Each icon is a shape: change its fill or outline colour like any shape, resize it, or use Edit Points to reshape it. The library (5,817 icons) works offline.
 
 ### Pictures
 
@@ -138,7 +150,9 @@ Insert > Chart opens the chart editor: choose Column, Bar, Line, Area, Pie, Doug
 
 ### Video and audio
 
-Insert > Video or Audio places an MP4, WebM or audio file. It plays in the show, honouring start, end, loop and autoplay when the deck sets them.
+Insert > Video or Audio places an MP4, WebM or audio file. Select it and open the Playback section on the Format tab. Trim opens the trim dialog: drag the start and end handles or type the times, click or drag on the timeline to move the playhead, use the frame buttons or the arrow keys to step one frame (Shift steps one second), and press play to check the result; Add bookmark marks the current time. Back in the panel, set Fade in and Fade out in seconds and pick a volume (Low, Medium, High or Mute). Under Start, choose whether the clip plays in the click sequence, automatically when the slide appears, or when it is clicked, then tick Play full screen, Hide while not playing, Loop until stopped or Rewind after playing as needed. In the show, Alt+End and Alt+Home jump between bookmarks.
+
+**Poster frame**: with a video selected, choose Current frame... under Poster frame, find the frame you want and choose Use this frame; Picture... uses an image file instead, and Reset goes back to the first frame. The poster shows on the slide, in thumbnails and exports, and in the show until the video plays. Trim, fades, volume, bookmarks and the start settings are kept in PowerPoint files.
 
 ### Arrange
 
@@ -171,6 +185,8 @@ View > Slide Master edits the design every slide is built on. The slides panel l
 - **A layout** holds its own placeholders and graphics on top of the master's. Hide Background Graphics leaves out the master's graphics on that layout; Format Background sets a background for it alone.
 - **Placeholders**: Slide > Insert Placeholder adds a content, text, picture, chart, table, title, footer, date or slide number placeholder; type in a layout's placeholder to change the prompt text slides show before anything is typed. Shapes, pictures and text boxes inserted here appear on every slide that uses the layout.
 - **Layouts**: Insert Layout, Duplicate Layout, Rename and Delete Layout; drag a layout up or down in the slides panel to reorder it within its master (the order is kept in PowerPoint files). Only a layout no slide uses can be deleted, and a master keeps at least one layout. The Slide tab names the selected layout or master (type to rename it), has the Hide graphics switch for a layout, and says how many slides use it.
+
+- **Several masters**: Slide > Insert Slide Master adds a blank design, and Insert Slide Master from Template brings in another template's master, layouts, colours and fonts. Duplicate Slide Master copies the selected master and its layouts; Delete Slide Master removes it, and slides that used it move to matching layouts of the first remaining master. Preserve Master keeps a master even when no slide uses it (masters you add are preserved), and preserved masters and their slides stay when you apply another template. To change a master's colours or fonts, select it, any of its layouts, or a slide that uses it, and use the Design tab; other masters are not affected. Outside Master view, Change Template has "Add as another slide master and keep the current design". New Slide, Slide > Layout, the toolbar layout list and the layout gallery list layouts under each master's name.
 
 Every change shows on the slides at once and is one undo step. Presenting, review status, comments, sections and the slide sorter are off while the master is open.
 
@@ -229,6 +245,7 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | | Align Left, Center, Align Right, Justify | Mod+L, Mod+E, Mod+R, Mod+J |
 | | Bullets, Numbering | Shift+Mod+8, Shift+Mod+7 |
 | Insert | Link | Mod+K |
+| Insert | Equation (also while typing) | Alt+= |
 | Arrange | Bring to Front, Send to Back | Shift+Mod+], Shift+Mod+[ |
 | | Bring Forward, Send Backward | Mod+], Mod+[ |
 | | Group, Ungroup | Mod+G, Shift+Mod+G |
@@ -293,12 +310,13 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
 
 ## Import, export and print
 
-- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx and .pptm open as decks; a .pdf opens Start from your material with the PDF attached. A toast lists anything PowerPoint content formsld could not keep (for example ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx) opens it in the editor; the desktop app does not register for .pdf files.
+- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx, .pptm, .odp and .otp open as decks (Save writes an .odp back to its file); a .pdf opens Start from your material with the PDF attached. A toast lists anything PowerPoint content formsld could not keep (for example ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx) opens it in the editor; the desktop app does not register for .pdf files.
 - **Slides from PDF pages** (Insert > Slides from PDF Pages): one picture slide per PDF page with the page text in the notes (see PDFs in formsld).
 - **Google Slides**: download your presentation as .pptx and open it; to go back, export .pptx and upload it to Drive, then Open with Google Slides.
 - **Export** (File > Export or the Export button):
   - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts are not embedded; the computer that opens it needs the template's fonts or substitutes similar ones.
   - Template (.potx): the masters, layouts, colours and fonts.
+  - OpenDocument Presentation (.odp): for LibreOffice Impress and other OpenDocument apps. It keeps masters and layouts (as master pages), text formatting, bullets and numbering, shapes, freeforms, lines and connectors, pictures with cropping, tables, charts, speaker notes, transitions, hidden slides and comments; equations become formula objects, or readable linear text inside sentences. OpenDocument cannot carry text transparency, soft edges or gradients with more than two colours. In this release an .odp also flattens several masters into one, leaves out WordArt transforms, glow and text outlines, and leaves out media trim, fades and poster frames; the slides still look right, and .pptx keeps all of it.
   - PDF: one page per slide with searchable text and an outline of slide titles. Choose All, Current, Selected or Custom slides (`1-3, 5, 8-`), Standard or High quality, and whether to include hidden slides.
   - PNG or JPEG: the current slide or all slides at 1x, 2x or 3x; several slides arrive as a .zip.
   - formsld (.fsld): one file with every slide, picture and the template.

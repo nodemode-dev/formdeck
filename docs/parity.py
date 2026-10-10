@@ -43,7 +43,7 @@ row(a, "Reset slide to its layout", 1, 1, 0, F, "`commands.ts reset-slide`")
 a = "Masters and themes"
 row(a, "Theme colours and fonts", 1, 0, 1, F, "`inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme`")
 row(a, "Edit slide masters and layouts", 1, 1, 1, F, "View > Slide Master (`editor/master-view.ts`, `engine/holders.ts`, `ops.ts setHolderResolver`): edit master and layout elements, placeholders, level styles, backgrounds; insert, duplicate, rename, delete and drag to reorder layouts (`filmstrip.ts dragLayout`); slides update live")
-row(a, "Several masters in one deck", 1, 0, 1, P, "`model.ts Deck.masters` is a list, but `services/pptx/reader.py` keeps the first master's theme and warns")
+row(a, "Several masters in one deck", 1, 0, 1, F, "`engine/resolve.ts themedDeck` renders each slide in its master's theme; `editor/master-view.ts registerMasterCommands` inserts, duplicates, deletes and preserves masters; `services/pptx/writer.py _add_master_part` and `reader.py _load_theme` round-trip one theme part per master; MCP `masters`")
 
 a = "Text"
 row(a, "Character formatting: font, size, bold, italic, underline, strike, colour, highlight", 1, 1, 1, F, "`commands.ts bold..clear-format`, `toolbar.ts` font and size")
@@ -56,8 +56,8 @@ row(a, "Character spacing, caps, superscript, subscript", 1, 1, 1, F, "Character
 row(a, "Hyperlinks", 1, 1, 1, F, "Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py`")
 row(a, "Find and replace", 1, 1, 1, F, "`dialogs-insert.ts FindPanel` (match case, whole word)")
 row(a, "Spell check", 1, 1, 1, P, "browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings")
-row(a, "WordArt and text effects", 1, 1, 0, N, "`pptx/read_elements.py` approximates WordArt with a font size")
-row(a, "Equations", 1, 1, 0, N, "nothing found")
+row(a, "WordArt and text effects", 1, 1, 0, P, "`render/text-fx.ts drawTextFx, paintTfx` (text fill, outline, shadow, glow, reflection, all 40 transforms), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; no bevel, 3-D text or picture fill")
+row(a, "Equations", 1, 1, 0, F, "`editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras`")
 
 a = "Shapes and drawing"
 row(a, "Preset shapes gallery", 1, 1, 1, F, "`frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop`")
@@ -65,7 +65,7 @@ row(a, "Lines, arrows and connectors", 1, 1, 1, F, "Straight, elbow and curved c
 row(a, "Shape fill and outline colour", 1, 1, 1, F, "`commands.ts colorOps`, `frontend/src/ui/colorpop.ts pickColor`")
 row(a, "Shape effects: shadow, glow, soft edge, reflection", 1, 1, 1, F, "`inspector.ts` Effects: shadow presets, glow, reflection (`slide.ts boxStyle`), soft edges for shapes and pictures; round-tripped in `pptx/write_style.py`")
 row(a, "Freeform and scribble drawing", 1, 1, 1, F, "`editor/draw-tool.ts DrawTool` (freeform, scribble), `engine/geometry/path.ts fitCurve`; `pathSize` keeps outlines through resizing; `pptx/geom.py svg_to_cust_geom`")
-row(a, "Edit points and merge shapes", 1, 1, 0, P, "`editor/points-edit.ts PointsEdit` (move, add, delete, smooth, straight, corner, open and close path); no merge shapes")
+row(a, "Edit points and merge shapes", 1, 1, 0, F, "`editor/points-edit.ts PointsEdit` (move, add, delete, smooth, straight, corner, open and close path); `editor/merge-shapes.ts mergeShapes` (Union, Combine, Fragment, Intersect, Subtract over `engine/geometry/boolean.ts mergeRegions`)")
 row(a, "Smart guides and snapping", 1, 1, 1, F, "`editor/stage.ts snap`: smart guides, guides and the grid; Alt-drag skips snapping")
 
 a = "Pictures and media"
@@ -73,8 +73,8 @@ row(a, "Insert pictures by file, drop or paste", 1, 1, 1, F, "`editor/editor.ts 
 row(a, "Crop and crop to shape", 1, 1, 1, F, "`inspector.ts` Crop (left, right, top, bottom), Fit (fill, fit, stretch) and Shape mask (square, round, circle); no drag crop handles")
 row(a, "Picture adjustments", 1, 1, 1, F, "`inspector.ts` Brightness, Contrast, Saturation, Blur, Grayscale and Reset picture")
 row(a, "Generate or edit pictures with AI", 1, 1, 1, N, "nothing found")
-row(a, "Stock pictures and icons library", 1, 1, 1, N, "nothing found")
-row(a, "Video and audio with start, end, loop and autoplay", 1, 1, 1, P, "`editor.ts pickImage` inserts media, `present/show.ts` plays start, end and loop; no trim UI")
+row(a, "Stock pictures and icons library", 1, 1, 1, P, "`ui/dialogs-icons.ts IconsDlg` offline library of 5,817 icons with search, categories and recents; no stock photos")
+row(a, "Video and audio with start, end, loop and autoplay", 1, 1, 1, F, "`editor/media-panel.ts MediaPanel`, `ui/dialogs-media.ts MediaDlg` (trim, frame stepping, poster frame, bookmarks), `present/media-play.ts preparePlayback` (fades, volume, mute, rewind, hide, full screen), `show.ts stepsFor` (click sequence), `pptx/write_media.py media_settings` and `read_media.py` (p14:trim, p14:fade, p14:bmkLst, vol, mute, repeatCount, fill, fullScrn)")
 row(a, "Animated GIFs", 1, 1, 1, F, "rendered as images; `pptx/write_context.py NATIVE_IMAGE_MIMES` keeps GIF bytes")
 row(a, "Alt text", 1, 1, 1, F, "`dialogs-insert.ts AltDlg`, `inspector.ts` Alt text")
 
@@ -92,7 +92,7 @@ row(a, "Charts stay native charts in .pptx", 1, 0, 1, F, "`backend/app/services/
 
 a = "Diagrams and SmartArt"
 row(a, "Diagram layouts (process, timeline, cycle, hierarchy)", 1, 0, 1, P, "timeline, process, team and stats drawn by `backend/app/services/compiler/compile.py` from a script; SmartArt imports as a group (`read_elements.py`); no diagram editor")
-row(a, "Icons and 3D models", 1, 1, 0, N, "nothing found")
+row(a, "Icons and 3D models", 1, 1, 0, P, "`ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; no 3D models")
 
 a = "Arrange and align"
 row(a, "Order: bring forward, send backward, to front, to back", 1, 1, 1, F, "`commands.ts bring-front..send-back`, `actions.ts zOrderOps`")
@@ -149,7 +149,7 @@ row(a, "Save .pptx and .potx", 1, 1, 1, F, "`backend/app/services/pptx/writer.py
 row(a, "PDF export with searchable text and a slide outline", 1, 1, 1, F, "`frontend/src/automation/agent-bridge.ts exportRaster`, `routers/exports.py compose`")
 row(a, "Slides as PNG or JPEG", 1, 1, 1, F, "`frontend/src/render/raster.ts rasterSlide`, `ExportDialog`")
 row(a, "Export video or animated GIF", 1, 1, 1, F, "`present/video-export.ts renderFrames, recordVideo` (MP4 or WebM with narration, builds as steps, fades), `routers/exports.py gif_bytes`")
-row(a, "OpenDocument .odp", 1, 0, 1, N, "nothing found")
+row(a, "OpenDocument .odp", 1, 0, 1, F, "`services/odp/writer.py OdpWriter` (ODF 1.3, schema-valid) and `odp/reader.py OdpReader`, `routers/decks.py export_bytes, import_bytes`, `ui/dialogs-file.ts EXPORTS.odp`, `src-tauri/tauri.conf.json fileAssociations`")
 row(a, "Embed fonts in .pptx", 1, 0, 0, N, "README Known gaps; `reader.py` warns embedded fonts are not imported")
 row(a, "Export the outline as text", 1, 0, 1, F, "File > Export > Outline as .txt or .rtf with levels and notes (`routers/exports.py outline_bytes`), MCP `export_deck` txt and rtf")
 

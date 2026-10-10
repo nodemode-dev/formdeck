@@ -18,6 +18,9 @@ Draw any deck identically on the stage, in thumbnails, in the show, in print and
 | `render/paint.ts` | `cssBackground`, `svgFill` (solid, gradient, image, pattern), `svgStroke` (dash, caps, arrowheads), `cssFilter` (shadow, glow, soft edge), `cssColor` |
 | `engine/geometry/presets.ts`, `ooxml-presets.json` | an interpreter for the 187 ECMA-376 preset definitions: guide formulas, paths, text rectangle, connection sites, solved adjust handles (`presetGeometry`, `handleAdjust`, `handleValue`, `isLineGeom`, `PRESET_GROUPS` with PowerPoint's gallery groups plus More Shapes) |
 | `engine/geometry/path.ts`, `connectors.ts` | path parsing, scaling and curve fitting for freeforms; connector routing and connection sites |
+| `engine/resolve.ts` `themedDeck`, `slideTheme`, `masterOfSlide` | each slide renders in its own master's theme (shallow deck copy per update) |
+| `render/text-fx.ts`, `text-warps.json` | WordArt: the SVG glyph overlay over the hidden editable flow (`drawTextFx`), the 40 ECMA text warps, the raster painter (`paintTfx`) |
+| `render/math.ts` | equation runs: stored MathML rendered synchronously (`mathHtml`) through the `safeMathml` whitelist |
 | `render/chart.ts` | `chartSvg(chart, w, h, theme)` for column, bar, line, area, pie, doughnut, scatter, radar, combo; `niceTicks`, `formatValue`, legends |
 | `render/table.ts` | `tableHtml(table, theme, textCtx)` with spans, borders, style bands |
 | `render/fonts.ts` | `FAMILIES` (lazy @fontsource imports), `BUNDLED_FONTS`, `ensureFont(s)`, `fontsOfDeck`, `systemFontsAvailable` |
