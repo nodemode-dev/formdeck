@@ -10,3 +10,4 @@ openpyxl
 pypdfium2
 pdfplumber
 reportlab
+latex2mathml

@@ -4,11 +4,12 @@ from pptx.parts.slide import SlidePart
 
 from .colors import angle_60k
 from .geom import CONNECTOR_GEOMS, PRESET_GEOMS, svg_to_cust_geom
+from .omml import has_math, wrap_math_shape
 from .ooxml import find, make, pt_emu, sub
 from .read_layouts import match_layout_ph
 from .write_chart import chart_graphic_data
 from .write_context import NATIVE_IMAGE_MIMES, to_png
-from .write_media import write_audio
+from .write_media import media_settings, write_audio
 from .write_style import effects_element, fill_element, line_element
 from .write_table import table_graphic_data
 from .write_text import hyperlink_element, text_body_element
@@ -227,6 +228,9 @@ class ElementWriter:
             if self.layout_part and placeholder and text.get("prompt"):
                 text = _with_prompt(text)
             sp.append(text_body_element(text, self.ctx, element_id=el.get("id")))
+            if has_math(text):
+                box = self._effective_frame(el)
+                wrap_math_shape(sp, el, text, (float(box["w"]), float(box["h"])) if box is not None else None, self.ctx)
 
     @staticmethod
     def _is_text_box(el: dict, text) -> bool:
@@ -361,7 +365,7 @@ class ElementWriter:
         if loaded:
             self.ctx.warn(f"{el.get('kind', 'media')} {el.get('src')} ({mime or 'unknown'}) exported as its poster picture")
         if el.get("poster"):
-            self._image({k: v for k, v in el.items() if k not in ("src", "kind", "poster")} | {"type": "image", "src": el["poster"], "fit": "stretch"}, container)
+            self._image({k: v for k, v in el.items() if k not in ("src", "kind", "poster")} | {"type": "image", "src": el["poster"], "fit": "contain"}, container)
 
     def _movie(self, el: dict, container, data: bytes, mime: str) -> None:
         poster = None
@@ -381,6 +385,9 @@ class ElementWriter:
             c_nv_pr.set("name", str(el["name"]))
         if el.get("alt"):
             c_nv_pr.set("descr", str(el["alt"]))
+        for media in pic.nvPicPr.nvPr.iter("{http://schemas.microsoft.com/office/powerpoint/2010/main}media"):
+            media_settings(media, el, self.ctx.media.info(str(el.get("src"))) or {}, data, mime)
+            break
         self.ctx.bump_shape_id(movie.shape_id)
 
 

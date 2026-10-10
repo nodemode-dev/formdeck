@@ -8,6 +8,7 @@ from app import __version__
 APP_NAME = "formsld"
 VERSION = __version__
 FRONTEND_PORT = 5197
+PREVIEW_PORT = 5297
 BACKEND_PORT = 8197
 MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
 MAX_DECK_BYTES = 64 * 1024 * 1024
@@ -86,7 +87,7 @@ def cors_origins() -> list[str]:
     raw = os.environ.get("FORMSLD_CORS_ORIGINS")
     if raw:
         return [o.strip() for o in raw.split(",") if o.strip()]
-    return [f"http://localhost:{FRONTEND_PORT}", f"http://127.0.0.1:{FRONTEND_PORT}", f"http://localhost:{FRONTEND_PORT + 1}", "tauri://localhost", "http://tauri.localhost"]
+    return [f"http://localhost:{FRONTEND_PORT}", f"http://127.0.0.1:{FRONTEND_PORT}", f"http://localhost:{PREVIEW_PORT}", "tauri://localhost", "http://tauri.localhost"]
 
 
 def dist_dir() -> Path | None:

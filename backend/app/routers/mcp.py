@@ -11,6 +11,8 @@ from fastapi import APIRouter, Request, Response
 from app.core import config
 from app.routers.live import local_origin
 from app.services import bridge, compiler, model, templates
+from app.services import equations
+from app.services import text_effects
 from app.services import intake as intake_mod
 from app.services import lint as lintmod
 from app.services import ops as opsmod
@@ -46,7 +48,7 @@ GUIDE = """# formsld authoring guide
 3. draft_spec {intake, template, slides?}: a heuristic first draft as a slide script (about 80 percent there). Edit it: order the story, turn titles into claims, cut to 3 to 6 bullets, choose layouts.
 4. build_deck {script, intake, template}: compiles, stores and opens the deck in the window.
 5. render_slides {deck, slides?} shows contact sheets; lint_deck {deck} lists overflow, contrast, empty placeholders and more, each with a fix.
-6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis, exit and motion path animations per slide), apply_template, set_theme, apply_ops (raw ops).
+6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis, exit and motion path animations per slide), apply_template, set_theme, masters (several slide masters: list, add a template's design beside the current one, duplicate, rename, delete, preserve), apply_ops (raw ops).
 7. review {deck, status: review} hands slides to the person, who approves or asks for changes; comments {action: list} shows what they said.
 undo {deck} reverts your whole last turn (every change you made within 90 seconds of the previous one).
 
@@ -152,9 +154,9 @@ TOOLS = [
     _tool("update_slide", "Rebuilds one slide in place from a script chunk or spec, changes its layout, or sets its notes.",
           {"deck": _DECK, "slide": _SLIDE, "script": _S, "spec": {"type": "object"}, "layout": {"type": "string", "description": "Semantic layout name or layout id"}, "notes": _S, "intake": _S},
           ["deck", "slide"]),
-    _tool("set_text", "Sets one element's text (element id, or a slot: title, subtitle, body, caption...) from inline markdown; '- ' lines are bullets, two spaces per level.",
+    _tool("set_text", "Sets one element's text (element id, or a slot: title, subtitle, body, caption...) from inline markdown; '- ' lines are bullets, two spaces per level. Equations are LaTeX: \\( ... \\) inline in a line, a line of $$ ... $$ (or \\[ ... \\]) is a centred display equation.",
           {"deck": _DECK, "slide": _SLIDE, "element": _S, "text": _S}, ["deck", "slide", "element", "text"]),
-    _tool("edit_elements", "Adds, updates (x, y, w, h, rot, fill, line, alt, text...; null removes a key), deletes or restacks elements on one slide.",
+    _tool("edit_elements", "Adds, updates (x, y, w, h, rot, fill, line, alt, text...; null removes a key; WordArt: warp (a prstTxWarp preset such as textArchUp, textWave1, or {preset, adj}) and textEffects ({fill, ln, fx, color} on every run)), deletes or restacks elements on one slide.",
           {"deck": _DECK, "slide": _SLIDE, "changes": {"type": "array", "items": {"type": "object", "description": "{op: add, element} | {op: update, id, set} | {op: delete, id} | {op: z, id, to: front|back|forward|backward}"}}},
           ["deck", "slide", "changes"]),
     _tool("apply_ops", "Applies raw deck ops (set, ins, del, move; formsld://guide) as one undoable step.", {"deck": _DECK, "ops": {"type": "array", "items": {"type": "object"}}, "label": _S}, ["deck", "ops"]),
@@ -173,17 +175,22 @@ TOOLS = [
            "byParagraph": {"type": "boolean"}, "id": {"type": "string", "description": "Animation id (update, remove, move)"}, "to": {"type": "integer", "description": "1-based position (move, or add)"}},
           ["deck", "slide", "action"]),
     _tool("apply_template", "Restyles a deck with another template, keeping its content.", {"deck": _DECK, "template": _S}, ["deck", "template"]),
-    _tool("set_theme", "Changes theme colours (dk1, lt1, dk2, lt2, accent1..6, hlink as #RRGGBB) or fonts (major titles, minor body).",
-          {"deck": _DECK, "colors": {"type": "object"}, "fonts": {"type": "object", "properties": {"major": _S, "minor": _S}}}, ["deck"]),
+    _tool("set_theme", "Changes theme colours (dk1, lt1, dk2, lt2, accent1..6, hlink as #RRGGBB) or fonts (major titles, minor body); master targets one slide master's theme (default the first).",
+          {"deck": _DECK, "colors": {"type": "object"}, "fonts": {"type": "object", "properties": {"major": _S, "minor": _S}},
+           "master": {"type": "string", "description": "Slide master id (m2) or name; get_deck lists them"}}, ["deck"]),
+    _tool("masters", "Lists a deck's slide masters with their layouts and themes, or adds one (blank, or a template's design kept beside the current one), duplicates, renames, deletes (slides move to matching layouts of the first remaining master) or preserves one.",
+          {"deck": _DECK, "action": {"type": "string", "enum": ["list", "add", "duplicate", "rename", "delete", "preserve"]},
+           "master": {"type": "string", "description": "Master id (m2) or name (duplicate, rename, delete, preserve)"}, "template": {"type": "string", "description": "add: a template id from list_templates (omitted: a blank master)"},
+           "name": _S, "preserve": {"type": "boolean", "description": "preserve: true keeps the master when no slide uses it (default true)"}}, ["deck", "action"]),
     _tool("add_media", "Adds pictures or videos at absolute paths to the media library; returns media ids for scripts and elements.", {"paths": {"type": "array", "items": _S}}, ["paths"]),
     _tool("lint_deck", "Checks a deck (measured in the window when it is open): issues per slide with a fix each, and a score.", {"deck": _DECK, "slides": _SLIDES}, ["deck"], read=True),
     _tool("render_slides", "Contact-sheet images of slides, rendered by the formsld window.", {"deck": _DECK, "slides": _SLIDES, "width": {"type": "integer", "description": "Cell width px (default 320)"}, "cols": _INT},
           ["deck"], read=True),
-    _tool("export_deck", "Writes a deck as pptx, potx, fsld, pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
+    _tool("export_deck", "Writes a deck as pptx, potx, fsld, odp (OpenDocument for LibreOffice Impress), pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
           "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
-          {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fsld", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
+          {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fsld", "odp", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
            "notes": {"type": "boolean"}, "width": _INT}, ["deck", "format"]),
-    _tool("open_file", "Opens a .pptx, .potx or .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
+    _tool("open_file", "Opens a .pptx, .potx, .odp or .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
     _tool("comments", "Lists, adds, replies to or resolves review comments, with @mentions and assignees. list shows each comment's mentions and assignee; "
           "filter mine lists the open comments that mention you or are assigned to you. add and reply read @Name in the text and take mentions and assignee.",
           {"deck": _DECK, "action": {"type": "string", "enum": ["list", "add", "reply", "resolve"]}, "slide": _SLIDE, "element": _S, "text": _S, "id": _S,
@@ -217,6 +224,8 @@ def _mutating(name: str, args: dict) -> bool:
     if name == "review":
         return bool(args.get("status"))
     if name == "animate":
+        return (args.get("action") or "list") != "list"
+    if name == "masters":
         return (args.get("action") or "list") != "list"
     return False
 
@@ -420,12 +429,15 @@ def _abs(raw, must_exist: bool = True) -> Path:
 
 
 def _paras(text: str, title: bool = False) -> list[dict]:
-    raw = str(text or "").replace("\r\n", "\n")
+    raw, found = equations.protect(str(text or "").replace("\r\n", "\n"))
     if title:
-        return tx.single(raw.strip())
+        return [{**p, "runs": equations.restore(p["runs"], found)} for p in tx.single(raw.strip())]
     out = []
     for ln in raw.split("\n"):
         if not ln.strip():
+            continue
+        if equations.display_line(ln) is not None:
+            out.append({"runs": [equations.math_run(equations.display_line(ln), True)], "align": "c", "bullet": {"type": "none"}})
             continue
         m = re.match(r"^(\s*)([-*+•]|\d+[.)])\s+(.*)$", ln)
         if m:
@@ -436,6 +448,8 @@ def _paras(text: str, title: bool = False) -> list[dict]:
             out.append(p)
         else:
             out.append(tx.para(ln.strip(), bullet={"type": "none"}))
+    for p in out:
+        p["runs"] = equations.restore(p["runs"], found)
     return out or [{"runs": [{"t": ""}]}]
 
 
@@ -481,10 +495,14 @@ def _el_text(deck: dict, el: dict) -> str:
     if t == "group":
         return f"{el['id']} [group of {len(el.get('children', []))}]{frame}"
     if t == "media":
-        return f"{el['id']} [{el.get('kind', 'media')}]{frame} {el.get('src')}"
+        play = "auto" if el.get("autoplay") else "click sequence" if el.get("sequence") else "on click"
+        trim = f" trim {el.get('start') or 0:g}-{el['end']:g}s" if isinstance(el.get("end"), (int, float)) else f" from {el['start']:g}s" if el.get("start") else ""
+        flags = [k for k in ("loop", "rewind", "fullScreen", "hideInShow", "muted") if el.get(k)] + [f"{k} {el[k]:g}s" for k in ("fadeIn", "fadeOut") if el.get(k)] + ([f"{len(el['bookmarks'])} bookmarks"] if el.get("bookmarks") else [])
+        return f"{el['id']} [{el.get('kind', 'media')}]{frame} {el.get('src')} plays {play}{trim}{' · ' + ', '.join(flags) if flags else ''}"
     paras = (el.get("text") or {}).get("paras") or []
     text = " / ".join(("  " * int(p.get("lvl") or 0)) + "".join(r.get("t", "") for r in p.get("runs", [])) for p in paras if any(r.get("t", "").strip() for r in p.get("runs", [])))
-    return f"{el['id']} [{tag}]{frame} {_clip(text, 160) or '(empty)'}"
+    warp = ((el.get("text") or {}).get("warp") or {}).get("preset")
+    return f"{el['id']} [{tag}{' ' + warp if warp else ''}]{frame} {_clip(text, 160) or '(empty)'}"
 
 
 def _unfilled(deck: dict, slide: dict) -> list[str]:
@@ -697,6 +715,9 @@ async def t_get_deck(a: Agent, args: dict) -> dict:
                 lines.append("  notes: " + _clip(s["notes"], 140))
         return _ok("\n".join(lines))
     lines += _outline(deck, idxs)
+    if len(deck.get("masters") or []) > 1:
+        lines.append("Masters (masters {action: list} for layouts):")
+        lines += [x for x in _masters_text(deck) if not x.startswith("  layouts:")]
     if deck.get("sections"):
         pos = {s["id"]: i + 1 for i, s in enumerate(deck["slides"])}
         lines.append("Sections: " + " · ".join(f"{sec.get('name')} @{pos.get(sec.get('start'), '?')}" for sec in deck["sections"]))
@@ -947,14 +968,24 @@ async def t_edit_elements(a: Agent, args: dict) -> dict:
             sets = ch.get("set") or {}
             if not isinstance(sets, dict) or not sets:
                 raise ToolError("update needs set: {key: value}.")
+            staged = dict(el)
             for k, v in sets.items():
                 if k in ("id", "type"):
                     raise ToolError("id and type cannot change: delete and add instead.")
+                if k in ("warp", "textEffects"):
+                    try:
+                        fx_ops = text_effects.edit_ops(staged, path, k, v)
+                    except ValueError as e:
+                        raise ToolError(str(e)) from None
+                    ops += fx_ops
+                    staged["text"] = {**(staged.get("text") or {}), **({"paras": fx_ops[-1]["value"]} if k == "textEffects" else {})}
+                    continue
                 if k == "text" and isinstance(v, str):
                     v = {**(el.get("text") or {}), "paras": _paras(v, title=(el.get("ph") or {}).get("type") in ("title", "ctrTitle"))}
                 if k == "src" and isinstance(v, str):
                     it = it or _intake(None, deck)
                     v = _register_media(deck, v, ops, it)
+                staged[k] = v
                 ops.append({"op": "set", "path": path + [k]} if v is None else {"op": "set", "path": path + [k], "value": v})
             done.append(f"updated {eid} ({', '.join(sets)})")
         elif op == "delete":
@@ -1254,8 +1285,78 @@ async def t_apply_template(a: Agent, args: dict) -> dict:
     return _ok(f"Applied {tid} · {_head(deck)}\nLint: {report['summary']}")
 
 
+def _master_ref(deck: dict, ref) -> dict:
+    ms = deck.get("masters") or []
+    raw = str(ref or "").strip()
+    m = next((m for m in ms if m.get("id") == raw), None) or next((m for m in ms if str(m.get("name", "")).lower() == raw.lower()), None)
+    if m is None and raw.isdigit() and 0 < int(raw) <= len(ms):
+        m = ms[int(raw) - 1]
+    if m is None:
+        raise ToolError(f"There is no slide master {raw!r}: " + ", ".join(f"{x['id']} {x.get('name', '')}" for x in ms) + ".")
+    return m
+
+
+def _masters_text(deck: dict) -> list[str]:
+    use: dict = {}
+    for s in deck.get("slides", []):
+        use[s.get("layout")] = use.get(s.get("layout"), 0) + 1
+    out = []
+    for i, m in enumerate(deck.get("masters") or []):
+        lays = [l for l in deck.get("layouts", []) if model.master_of(deck, l) is m]
+        t = model.theme_of(deck, master=m)
+        n = sum(use.get(l["id"], 0) for l in lays)
+        out.append(f"{m['id']} \"{m.get('name', '')}\" · theme {t.get('name', '')} ({t['fonts'].get('major')}/{t['fonts'].get('minor')}, accent1 {t['colors'].get('accent1')})"
+                   f"{' own' if m.get('theme') else ''} · {len(lays)} layouts · {n} slide{'s' if n != 1 else ''}" + (" · preserved" if m.get("preserve") else ""))
+        out.append("  layouts: " + ", ".join(f"{l['id']}{'=' + l['semantic'] if l.get('semantic') else ''}" for l in lays))
+    return out
+
+
+async def t_masters(a: Agent, args: dict) -> dict:
+    from app.services.templates import masters as mst
+    deck = _deck(args.get("deck"))
+    action = args.get("action") or "list"
+    if action == "list":
+        return _ok("\n".join([_head(deck), *_masters_text(deck)]))
+    if action == "add":
+        tid = args.get("template")
+        if tid and tid not in _template_ids():
+            raise ToolError(f"There is no template {tid}: list_templates shows them.")
+        got = await asyncio.to_thread(mst.master_from_template, deck, templates.template_deck(tid, deck.get("size"))) if tid else mst.blank_master(deck)
+        if args.get("name") and got["masters"]:
+            got["masters"][0]["name"] = str(args["name"]).strip()
+        ops, label = mst.add_ops(deck, got), f"add slide master {tid or 'blank'}"
+    elif action == "duplicate":
+        got = mst.duplicate_master(deck, _master_ref(deck, args.get("master"))["id"])
+        ops, label = mst.add_ops(deck, got), "duplicate slide master"
+    elif action == "rename":
+        m = _master_ref(deck, args.get("master"))
+        name = str(args.get("name") or "").strip()
+        if not name:
+            raise ToolError("rename needs name.")
+        ops, label = [{"op": "set", "path": ["masters", {"id": m["id"]}, "name"], "value": name}], "rename slide master"
+    elif action == "delete":
+        m = _master_ref(deck, args.get("master"))
+        try:
+            ops = mst.delete_ops(deck, m["id"])
+        except ValueError as exc:
+            raise ToolError(str(exc))
+        label = "delete slide master"
+    elif action == "preserve":
+        m = _master_ref(deck, args.get("master"))
+        on = args.get("preserve", True) is not False
+        path = ["masters", {"id": m["id"]}, "preserve"]
+        ops, label = [{"op": "set", "path": path, "value": True} if on else {"op": "set", "path": path}], "preserve slide master"
+    else:
+        raise ToolError("action is list, add, duplicate, rename, delete or preserve.")
+    await _apply(a, deck["id"], ops, label)
+    deck = _deck(deck["id"])
+    return _ok("\n".join([f"Done: {label}", *_masters_text(deck)]))
+
+
 async def t_set_theme(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
+    target = _master_ref(deck, args["master"]) if args.get("master") else None
+    base = ["masters", {"id": target["id"]}, "theme"] if target and target.get("theme") else ["theme"]
     ops = []
     for k, v in (args.get("colors") or {}).items():
         slot = model.ALIASES.get(k, k)
@@ -1263,16 +1364,17 @@ async def t_set_theme(a: Agent, args: dict) -> dict:
             raise ToolError(f"{k} is not a theme colour: {', '.join(model.SCHEME_SLOTS)}.")
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", str(v or "")):
             raise ToolError(f"{k}: give #RRGGBB (got {v}).")
-        ops.append({"op": "set", "path": ["theme", "colors", slot], "value": str(v).upper()})
+        ops.append({"op": "set", "path": [*base, "colors", slot], "value": str(v).upper()})
     for k, v in (args.get("fonts") or {}).items():
         if k not in ("major", "minor") or not str(v or "").strip():
             raise ToolError("fonts takes major (titles) and minor (body) family names.")
-        ops.append({"op": "set", "path": ["theme", "fonts", k], "value": str(v).strip()})
+        ops.append({"op": "set", "path": [*base, "fonts", k], "value": str(v).strip()})
     if not ops:
         raise ToolError("Give colors or fonts.")
     await _apply(a, deck["id"], ops, "theme")
-    t = _deck(deck["id"])["theme"]
-    return _ok("Theme: " + ", ".join(f"{k} {v}" for k, v in t["colors"].items() if k.startswith("accent") or k in ("dk1", "lt1")) + f" · fonts {t['fonts'].get('major')}/{t['fonts'].get('minor')}")
+    fresh = _deck(deck["id"])
+    t = model.theme_of(fresh, master=next((m for m in fresh.get("masters", []) if target and m.get("id") == target["id"]), None))
+    return _ok((f"{target['id']} " if target else "") + "Theme: " + ", ".join(f"{k} {v}" for k, v in t["colors"].items() if k.startswith("accent") or k in ("dk1", "lt1")) + f" · fonts {t['fonts'].get('major')}/{t['fonts'].get('minor')}")
 
 
 async def t_add_media(a: Agent, args: dict) -> dict:
@@ -1333,7 +1435,7 @@ async def t_render_slides(a: Agent, args: dict) -> dict:
 async def t_export_deck(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
     fmt = str(args.get("format") or "pptx").lower()
-    if fmt in ("pptx", "potx", "fsld"):
+    if fmt in ("pptx", "potx", "fsld", "odp"):
         from app.routers.decks import export_bytes
         data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt)
         if args.get("path"):
@@ -1373,7 +1475,7 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
             raise ToolError(f"The folder {p.parent} does not exist.")
         await asyncio.to_thread(p.write_bytes, data)
         return _ok(f"Wrote {p} ({max(1, len(data) // 1024):,} KB, {n} slides).", {"path": str(p), "bytes": len(data)})
-    raise ToolError("format is pptx, potx, fsld, pdf, png, gif, txt or rtf.")
+    raise ToolError("format is pptx, potx, fsld, odp, pdf, png, gif, txt or rtf.")
 
 
 async def t_open_file(a: Agent, args: dict) -> dict:

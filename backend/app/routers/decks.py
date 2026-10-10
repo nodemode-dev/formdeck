@@ -176,7 +176,12 @@ def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None) -> tuple
         buf = io.BytesIO()
         write_pptx(deck, media_store(), buf, template=fmt == "potx", font_scales=font_scales)
         return buf.getvalue(), f"{title}.{fmt}", PPTX_MIME if fmt == "pptx" else POTX_MIME
-    raise HTTPException(400, f"Unknown format {fmt}; use fsld, pptx or potx.")
+    if fmt in ("odp", "otp"):
+        from app.services.odp import odp_bytes
+        from app.services.odp.common import MIMETYPE, TEMPLATE_MIMETYPE
+        data, _ = odp_bytes(deck, media_store(), template=fmt == "otp")
+        return data, f"{title}.{fmt}", MIMETYPE if fmt == "odp" else TEMPLATE_MIMETYPE
+    raise HTTPException(400, f"Unknown format {fmt}; use fsld, pptx, potx or odp.")
 
 
 @router.get("/decks/{deck_id}/download")
@@ -205,13 +210,19 @@ def import_bytes(data: bytes, name: str, as_template: bool = False) -> dict:
         deck = package.unpack(data, media_store())
         deck["id"] = ids.deck_id()
         return deck
+    from app.services.odp import is_odp, read_odp
+    if is_odp(data) or lower.endswith((".odp", ".otp")):
+        deck = read_odp(data, media_store(), as_template=as_template or lower.endswith(".otp"))
+        if not deck.get("title") or deck["title"] == "Presentation":
+            deck["title"] = Path(name).stem
+        return model.normalize(deck)
     if lower.endswith((".pptx", ".potx", ".ppsx", ".pptm")) or data[:2] == b"PK":
         from app.services.pptx import read_pptx
         deck = read_pptx(data, media_store(), as_template=as_template or lower.endswith(".potx"))
         if not deck.get("title") or deck["title"] in ("PowerPoint Presentation", ""):
             deck["title"] = Path(name).stem
         return model.normalize(deck)
-    raise ValueError(f"{name}: formsld opens .fsld, .pptx, .potx, .ppsx and .pptm decks here.")
+    raise ValueError(f"{name}: formsld opens .fsld, .pptx, .potx, .ppsx, .pptm and .odp decks here.")
 
 
 @router.post("/import")
@@ -255,7 +266,7 @@ async def save(deck_id: str, body: dict = Body(default={})) -> dict:
         return {"saved": "library"}
     path = Path(target).expanduser()
     fmt = body.get("format") or path.suffix.lower().lstrip(".") or "fsld"
-    if fmt not in ("fsld", "pptx", "potx"):
+    if fmt not in ("fsld", "pptx", "potx", "odp", "otp"):
         fmt = "fsld"
     data, _, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"))
     await asyncio.to_thread(path.write_bytes, data)
@@ -337,6 +348,28 @@ async def apply_template(deck_id: str, body: dict = Body(...)) -> dict:
     res = await STORE.step(deck_id, ops, f"Apply {new.get('template', {}).get('name', tid)}", body.get("origin") or "user", body.get("client"))
     config.write_settings({"lastTemplate": tid})
     return res
+
+
+@router.post("/decks/{deck_id}/masters/plan")
+async def masters_plan(deck_id: str, body: dict = Body(...)) -> dict:
+    from app.services.templates import masters as mst
+    s = _session_or_404(deck_id)
+    action, deck = body.get("action"), s.deck
+    try:
+        if action == "add":
+            tid = body.get("template")
+            got = await asyncio.to_thread(mst.master_from_template, deck, templates.template_deck(tid, deck.get("size"))) if tid else mst.blank_master(deck)
+        elif action == "duplicate":
+            got = mst.duplicate_master(deck, str(body.get("master")))
+        elif action == "delete":
+            return {"ops": mst.delete_ops(deck, str(body.get("master")))}
+        else:
+            raise HTTPException(400, "action is add, duplicate or delete.")
+    except KeyError:
+        raise HTTPException(404, "There is no template or master with that id.")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return {"ops": mst.add_ops(deck, got), "master": got["masters"][0]["id"] if got["masters"] else None}
 
 
 @router.post("/build")

@@ -19,9 +19,13 @@ import { colorOps, layoutCommands, registerCommands, type AppHooks } from './edi
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
 import { registerTableCommands, TABLE_BORDER_MENU } from './editor/table-edit';
-import { gateSlideCommands, MASTER_MENU, registerMasterCommands } from './editor/master-view';
+import { registerTextFxCommands } from './editor/text-effects';
+import { editorTheme, gateSlideCommands, layoutMenuItems, MASTER_MENU, registerMasterCommands } from './editor/master-view';
+import { MERGE_MENU, registerMergeCommands } from './editor/merge-shapes';
 import { registerShowCommands } from './present/show-commands';
 import { registerDrawCommands } from './editor/draw-commands';
+import { registerEquationCommands } from './editor/equation-commands';
+import { MEDIA_MENU, registerMediaCommands } from './editor/media-commands';
 import * as dialogs from './ui/app-dialogs';
 import { AgentBridge } from './automation/agent-bridge';
 import { VERSION } from './version';
@@ -204,7 +208,7 @@ export async function startApp(): Promise<void> {
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
-      input.accept = '.fsld,.pptx,.potx,.ppsx,.pptm,.pdf';
+      input.accept = '.fsld,.pptx,.potx,.ppsx,.pptm,.odp,.otp,.pdf';
       input.onchange = () => void openFiles(Array.from(input.files ?? []));
       input.click();
     },
@@ -255,14 +259,14 @@ export async function startApp(): Promise<void> {
     const ed = editor;
     if (!ed) return;
     const a = anchor ?? q(root, '.fs-options');
-    const c = await pickColor(a, ed.doc.deck.theme, { none: kind === 'fill' ? 'No fill' : kind === 'line' ? 'No outline' : kind === 'hl' ? 'No highlight' : undefined });
+    const c = await pickColor(a, editorTheme(ed), { none: kind === 'fill' ? 'No fill' : kind === 'line' ? 'No outline' : kind === 'hl' ? 'No highlight' : undefined });
     if (c === undefined) return;
     if (kind === 'hl' && c && ed.stage.editing && ed.stage.editFormat('hiliteColor', cssOf(ed, c))) return;
     if (kind === 'text' && c && ed.stage.editing && ed.stage.editFormat('foreColor', typeof c === 'string' && c.startsWith('#') ? c : cssOf(ed, c))) return;
     ed.apply(colorOps(ed, kind, c), kind === 'fill' ? 'Fill colour' : kind === 'line' ? 'Outline colour' : kind === 'hl' ? 'Highlight' : 'Text colour');
   }
   function cssOf(ed: Editor, c: Color): string {
-    return dialogs.colorToHex(ed.doc.deck.theme, c);
+    return dialogs.colorToHex(editorTheme(ed), c);
   }
   toolbar.hooks = { color: (kind, anchor) => void colorFor(kind, anchor), shapes: (anchor) => hooks.shapes(anchor) };
   inspector.hooks = {
@@ -272,18 +276,22 @@ export async function startApp(): Promise<void> {
   };
   registerCommands(commands, hooks);
   registerTableCommands(commands, () => editor);
-  registerMasterCommands(commands, () => editor);
+  registerTextFxCommands(commands, () => editor);
+  registerMasterCommands(commands, () => editor, (ed) => void dialogs.templatePicker(ed, true));
+  registerMergeCommands(commands, () => editor);
   registerShowCommands(commands, () => editor, live, bridge);
+  registerMediaCommands(commands, () => editor);
   gateSlideCommands(commands, () => editor);
   const drawTools = registerDrawCommands(commands, () => editor, q(root, '.fs-props-col'));
+  registerEquationCommands(commands, () => editor);
 
   const menus: MenuDef[] = [
-    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-pdf', 'export-png', 'export-fsld', '-', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', 'delete-deck'] },
+    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fsld', '-', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
     { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes'] },
-    { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-image', 'insert-media', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', '-', 'insert-pdf-pages', '-', 'insert-link', 'add-comment'] },
-    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', 'edit-points', '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
-    { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: (editor?.doc.deck.layouts ?? []).map((l) => `layout:${l.id}`).filter((id) => commands.get(id)) }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
+    { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-media', 'insert-icons', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-pdf-pages', '-', 'insert-link', 'add-comment'] },
+    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', 'edit-points', MERGE_MENU, MEDIA_MENU, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
+    { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
     { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock', '-', 'selection-pane'] },
     { label: 'Review', items: ['check-deck', 'review-activity', 'review-compare', '-', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view', '-', 'custom-shows', 'show-setup', '-', 'record-start', 'record-current', { label: 'Clear', items: ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'] }] },
@@ -403,7 +411,7 @@ export async function startApp(): Promise<void> {
   async function openFiles(files: File[]): Promise<void> {
     for (const f of files) {
       const lower = f.name.toLowerCase();
-      if (/\.(fsld|pptx|potx|ppsx|pptm)$/.test(lower)) {
+      if (/\.(fsld|pptx|potx|ppsx|pptm|odp|otp)$/.test(lower)) {
         try {
           const d = await api.importFile(f);
           if (d.warnings?.length) toast(`${f.name} opened. ${d.warnings.length} item${d.warnings.length === 1 ? '' : 's'} could not be kept: ${d.warnings.slice(0, 2).join('; ')}`);
@@ -411,7 +419,7 @@ export async function startApp(): Promise<void> {
         } catch (err) { toast(`Could not open ${f.name}: ${err instanceof Error ? err.message : err}`, 'error'); }
         continue;
       }
-      const material = files.filter((m) => !/\.(fsld|pptx|potx|ppsx|pptm)$/i.test(m.name));
+      const material = files.filter((m) => !/\.(fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(m.name));
       dialogs.intakeDialog(material, undefined, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') });
       if (material.some((m) => /\.pdf$/i.test(m.name))) pdfMaterialNote();
       return;

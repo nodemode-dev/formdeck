@@ -4,6 +4,7 @@ from .colors import degrees
 from .geom import cust_geom_to_svg, preset_adjustments
 from .ooxml import CHART_URI, DIAGRAM_DRAWING_RT, DIAGRAM_URI, NS, TABLE_URI, bool_attr, emu_pt, find, findall, int_attr, local, parse, qn, xpath
 from .read_chart import read_chart
+from .read_media import read_media_settings
 from .read_style import fill_element, read_effects, read_fill, read_line, style_effects, style_fill, style_font, style_line
 from .read_table import read_table
 from .read_text import plain_text, read_text_body
@@ -135,6 +136,9 @@ def _read_child(child, ctx, tf: Transform) -> list:
             return []
     if tag == "AlternateContent":
         branch = find(child, "mc:Fallback")
+        choice = find(child, "mc:Choice")
+        if choice is not None and "a14" in (choice.get("Requires") or "").split() and choice.find(".//{http://schemas.microsoft.com/office/drawing/2010/main}m") is not None:
+            branch = choice
         if branch is None or len(branch) == 0:
             branch = find(child, "mc:Choice")
         return read_shape_tree(branch, ctx, tf) if branch is not None else []
@@ -220,15 +224,6 @@ def _text_extras(el: dict, body_pr, ctx) -> None:
         scale = int_attr(fit, "fontScale", 100000) / 100000
         if 0 < scale < 1:
             ctx.record_font_scale(el["id"], round(scale, 4))
-    warp = find(body_pr, "a:prstTxWarp")
-    if warp is None or warp.get("prst", "textNoShape") == "textNoShape" or not el.get("h"):
-        return
-    paras = [p for p in el["text"]["paras"] if any((r.get("t") or "").strip() for r in p["runs"])]
-    size = round(el["h"] / max(len(paras), 1) * 1.2, 1)
-    for para in paras:
-        for run in para["runs"]:
-            run.setdefault("sz", size)
-    ctx.warn("WordArt text warp approximated with a font size")
 
 
 def read_connector(cxn, ctx, tf: Transform) -> dict:
@@ -288,6 +283,7 @@ def read_pic(pic, ctx, tf: Transform, frame_xfrm=None) -> dict | None:
         if poster:
             el["poster"] = poster
         el.update(read_frame(frame_xfrm if frame_xfrm is not None else find(sp_pr, "a:xfrm"), tf))
+        read_media_settings(el, nv_pr, ctx)
         return el
     if poster is None:
         return None

@@ -1,5 +1,5 @@
 import type { ChartElement, Deck, Fill, ImageElement, Layout, MediaElement, Master, Placeholder, ShapeElement, Slide, SlideElement, TableElement } from '../engine/model';
-import { backgroundOf, bodyProps, chain, colorCss, fillOf, fontStack, frameOf, geomOf, adjOf, levelStyle, lineOf, masterOf, showMasterShapes, slideNumber, themeFont, layoutOf, TITLE_KINDS, type Chain, type Frame } from '../engine/resolve';
+import { backgroundOf, bodyProps, chain, colorCss, fillOf, fontStack, frameOf, geomOf, adjOf, levelStyle, lineOf, masterOf, showMasterShapes, slideNumber, themeFont, themedDeck, layoutOf, TITLE_KINDS, type Chain, type Frame } from '../engine/resolve';
 import { BODY_PH, displayElement, holderOf, masterHint, masterPlaceholder, type HolderKind } from '../engine/holders';
 import { isLineGeom, presetGeometry } from '../engine/geometry/presets';
 import { scalePath } from '../engine/geometry/path';
@@ -8,6 +8,7 @@ import { chartSvg } from './chart';
 import { cssBackground, cssFilter, svgFill, svgStroke, round } from './paint';
 import { tableHtml } from './table';
 import { fitText, textHtml, type TextCtx } from './text';
+import { activeWarp, drawTextFx, needsOverlay } from './text-fx';
 
 export type RenderMode = 'edit' | 'thumb' | 'show' | 'print';
 export const mediaUrl = (id: string): string => `/api/media/${id}`;
@@ -87,7 +88,8 @@ function textBlock(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
   const vert = props.vert === 'vert' || props.vert === 'stacked' ? 'writing-mode:vertical-rl;' : props.vert === 'vert270' ? 'writing-mode:vertical-rl;transform:rotate(180deg);' : '';
   const cols = props.cols > 1 ? `column-count:${props.cols};column-gap:${round(18)}px;` : '';
   const wrap = props.wrap ? '' : 'white-space:pre;';
-  return `<div class="fs-tx" data-autofit="${props.autofit}" style="left:${round(l)}px;top:${round(t)}px;right:${round(r)}px;bottom:${round(b)}px;justify-content:${justify};${vert}"><div class="fs-flow" style="${cols}${wrap}">${html}</div></div>`;
+  const tfx = needsOverlay(el.text) ? ` has-tfx"${activeWarp(el.text) ? ` data-warp="${esc(JSON.stringify(activeWarp(el.text)))}"` : ''}` : '"';
+  return `<div class="fs-tx${tfx} data-autofit="${props.autofit}" style="left:${round(l)}px;top:${round(t)}px;right:${round(r)}px;bottom:${round(b)}px;justify-content:${justify};${vert}"><div class="fs-flow" style="${cols}${wrap}">${html}</div></div>`;
 }
 
 function imageBlock(ctx: Ctx, el: ImageElement, f: Frame, c: Chain): string {
@@ -160,7 +162,7 @@ function mediaBlock(ctx: Ctx, el: MediaElement): string {
   if (el.kind === 'audio') return `<div class="fs-audio" title="${esc(ctx.deck.media[el.src]?.name ?? 'Audio')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg></div>`;
   const poster = el.poster ? ` poster="${mediaUrl(el.poster)}"` : '';
   const live = ctx.mode === 'show';
-  return `<video class="fs-video" src="${mediaUrl(el.src)}#t=${el.start ?? 0.1}"${poster} preload="metadata" playsinline${live ? ' controls' : ''}${el.loop ? ' loop' : ''}${live && el.autoplay ? ' autoplay' : ''} muted></video>`;
+  return `<video class="fs-video" src="${mediaUrl(el.src)}${el.poster ? '' : `#t=${el.start ?? 0.1}`}"${poster} preload="metadata" playsinline${live ? ' controls' : ''}${el.loop ? ' loop' : ''}${live && el.autoplay ? ' autoplay' : ''} muted></video>`;
 }
 
 export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: string; kind: string } {
@@ -257,11 +259,12 @@ export class SlideView {
   update(t?: Touched): void {
     void t;
     if (this.holder !== 'slide') { this.updateHolder(); return; }
-    const deck = this.getDeck();
+    const base0 = this.getDeck();
     const slide = this.slide;
     if (!slide) return;
-    const layout = layoutOf(deck, slide);
-    const master = masterOf(deck, layout);
+    const layout = layoutOf(base0, slide);
+    const master = masterOf(base0, layout);
+    const deck = themedDeck(base0, master);
     const number = slideNumber(deck, slide);
     const ctx: Ctx = { deck, slide, holder: 'slide', layout, mode: this.mode, number };
     const themeKey = JSON.stringify(deck.theme);
@@ -294,11 +297,12 @@ export class SlideView {
   }
 
   private updateHolder(): void {
-    const deck = this.getDeck();
-    const holder = holderOf(deck, this.holder, this.slideId);
+    const base0 = this.getDeck();
+    const holder = holderOf(base0, this.holder, this.slideId);
     if (!holder) return;
     const layout = this.holder === 'layout' ? (holder as Layout) : undefined;
-    const master = layout ? masterOf(deck, layout) : (holder as Master);
+    const master = layout ? masterOf(base0, layout) : (holder as Master);
+    const deck = themedDeck(base0, master);
     const ctx: Ctx = { deck, slide: null, holder: this.holder, layout: layout ?? masterHint(master), mode: this.mode, number: 1 };
     const themeKey = JSON.stringify(deck.theme);
     const bg: Fill = layout?.background ?? master.background ?? { type: 'solid', color: 'lt1' };
@@ -390,6 +394,7 @@ export class SlideView {
     for (const tx of Array.from(node.querySelectorAll<HTMLElement>('.fs-tx'))) {
       const flow = tx.firstElementChild as HTMLElement | null;
       if (flow) fitText(tx, flow, (tx.dataset.autofit as 'none' | 'shrink' | 'grow') ?? 'none');
+      if (flow && tx.classList.contains('has-tfx')) drawTextFx(tx);
     }
   }
 

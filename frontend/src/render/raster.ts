@@ -1,7 +1,8 @@
 import type { Deck, Fill, Slide } from '../engine/model';
-import { backgroundOf, colorCss } from '../engine/resolve';
+import { backgroundOf, colorCss, slideTheme } from '../engine/resolve';
 import { ensureFonts, fontsOfDeck } from './fonts';
 import { SlideView, mediaUrl } from './slide';
+import { paintTfx, tfxData, tfxLines } from './text-fx';
 
 export interface TextItem { x: number; y: number; w: number; h: number; text: string; size: number; font?: string }
 export interface Raster { canvas: HTMLCanvasElement; text: TextItem[]; w: number; h: number }
@@ -204,6 +205,7 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
   const style = (node as HTMLElement | SVGElement).style as CSSStyleDeclaration | undefined;
   if (style?.visibility === 'hidden') hidden = true;
   else if (style?.visibility === 'visible') hidden = false;
+  if (node.classList.contains('fs-flow') && node.parentElement?.classList.contains('has-tfx')) hidden = true;
   const transform = cs.transform, origin = cs.transformOrigin, opacity = parseFloat(cs.opacity) || 0;
   const fx = parseFx(cs.filter);
   const clipPath = cs.clipPath;
@@ -221,6 +223,7 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
     const lm = matOf(local);
     const k = w.scale * Math.sqrt(Math.abs(lm.a * lm.d - lm.b * lm.c));
     const shadows = fx.shadows.map((s) => device(local, w.scale, s));
+    if (node instanceof SVGSVGElement && node.classList.contains('fs-tfx')) { if (!hidden) tfxNode(node, b, local, out, w, opacity); return; }
     if (node instanceof SVGSVGElement) { if (!hidden) svgNode(node, cs, b, local, out, w, opacity, shadows, scaleCss(fx.css, k)); return; }
     if (node instanceof HTMLImageElement) { if (!hidden) imageNode(node, cs, b, local, out, opacity, shadows, fx, k); return; }
     if (node instanceof HTMLVideoElement) { if (!hidden) videoNode(node, b, local, out, w, opacity); return; }
@@ -234,6 +237,7 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
       sink = layer.ops;
     }
     if (!hidden) paintBox(node, cs, b, local, sink, w);
+    if (node.namespaceURI === MATHML_NS && !hidden && mathNode(node, cs, b, local, sink, w)) return;
     let inner = local;
     if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') inner = [...inner, { r: [b.x, b.y, b.w, b.h] }];
     if (clipStep) inner = [...inner, clipStep];
@@ -327,7 +331,84 @@ function decoOf(el: Element | null): { u: boolean; s: boolean; color: string } {
   return out;
 }
 
+const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
+
+function mathItalic(s: string): string {
+  const c = s.codePointAt(0) ?? 0;
+  if (c === 104) return 'ℎ';
+  if (c >= 65 && c <= 90) return String.fromCodePoint(0x1d434 + c - 65);
+  if (c >= 97 && c <= 122) return String.fromCodePoint(0x1d44e + c - 97);
+  if (c >= 0x3b1 && c <= 0x3c9) return String.fromCodePoint(0x1d6fc + c - 0x3b1);
+  return s;
+}
+
+function mathNode(node: Element, cs: CSSStyleDeclaration, b: Box, steps: Step[], out: Op[], w: Walk): boolean {
+  const tag = node.localName;
+  const size = parseFloat(cs.fontSize) || 16;
+  const color = cs.color;
+  const rule = (x: number, y: number, len: number, th: number): void => { out.push({ k: 'd', steps, alpha: 1, shadows: [], filter: '', run: (c) => { c.fillStyle = color; c.fillRect(x, y - th / 2, len, th); } }); };
+  if (tag === 'mfrac') {
+    const [num, den] = Array.from(node.children);
+    const lt = (node.getAttribute('linethickness') ?? '').trim();
+    if (!num || !den || /^0(\.0*)?(px|pt|em)?$/.test(lt)) return false;
+    const nb = rel(num.getBoundingClientRect(), w.origin), db = rel(den.getBoundingClientRect(), w.origin);
+    const th = lt && /px|pt$/.test(lt) ? parseFloat(lt) : size * 0.066;
+    rule(b.x, (nb.y + nb.h + db.y) / 2, b.w, Math.max(0.5, th));
+    return false;
+  }
+  if (tag === 'msqrt' || tag === 'mroot') {
+    const kids = Array.from(node.children);
+    const base = tag === 'mroot' ? kids.slice(0, 1) : kids;
+    if (!base.length) return false;
+    const rs = base.map((k) => rel(k.getBoundingClientRect(), w.origin));
+    const left = Math.min(...rs.map((r) => r.x)), right = Math.max(...rs.map((r) => r.x + r.w));
+    const th = Math.max(0.5, size * 0.06);
+    const top = b.y + th, bottom = b.y + b.h;
+    const idx = tag === 'mroot' && kids[1] ? rel(kids[1].getBoundingClientRect(), w.origin) : null;
+    const x0 = idx ? Math.max(b.x, idx.x + idx.w * 0.4) : b.x;
+    const s = Math.max(size * 0.4, left - x0);
+    out.push({ k: 'd', steps, alpha: 1, shadows: [], filter: '', run: (c) => {
+      c.strokeStyle = color;
+      c.lineWidth = th;
+      c.lineJoin = 'round';
+      c.beginPath();
+      c.moveTo(left - s, bottom - (bottom - top) * 0.42);
+      c.lineTo(left - s * 0.78, bottom - (bottom - top) * 0.5);
+      c.lineTo(left - s * 0.48, bottom - th);
+      c.lineTo(left - s * 0.12, top);
+      c.lineTo(right + size * 0.08, top);
+      c.stroke();
+    } });
+    return false;
+  }
+  if (tag === 'mo') {
+    const text = (node.textContent ?? '').trim();
+    if (!text || b.h < size * 1.45 || [...text].length !== 1) return false;
+    const font = canvasFont(cs);
+    out.push({ k: 'd', steps, alpha: 1, shadows: [], filter: '', run: (c) => {
+      c.font = font;
+      c.fillStyle = color;
+      c.textAlign = 'center';
+      c.textBaseline = 'alphabetic';
+      const m = c.measureText(text);
+      const a = m.actualBoundingBoxAscent || size * 0.75, d = m.actualBoundingBoxDescent || size * 0.25;
+      const gw = Math.max(1, m.width), gh = Math.max(1, a + d);
+      const sy = (b.h * 0.94) / gh, sx = Math.min(sy, Math.max(1, (b.w * 0.95) / gw));
+      c.save();
+      c.translate(b.x + b.w / 2, b.y + b.h * 0.03 + a * sy);
+      c.scale(sx, sy);
+      c.fillText(text, 0, 0);
+      c.restore();
+      c.textAlign = 'left';
+    } });
+    w.text.push({ x: b.x, y: b.y, w: b.w, h: b.h, text, size, font: firstFamily(cs), gap: false });
+    return true;
+  }
+  return false;
+}
+
 function caseOf(s: string, t: string, start: boolean): string {
+  if (t === 'math-auto' && [...s].length === 1) return mathItalic(s);
   if (t === 'uppercase') return s.toUpperCase();
   if (t === 'lowercase') return s.toLowerCase();
   if (t === 'capitalize' && start) return s.charAt(0).toUpperCase() + s.slice(1);
@@ -629,7 +710,7 @@ function videoNode(v: HTMLVideoElement, b: Box, steps: Step[], out: Op[], w: Wal
 
 function backgroundOp(deck: Deck, slide: Slide, w: Walk): Op | null {
   const fill: Fill = backgroundOf(deck, slide);
-  const W = deck.size.w, H = deck.size.h, theme = deck.theme;
+  const W = deck.size.w, H = deck.size.h, theme = slideTheme(deck, slide);
   const op = (run: (c: Ctx) => void): Draw => ({ k: 'd', steps: [], alpha: 1, shadows: [], filter: '', run });
   if (fill.type === 'none') return null;
   if (fill.type === 'solid') return op((c) => { c.fillStyle = colorCss(fill.color, theme); c.fillRect(0, 0, W, H); });
@@ -753,4 +834,17 @@ function drawOp(c: Ctx, op: Op, base: DOMMatrix, pool: HTMLCanvasElement[], dept
   const layer = lc;
   withShadows(c, op.shadows, () => c.drawImage(layer, 0, 0));
   c.restore();
+}
+
+function tfxNode(svg: SVGSVGElement, b: Box, steps: Step[], out: Op[], w: Walk, alpha: number): void {
+  const data = tfxData(svg);
+  if (!data) return;
+  const m = matOf(steps);
+  for (const l of tfxLines(data)) {
+    const pts = l.pts.map(([x, y]) => m.transformPoint(new DOMPoint(b.x + x, b.y + y)));
+    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+    const x0 = Math.min(...xs), y0 = Math.min(...ys);
+    w.text.push({ x: x0, y: y0, w: Math.max(...xs) - x0, h: Math.max(...ys) - y0, text: l.text, size: l.size * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)), font: l.family, gap: true });
+  }
+  out.push({ k: 'd', steps, alpha, shadows: [], filter: '', run: (c) => { c.translate(b.x, b.y); paintTfx(c, data); } });
 }

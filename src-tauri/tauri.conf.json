@@ -39,7 +39,8 @@
     },
     "fileAssociations": [
       { "ext": ["fsld"], "name": "formsld Deck", "description": "formsld presentation deck", "role": "Editor", "mimeType": "application/x-formsld" },
-      { "ext": ["pptx"], "name": "PowerPoint Presentation", "description": "PowerPoint presentation", "role": "Editor", "rank": "Alternate", "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation" }
+      { "ext": ["pptx"], "name": "PowerPoint Presentation", "description": "PowerPoint presentation", "role": "Editor", "rank": "Alternate", "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+      { "ext": ["odp"], "name": "OpenDocument Presentation", "description": "OpenDocument presentation", "role": "Editor", "rank": "Alternate", "mimeType": "application/vnd.oasis.opendocument.presentation" }
     ],
     "createUpdaterArtifacts": false
   },

@@ -1,5 +1,6 @@
 from .colors import color_element
 from .ooxml import clean_text, make, pt_emu, sub
+from .text_fx import append_run_fx, warp_element
 
 ANCHOR_VALUES = {"t": "t", "m": "ctr", "b": "b"}
 ALIGN_VALUES = {"l": "l", "c": "ctr", "r": "r", "j": "just"}
@@ -59,7 +60,7 @@ def body_pr_element(text: dict, ctx, element_id: str | None):
         attrs["numCol"] = _clamp(text["cols"], 1, 16)
     if text.get("anchor") in ANCHOR_VALUES:
         attrs["anchor"] = ANCHOR_VALUES[text["anchor"]]
-    body_pr = make("a:bodyPr", attrs)
+    body_pr = make("a:bodyPr", attrs, warp_element(text.get("warp")))
     autofit = text.get("autofit")
     if autofit == "shrink":
         scale = ctx.font_scale(element_id)
@@ -83,6 +84,10 @@ def paragraph_element(para: dict, ctx):
         r.append(run_props(runs[0], ctx, "a:rPr", with_link=False))
         sub(r, "a:t")
     for run in runs:
+        if run.get("math"):
+            from .omml import math_element
+            p.append(math_element(run, ctx))
+            continue
         text = clean_text(str(run.get("t", "")))
         for index, piece in enumerate(text.split("\n")):
             if index > 0:
@@ -130,11 +135,7 @@ def run_props(run: dict, ctx, tag: str, with_link: bool = True):
 
 
 def _run_children(rpr, run: dict, ctx, with_link: bool) -> None:
-    if run.get("color") is not None:
-        fill = sub(rpr, "a:solidFill")
-        child = color_element(run["color"])
-        if child is not None:
-            fill.append(child)
+    append_run_fx(rpr, run)
     if run.get("hl") is not None:
         highlight = sub(rpr, "a:highlight")
         child = color_element(run["hl"])

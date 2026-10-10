@@ -1,5 +1,5 @@
-import type { ShapeElement } from '../engine/model';
-import { chain, colorCss, levelStyle, themeFont } from '../engine/resolve';
+import type { Layout, ShapeElement } from '../engine/model';
+import { chain, colorCss, levelStyle, masterOf, themeFont } from '../engine/resolve';
 import { BUNDLED_FONTS, ensureFont } from '../render/fonts';
 import type { Commands } from '../ui/commands';
 import { el, setClass, setDisabled, setHidden, setText, setValue, setStyleVar } from '../ui/dom';
@@ -7,6 +7,7 @@ import { enhanceSelect } from '../ui/dropdown';
 import { icon } from '../ui/icons';
 import type { Editor } from './editor';
 import { runStyleOps } from './actions';
+import { editorTheme } from './master-view';
 import { tableRunProbe, tableTextFormat } from './table-edit';
 
 type Ctx = 'slide' | 'text' | 'shape' | 'image' | 'table' | 'chart' | 'multi' | 'none';
@@ -31,11 +32,11 @@ export class Toolbar {
 <span class="fs-sep" data-g="slide"></span>
 <div class="fs-tb-group" data-g="master">${lbtn('master-insert-layout', 'slideAdd', 'New layout')}${btn('master-duplicate-layout', 'duplicate', 'Duplicate layout')}${btn('master-hide-graphics', 'eyeOff', 'Hide background graphics')}${btn('format-background', 'background', 'Background')}${lbtn('close-master', 'close', 'Close Master View')}</div>
 <span class="fs-sep" data-g="master"></span>
-<div class="fs-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-image', 'image', 'Picture')}<button class="fs-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-media', 'video', 'Video or audio')}${btn('add-comment', 'comment', 'Comment')}</div>
+<div class="fs-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-wordart', 'wordArt', 'WordArt')}${btn('insert-image', 'image', 'Picture')}<button class="fs-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-equation', 'equation', 'Equation')}${btn('insert-media', 'video', 'Video or audio')}${btn('insert-icons', 'iconLib', 'Icons')}${btn('add-comment', 'comment', 'Comment')}</div>
 <span class="fs-sep" data-g="insert"></span>
 <div class="fs-tb-group" data-g="font"><select class="fs-tb-font" aria-label="Font" title="Font" style="width:140px"></select><input class="fs-tb-field is-num fs-tb-size" type="number" min="1" max="400" step="1" aria-label="Font size" title="Font size"></div>
 <span class="fs-sep" data-g="font"></span>
-<div class="fs-tb-group" data-g="style">${btn('bold', 'bold', 'Bold')}${btn('italic', 'italic', 'Italic')}${btn('underline', 'underline', 'Underline')}${btn('strike', 'strike', 'Strikethrough')}${btn('superscript', 'superscript', 'Superscript')}${btn('subscript', 'subscript', 'Subscript')}${btn('insert-link', 'link', 'Link (Mod+K)')}<button class="fs-tb-btn fs-tb-color" type="button" data-act="text-color" title="Text colour" aria-label="Text colour">${icon('textColor', 16)}</button><button class="fs-tb-btn fs-tb-color" type="button" data-act="highlight" title="Highlight" aria-label="Highlight">${icon('highlight', 16)}</button>${btn('clear-format', 'clearFormat', 'Clear formatting')}</div>
+<div class="fs-tb-group" data-g="style">${btn('bold', 'bold', 'Bold')}${btn('italic', 'italic', 'Italic')}${btn('underline', 'underline', 'Underline')}${btn('strike', 'strike', 'Strikethrough')}${btn('superscript', 'superscript', 'Superscript')}${btn('subscript', 'subscript', 'Subscript')}${btn('insert-link', 'link', 'Link (Mod+K)')}<button class="fs-tb-btn fs-tb-color" type="button" data-act="text-color" title="Text colour" aria-label="Text colour">${icon('textColor', 16)}</button><button class="fs-tb-btn fs-tb-color" type="button" data-act="highlight" title="Highlight" aria-label="Highlight">${icon('highlight', 16)}</button>${btn('text-effects', 'textEffects', 'Text effects')}${btn('clear-format', 'clearFormat', 'Clear formatting')}</div>
 <span class="fs-sep" data-g="style"></span>
 <div class="fs-tb-group" data-g="para">${btn('text-align-l', 'alignLeft', 'Align left')}${btn('text-align-c', 'alignCenter', 'Center')}${btn('text-align-r', 'alignRight', 'Align right')}${btn('text-align-j', 'alignJustify', 'Justify')}</div>
 <span class="fs-sep" data-g="para"></span>
@@ -90,16 +91,21 @@ export class Toolbar {
   attach(ed: Editor | null): void {
     this.ed = ed;
     if (ed) {
-      const deck = ed.doc.deck;
       this.layoutOptions();
-      const fkey = `${deck.theme.fonts.major}|${deck.theme.fonts.minor}`;
-      if (this.font.dataset.key !== fkey) {
-        this.font.dataset.key = fkey;
-        const theme = `<optgroup label="Theme fonts"><option value="+mj">${deck.theme.fonts.major} (Headings)</option><option value="+mn">${deck.theme.fonts.minor} (Body)</option></optgroup>`;
-        this.font.innerHTML = theme + `<optgroup label="All fonts">${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</optgroup>`;
+      if (!this.font.dataset.key) {
+        this.font.dataset.key = 'fonts';
+        this.font.innerHTML = `<optgroup label="Theme fonts"><option value="+mj"></option><option value="+mn"></option></optgroup><optgroup label="All fonts">${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</optgroup>`;
       }
     }
     this.sync();
+  }
+
+  private themeFonts(): void {
+    const ed = this.ed;
+    if (!ed) return;
+    const th = editorTheme(ed);
+    setText(this.font.querySelector('option[value="+mj"]'), `${th.fonts.major} (Headings)`);
+    setText(this.font.querySelector('option[value="+mn"]'), `${th.fonts.minor} (Body)`);
   }
 
   private context(): Ctx {
@@ -119,10 +125,11 @@ export class Toolbar {
   private layoutOptions(): void {
     const deck = this.ed?.doc.deck;
     if (!deck) return;
-    const key = deck.layouts.map((l) => l.id + l.name).join('|');
+    const key = deck.masters.map((m) => m.id + m.name).join('|') + '#' + deck.layouts.map((l) => l.id + l.name + l.master).join('|');
     if (this.layout.dataset.key === key) return;
     this.layout.dataset.key = key;
-    this.layout.innerHTML = deck.layouts.map((l) => `<option value="${l.id}">${l.name.replace(/</g, '&lt;')}</option>`).join('');
+    const opt = (l: Layout): string => `<option value="${l.id}">${l.name.replace(/</g, '&lt;')}</option>`;
+    this.layout.innerHTML = deck.masters.length < 2 ? deck.layouts.map(opt).join('') : deck.masters.map((m) => `<optgroup label="${(m.name || 'Slide Master').replace(/[<"&]/g, ' ')}">${deck.layouts.filter((l) => masterOf(deck, l) === m).map(opt).join('')}</optgroup>`).join('');
     const s = this.ed?.slide;
     if (s) this.layout.value = s.layout;
   }
@@ -130,6 +137,7 @@ export class Toolbar {
   sync(): void {
     const ed = this.ed;
     this.layoutOptions();
+    this.themeFonts();
     const ctx = this.context();
     this.ctx = ctx;
     const cells = ctx === 'table';
@@ -168,7 +176,7 @@ export class Toolbar {
       const font = run?.font ?? lvl.font ?? '+mn';
       setValue(this.font, font.startsWith('+') ? font.slice(0, 3) : font);
       setValue(this.size, String(Math.round((run?.sz ?? lvl.sz ?? 18) * 10) / 10));
-      const theme = ed.doc.deck.theme;
+      const theme = c.master.theme ?? ed.doc.deck.theme;
       const tc = this.root.querySelector<HTMLElement>('[data-act="text-color"]');
       if (tc) setStyleVar(tc, '--swatch', colorCss(run?.color ?? lvl.color ?? 'tx1', theme));
       const fc = this.root.querySelector<HTMLElement>('[data-act="fill"]');
@@ -180,7 +188,7 @@ export class Toolbar {
       void themeFont;
     } else if (s && ctx === 'table') {
       const p = tableRunProbe(ed);
-      const theme = ed.doc.deck.theme;
+      const theme = editorTheme(ed);
       if (p) {
         setValue(this.font, p.font.startsWith('+') ? p.font.slice(0, 3) : p.font);
         setValue(this.size, String(Math.round(p.sz * 10) / 10));
@@ -196,7 +204,8 @@ export class Toolbar {
     const ed = this.ed;
     const s = ed?.slide;
     if (!ed || !s) return;
-    const fam = v === '+mj' ? ed.doc.deck.theme.fonts.major : v === '+mn' ? ed.doc.deck.theme.fonts.minor : v;
+    const th = editorTheme(ed);
+    const fam = v === '+mj' ? th.fonts.major : v === '+mn' ? th.fonts.minor : v;
     void ensureFont(fam).then(() => ed.stage.view?.refit());
     if (ed.stage.editing && ed.stage.editFormat('fontName', fam)) return;
     if (tableTextFormat(ed, { font: v }, 'Font')) return;

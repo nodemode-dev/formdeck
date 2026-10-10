@@ -1,5 +1,5 @@
 import { SCHEME_SLOTS, type Comment, type Deck, type Effects, type SchemeName, type SlideElement } from '../engine/model';
-import { colorCss, colorHex, frameOf, chain } from '../engine/resolve';
+import { colorCss, colorHex, frameOf, chain, masterOf } from '../engine/resolve';
 import { slidePath, elPath, type Op } from '../engine/ops';
 import { BUNDLED_FONTS, ensureFont } from '../render/fonts';
 import { SlideView } from '../render/slide';
@@ -10,7 +10,10 @@ import { PanelGroup } from '../ui/panel-group';
 import type { Editor } from './editor';
 import { dirtyOp, holderNameOps, paraStyleOps, runStyleOps, setFrameOps } from './actions';
 import { AnimationPane } from './animation-pane';
+import { editorMaster, editorTheme, themeOps } from './master-view';
 import { TablePanel } from './table-panel';
+import { TextFxPanel } from './text-effects';
+import { MediaPanel } from './media-panel';
 import { attachMentions, findMentions, isAgentName, loadMe, mentionsMe, myName, people, renderMentions } from './mentions';
 
 const SLOT_NAMES: Record<SchemeName, string> = {
@@ -38,9 +41,12 @@ export class Inspector {
   private readonly agent: HTMLElement;
   private readonly layoutGrid: HTMLElement;
   private readonly layoutViews = new Map<string, SlideView>();
+  private readonly layoutHeads = new Map<string, HTMLElement>();
   readonly activity: ActivityItem[] = [];
   readonly animate = new AnimationPane();
   readonly table = new TablePanel();
+  readonly textFx = new TextFxPanel();
+  readonly media = new MediaPanel();
   private docOff: (() => void) | null = null;
   private commentFilter: 'all' | 'open' | 'mine' | 'assigned' = 'open';
   hooks: { templates: () => void; background: () => void; slideSize: () => void; comment: (text: string, assignee?: string) => void; agentsAllowed: () => boolean; setAgents: (on: boolean) => void; copyPrompt: () => void; mcpStatus: () => string } | null = null;
@@ -82,6 +88,7 @@ export class Inspector {
 <div class="fs-prop-section" data-ms="master"><div class="fs-panel-head"><span class="fs-panel-title fs-holder-kind">Layout</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Name</span><div class="fs-prop-ctl"><input class="fs-input" type="text" data-f="holder-name" aria-label="Name" spellcheck="false"></div></div>
 <div class="fs-prop-row" data-mk="layout"><span class="fs-prop-label">Graphics</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="holder-hide"><span></span></label><span class="fs-note">Hide the master's background graphics</span></div></div>
+<div class="fs-prop-row" data-mk="master"><span class="fs-prop-label">Preserve</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="holder-preserve"><span></span></label><span class="fs-note">Keep this master when no slide uses it</span></div></div>
 <div class="fs-note fs-holder-usage"></div></div>
 <div class="fs-prop-section"><div class="fs-panel-head" data-ms="slide"><span class="fs-panel-title">Slide</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Background</span><div class="fs-prop-ctl"><button class="fs-btn fs-btn-sm" type="button" data-a="background">${icon('background', 14)}Format...</button></div></div>
@@ -91,6 +98,8 @@ export class Inspector {
 </div>`);
     this.layoutGrid = this.slidePage.querySelector('.fs-layout-grid') as HTMLElement;
     this.format.appendChild(this.table.el);
+    this.format.querySelector('[data-s="effects"]')?.before(this.textFx.el);
+    this.format.appendChild(this.media.el);
     this.design = el(`<div class="fs-insp">
 <div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Template</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Current</span><div class="fs-prop-ctl"><span class="fs-tpl-name"></span></div></div>
@@ -152,7 +161,7 @@ export class Inspector {
       const ed = this.ed;
       if (!which || !ed || !t.value) return;
       const font = t.value;
-      void ensureFont(font).then(() => ed.apply([{ op: 'set', path: ['theme', 'fonts', which], value: font }], which === 'major' ? 'Heading font' : 'Body font'));
+      void ensureFont(font).then(() => ed.apply(themeOps(ed, 'fonts', which, font), which === 'major' ? 'Heading font' : 'Body font'));
     });
     this.review.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest('[data-seg="review"] button') as HTMLButtonElement | null;
@@ -219,10 +228,11 @@ export class Inspector {
 
   attach(ed: Editor | null): void {
     this.ed = ed;
-    if (ed) { this.animate.attach(ed); this.table.attach(ed); }
-    else { this.animate.dispose(); this.table.dispose(); }
+    if (ed) { this.animate.attach(ed); this.table.attach(ed); this.media.attach(ed); this.textFx.attach(ed); }
+    else { this.animate.dispose(); this.table.dispose(); this.media.dispose(); this.textFx.dispose(); }
     for (const v of this.layoutViews.values()) v.el.remove();
     this.layoutViews.clear();
+    this.layoutHeads.clear();
     this.layoutGrid.textContent = '';
     this.docOff?.();
     this.docOff = ed ? ed.doc.on((e) => {
@@ -302,11 +312,12 @@ export class Inspector {
     const ed = this.ed;
     const slot = anchor.dataset.slot;
     if (!ed || !slot) return;
-    const c = await pickColor(anchor, ed.doc.deck.theme, {});
+    const theme = editorTheme(ed);
+    const c = await pickColor(anchor, theme, {});
     if (!c) return;
-    const hex = typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c.toUpperCase() : colorHex(c, ed.doc.deck.theme);
-    if (hex.toUpperCase() === (ed.doc.deck.theme.colors[slot] ?? '').toUpperCase()) return;
-    ed.apply([{ op: 'set', path: ['theme', 'colors', slot], value: hex }], `Theme colour ${SLOT_NAMES[slot as SchemeName] ?? slot}`);
+    const hex = typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c.toUpperCase() : colorHex(c, theme);
+    if (hex.toUpperCase() === (theme.colors[slot] ?? '').toUpperCase()) return;
+    ed.apply(themeOps(ed, 'colors', slot, hex), `Theme colour ${SLOT_NAMES[slot as SchemeName] ?? slot}`);
   }
 
   private val(f: string, v: string | number): void {
@@ -333,6 +344,7 @@ export class Inspector {
     if (!ed || !s || !f) return;
     if (f === 'holder-name' && ed.holderKind !== 'slide' && t.value.trim()) { ed.apply(holderNameOps(ed.holderKind, ed.current, t.value.trim()), 'Rename'); return; }
     if (f === 'holder-hide' && ed.holderKind === 'layout') { ed.run('master-hide-graphics'); return; }
+    if (f === 'holder-preserve' && ed.holderKind === 'master') { ed.run('master-preserve'); return; }
     if (f === 'hidden') ed.apply([{ op: 'set', path: [...slidePath(s.id), 'hidden'], value: (t as HTMLInputElement).checked }], 'Hide slide');
     if (f === 'transition') ed.apply([{ op: 'set', path: [...slidePath(s.id), 'transition'], value: t.value === 'none' ? null : { ...(s.transition ?? {}), type: t.value, duration: s.transition?.duration ?? 0.6 } }], 'Transition');
     if (f === 'tdur' && s.transition) ed.apply([{ op: 'set', path: [...slidePath(s.id), 'transition', 'duration'], value: Math.max(0.1, Number(t.value) || 0.6) }], 'Transition duration');
@@ -412,8 +424,14 @@ export class Inspector {
       if (mk) setHidden(mk, ed.holderKind !== 'layout');
       const hide = this.slidePage.querySelector<HTMLInputElement>('[data-f="holder-hide"]');
       if (hide && h && 'hideMasterShapes' in h) setChecked(hide, !!h.hideMasterShapes);
-      const used = ed.holderKind === 'layout' ? deck.slides.filter((x) => x.layout === ed.current).length : deck.slides.length;
-      setText(this.slidePage.querySelector('.fs-holder-usage'), ed.holderKind === 'layout' ? `Used by ${used} slide${used === 1 ? '' : 's'}.` : `The master styles all ${deck.layouts.length} layouts and ${used} slides.`);
+      const mp = this.slidePage.querySelector<HTMLElement>('[data-mk="master"]');
+      if (mp) setHidden(mp, ed.holderKind !== 'master');
+      const pres = this.slidePage.querySelector<HTMLInputElement>('[data-f="holder-preserve"]');
+      if (pres && ed.holderKind === 'master') setChecked(pres, !!(h as { preserve?: boolean } | undefined)?.preserve);
+      const own = deck.layouts.filter((l) => masterOf(deck, l).id === ed.current);
+      const ownIds = new Set(own.map((l) => l.id));
+      const used = ed.holderKind === 'layout' ? deck.slides.filter((x) => x.layout === ed.current).length : deck.slides.filter((x) => ownIds.has(x.layout)).length;
+      setText(this.slidePage.querySelector('.fs-holder-usage'), ed.holderKind === 'layout' ? `Used by ${used} slide${used === 1 ? '' : 's'}.` : `The master styles its ${own.length} layout${own.length === 1 ? '' : 's'} and ${used} slide${used === 1 ? '' : 's'}.`);
     }
     if (s && !inMaster) {
       const hid = this.slidePage.querySelector<HTMLInputElement>('[data-f="hidden"]');
@@ -430,8 +448,9 @@ export class Inspector {
       setText(this.review.querySelector('.fs-review-deck'), `${counts.approved} of ${deck.slides.length} approved · ${counts.review} ready for review · ${counts.changes} with changes`);
       this.syncComments(deck, s.id);
     }
-    setText(this.design.querySelector('.fs-tpl-name'), deck.template?.name ?? deck.theme.name ?? 'Custom');
-    for (const [k, font] of [['font-major', deck.theme.fonts.major], ['font-minor', deck.theme.fonts.minor]] as const) {
+    const theme = editorTheme(ed);
+    setText(this.design.querySelector('.fs-tpl-name'), deck.masters.length > 1 ? editorMaster(ed)?.name ?? theme.name : deck.template?.name ?? deck.theme.name ?? 'Custom');
+    for (const [k, font] of [['font-major', theme.fonts.major], ['font-minor', theme.fonts.minor]] as const) {
       const sel = this.design.querySelector<HTMLSelectElement>(`[data-f="${k}"]`);
       if (!sel) continue;
       if (!Array.from(sel.options).some((o) => o.value === font)) { const o = document.createElement('option'); o.value = font; o.textContent = font; sel.prepend(o); }
@@ -439,7 +458,7 @@ export class Inspector {
     }
     setText(this.design.querySelector('.fs-size-label'), `${Math.round(deck.size.w)} × ${Math.round(deck.size.h)} pt`);
     for (const b of Array.from(this.design.querySelectorAll<HTMLElement>('[data-slot]'))) {
-      const css = colorCss(b.dataset.slot as string, deck.theme);
+      const css = colorCss(b.dataset.slot as string, theme);
       if (b.style.background !== css) b.style.background = css;
     }
     const agents = this.agent.querySelector<HTMLInputElement>('[data-f="agents"]');
@@ -467,11 +486,24 @@ export class Inspector {
       }
       setClass(v.el.closest('.fs-layout-card') as HTMLElement, 'is-on', l.id === current);
     }
+    const order: Element[] = [];
+    const grouped = deck.masters.length > 1;
+    for (const m of deck.masters) {
+      let head = this.layoutHeads.get(m.id);
+      if (grouped) {
+        if (!head) { head = el('<div class="fs-layout-group"></div>'); this.layoutHeads.set(m.id, head); }
+        setText(head, m.name || 'Slide Master');
+        order.push(head);
+      }
+      for (const l of deck.layouts) {
+        const card = masterOf(deck, l) === m ? this.layoutViews.get(l.id)?.el.closest('.fs-layout-card') : null;
+        if (card) order.push(card);
+      }
+    }
+    for (const [id, head] of this.layoutHeads) if (!grouped || !deck.masters.some((m) => m.id === id)) { head.remove(); this.layoutHeads.delete(id); }
     let cursor = this.layoutGrid.firstElementChild;
-    for (const l of deck.layouts) {
-      const card = this.layoutViews.get(l.id)?.el.closest('.fs-layout-card');
-      if (!card) continue;
-      if (card !== cursor) this.layoutGrid.insertBefore(card, cursor);
+    for (const node of order) {
+      if (node !== cursor) this.layoutGrid.insertBefore(node, cursor);
       else cursor = cursor.nextElementSibling;
     }
     if (this.layoutGrid.isConnected) for (const v of this.layoutViews.values()) v.fitAll();

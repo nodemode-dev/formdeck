@@ -9,12 +9,32 @@ export function toast(text: string, kind: 'info' | 'error' = 'info'): void {
   const same = Array.from(root.children).find((n) => n.textContent === text && n.className === cls);
   if (same) {
     window.clearTimeout(timers.get(same));
-    timers.set(same, window.setTimeout(() => same.remove(), ms));
+    timers.set(same, window.setTimeout(() => dismissToast(same), ms));
     return;
   }
   const node = el(`<div class="${cls}" role="status"></div>`);
   node.textContent = text;
+  pushToast(root, node, ms);
+}
+
+export function pushToast(root: HTMLElement, node: HTMLElement, ms: number): void {
   root.appendChild(node);
   while (root.children.length > 4) root.firstElementChild?.remove();
-  timers.set(node, window.setTimeout(() => node.remove(), ms));
+  stack(root);
+  timers.set(node, window.setTimeout(() => dismissToast(node), ms));
+}
+
+export function dismissToast(node: Element): void {
+  const root = node.parentElement;
+  window.clearTimeout(timers.get(node));
+  node.remove();
+  if (root) stack(root);
+}
+
+function stack(root: HTMLElement): void {
+  let y = 0;
+  for (const n of Array.from(root.children).reverse() as HTMLElement[]) {
+    n.style.setProperty('--toast-y', `${-y}px`);
+    y += n.offsetHeight + 8;
+  }
 }

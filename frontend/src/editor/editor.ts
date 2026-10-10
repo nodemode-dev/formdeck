@@ -12,6 +12,8 @@ import { setText } from '../ui/dom';
 import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, resolvedFrame } from './actions';
 import { Filmstrip } from './filmstrip';
 import { remapCopies } from './connectors';
+import { layoutMenuItems } from './master-view';
+import { MERGE_MENU } from './merge-shapes';
 import { Stage } from './stage';
 
 export type EditorEvent = 'selection' | 'current' | 'doc' | 'edit' | 'view';
@@ -57,6 +59,7 @@ export class Editor {
     this.offDoc();
     if (this.holderKind !== 'slide') setHolderResolver(null);
     this.stage.show(null);
+    this.strip.dispose();
   }
 
   on(ev: EditorEvent, fn: () => void): () => void {
@@ -240,17 +243,17 @@ export class Editor {
     const has = (list: string[]): string[] => list.filter((id) => id === '-' || this.commands.get(id));
     const phs: MenuItem = { label: 'Insert Placeholder', items: has(PLACEHOLDERS.map((p) => `master-ph-${p.type}`)) };
     if (this.holderKind !== 'slide') {
-      if (kind === 'thumb') items = has(['master-insert-layout', 'master-duplicate-layout', 'master-delete-layout', 'master-rename-layout', '-', 'master-hide-graphics', 'format-background', '-', 'close-master']);
+      if (kind === 'thumb') items = has(['master-insert-layout', 'master-duplicate-layout', 'master-delete-layout', 'master-rename-layout', '-', 'master-insert-master', 'master-insert-master-template', 'master-duplicate-master', 'master-delete-master', 'master-preserve', '-', 'master-hide-graphics', 'format-background', '-', 'close-master']);
       else if (kind === 'element') items = has(['cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'flip-h', 'flip-v', 'lock', '-', 'alt-text']);
       else items = [...has(['paste', '-']), phs, ...has(['master-hide-graphics', 'format-background', '-', 'close-master'])];
       this.menu.setItems(items);
       this.menu.openAt(x, y);
       return;
     }
-    if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: this.doc.deck.layouts.map((l) => `layout:${l.id}`).filter((id) => this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste'];
+    if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste'];
     else if (kind === 'element' && this.selected()[0]?.type === 'table') items = ['table-merge', 'table-split', '-', { label: 'Insert', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right'] }, { label: 'Delete', items: ['table-delete-row', 'table-delete-col', 'delete'] }, { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, '-', 'table-distribute-rows', 'table-distribute-cols', 'table-header-row', 'table-banded-rows', '-', 'cut', 'copy', 'paste', 'duplicate', '-', 'add-comment', 'alt-text'];
-    else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', ...(this.selected()[0]?.type === 'shape' ? ['edit-points'] : []), '-', 'insert-link', 'add-comment', 'alt-text'];
-    else items = ['paste', '-', 'new-slide', { label: 'Layout', items: this.doc.deck.layouts.map((l) => `layout:${l.id}`).filter((id) => this.commands.get(id)) }, 'reset-slide', 'format-background', '-', 'add-comment'];
+    else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', ...(this.selected()[0]?.type === 'shape' ? ['edit-points'] : []), ...(this.selected().length > 1 ? [MERGE_MENU] : []), '-', 'insert-link', 'add-comment', 'alt-text'];
+    else items = ['paste', '-', 'new-slide', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', 'format-background', '-', 'add-comment'];
     this.menu.setItems(items);
     this.menu.openAt(x, y);
   }
@@ -259,7 +262,8 @@ export class Editor {
     if (this.holderKind !== 'slide') { this.insertLayout(); return; }
     const deck = this.doc.deck;
     const cur = this.slide;
-    const content = deck.layouts.find((l) => l.semantic === 'content') ?? deck.layouts[0];
+    const own = cur ? deck.layouts.find((l) => l.id === cur.layout)?.master : undefined;
+    const content = deck.layouts.find((l) => l.semantic === 'content' && l.master === own) ?? deck.layouts.find((l) => l.semantic === 'content') ?? deck.layouts[0];
     const lid = layoutId ?? (cur && deck.layouts.find((l) => l.id === cur.layout)?.semantic !== 'title' ? cur.layout : content?.id);
     if (!lid) return;
     const at = cur ? this.doc.slideIndex(cur.id) + 1 : deck.slides.length;

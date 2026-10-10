@@ -26,7 +26,10 @@ export interface Effects {
 export interface Run {
   t: string; b?: boolean; i?: boolean; u?: boolean; s?: boolean; sz?: number; font?: string; color?: Color; hl?: Color;
   link?: Link; sup?: boolean; sub?: boolean; caps?: 'all' | 'small'; spc?: number;
+  fill?: Fill; ln?: Line; fx?: Effects; math?: MathRun;
 }
+export interface MathRun { tex: string; mml?: string; display?: boolean }
+export interface TextWarp { preset: string; adj?: Record<string, number> }
 export type Bullet = { type: 'none' } | { type: 'char'; char: string; color?: Color; font?: string; size?: number } | { type: 'auto'; scheme: string; start?: number };
 export interface Para {
   runs: Run[]; align?: 'l' | 'c' | 'r' | 'j'; lvl?: number; bullet?: Bullet | null;
@@ -39,6 +42,7 @@ export interface LevelStyle {
 export interface TextBody {
   paras: Para[]; anchor?: 't' | 'm' | 'b'; autofit?: 'none' | 'shrink' | 'grow'; inset?: [number, number, number, number];
   wrap?: boolean; cols?: number; vert?: 'horz' | 'vert' | 'vert270' | 'stacked'; lstStyle?: LevelStyle[]; prompt?: string;
+  warp?: TextWarp;
 }
 
 export type Link = { url: string } | { slide: string };
@@ -81,8 +85,10 @@ export interface ChartElement extends ElementBase { type: 'chart'; chart: ChartD
 export interface GroupElement extends ElementBase { type: 'group'; children: SlideElement[] }
 export interface MediaElement extends ElementBase {
   type: 'media'; src: string; kind: 'video' | 'audio'; poster?: string; autoplay?: boolean; loop?: boolean; start?: number; end?: number; volume?: number;
-  hideInShow?: boolean; narration?: boolean;
+  hideInShow?: boolean; narration?: boolean; sequence?: boolean; fadeIn?: number; fadeOut?: number; muted?: boolean; fullScreen?: boolean; rewind?: boolean;
+  bookmarks?: MediaBookmark[];
 }
+export interface MediaBookmark { name: string; t: number }
 export type SlideElement = ShapeElement | ImageElement | TableElement | ChartElement | GroupElement | MediaElement;
 
 export type TransitionType = 'none' | 'fade' | 'push' | 'wipe' | 'split' | 'cover' | 'uncover' | 'zoom' | 'reveal' | 'flip' | 'cube' | 'morph';
@@ -100,7 +106,7 @@ export interface Slide {
 export const SEMANTIC_LAYOUTS = ['title', 'section', 'agenda', 'content', 'twoContent', 'comparison', 'imageLeft', 'imageRight', 'imageFull', 'gallery', 'bigNumber', 'stats', 'quote', 'timeline', 'process', 'team', 'chart', 'table', 'titleOnly', 'closing', 'blank'] as const;
 export type SemanticLayout = typeof SEMANTIC_LAYOUTS[number];
 export interface Layout { id: string; master: string; name: string; semantic?: SemanticLayout | null; background?: Fill | null; hideMasterShapes?: boolean; elements: SlideElement[] }
-export interface Master { id: string; name: string; background?: Fill | null; elements: SlideElement[]; textStyles: { title: LevelStyle[]; body: LevelStyle[]; other: LevelStyle[] } }
+export interface Master { id: string; name: string; background?: Fill | null; elements: SlideElement[]; textStyles: { title: LevelStyle[]; body: LevelStyle[]; other: LevelStyle[] }; theme?: Theme; preserve?: boolean }
 export interface Theme { name: string; colors: Record<string, string>; fonts: { major: string; minor: string } }
 export interface Section { id: string; name: string; start: string; collapsed?: boolean }
 export interface CommentReply { author: string; kind: 'user' | 'agent'; text: string; at: string; mentions?: string[] }

@@ -1,5 +1,7 @@
 import type { Bullet, LevelStyle, Para, Run, TextBody, Theme } from '../engine/model';
 import { colorCss, fontStack, levelStyle, themeFont, type BodyProps, type Chain } from '../engine/resolve';
+import { mathHtml, mathOf } from './math';
+import { fxAttr, fxCss, fxSpec, runHasFx } from './text-fx';
 
 export interface TextCtx { theme: Theme; chain: Chain; slideNumber: number; showPrompt: boolean; props: BodyProps; mode: 'edit' | 'thumb' | 'show' | 'print' }
 
@@ -38,6 +40,8 @@ function runCss(run: Run | null, lvl: LevelStyle, tc: TextCtx): string {
   if (caps === 'all') parts.push('text-transform:uppercase');
   else if (caps === 'small') parts.push('font-variant:small-caps');
   if (r.sup || r.sub) parts.push(`vertical-align:${r.sup ? 'super' : 'sub'};font-size:${px((r.sz ?? lvl.sz ?? 18) * 0.65)}`);
+  const fx = run && runHasFx(run) ? fxCss(run, fxSpec(run, tc.theme), tc.theme) : '';
+  if (fx) parts.push(fx);
   return parts.join(';');
 }
 
@@ -105,10 +109,16 @@ export function textHtml(body: TextBody | undefined, tc: TextCtx): string {
     let runs = '';
     for (const r of p.runs) {
       if (r.t === '\n') { runs += '<br>'; continue; }
+      if (r.math) {
+        const { t: _t, math, ...props } = r;
+        void _t;
+        runs += mathHtml(math, runCss({ ...props, t: '' }, lvl, tc), ` data-mr="${esc(JSON.stringify(props))}"`);
+        continue;
+      }
       const text = r.t.replace(/‹#›/g, String(tc.slideNumber));
       const link = r.link ? ` data-link="${esc('url' in r.link ? r.link.url : '#' + r.link.slide)}"` : '';
       const css = runCss(r, lvl, tc);
-      runs += `<span class="fs-r" style="${css}" data-s="${css}"${link}>${esc(text)}</span>`;
+      runs += `<span class="fs-r" style="${css}" data-s="${css}"${link}${runHasFx(r) ? fxAttr(fxSpec(r, tc.theme)) : ''}>${esc(text)}</span>`;
     }
     const tailCss = runCss(p.runs[0] ?? null, lvl, tc);
     const tail = !p.runs.some((r) => r.t && r.t !== '\n') ? `<span class="fs-r" style="${tailCss}" data-s="${tailCss}"><br></span>` : '';
@@ -173,11 +183,11 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
   ps.forEach((pEl, i) => {
     const base = original[i] ?? original[original.length - 1] ?? { runs: [] };
     const runs: Run[] = [];
-    const proto = base.runs.find((r) => r.t && r.t !== '\n') ?? base.runs[0];
+    const proto = base.runs.find((r) => r.t && r.t !== '\n' && !r.math) ?? base.runs.find((r) => !r.math);
     const strip = (r: Run | undefined): Omit<Run, 't'> => {
       if (!r) return {};
-      const { t: _t, ...rest } = r;
-      void _t;
+      const { t: _t, math: _m, ...rest } = r;
+      void _t; void _m;
       return rest;
     };
     let runIndex = 0;
@@ -193,10 +203,17 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
         if (node.nextSibling || node.parentElement?.nextSibling) runs.push({ ...inherited, t: '\n' });
         return;
       }
+      if (node.classList.contains('fs-math')) {
+        const m = mathOf(node);
+        let props: Omit<Run, 't'> = {};
+        try { props = JSON.parse(node.dataset.mr || '{}') as Omit<Run, 't'>; } catch { props = {}; }
+        if (m) runs.push({ ...props, t: m.tex, math: m });
+        return;
+      }
       let style = inherited;
       const isRun = node.classList.contains('fs-r');
       if (isRun) {
-        const src = base.runs.filter((r) => r.t !== '\n')[runIndex++] ?? proto;
+        const src = base.runs.filter((r) => r.t !== '\n' && !r.math)[runIndex++] ?? proto;
         style = strip(src);
         if (style.link && node.dataset.link === undefined) style = { ...style, link: undefined };
       }
@@ -224,7 +241,7 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
     const merged: Run[] = [];
     for (const r of runs) {
       const prev = merged[merged.length - 1];
-      if (prev && r.t !== '\n' && prev.t !== '\n' && JSON.stringify({ ...prev, t: '' }) === JSON.stringify({ ...r, t: '' })) prev.t += r.t;
+      if (prev && r.t !== '\n' && prev.t !== '\n' && !r.math && !prev.math && JSON.stringify({ ...prev, t: '' }) === JSON.stringify({ ...r, t: '' })) prev.t += r.t;
       else merged.push({ ...r });
     }
     const { runs: _r, ...props } = base;

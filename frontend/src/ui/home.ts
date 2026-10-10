@@ -148,7 +148,7 @@ export class Home {
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
-    input.accept = material ? '.md,.markdown,.txt,.pdf,.docx,.pptx,.csv,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.svg,.json' : '.fsld,.pptx,.potx,.ppsx,.pptm,.pdf';
+    input.accept = material ? '.md,.markdown,.txt,.pdf,.docx,.pptx,.csv,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.svg,.json' : '.fsld,.pptx,.potx,.ppsx,.pptm,.odp,.otp,.pdf';
     input.onchange = () => { const files = Array.from(input.files ?? []); if (!files.length) return; if (material) this.hooks.intake(files); else this.hooks.openFiles(files); };
     input.click();
   }

@@ -15,6 +15,7 @@ import { delayedIndicator, el, escapeHtml, isMac, q, reserve, setChecked, setCla
 import { icon } from './icons';
 import { toast } from './toast';
 import { findMentions, myName, people } from '../editor/mentions';
+import { editorTheme } from '../editor/master-view';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const clampN = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
@@ -183,7 +184,7 @@ const SAMPLE: ChartData = { kind: 'column', categories: ['Category 1', 'Category
 const PREV_W = 380;
 
 function chartTheme(ed: Editor, c: ChartData): ChartTheme {
-  const theme = ed.doc.deck.theme;
+  const theme = editorTheme(ed);
   const s = ed.slide;
   const text = colorCss(c.textColor ?? 'tx1', theme);
   const m = /rgba?\((\d+),(\d+),(\d+)/.exec(text);
@@ -557,7 +558,7 @@ class ChartDlg extends Modal {
 
   private render(): void {
     const c = this.build();
-    const key = `${this.ed.doc.id}|${JSON.stringify(this.ed.doc.deck.theme)}|${this.size.w}x${this.size.h}|${JSON.stringify(c)}`;
+    const key = `${this.ed.doc.id}|${JSON.stringify(editorTheme(this.ed))}|${this.size.w}x${this.size.h}|${JSON.stringify(c)}`;
     if (this.preview.dataset.htmlKey === key) return;
     const th = chartTheme(this.ed, c);
     setStyleVar(this.preview, '--fs-chart-bg', th.background ?? '#ffffff');
@@ -846,7 +847,7 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
   }
 
   private sync(): void {
-    const theme = this.ed.doc.deck.theme;
+    const theme = editorTheme(this.ed);
     for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('[data-k]'))) setClass(b, 'is-on', b.dataset.k === this.kind);
     for (const p of Array.from(this.root.querySelectorAll<HTMLElement>('[data-pane]'))) setHidden(p, p.dataset.pane !== this.kind);
     for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('[data-g]'))) setClass(b, 'is-on', b.dataset.g === this.grad.kind);
@@ -928,7 +929,7 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
 
   private async pick(b: HTMLButtonElement): Promise<void> {
     const k = b.dataset.color;
-    const c = await pickColor(b, this.ed.doc.deck.theme);
+    const c = await pickColor(b, editorTheme(this.ed));
     if (c === undefined || c === null) return;
     if (k === 'solid') this.solid = c;
     else if (k === 'c1') this.grad.c1 = c;

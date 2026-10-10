@@ -1,5 +1,6 @@
 import type { AgentBridge } from '../automation/agent-bridge';
 import type { Editor } from '../editor/editor';
+import { addMaster } from '../editor/master-view';
 import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
 import { api, type TemplateSummary } from '../io/api';
 import { ensureFonts, fontsOfDeck } from '../render/fonts';
@@ -12,7 +13,7 @@ import { delayedIndicator, el, escapeHtml, patchList, q, setChecked, setClass, s
 import { mountDeckPreview, templatePreview } from './home';
 import { icon } from './icons';
 import { THEMES, readChoice, setAccent, setTheme, themeSwatchesHtml } from './themes';
-import { toast } from './toast';
+import { dismissToast, pushToast, toast } from './toast';
 
 type Catalog = { categories: string[]; templates: TemplateSummary[]; default: string };
 type Settings = Record<string, unknown>;
@@ -87,10 +88,8 @@ function actionToast(text: string, label: string, run: () => void): void {
   setText(q(node, '.fs-dlg-toast-text'), text);
   const b = q<HTMLButtonElement>(node, 'button');
   setText(b, label);
-  b.addEventListener('click', () => { run(); node.remove(); });
-  root.appendChild(node);
-  while (root.children.length > 4) root.firstElementChild?.remove();
-  window.setTimeout(() => node.remove(), 9000);
+  b.addEventListener('click', () => { run(); dismissToast(node); });
+  pushToast(root, node, 9000);
 }
 
 const savedToast = (verb: string, path: string): void => actionToast(`${verb} ${path}`, 'Copy path', () => void copyText(path).then((ok) => toast(ok ? 'Path copied' : 'Could not copy the path', ok ? 'info' : 'error')));
@@ -735,13 +734,14 @@ export async function saveDialog(ed: Editor, saveAs: boolean): Promise<void> {
   }
 }
 
-type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fsld' | 'video' | 'gif' | 'txt' | 'rtf';
+type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fsld' | 'video' | 'gif' | 'txt' | 'rtf' | 'odp';
 const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }> = {
   pptx: { label: 'PowerPoint', ext: 'pptx', sub: 'Editable slides for PowerPoint, Keynote and Google Slides.' },
   pdf: { label: 'PDF', ext: 'pdf', sub: 'One page per slide with searchable text and an outline of slide titles.' },
   png: { label: 'PNG', ext: 'png', sub: 'Sharp pictures of your slides. Several slides arrive together in a .zip.' },
   jpeg: { label: 'JPEG', ext: 'jpg', sub: 'Smaller pictures of your slides. Several slides arrive together in a .zip.' },
   potx: { label: 'Template', ext: 'potx', sub: 'A PowerPoint template with this deck’s masters, layouts, colours and fonts.' },
+  odp: { label: 'OpenDocument', ext: 'odp', sub: 'Editable slides for LibreOffice Impress and other OpenDocument apps, with master pages, notes and transitions.' },
   fsld: { label: 'formsld', ext: 'fsld', sub: 'One file with every slide, picture and the template, for formsld on any computer.' },
   video: { label: 'Video', ext: 'mp4', sub: 'A movie of the show with its timings, narration, builds and fades. It records in real time.' },
   gif: { label: 'GIF', ext: 'gif', sub: 'A looping animated picture of your slides for chat, email and web pages.' },
@@ -995,7 +995,7 @@ class ExportDialog extends Dialog {
         if (tauri) savedToast('Exported to', r.path);
         else { download(r.url); toast(`Exported ${plural(slides.length, 'slide')} as ${EXPORTS[f].label}`); }
       } else if (tauri) {
-        this.status.busy(f === 'fsld' ? 'Packing the deck' : 'Writing the PowerPoint file');
+        this.status.busy(f === 'fsld' ? 'Packing the deck' : f === 'odp' ? 'Writing the OpenDocument file' : 'Writing the PowerPoint file');
         const r = await api.export(deck.id, f, path);
         this.status.done();
         this.close();
@@ -1330,12 +1330,18 @@ class TemplatePickerDialog extends Dialog {
   private readonly status = new StatusLine();
   private readonly apply: HTMLButtonElement;
   private readonly picker: HTMLInputElement;
+  private readonly asMaster: HTMLInputElement;
+  private readonly note: HTMLElement;
 
   constructor() {
     super('Change template', 920);
     q(this.scrim, '.fs-dialog').classList.add('fs-dlg-picker');
     const infoRow = el(`<div class="fs-dlg-tpl-info"><span class="fs-note fs-dlg-tpl-desc"></span><button class="fs-dlg-link" type="button">${icon('download', 14)}<span>Download as .pptx</span></button></div>`);
-    this.body.append(el('<p class="fs-note">Restyles every slide with the template’s layouts, colours and fonts. Your text, pictures, charts and notes stay. Undo takes it back in one step.</p>'), this.grid.root, infoRow);
+    const masterRow = el('<div class="fs-dlg-tpl-master"><label class="fs-check"><input type="checkbox" data-f="as-master"><span>Add as another slide master and keep the current design</span></label></div>');
+    this.asMaster = q<HTMLInputElement>(masterRow, 'input');
+    this.asMaster.addEventListener('change', () => this.sync());
+    this.note = el('<p class="fs-note"></p>');
+    this.body.append(this.note, this.grid.root, infoRow, masterRow);
     this.info = q(infoRow, '.fs-dlg-tpl-desc');
     this.dl = q<HTMLButtonElement>(infoRow, 'button');
     this.picker = document.createElement('input');
@@ -1353,8 +1359,9 @@ class TemplatePickerDialog extends Dialog {
     this.picker.addEventListener('change', () => { const f = this.picker.files?.[0]; this.picker.value = ''; if (f) void this.importTemplate(f); });
   }
 
-  show(ed: Editor): void {
+  show(ed: Editor, asMaster = false): void {
     this.ed = ed;
+    this.asMaster.checked = asMaster;
     this.status.reset();
     this.grid.resetFilter();
     this.sync();
@@ -1364,21 +1371,33 @@ class TemplatePickerDialog extends Dialog {
 
   private sync(): void {
     const t = this.grid.current;
-    const same = !!t && !!this.ed && t.id === deckTemplateId(this.ed.doc.deck);
+    const master = this.asMaster.checked;
+    const same = !master && !!t && !!this.ed && t.id === deckTemplateId(this.ed.doc.deck);
     setText(this.info, t ? `${describeTemplate(t)}${t.layouts ? ` · ${plural(t.layouts, 'layout')}` : ''}` : '');
     setHidden(this.dl, !t);
-    setText(this.apply, same ? 'Current template' : 'Apply template');
+    setText(this.apply, same ? 'Current template' : master ? 'Add slide master' : 'Apply template');
+    this.setTitle(master ? 'Insert slide master' : 'Change template');
+    setText(this.note, master ? 'Adds the template’s master with its layouts, colours and fonts beside the current design. Slides keep their look; pick the new layouts from New Slide or Layout.' : 'Restyles every slide with the template’s layouts, colours and fonts. Your text, pictures, charts and notes stay. Undo takes it back in one step.');
     setDisabled(this.apply, !t || same || this.running);
   }
 
   private async run(): Promise<void> {
     const ed = this.ed, t = this.grid.current;
-    if (!ed || !t || this.running || t.id === deckTemplateId(ed.doc.deck)) return;
+    const master = this.asMaster.checked;
+    if (!ed || !t || this.running || (!master && t.id === deckTemplateId(ed.doc.deck))) return;
     holdFocus(this);
     this.running = true;
     this.sync();
-    this.status.busy(`Applying ${t.name}`);
+    this.status.busy(master ? `Adding ${t.name}` : `Applying ${t.name}`);
     try {
+      if (master) {
+        const id = await addMaster(ed, t.id, t.name);
+        if (!id) throw new Error('nothing was added');
+        this.status.done();
+        this.close();
+        toast(`${t.name} added as a slide master · its layouts are under New Slide and Layout`);
+        return;
+      }
       await api.applyTemplate(ed.doc.id, t.id, ed.live.clientId);
       this.status.done();
       this.close();
@@ -1416,9 +1435,9 @@ class TemplatePickerDialog extends Dialog {
 }
 
 let pickerDlg: TemplatePickerDialog | null = null;
-export async function templatePicker(ed: Editor): Promise<void> {
+export async function templatePicker(ed: Editor, asMaster = false): Promise<void> {
   pickerDlg ??= new TemplatePickerDialog();
-  pickerDlg.show(ed);
+  pickerDlg.show(ed, asMaster);
 }
 
 interface VersionInfo { n: number; name: string; at: string; slides: number }
@@ -1850,11 +1869,11 @@ class HelpDialog extends Dialog {
     this.body.appendChild(el(`<div class="fs-dlg-stack">
 <div class="fs-dlg-about">${brandMark(36)}<div><div class="fs-dlg-about-name">formsld</div><div class="fs-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div></div></div>
 <section class="fs-dlg-section"><div class="fs-dlg-section-title">Quick start</div><ol class="fs-dlg-steps">
-<li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck on Home and formsld drafts the slides in your template.</li>
+<li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck (.pptx or .odp) on Home and formsld drafts the slides in your template.</li>
 <li><strong>Pick a template.</strong> Change it any time with Slide &gt; Apply Template. Your content follows.</li>
 <li><strong>Edit on the slide.</strong> Double-click to type, drop pictures anywhere, and use the panel on the right for layout, colours and review status.</li>
 <li><strong>Bring in your agent.</strong> Connect Claude Code, Codex or Cursor from Review &gt; Agents. It edits the same deck live and every turn undoes as one step.</li>
-<li><strong>Present and share.</strong> Present from the title bar, export .pptx for PowerPoint and Google Slides, or PDF and pictures.</li>
+<li><strong>Present and share.</strong> Present from the title bar, export .pptx for PowerPoint, Keynote and Google Slides, .odp for LibreOffice Impress, or PDF and pictures.</li>
 </ol></section>
 <section class="fs-dlg-section"><div class="fs-dlg-section-title">Learn more</div>
 <p class="fs-dlg-text">The full manual is docs/MANUAL.md in your formsld folder. The deck format agents and tools read is described in docs/FORMAT.md.</p>

@@ -1,5 +1,6 @@
 from .ooxml import bool_attr, emu_pt, find, findall, int_attr, local
 from .read_style import fill_element, read_fill
+from .text_fx import read_run_fx, read_warp
 
 ANCHOR_OF = {"t": "t", "ctr": "m", "b": "b", "just": "t", "dist": "t"}
 ALIGN_OF = {"l": "l", "ctr": "c", "r": "r", "just": "j", "dist": "j", "justLow": "j", "thaiDist": "j"}
@@ -53,6 +54,9 @@ def _read_body_pr(body_pr, body: dict) -> None:
         body["vert"] = VERT_OF[body_pr.get("vert")]
     if body_pr.get("numCol") is not None:
         body["cols"] = max(1, int_attr(body_pr, "numCol", 1))
+    warp = read_warp(body_pr)
+    if warp:
+        body["warp"] = warp
 
 
 def read_list_style(lst_style, ctx) -> list:
@@ -162,6 +166,7 @@ def read_run_props(rpr, ctx) -> dict:
     color = _run_color(rpr, ctx)
     if color is not None:
         props["color"] = color
+    props.update(read_run_fx(rpr, ctx))
     highlight = ctx.color(find(rpr, "a:highlight"))
     if highlight is not None:
         props["hl"] = highlight
@@ -198,6 +203,9 @@ def read_para(p, ctx, levels: list | None = None) -> dict:
             runs.append({"t": text, **read_run_props(find(child, "a:rPr"), ctx)})
         elif tag == "br":
             runs.append({"t": "\n", **read_run_props(find(child, "a:rPr"), ctx)})
+        elif tag == "m":
+            from .omml import read_math
+            runs.extend(read_math(child, ctx))
     if not any(r["t"] for r in runs):
         end = read_run_props(find(p, "a:endParaRPr"), ctx)
         if end.get("sz"):

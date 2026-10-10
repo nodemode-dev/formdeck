@@ -15,7 +15,7 @@ export interface AppHooks {
   newDeck(): void;
   openFile(): void;
   save(as?: boolean): void;
-  exportAs(format: 'pptx' | 'potx' | 'pdf' | 'png' | 'fsld'): void;
+  exportAs(format: 'pptx' | 'potx' | 'pdf' | 'png' | 'fsld' | 'odp'): void;
   print(): void;
   present(from: 'start' | 'current', presenter?: boolean): void;
   view(v: 'normal' | 'sorter' | 'outline'): void;
@@ -131,6 +131,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'save-template', label: 'Save as Template...', enabled: has, run: () => h.saveAsTemplate() },
     { id: 'export-pptx', label: 'Export as PowerPoint (.pptx)', icon: 'filePptx', enabled: has, run: () => h.exportAs('pptx') },
     { id: 'export-potx', label: 'Export as PowerPoint Template (.potx)', enabled: has, run: () => h.exportAs('potx') },
+    { id: 'export-odp', label: 'Export as OpenDocument Presentation (.odp)', icon: 'fileOdp', enabled: has, run: () => h.exportAs('odp') },
     { id: 'export-pdf', label: 'Export as PDF', icon: 'filePdf', enabled: has, run: () => h.exportAs('pdf') },
     { id: 'export-png', label: 'Export Slides as Pictures', icon: 'fileImage', enabled: has, run: () => h.exportAs('png') },
     { id: 'export-fsld', label: 'Download formsld File (.fsld)', icon: 'download', enabled: has, run: () => h.exportAs('fsld') },

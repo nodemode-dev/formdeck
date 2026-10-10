@@ -6,6 +6,7 @@ import type { Editor } from './editor';
 import { TableDrag } from './table-drag';
 import { BORDER_PRESETS, BORDER_WIDTHS, cellFillOps, cellMarginOps, cellTarget, colWidthOps, DEFAULT_INSET, firstCell, pen, pickBorderColor, rangeCells, rowHeightOps, scaledCols, setPen, withCells, type CellTarget } from './table-edit';
 import { resolvedFrame } from './actions';
+import { editorTheme } from './master-view';
 
 const num = (f: string, label: string, title: string): string => `<label class="fs-num" title="${title}"><span class="fs-num-label">${label}</span><input type="number" min="0" step="0.5" data-tf="${f}" aria-label="${title}"><span class="fs-unit">pt</span></label>`;
 const seg = (cmd: string, ic: string, title: string): string => `<button type="button" data-cmd="${cmd}" title="${title}" aria-label="${title}">${icon(ic, 16)}</button>`;
@@ -65,7 +66,7 @@ export class TablePanel {
   private async fill(ed: Editor, anchor: HTMLElement): Promise<void> {
     const t0 = cellTarget(ed);
     const cur = t0 ? firstCell(t0)?.fill : undefined;
-    const c = await pickColor(anchor, ed.doc.deck.theme, { none: 'No fill', current: cur && cur.type === 'solid' ? cur.color : null });
+    const c = await pickColor(anchor, editorTheme(ed), { none: 'No fill', current: cur && cur.type === 'solid' ? cur.color : null });
     const t = cellTarget(ed);
     if (c === undefined || !t) return;
     withCells(t, (x) => cellFillOps(x, x.rg, c), c === null ? 'No fill' : 'Cell fill');
@@ -106,7 +107,7 @@ export class TablePanel {
       setDisabled(b, !ed.commands.enabled(cmd));
       setClass(b, 'is-on', !!cmd.checked?.());
     }
-    const theme = ed.doc.deck.theme;
+    const theme = editorTheme(ed);
     const fill = firstCell(t)?.fill;
     const fb = this.el.querySelector<HTMLElement>('[data-ta="fill"]');
     if (fb) {

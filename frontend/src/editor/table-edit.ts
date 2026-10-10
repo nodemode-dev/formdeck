@@ -9,6 +9,7 @@ import { hasIcon, ICONS } from '../ui/icons';
 import { PopupMenu } from '../ui/menu';
 import type { Editor } from './editor';
 import { clone, deleteElementOps, dirtyOp, resolvedFrame, setFrameOps } from './actions';
+import { editorTheme } from './master-view';
 
 export interface TableSelection { slide: string; el: string; r0: number; c0: number; r1: number; c1: number }
 export interface Range4 { r0: number; c0: number; r1: number; c1: number }
@@ -485,7 +486,8 @@ export function patchLiveTable(ed: Editor, id: string): void {
   const deck = ed.doc.deck;
   const c = chain(deck, slide, el);
   const tpl = document.createElement('template');
-  tpl.innerHTML = tableHtml(el.table, deck.theme, { theme: deck.theme, chain: { ...c, kind: 'other' }, slideNumber: Math.max(1, slideNumber(deck, slide)), showPrompt: false, props: bodyProps(c), mode: 'edit' });
+  const theme = editorTheme(ed);
+  tpl.innerHTML = tableHtml(el.table, theme, { theme, chain: { ...c, kind: 'other' }, slideNumber: Math.max(1, slideNumber(deck, slide)), showPrompt: false, props: bodyProps(c), mode: 'edit' });
   const fresh = tpl.content.querySelector('table');
   if (!fresh) return;
   const f = resolvedFrame(deck, slide, el);
@@ -591,7 +593,7 @@ export function tableTextFormat(ed: Editor | null, patch: RunPatch, label: strin
   const key = tableKey(t.el.id);
   withCells(t, (x) => cellRunOps(x, x.rg, patch), label, true, key);
   const font = typeof patch === 'object' ? patch.font : undefined;
-  if (font) void ensureFont(themeFont(font, ed.doc.deck.theme)).then(() => syncFrame(ed, t.el.id, label, key));
+  if (font) void ensureFont(themeFont(font, editorTheme(ed))).then(() => syncFrame(ed, t.el.id, label, key));
   return true;
 }
 
@@ -848,6 +850,6 @@ export function setPen(ed: Editor | null, patch: { color?: Color; width?: number
 
 export async function pickBorderColor(ed: Editor | null, anchor: HTMLElement): Promise<void> {
   if (!ed) return;
-  const c = await pickColor(anchor, ed.doc.deck.theme, { current: pen.color });
+  const c = await pickColor(anchor, editorTheme(ed), { current: pen.color });
   if (c) setPen(ed, { color: c });
 }

@@ -17,6 +17,7 @@ pyinstaller --noconfirm --clean --onefile --name formsld-engine \
   --add-data "$FORMSLD_ROOT/frontend/dist${sep}frontend_dist" \
   --collect-submodules app --collect-submodules uvicorn \
   --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 \
+  --collect-all latex2mathml --add-data "$FORMSLD_ROOT/backend/app/services/odp/presets.json${sep}app/services/odp" \
   "${extra[@]}" \
   "$FORMSLD_ROOT/backend/formsld_engine.py"
 mkdir -p "$FORMSLD_ROOT/src-tauri/binaries"
