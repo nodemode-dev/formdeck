@@ -75,26 +75,33 @@ class _Importer:
         self.layout_clrmaps: dict[str, dict | None] = {}
         self.layout_elements: dict[str, list] = {}
         self.master_frames: dict[str, dict] = {}
+        self.master_themes: dict[str, tuple] = {}
+        self.layout_masters: dict[str, str] = {}
         self._master_clrmap: dict | None = None
 
     def run(self, as_template: bool) -> dict:
-        master_parts = [self.prs_part.related_part(el.get(R_ID)) for el in findall(self.prs_el, "p:sldMasterIdLst/p:sldMasterId")]
-        theme_part = master_parts[0].part_related_by(RT.THEME) if master_parts else None
-        theme_el = parse(theme_part.blob) if theme_part is not None else None
-        self.ctx.theme = ThemeStyles.from_theme(theme_el, theme_part)
+        master_parts = []
+        for el in findall(self.prs_el, "p:sldMasterIdLst/p:sldMasterId"):
+            try:
+                master_parts.append(self.prs_part.related_part(el.get(R_ID)))
+            except KeyError:
+                continue
         self.ctx.table_styles = self._table_styles()
-        theme = read_theme(theme_el)
-        self.ctx.theme_colors = theme["colors"]
+        theme = self._load_theme(master_parts[0] if master_parts else None, "m1")
         slide_entries = self._slide_entries()
         masters, layouts = [], []
         for n, part in enumerate(master_parts, 1):
             master_id = f"m{n}"
-            masters.append(self._master(part, master_id, theme["name"]))
-            layouts.extend(self._layouts(part, master_id))
+            own = self._load_theme(part, master_id) if n > 1 else theme
+            master = self._master(part, master_id, own["name"])
+            if n > 1:
+                master["theme"] = own
+            masters.append(master)
+            group = self._layouts(part, master_id)
+            assign_semantics(group, self.layout_types)
+            layouts.extend(group)
+        self._use_theme("m1")
         self.ctx.where = ""
-        if len(master_parts) > 1:
-            self.ctx.warn(f"{len(master_parts)} slide masters found; the theme comes from the first")
-        assign_semantics(layouts, self.layout_types)
         for layout in layouts:
             assign_slots(layout, self.master_frames.get(layout["master"], {}))
         slides = [self._slide(part, sid, n) for n, (_, part, sid) in enumerate(slide_entries, 1)]
@@ -124,6 +131,25 @@ class _Importer:
         if as_template:
             deck["template"] = {"id": re.sub(r"_+", "-", slugify(deck["title"])), "name": deck["title"], "source": "imported", "license": "user"}
         return deck
+
+    def _load_theme(self, master_part, master_id: str) -> dict:
+        try:
+            theme_part = master_part.part_related_by(RT.THEME) if master_part is not None else None
+        except KeyError:
+            theme_part = None
+        try:
+            theme_el = parse(theme_part.blob) if theme_part is not None else None
+        except (ValueError, etree.XMLSyntaxError):
+            theme_el, theme_part = None, None
+        theme = read_theme(theme_el)
+        self.master_themes[master_id] = (ThemeStyles.from_theme(theme_el, theme_part), theme)
+        self._use_theme(master_id)
+        return theme
+
+    def _use_theme(self, master_id: str | None) -> None:
+        found = self.master_themes.get(master_id or "") or self.master_themes.get("m1")
+        if found:
+            self.ctx.theme, self.ctx.theme_colors = found[0], found[1]["colors"]
 
     def _table_styles(self) -> dict:
         try:
@@ -167,6 +193,8 @@ class _Importer:
         text_styles = {key: self._levels(find(tx_styles, tag)) for key, tag in TEXT_STYLE_TAGS}
         text_styles["other"] = self._merge_levels(self._levels(find(self.prs_el, "p:defaultTextStyle")), text_styles["other"])
         master = {"id": master_id, "name": c_sld.get("name") or theme_name, "elements": elements, "textStyles": text_styles}
+        if el.get("preserve") in ("1", "true"):
+            master["preserve"] = True
         background = background_fill(find(c_sld, "p:bg"), self.ctx)
         if background is not None:
             master["background"] = background
@@ -211,6 +239,7 @@ class _Importer:
             layout["hideMasterShapes"] = True
         key = str(part.partname)
         self.layout_ids[key] = layout_id
+        self.layout_masters[key] = master_id
         self.layout_types[layout_id] = el.get("type", "cust")
         self.layout_clrmaps[key] = clrmap
         self.layout_elements[key] = elements
@@ -229,6 +258,7 @@ class _Importer:
         layout_key = str(layout_part.partname)
         override = find(el, "p:clrMapOvr/a:overrideClrMapping")
         clrmap = clrmap_of(override) if override is not None else self.layout_clrmaps.get(layout_key)
+        self._use_theme(self.layout_masters.get(layout_key))
         self._enter(part, f"slide {number}", clrmap, slide_id)
         c_sld = find(el, "p:cSld")
         elements, shape_ids = read_tree_mapped(find(c_sld, "p:spTree"), self.ctx)

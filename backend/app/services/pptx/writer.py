@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO
@@ -6,7 +7,8 @@ from lxml import etree
 from pptx import Presentation
 from pptx.opc.constants import CONTENT_TYPE as CT
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
-from pptx.parts.slide import SlideLayoutPart
+from pptx.opc.package import Part
+from pptx.parts.slide import SlideLayoutPart, SlideMasterPart
 
 from .colors import SLOTS, solid_hex
 from .ooxml import NS, find, findall, make, parse, pt_emu, sub
@@ -75,9 +77,11 @@ class _Exporter:
     def __init__(self, deck: dict, media, font_scales: dict):
         self.deck = deck
         self.ctx = WriteContext(media=media, font_scales=_merge_scales((deck.get("meta") or {}).get("fontScales"), font_scales))
+        self.ctx.theme_colors = dict((deck.get("theme") or {}).get("colors") or {})
         self.layout_parts: dict[str, SlideLayoutPart] = {}
         self.layouts_by_id: dict[str, dict] = {}
         self.master = None
+        self.masters_by_id: dict[str, dict] = {}
 
     def build(self, template: bool):
         prs = Presentation()
@@ -86,13 +90,22 @@ class _Exporter:
         self._drop_thumbnail()
         master_part = prs.slide_masters[0].part
         masters = [m for m in self.deck.get("masters") or [] if isinstance(m, dict)]
-        self.master = masters[0] if masters else {"id": "m1", "name": "Master", "elements": [], "textStyles": {}}
-        if len(masters) > 1:
-            self.ctx.warn(f"{len(masters)} masters in the deck; every layout was placed under the first master")
-        self._write_theme(master_part)
+        if not masters:
+            masters = [{"id": "m1", "name": "Master", "elements": [], "textStyles": {}}]
+        self.master = masters[0]
+        self.masters_by_id = {str(m.get("id")): m for m in masters}
+        blank_master = copy.deepcopy(master_part._element)
+        blank_theme = master_part.part_related_by(RT.THEME).blob
         self._remove_default_layouts(master_part)
-        self._write_master(master_part)
-        self._write_layouts(master_part)
+        layouts = [l for l in self.deck.get("layouts") or [] if isinstance(l, dict)]
+        if not layouts:
+            layouts = [{"id": "l_blank", "master": self.master.get("id"), "name": "Blank", "semantic": "blank", "elements": []}]
+        for index, master in enumerate(masters):
+            part = master_part if index == 0 else self._add_master_part(blank_master, blank_theme)
+            self._write_theme(part, master.get("theme") or self.deck.get("theme") or {})
+            self._write_master(part, master, index == 0)
+            mine = [l for l in layouts if self.masters_by_id.get(str(l.get("master")), self.master) is master]
+            self._write_layouts(part, master, mine)
         slides = self._create_slides()
         for number, (slide, pp_slide) in enumerate(slides, 1):
             self._fill_slide(slide, pp_slide, number)
@@ -119,8 +132,19 @@ class _Exporter:
         for rid in [rid for rid, rel in rels.items() if rel.reltype == THUMBNAIL_RT]:
             rels.pop(rid)
 
-    def _write_theme(self, master_part) -> None:
-        theme = self.deck.get("theme") or {}
+    def _add_master_part(self, blank_master, blank_theme: bytes) -> SlideMasterPart:
+        package = self.prs.part.package
+        root = copy.deepcopy(blank_master)
+        for entry in list(find(root, "p:sldLayoutIdLst")):
+            entry.getparent().remove(entry)
+        part = SlideMasterPart(package.next_partname("/ppt/slideMasters/slideMaster%d.xml"), CT.PML_SLIDE_MASTER, package, root)
+        rid = self.prs.part.relate_to(part, RT.SLIDE_MASTER)
+        sub(find(self.prs.part._element, "p:sldMasterIdLst"), "p:sldMasterId", {"id": self._next_layout_id(), "r:id": rid})
+        theme = Part(package.next_partname("/ppt/theme/theme%d.xml"), CT.OFC_THEME, package, blank_theme)
+        part.relate_to(theme, RT.THEME)
+        return part
+
+    def _write_theme(self, master_part, theme: dict) -> None:
         theme_part = master_part.part_related_by(RT.THEME)
         root = parse(theme_part.blob)
         name = str(theme.get("name") or "Theme")
@@ -155,23 +179,25 @@ class _Exporter:
             id_lst.remove(entry)
             master_part.drop_rel(rid)
 
-    def _write_master(self, master_part) -> None:
+    def _write_master(self, master_part, master: dict, first: bool) -> None:
         root = master_part._element
-        self.ctx.enter(master_part, "master")
+        self.ctx.enter(master_part, f"master {master.get('name') or master.get('id')}" if not first else "master")
+        if master.get("preserve"):
+            root.set("preserve", "1")
         c_sld = find(root, "p:cSld")
-        c_sld.set("name", str(self.master.get("name") or "Master"))
-        self._set_background(c_sld, self.master.get("background"))
+        c_sld.set("name", str(master.get("name") or "Master"))
+        self._set_background(c_sld, master.get("background"))
         sp_tree = find(c_sld, "p:spTree")
         _clear_tree(sp_tree)
-        ElementWriter(self.ctx).write_all(self.master.get("elements") or [], sp_tree)
+        ElementWriter(self.ctx).write_all(master.get("elements") or [], sp_tree)
         tx_styles = find(root, "p:txStyles")
-        styles = self.master.get("textStyles") or {}
+        styles = master.get("textStyles") or {}
         for key, tag in TEXT_STYLE_TAGS:
             style_el = find(tx_styles, tag)
             for index, level in enumerate((styles.get(key) or [])[:9]):
                 if isinstance(level, dict) and level:
                     self._set_level(style_el, index, level_element(level, index, self.ctx))
-        default_style = find(self.prs.part._element, "p:defaultTextStyle")
+        default_style = find(self.prs.part._element, "p:defaultTextStyle") if first else None
         for index, level in enumerate((styles.get("other") or [])[:9]):
             if isinstance(level, dict) and level and default_style is not None:
                 self._set_level(default_style, index, level_element(level, index, self.ctx))
@@ -208,15 +234,14 @@ class _Exporter:
         used += [int(e.get("id")) for m in self.prs.slide_masters for e in findall(m.part._element, "p:sldLayoutIdLst/p:sldLayoutId")]
         return max(used + [2147483648]) + 1
 
-    def _write_layouts(self, master_part) -> None:
-        layouts = [l for l in self.deck.get("layouts") or [] if isinstance(l, dict)]
+    def _write_layouts(self, master_part, master: dict, layouts: list) -> None:
         if not layouts:
-            layouts = [{"id": "l_blank", "master": self.master.get("id"), "name": "Blank", "semantic": "blank", "elements": []}]
+            layouts = [{"id": f"l__blank_{master.get('id')}", "master": master.get("id"), "name": "Blank", "semantic": "blank", "elements": []}]
         for layout in layouts:
             self.layouts_by_id[str(layout.get("id"))] = layout
-            self.layout_parts[str(layout.get("id"))] = self._layout_part(layout, master_part)
+            self.layout_parts[str(layout.get("id"))] = self._layout_part(layout, master_part, master)
 
-    def _layout_part(self, layout: dict, master_part) -> SlideLayoutPart:
+    def _layout_part(self, layout: dict, master_part, master: dict) -> SlideLayoutPart:
         package = self.prs.part.package
         kind = LAYOUT_TYPES.get(layout.get("semantic") or "", "cust")
         attrs = {"type": kind, "preserve": True}
@@ -235,7 +260,7 @@ class _Exporter:
         sub(find(master_part._element, "p:sldLayoutIdLst"), "p:sldLayoutId", {"id": self._next_layout_id(), "r:id": rid})
         self.ctx.enter(part, f"layout {layout.get('name')}")
         self._set_background(c_sld, layout.get("background"))
-        writer = ElementWriter(self.ctx, master_elements=self.master.get("elements"), layout_part=True)
+        writer = ElementWriter(self.ctx, master_elements=master.get("elements"), layout_part=True)
         writer.write_all(layout.get("elements") or [], sp_tree)
         return part
 
@@ -265,7 +290,8 @@ class _Exporter:
             c_sld.set("name", str(slide["name"]))
         self._set_background(c_sld, slide.get("background"))
         layout = self.layouts_by_id.get(str(slide.get("layout")), {})
-        writer = ElementWriter(self.ctx, layout_elements=layout.get("elements"), master_elements=self.master.get("elements"))
+        master = self.masters_by_id.get(str(layout.get("master")), self.master)
+        writer = ElementWriter(self.ctx, layout_elements=layout.get("elements"), master_elements=master.get("elements"))
         shape_ids = write_mapped(writer, slide.get("elements") or [], find(c_sld, "p:spTree"))
         if slide.get("hidden"):
             sld.set("show", "0")

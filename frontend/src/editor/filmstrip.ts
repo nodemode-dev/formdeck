@@ -26,6 +26,7 @@ export class Filmstrip {
   private masterMode = false;
   private refitSlides = false;
   private slideTop = 0;
+  private readonly ro = new ResizeObserver(() => this.resize());
 
   constructor(private readonly ed: Editor, private readonly scroll: HTMLElement, private readonly count: HTMLElement) {
     this.list = el('<div class="fs-strip-list" role="listbox" aria-label="Slides" aria-multiselectable="true"></div>');
@@ -45,7 +46,7 @@ export class Filmstrip {
       if (it) this.ed.setHolder(it.kind, it.id);
       this.ed.contextMenu(e.clientX, e.clientY, 'thumb');
     });
-    new ResizeObserver(() => this.resize()).observe(scroll);
+    this.ro.observe(scroll);
     this.list.addEventListener('pointerdown', (e) => this.down(e));
     this.list.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -54,6 +55,15 @@ export class Filmstrip {
       this.ed.contextMenu(e.clientX, e.clientY, 'thumb');
     });
     this.list.addEventListener('dragover', (e) => e.preventDefault());
+  }
+
+  dispose(): void {
+    this.ro.disconnect();
+    this.list.remove();
+    this.mlist.remove();
+    this.items.clear();
+    this.mitems.clear();
+    this.sections.clear();
   }
 
   private idAt(t: EventTarget | null): string | null {
@@ -184,7 +194,7 @@ export class Filmstrip {
       if (h.kind === 'master') masters++;
       setText(it.num, h.kind === 'master' ? String(masters) : '');
       setText(it.name, holder.name);
-      const n = h.kind === 'layout' ? usage.get(h.id) ?? 0 : deck.slides.length;
+      const n = h.kind === 'layout' ? usage.get(h.id) ?? 0 : deck.layouts.reduce((sum, l) => sum + (l.master === h.id ? usage.get(l.id) ?? 0 : 0), 0);
       const used = n ? `used by ${n} slide${n === 1 ? '' : 's'}` : 'not used by any slide';
       setTitle(it.node, h.kind === 'layout' ? `${holder.name} layout: ${used}` : `${holder.name} slide master: ${used}`);
       nodes.push(it.node);

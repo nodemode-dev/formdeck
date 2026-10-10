@@ -62,6 +62,7 @@ export function fontsOfDeck(deck: { theme: { fonts: { major: string; minor: stri
     }
   };
   walk(deck.masters); walk(deck.layouts); walk(deck.slides);
+  for (const m of deck.masters as Array<{ theme?: { fonts?: { major?: string; minor?: string } } }>) for (const f of [m.theme?.fonts?.major, m.theme?.fonts?.minor]) if (f) out.add(f);
   return out;
 }
 

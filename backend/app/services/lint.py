@@ -160,7 +160,7 @@ def _overlap(a: tuple, b: tuple) -> float:
 
 
 def _bg_at(deck: dict, slide: dict, layout: dict, master: dict, below: list, x: float, y: float) -> str | None:
-    theme = deck.get("theme") or {}
+    theme = model.theme_of(deck, master=master or None)
     base = None
     for holder in (slide, layout, master):
         if holder.get("background"):
@@ -245,7 +245,7 @@ def _check_text(out, deck, slide, n, layout, master, el, chain, frame, below, sc
     if not paras:
         return 0
     styles = _styles(chain, master)
-    theme = deck.get("theme") or {}
+    theme = model.theme_of(deck, master=master or None)
     words = 0
     min_sz, worst = None, None
     kind = _kind(el)

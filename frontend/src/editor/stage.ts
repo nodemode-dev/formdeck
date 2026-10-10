@@ -153,7 +153,8 @@ export class Stage {
     if (kind === 'slide') return;
     const deck = this.ed.doc.deck;
     const h = holderOf(deck, kind, this.ed.current);
-    const used = kind === 'layout' ? layoutUsage(deck).get(this.ed.current) ?? 0 : deck.slides.length;
+    const usage = layoutUsage(deck);
+    const used = kind === 'layout' ? usage.get(this.ed.current) ?? 0 : deck.layouts.reduce((n, l) => n + (l.master === this.ed.current ? usage.get(l.id) ?? 0 : 0), 0);
     setText(this.banner.querySelector('.fs-master-banner-name'), h ? `${h.name}${kind === 'layout' ? ' layout' : ''} · ${used ? `used by ${used} slide${used === 1 ? '' : 's'}` : 'not used'}` : '');
   }
 

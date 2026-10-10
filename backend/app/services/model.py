@@ -106,6 +106,17 @@ def layout_for(deck: dict, semantic: str) -> dict | None:
     return next((l for l in deck.get("layouts", []) if l.get("semantic") == semantic), None)
 
 
+def master_of(deck: dict, layout: dict | None) -> dict:
+    masters = deck.get("masters") or [{}]
+    return next((m for m in masters if layout and m.get("id") == layout.get("master")), masters[0])
+
+
+def theme_of(deck: dict, slide: dict | None = None, master: dict | None = None) -> dict:
+    if master is None and slide is not None:
+        master = master_of(deck, find_layout(deck, slide.get("layout")))
+    return (master or {}).get("theme") or deck.get("theme") or DEFAULT_THEME
+
+
 def find_element(elements: list, el_id: str) -> dict | None:
     return next((e for e in iter_elements(elements) if e.get("id") == el_id), None)
 
@@ -183,6 +194,13 @@ def normalize(deck: dict) -> dict:
     for m in deck["masters"]:
         m.setdefault("elements", [])
         m.setdefault("textStyles", default_text_styles())
+        if isinstance(m.get("theme"), dict):
+            for k, v in theme["colors"].items():
+                m["theme"].setdefault("colors", {}).setdefault(k, v)
+            m["theme"].setdefault("fonts", dict(theme["fonts"]))
+            m["theme"].setdefault("name", m.get("name") or theme.get("name") or "Theme")
+        elif "theme" in m:
+            m.pop("theme")
     for key in ("layouts", "slides", "sections", "comments"):
         deck.setdefault(key, [])
     deck["comments"] = [c for c in deck["comments"] if isinstance(c, dict)] if isinstance(deck["comments"], list) else []

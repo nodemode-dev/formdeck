@@ -27,9 +27,16 @@ def remap(deck: dict, template_deck: dict) -> dict:
     new["layouts"] = tpl["layouts"]
     new["template"] = tpl.get("template")
     new["slides"] = []
+    from app.services.templates.masters import keep_preserved
+    kept = keep_preserved(old, new, set(used))
     ctx = Ctx(new)
-    ctx.counter.used |= used | {s["id"] for s in old.get("slides", [])}
+    ctx.counter.used |= used | model.all_element_ids(new) | {s["id"] for s in old.get("slides", [])}
     for n, s in enumerate(old.get("slides", [])):
+        if s.get("layout") in kept:
+            slide = copy.deepcopy(s)
+            slide["layout"] = kept[s["layout"]]
+            new["slides"].append(slide)
+            continue
         old_layout = model.find_layout(old, s.get("layout")) or {}
         semantic = old_layout.get("semantic") or "content"
         spec = s.get("spec")

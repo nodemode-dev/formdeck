@@ -1,4 +1,9 @@
 .fs-strip-list[hidden] { display: none; }
+.fs-dlg-tpl-master { display: flex; align-items: center; min-height: 24px; }
+:root:has(.fs-mstrip:not([hidden])) .fs-st-slide { display: inline-block; width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.fs-layout-group { grid-column: 1 / -1; padding: var(--space-2) 2px 0; overflow: hidden; color: var(--text-muted); font-size: var(--fs-11); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.fs-layout-group:first-child { padding-top: 0; }
+.fs-layout-group[hidden] { display: none; }
 .fs-mthumb.is-master:not(:first-child) { margin-top: var(--space-3); }
 .fs-mthumb-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .fs-mthumb.is-layout .fs-mthumb-main { margin-left: var(--fs-mthumb-indent, 18px); }
@@ -12,7 +17,7 @@
 .fs-master-banner[hidden] { display: none; }
 .fs-master-banner-icon { display: inline-flex; color: var(--accent-color); }
 .fs-master-banner-title { color: var(--text-primary); font-weight: 600; }
-.fs-master-banner-name { min-width: 0; overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; }
+.fs-master-banner-name { flex: 0 1 240px; width: 240px; min-width: 0; overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; }
 .fs-master-banner .fs-btn { border-radius: var(--radius-pill); }
 
 .fs-slide.is-holder .fs-el.is-ph::after { content: ''; position: absolute; inset: 0; border: 1px dashed color-mix(in srgb, var(--text-muted) 70%, transparent); border-radius: 2px; pointer-events: none; }

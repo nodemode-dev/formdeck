@@ -93,6 +93,16 @@ export function layoutOf(deck: Deck, slide: Slide): Layout | undefined {
 export function masterOf(deck: Deck, layout: Layout | undefined): Master {
   return deck.masters.find((m) => m.id === layout?.master) ?? deck.masters[0];
 }
+export function themeOf(deck: Deck, master: Master | undefined): Theme {
+  return master?.theme ?? deck.theme;
+}
+export function slideTheme(deck: Deck, slide: Slide | undefined): Theme {
+  return themeOf(deck, masterOf(deck, slide ? layoutOf(deck, slide) : undefined));
+}
+export function themedDeck(deck: Deck, master: Master | undefined): Deck {
+  const t = master?.theme;
+  return !t || t === deck.theme ? deck : { ...deck, theme: t };
+}
 
 function phKind(t: string): 'title' | 'body' | 'other' {
   if (TITLE_KINDS.has(t)) return 'title';
@@ -196,6 +206,10 @@ export function levelStyle(c: Chain, lvl: number): LevelStyle {
   ];
   for (const layer of layers) if (layer) Object.assign(out, layer);
   return out;
+}
+
+export function masterOfSlide(deck: Deck, slide: Slide | undefined): Master {
+  return masterOf(deck, slide ? layoutOf(deck, slide) : undefined);
 }
 
 export function backgroundOf(deck: Deck, slide: Slide): Fill {
