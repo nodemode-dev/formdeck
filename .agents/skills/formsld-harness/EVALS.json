@@ -103,13 +103,12 @@
     },
     {
       "id": 9,
-      "name": "merge-and-split-pdfs",
+      "name": "pdf-editing-goes-to-formpdf",
       "prompt": "Merge contract-a.pdf and contract-b.pdf in ~/Legal into one file, then split out pages 1-3 of the merged one as a summary",
       "files": ["~/Legal/contract-a.pdf", "~/Legal/contract-b.pdf"],
       "expected_behavior": [
-        "Calls pdf merge with both absolute paths and an absolute out file",
-        "Calls pdf split on the merged file with ranges [\"1-3\"] and an existing folder as out",
-        "Reports the merged page count and the split file path exactly as returned (stem-part1-1-3.pdf)",
+        "Says that formsld no longer edits PDFs and that PDF editing lives in formpdf (github.com/nodemode-ai/formpdf)",
+        "Does not call ingest, build_deck or any other formsld tool for this request",
         "Does not build a deck"
       ]
     },
@@ -119,9 +118,9 @@
       "prompt": "I only have the PDF of last year's keynote, I need it as slides I can present from formsld, it should look exactly the same",
       "files": ["~/Talks/keynote-2025.pdf"],
       "expected_behavior": [
-        "Chooses pdf to_deck rather than ingest because the look must stay",
-        "Reports the new deck id and slide count and notes that page text is in the speaker notes",
-        "Explains that slides are pictures, and offers ingest for an editable rebuild"
+        "Explains that Insert > Slides from PDF Pages in the formsld window adds one slide per page with the page picture and its text in the speaker notes, which keeps the look",
+        "Offers ingest and build_deck for an editable rebuild in a template instead",
+        "Does not claim a pdf tool exists"
       ]
     },
     {
@@ -175,7 +174,7 @@
     { "query": "can u fix the overflowing slides in my deck", "should_trigger": true },
     { "query": "Please prepare a board presentation from the attached spreadsheet and PDF report.", "should_trigger": true },
     { "query": "export the presentation to pptx so I can open it in PowerPoint", "should_trigger": true },
-    { "query": "split this pdf into two files and merge the appendix with the contract", "should_trigger": true },
+    { "query": "split this pdf into two files and merge the appendix with the contract", "should_trigger": false },
     { "query": "use our company .potx as the template for the sales deck", "should_trigger": true },
     { "query": "render_slides failed, what do I do now", "should_trigger": true },
     { "query": "turn the screenshots and the gif in this folder into a product launch keynote", "should_trigger": true },

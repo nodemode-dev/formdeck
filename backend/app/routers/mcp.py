@@ -193,32 +193,6 @@ TOOLS = [
     _tool("review", "Sets slides' review status (draft, review, changes, approved); with no status, the counts.",
           {"deck": _DECK, "slides": _SLIDES, "status": {"type": "string", "enum": ["draft", "review", "changes", "approved"]}}, ["deck"]),
     _tool("undo", "Undoes your last turn (default) or last step on a deck.", {"deck": _DECK, "scope": {"type": "string", "enum": ["turn", "step"]}}, ["deck"], destructive=True),
-    _tool("pdf", "PDF tools: info, text, images, tables, merge, split, to_deck (each page a slide), header_footer (headers, footers, page and Bates numbers), "
-          "crop, find (words, phrases, regex or presets), redact (true redaction of areas or of every match) and to_docx (a Word document with headings, "
-          "styles, pictures and tables; out defaults to [name].docx beside the input).",
-          {"action": {"type": "string", "enum": ["info", "text", "images", "tables", "merge", "split", "to_deck", "header_footer", "crop", "find", "redact",
-                                                 "to_docx"]},
-           "path": _S, "paths": {"type": "array", "items": _S},
-           "pages": {"type": "string", "description": "1-based pages: 3, 1-4, 2,5, 4-"}, "ranges": {"type": "array", "items": _S},
-           "out": {"type": "string", "description": "Output file or folder; header_footer, crop and redact default to [name]-[action].pdf beside the input"},
-           "template": _S, "title": _S,
-           "header": {"type": "object", "description": "header_footer: {left, center, right} text; tokens <<page>>, <<pages>>, <<date>>, <<file>>, <<bates>>"},
-           "footer": {"type": "object", "description": "header_footer: {left, center, right} text, same tokens"},
-           "size": {"type": "number", "description": "header_footer font size in points (default 10)"},
-           "color": {"type": "string", "description": "header_footer text colour #RRGGBB"},
-           "font": {"type": "string", "enum": ["sans", "serif", "mono"]},
-           "margins": {"type": "object", "description": "header_footer: {top, bottom, left, right} points from the edges (default 36). crop: {l, t, r, b} points cut from each edge as the page is shown"},
-           "start": {"type": "integer", "description": "header_footer: number of the first page in the range (default 1)"},
-           "apply": {"type": "string", "enum": ["all", "odd", "even"], "description": "header_footer: which pages of the range"},
-           "bates": {"type": "object", "description": "header_footer Bates numbers {prefix, start, digits, suffix}: at <<bates>>, else the footer's right"},
-           "date": {"type": "string", "description": "header_footer: text for <<date>> (default today as YYYY-MM-DD)"},
-           "box": {"type": "object", "description": "crop: {x, y, w, h} points from the unrotated page's top left, the area to keep"},
-           "auto": {"type": "boolean", "description": "crop: cut the white margins around the content"},
-           "query": {"type": "string", "description": "find, redact: a word, phrase or (with regex) a regular expression"},
-           "regex": {"type": "boolean"}, "preset": {"type": "string", "enum": ["email", "phone", "card", "date"]},
-           "caseSensitive": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
-           "areas": {"type": "array", "items": {"type": "object"}, "description": "redact: [{page, x, y, w, h}] points from the page's top left; omit to redact every find match"}},
-          ["action"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
 MUTATING = {"build_deck", "add_slides", "update_slide", "set_text", "edit_elements", "apply_ops", "slides", "apply_template", "set_theme", "undo", "open_file"}
@@ -242,8 +216,6 @@ def _mutating(name: str, args: dict) -> bool:
         return args.get("action") in ("add", "reply", "resolve")
     if name == "review":
         return bool(args.get("status"))
-    if name == "pdf":
-        return args.get("action") == "to_deck"
     if name == "animate":
         return (args.get("action") or "list") != "list"
     return False
@@ -1541,132 +1513,6 @@ async def t_undo(a: Agent, args: dict) -> dict:
         return _ok("Nothing to undo.")
     deck = _deck(deck["id"])
     return _ok(f"{res['label']} ({res['count']} step{'s' if res['count'] != 1 else ''}) · deck now {len(deck['slides'])} slides")
-
-
-def _pages(raw) -> list[int] | str | None:
-    if raw in (None, "", []):
-        return None
-    if isinstance(raw, list):
-        return [int(x) for x in raw]
-    return str(raw).strip() or None
-
-
-def _pdf_out(src: Path, raw, suffix: str) -> Path:
-    out = _abs(raw, must_exist=False) if raw else src.with_name(f"{src.stem}-{suffix}.pdf")
-    if out.is_dir():
-        out = out / f"{src.stem}-{suffix}.pdf"
-    if not out.parent.is_dir():
-        raise ToolError(f"The folder {out.parent} does not exist.")
-    return out
-
-
-async def t_pdf(a: Agent, args: dict) -> dict:
-    try:
-        from app.services import pdf as pdfmod
-    except ImportError:
-        return _fail("The PDF tools are not installed in this engine yet.")
-    action = args.get("action")
-    try:
-        pages = _pages(args.get("pages"))
-        if action == "info":
-            info = await asyncio.to_thread(pdfmod.info, _abs(args.get("path")))
-            return _ok(json.dumps(info, ensure_ascii=False, default=str)[:6000])
-        if action == "text":
-            got = await asyncio.to_thread(pdfmod.extract_text, _abs(args.get("path")), pages)
-            text = "\n\n".join(f"## Page {x.get('page')}\n{x.get('text', '')}" for x in got)
-            return _ok(text[:16000] + ("\n... (cut: ask for fewer pages)" if len(text) > 16000 else ""))
-        if action == "images":
-            got = await asyncio.to_thread(pdfmod.extract_images, _abs(args.get("path")), pages)
-            return _ok("\n".join(f"p{x.get('page')} · {x.get('id')} · {x.get('w')}x{x.get('h')} · {x.get('mime')}" for x in got) or "No pictures.", {"images": [x.get("id") for x in got]})
-        if action == "tables":
-            got = await asyncio.to_thread(pdfmod.extract_tables, _abs(args.get("path")), pages)
-            parts = []
-            for x in got:
-                rows = [x.get("header") or []] + (x.get("rows") or [])[:30]
-                parts.append(f"p{x.get('page')}:\n" + "\n".join("| " + " | ".join(str(c) for c in r) + " |" for r in rows))
-            return _ok("\n\n".join(parts)[:16000] or "No tables.")
-        if action == "merge":
-            paths = [_abs(p) for p in args.get("paths") or []]
-            if len(paths) < 2:
-                raise ToolError("merge needs paths (two or more PDFs) and out.")
-            out = _abs(args.get("out"), must_exist=False)
-            res = await asyncio.to_thread(pdfmod.merge, paths, out)
-            return _ok(f"Merged {len(paths)} files into {res.get('path')} ({res.get('pages')} pages).", res)
-        if action == "split":
-            ranges = args.get("ranges") or ([args["pages"]] if args.get("pages") else [])
-            out = _abs(args.get("out"), must_exist=True)
-            got = await asyncio.to_thread(pdfmod.split, _abs(args.get("path")), [str(r) for r in ranges], out)
-            return _ok("Wrote " + ", ".join(str(x) for x in got), {"paths": [str(x) for x in got]})
-        if action == "to_deck":
-            tid = args.get("template")
-            if tid and tid not in _template_ids():
-                raise ToolError(f"There is no template {tid}.")
-            deck = await asyncio.to_thread(lambda: pdfmod.to_deck(_abs(args.get("path")), template=tid, title=args.get("title")))
-            deck = STORE.create(deck)
-            _focus(deck["id"])
-            return _ok(f"Made {_head(deck)}\n" + "\n".join(_outline(deck)[:40]), {"deck": deck["id"]})
-        if action in ("find", "redact"):
-            search = {"regex": bool(args.get("regex")), "preset": args.get("preset") or None, "case_sensitive": bool(args.get("caseSensitive")),
-                      "whole_word": bool(args.get("wholeWord")), "pages": pages}
-        if action == "find":
-            got = await asyncio.to_thread(lambda: pdfmod.find(_abs(args.get("path")), args.get("query"), **search))
-            lines = [f"p{m['page']} · {m['text']} · {m['context']}" for m in got["matches"][:200]]
-            head = f"{got['count']} match{'es' if got['count'] != 1 else ''} on {got['pages']} page{'s' if got['pages'] != 1 else ''}"
-            more = " (first 200 listed)" if got["count"] > 200 else ""
-            return _ok(head + more + (":\n" + "\n".join(lines) if lines else "."), {"count": got["count"], "truncated": got["truncated"],
-                                                                                   "matches": got["matches"][:500]})
-        if action == "to_docx":
-            src = _abs(args.get("path"))
-            out = _abs(args.get("out"), must_exist=False) if args.get("out") else src.with_suffix(".docx")
-            if out.is_dir():
-                out = out / f"{src.stem}.docx"
-            if not out.parent.is_dir():
-                raise ToolError(f"The folder {out.parent} does not exist.")
-            tmp = out.with_name(f".{out.name}.tmp")
-            try:
-                got = await asyncio.to_thread(lambda: pdfmod.to_docx(src, tmp, pages=pages))
-                tmp.replace(out)
-            finally:
-                tmp.unlink(missing_ok=True)
-            return _ok(f"Wrote {out} ({got['pages']} pages, {got['headings']} headings, {got['paragraphs']} paragraphs, {got['tables']} tables, "
-                       f"{got['pictures']} pictures).", {"path": str(out), **got})
-        if action in ("header_footer", "crop", "redact"):
-            src = _abs(args.get("path"))
-            out = _pdf_out(src, args.get("out"), {"header_footer": "header-footer", "crop": "cropped", "redact": "redacted"}[action])
-            tmp = out.with_name(f".{out.name}.tmp")
-            extra: dict = {}
-            try:
-                if action == "header_footer":
-                    n = await asyncio.to_thread(lambda: pdfmod.header_footer(
-                        src, tmp, header=args.get("header"), footer=args.get("footer"), size=args.get("size"), color=str(args.get("color") or "#333333"),
-                        font=str(args.get("font") or "sans"), margins=args.get("margins"), pages=pages, start=args.get("start"),
-                        apply=str(args.get("apply") or "all"), bates=args.get("bates") or None, date=args.get("date") or None, file=src.name))
-                elif action == "crop":
-                    res = await asyncio.to_thread(lambda: pdfmod.crop(src, tmp, box=args.get("box"), margins=args.get("margins"),
-                                                                      auto=bool(args.get("auto")), pages=pages))
-                    n, extra = res["pages"], {"cropped": res["cropped"]}
-                else:
-                    areas = args.get("areas")
-                    if not areas:
-                        if not args.get("query") and not args.get("preset"):
-                            raise ToolError("redact needs areas, or a query or preset to redact every match.")
-                        got = await asyncio.to_thread(lambda: pdfmod.find(src, args.get("query"), **search))
-                        if not got["count"]:
-                            return _ok("No matches, so nothing was redacted and no file was written.", {"count": 0})
-                        areas, extra = pdfmod.match_areas(got["matches"]), {"matches": got["count"]}
-                    n = await asyncio.to_thread(pdfmod.redact, src, tmp, areas)
-                    extra["areas"] = len(areas)
-                tmp.replace(out)
-            finally:
-                tmp.unlink(missing_ok=True)
-            words = {"cropped": ("cropped", "cropped"), "matches": ("match", "matches"), "areas": ("area redacted", "areas redacted")}
-            detail = "".join(f", {v} {words[k][v != 1]}" for k, v in extra.items())
-            return _ok(f"Wrote {out} ({n} page{'s' if n != 1 else ''}{detail}).", {"path": str(out), "pages": n, **extra})
-    except ToolError:
-        raise
-    except Exception as exc:
-        return _fail(f"pdf {action} failed: {type(exc).__name__}: {_clip(str(exc), 300)}")
-    raise ToolError("action is info, text, images, tables, merge, split, to_deck, header_footer, crop, find, redact or to_docx.")
 
 
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}

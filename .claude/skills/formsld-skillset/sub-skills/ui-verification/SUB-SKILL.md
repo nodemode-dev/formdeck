@@ -1,6 +1,6 @@
 ---
 name: ui-verification
-description: "The throttled zero-flash verification every formsld UI change passes before hand-back: serve the built frontend from a scratch engine, drive headless Chromium with CPU and network throttling, record frames, and count layout shifts, rebuilt keyed nodes, blank stage frames and console errors while exercising the touched paths, including live agent edits arriving over MCP. Use when DOM, CSS, stage, filmstrip, inspector, dialog, view, slideshow or PDF workbench code changed, or when asked whether a UI change was verified."
+description: "The throttled zero-flash verification every formsld UI change passes before hand-back: serve the built frontend from a scratch engine, drive headless Chromium with CPU and network throttling, record frames, and count layout shifts, rebuilt keyed nodes, blank stage frames and console errors while exercising the touched paths, including live agent edits arriving over MCP. Use when DOM, CSS, stage, filmstrip, inspector, dialog, view, slideshow or import code changed, or when asked whether a UI change was verified."
 ---
 
 # UI verification

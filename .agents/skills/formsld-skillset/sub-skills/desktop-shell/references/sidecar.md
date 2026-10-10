@@ -33,7 +33,7 @@ The updater plugin checks `releases/latest/download/latest.json`; updater artifa
 
 ## File associations
 
-`.fsld` (editor, `application/x-formsld`), `.pptx` (alternate editor), `.pdf` (alternate viewer). In 0.2.0 `main.rs` handles neither `RunEvent::Opened` (macOS) nor file arguments (Windows, Linux), so a double-clicked file starts the app without opening it. Wiring it means passing the path to the page (for example `/?open=[path]`) and calling `POST /api/open-path` (decks) or the PDF workbench's `open-path`; keep the importers accepting what the associations promise.
+`.fsld` (editor, `application/x-formsld`) and `.pptx` (alternate editor). Since 0.6.0 formsld no longer claims `.pdf`; PDFs belong to formpdf. `main.rs` filters opened paths with `openable` (.fsld, .pptx, .potx, .ppsx, .pptm) and hands them to the page's `__formsldOpen`, which calls `POST /api/open-path`; keep the importers accepting what the associations promise.
 
 ## Common failures
 

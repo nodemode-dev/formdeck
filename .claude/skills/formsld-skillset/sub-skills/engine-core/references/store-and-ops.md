@@ -68,7 +68,7 @@ The engine sends `hello` (client id, version), `snapshot`, `ops`, `reject`, `not
   Media/                      content-addressed media (img_, vid_, aud_, fnt_, doc_ plus sha prefix)
   Intake/[in_id]/intake.json  intakes
   Templates/[id]/template.json imported templates
-  Exports/, Pdf/              exports and PDF workbench documents
+  Exports/                    exports
   settings.json, engine.json  settings; discovery file (port, pid) for setup/mcp_stdio.py
 ```
 

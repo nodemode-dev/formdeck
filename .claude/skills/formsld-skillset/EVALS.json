@@ -118,6 +118,7 @@
     { "query": "fix the layers panel in formvis", "should_trigger": false },
     { "query": "write a FastAPI endpoint for a todo app", "should_trigger": false },
     { "query": "how do I make a Tauri app from scratch", "should_trigger": false },
-    { "query": "merge these two PDFs", "should_trigger": false }
+    { "query": "merge these two PDFs", "should_trigger": false },
+    { "query": "add a redaction tool to the formsld PDF workbench", "should_trigger": false }
   ]
 }

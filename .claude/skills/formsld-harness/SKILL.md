@@ -1,6 +1,6 @@
 ---
 name: formsld-harness
-description: "Builds and edits slide decks in formsld through its MCP server. Use whenever the person wants to make, restyle, review or fix a slide deck, pitch deck, presentation, keynote, board or investor update, sales deck, QBR, training deck, all-hands or conference talk, and formsld is mentioned or its tools (get_context, ingest, draft_spec, build_deck, render_slides, lint_deck) are available. Covers turning notes, markdown, PDFs, Word docs, spreadsheets, PowerPoint or Google Slides files, images, GIFs and meeting transcripts into slides; choosing or applying a template (Aurora, Studio and 65 more, or a company .pptx or .potx); the markdown slide script and its 21 layouts; contact-sheet and lint checks; fixing overflowing, crowded or off-brand slides; review handoff; exporting pptx, potx, pdf, png or fsld; and the PDF workbench (merge, split, extract, PDF to deck). Also use when a formsld tool fails and the next step is unclear. Not for changing formsld's own source code (use formsld-skillset)."
+description: "Builds and edits slide decks in formsld through its MCP server. Use whenever the person wants to make, restyle, review or fix a slide deck, pitch deck, presentation, keynote, board or investor update, sales deck, QBR, training deck, all-hands or conference talk, and formsld is mentioned or its tools (get_context, ingest, draft_spec, build_deck, render_slides, lint_deck) are available. Covers turning notes, markdown, PDFs, Word docs, spreadsheets, PowerPoint or Google Slides files, images, GIFs and meeting transcripts into slides; choosing or applying a template (Aurora, Studio and 65 more, or a company .pptx or .potx); the markdown slide script and its 21 layouts; contact-sheet and lint checks; fixing overflowing, crowded or off-brand slides; review handoff; and exporting pptx, potx, pdf, png or fsld. Also use when a formsld tool fails and the next step is unclear. Not for changing formsld's own source code (use formsld-skillset)."
 license: Apache-2.0
 metadata:
   author: formsld
@@ -10,6 +10,8 @@ metadata:
 # formsld harness
 
 formsld is a presentation editor running on this computer. Its MCP server (`formsld`) builds and changes decks inside the engine while the person watches the formsld window, and every change is an undoable step attributed to you. The tools are the hands; this pack is the method: read the material once, write the story as a slide script, build, look, fix, and hand the deck to the person for approval.
+
+PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). In formsld a PDF is material for a deck: `ingest` reads it, and in the window Insert > Slides from PDF Pages adds one slide per page.
 
 ## Doctrine (applies to every route)
 
@@ -26,7 +28,7 @@ formsld is a presentation editor running on this computer. Its MCP server (`form
 ```
 formsld-harness/
   SKILL.md                      this router and the doctrine
-  references/tools.md           all 25 MCP tools: arguments and what they return
+  references/tools.md           all 24 MCP tools: arguments and what they return
   EVALS.json                    evaluation prompts and trigger tests for this pack
   sub-skills/
     deck-director/              entry route: intake questions, the full loop, completion gate
@@ -36,7 +38,6 @@ formsld-harness/
     template-curator/           choosing among 67 templates, apply_template, set_theme, imports, size
     visual-qa/                  contact sheets, lint kinds and fixes, the fix loop and its tools
     review-handoff/             review status, comments, the summary, undo, export, open_file
-    pdf-workbench/              the pdf tool: info, text, images, tables, merge, split, to_deck
 ```
 
 Paths inside a SUB-SKILL.md resolve against that sub-skill's own folder (`references/[file].md` means `sub-skills/[name]/references/[file].md`). A sibling is `sub-skills/[sibling]/SUB-SKILL.md`. `references/tools.md` and `EVALS.json` live at the pack root.
@@ -54,7 +55,7 @@ For anything that produces or reshapes a deck, start with `sub-skills/deck-direc
 | Pick a template, restyle, change colours or fonts, use our company .pptx as the template, 4:3 or A4 | `template-curator` |
 | Fix overflowing or crowded slides, lint issues, check how it looks, swap a picture | `visual-qa` |
 | Hand it over, answer comments, undo the agent's changes, export to pptx or pdf, open a .pptx | `review-handoff` |
-| Merge, split or extract from a PDF, turn a PDF into slides | `pdf-workbench` |
+| Merge, split, sign, redact, fill or otherwise edit a PDF | Not formsld: point the person to formpdf (github.com/nodemode-ai/formpdf) |
 
 ## Before anything
 

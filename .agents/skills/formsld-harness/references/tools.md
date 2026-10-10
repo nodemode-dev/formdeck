@@ -1,6 +1,6 @@
 # formsld MCP tools
 
-The 25 tools of the formsld MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
+The 24 tools of the formsld MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
 
 ## Contents
 
@@ -11,7 +11,6 @@ The 25 tools of the formsld MCP server (engine 0.2.0), taken from a live `tools/
 - Fix: update_slide, set_text, edit_elements, apply_ops, slides, animate
 - Style: apply_template, set_theme
 - Hand over: review, comments, undo, export_deck, open_file
-- PDF: pdf
 - Resources and prompt
 
 ## Conventions
@@ -177,21 +176,7 @@ Returns: `Wrote /path/file.pptx (70 KB, 9 slides).` or `Exported 9 slides as PDF
 - asTemplate: boolean, save it as a reusable template instead
 Returns: `Opened d_... · N slides` with the outline and import notes, or `Saved template id (21 layouts: ...)`.
 
-## PDF
-
-### pdf
-- action (required): info | text | images | tables | merge | split | to_deck | header_footer | crop | find | redact | to_docx
-- path: the PDF; paths: PDFs to merge
-- pages: string, `3`, `1-4`, `2,5`, `4-`
-- ranges: array for split, `["1-3", "4-"]`
-- out: output file (merge; header_footer, crop and redact default to `[stem]-[action].pdf` beside the input) or existing folder (split)
-- template, title: to_deck only
-- to_docx: writes a Word document (headings, paragraphs with sizes, bold and italic, pictures, tables, a page break per page); `out` defaults to `[stem].docx` beside the input; pages limits it
-- header, footer: header_footer, `{left, center, right}` with tokens `<<page>>`, `<<pages>>`, `<<date>>`, `<<file>>`, `<<bates>>`; size, color, font (sans | serif | mono), margins `{top, bottom, left, right}`, start, apply (all | odd | even), bates `{prefix, start, digits, suffix}`, date
-- margins `{l, t, r, b}` | box `{x, y, w, h}` | auto: crop, one of them
-- query, regex, preset (email | phone | card | date), caseSensitive, wholeWord: find, and redact of every match
-- areas: redact, `[{page, x, y, w, h}]` points from the page's top left
-Returns: see the pdf-workbench sub-skill.
+PDF editing lives in formpdf (github.com/nodemode-ai/formpdf); formsld has no pdf tool. A PDF reaches a deck through `ingest`, and export_deck writes a deck as PDF.
 
 ## Resources and prompt
 

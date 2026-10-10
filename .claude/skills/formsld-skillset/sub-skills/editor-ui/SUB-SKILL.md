@@ -14,7 +14,7 @@ Change the window without breaking its two promises: the person and agents edit 
 | Path | Role |
 | --- | --- |
 | `src/main.ts`, `index.html` | entry (audience window or `startApp`); pre-paint theme boot from `nodemode_ui_settings`; `#app` hidden until `body.app-ready`; `#overlay-root` |
-| `src/app.ts` | `SHELL` mounted once; `Commands`, `MenuBar` and `menus`, context and present menus, `Toolbar`, `Inspector`, `AgentBridge`, `Home`, `openDeck` and `attach`, status bar, resizers (`--fs-strip-w`, `--fs-props-w`, `--fs-notes-h` saved in localStorage), keyboard routing, drop and paste, `openPdf` |
+| `src/app.ts` | `SHELL` mounted once; `Commands`, `MenuBar` and `menus`, context and present menus, `Toolbar`, `Inspector`, `AgentBridge`, `Home`, `openDeck` and `attach`, status bar, resizers (`--fs-strip-w`, `--fs-props-w`, `--fs-notes-h` saved in localStorage), keyboard routing, drop and paste (`openFiles` sends a PDF to the intake dialog as material) |
 | `src/editor/editor.ts` | `Editor`: doc, current slide, selection, slide selection, peers, `apply`, `insert`, `insertFiles`, copy and paste, nudge, events (selection, current, doc, edit, view) |
 | `src/editor/stage.ts` | `Stage`: viewport, zoom and fit, pointer drags (move, resize, rotate, adjust, marquee, pan), smart guides (6 px), rAF-batched frame ops with coalesce keys, contenteditable editing with a 350 ms commit, `editFormat`, overlay and hints |
 | `src/editor/filmstrip.ts` | thumbnails keyed by slide id, sections with collapse, drag reorder, multi-select |
@@ -29,7 +29,7 @@ Change the window without breaking its two promises: the person and agents edit 
 | `src/editor/draw-tool.ts`, `points-edit.ts`, `connectors.ts`, `draw-commands.ts` | freeform and scribble, Edit Points, connector glue (`glueOps` wraps `ed.apply`), their commands |
 | `src/editor/rulers.ts`, `selection-pane.ts` | rulers, gridlines, guides and the Grid and Guides dialog; the Selection Pane with its Reading order view |
 | `src/ui/*` | `dom.ts` helpers, `dialogs.ts` (`Dialog`, `confirmAction`, `promptName`, `anyDialogOpen`), `dialogs-file.ts`, `dialogs-insert.ts`, `menu.ts`, `dropdown.ts`, `commands.ts` (`Commands`, `comboOf`, `formatKeys`), `icons.ts`, `themes.ts` (15 UI themes, accent, intensity), `toast.ts`, `colorpop.ts`, `home.ts`, `panel-group.ts` |
-| `src/styles/*` | `tokens.css` (the only z-index source), `shell.css`, `panels.css`, `dialogs.css`, `app-dialogs.css`, `insert-dialogs.css`, `views.css`, `slides.css`, `present.css`, `pdf.css`, `scrollbars.css`, `fonts.css`, `light-mode.css` |
+| `src/styles/*` | `tokens.css` (the only z-index source), `shell.css`, `panels.css`, `dialogs.css`, `app-dialogs.css`, `insert-dialogs.css`, `views.css`, `slides.css`, `present.css`, `review.css`, `scrollbars.css`, `fonts.css`, `light-mode.css` |
 
 ## Invariants
 

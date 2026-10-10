@@ -68,7 +68,7 @@ The digest shows topics, decisions and actions instead of every bullet. When a t
 ```
 
 - `(p3)` is the page; get_source pages through with `start` and `end` as page numbers.
-- `(scanned, read the page renders)` means there is no text layer: the pages are assets (`page` kind) you can place on imageFull slides, or use `pdf {action: "to_deck"}`.
+- `(scanned, read the page renders)` means there is no text layer: the pages are assets (`page` kind) you can place on imageFull slides. A person who wants every page as a slide can use Insert > Slides from PDF Pages in the window.
 - Images inside the PDF are assets like any picture.
 
 ## PowerPoint

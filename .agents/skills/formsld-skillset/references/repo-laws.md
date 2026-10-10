@@ -60,7 +60,7 @@ Do not add tests, test files or test harnesses unless the person asks. Verify wi
 
 ## Dependencies and licences
 
-Only permissive dependencies already present. Frontend: pdfjs-dist, @fontsource families, @tauri-apps. Backend: fastapi, uvicorn, python-multipart, pillow, lxml, python-pptx, python-docx, openpyxl, pypdf, pypdfium2, pdfplumber, reportlab. PyMuPDF is banned (AGPL). Adding any dependency is the person's decision.
+Only permissive dependencies already present. Frontend: @fontsource families, @tauri-apps. Backend: fastapi, uvicorn, python-multipart, httpx, pillow, lxml, python-pptx, python-docx, openpyxl, pypdfium2, pdfplumber, reportlab. PyMuPDF is banned (AGPL). Adding any dependency is the person's decision.
 
 ## Ports, Vite and the engine
 
@@ -79,4 +79,4 @@ Agents can copy a deck before a risky restyle. The tool clones the session,
 gives it a new id and opens it in the window. HASHOUT backend 10.
 ```
 
-Types: feat, fix, perf, refactor, style, docs, build, chore. Scopes follow the subsystem (engine, ops, live, format, compiler, intake, templates, pptx, render, editor, ui, present, pdf, mcp, desktop, setup). The version bump is its own last commit (for example `chore(release): bump to 0.2.1 (0.2.1)`) and changes every version location together: `frontend/package.json` and `package-lock.json`, `frontend/src/version.ts`, `backend/app/__init__.py`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, the README version line and the `_vX.Y.Z` headers of both HASHOUT logs. Patch for fixes, minor for features, major for format breaks.
+Types: feat, fix, perf, refactor, style, docs, build, chore. Scopes follow the subsystem (engine, ops, live, format, compiler, intake, templates, pptx, render, editor, ui, present, import, mcp, desktop, setup). The version bump is its own last commit (for example `chore(release): bump to 0.2.1 (0.2.1)`) and changes every version location together: `frontend/package.json` and `package-lock.json`, `frontend/src/version.ts`, `backend/app/__init__.py`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, the README version line and the `_vX.Y.Z` headers of both HASHOUT logs. Patch for fixes, minor for features, major for format breaks.

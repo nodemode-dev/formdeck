@@ -14,6 +14,8 @@ The formsld MCP server is configured in .mcp.json (http://127.0.0.1:8197/mcp). S
 
 Load the skill `.claude/skills/formsld-harness` for the full loop, the slide-script syntax with an example per layout, template choice, visual QA and handoff. The MCP resource formsld://guide is the short version; the deck format is docs/FORMAT.md. For work on the codebase itself, load `.claude/skills/formsld-skillset`.
 
+PDF editing lives in formpdf (github.com/nodemode-ai/formpdf).
+
 ## Developing formsld
 
 - Engine: backend/ (FastAPI, Python 3.12, venv at backend/venv). Frontend: frontend/ (vanilla TypeScript, Vite on 5197 with host false). Desktop: src-tauri/.

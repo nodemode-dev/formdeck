@@ -27,7 +27,7 @@ Absolute paths to the files or folders, or pasted text. The engine is reachable.
 | --- | --- | --- |
 | markdown, text, docx | Heading outline (H1, H2...), first paragraphs, bullets, quotes, image refs per section | Section structure becomes the arc; bullets become slide bullets |
 | notes (meeting notes, transcripts; detected automatically from Decisions, Actions, Attendees cues) | Attendees, topics, decisions, actions with owner and due date | A decisions slide, a next-steps or owners slide, the narrative of what changed |
-| pdf | Page outline with headings and page numbers, images, tables; `scanned` when it has no text layer (then its pages are image assets) | Reports and papers: pull findings and charts; scanned decks: imageFull slides or `pdf to_deck` |
+| pdf | Page outline with headings and page numbers, images, tables; `scanned` when it has no text layer (then its pages are image assets) | Reports and papers: pull findings and charts; scanned decks: imageFull slides from the page assets, or the person's Insert > Slides from PDF Pages in the window |
 | pptx | One line per slide (S1, S2) with title, bullets, notes, tables and pictures | Rework an old deck: keep the content, rebuild the story in a template |
 | csv, xlsx | Each table (t1...) with columns, row count, value ranges and `chartable (line)` or `(column)` | A chart slide (paste the JSON from get_source t1) or a small table |
 | image, gif | One asset per file: class (photo, illustration, screenshot, logo, chart, icon), size, orientation, colours; gifs show frame counts | Pictures on imageLeft, imageRight, imageFull, gallery, team; gifs play in the show and export to PowerPoint |
@@ -39,7 +39,7 @@ Absolute paths to the files or folders, or pasted text. The engine is reachable.
 - Duplicates: the same number in three files is one fact; cite the clearest source.
 - Logos and icons as content pictures: use them on the title or closing only, or not at all.
 - Tiny or upscaled pictures (under about 800 px wide for a full-bleed slide); lint flags them as `upscale`.
-- Page renders of a text PDF (`page` assets): they exist for scanned PDFs and PDF-to-deck, not for content slides.
+- Page renders of a text PDF (`page` assets): they exist for scanned PDFs, not for content slides.
 - Numbers without context: the digest pairs each number with its sentence; if the sentence does not say what it measures, leave it out.
 
 ## Gate
