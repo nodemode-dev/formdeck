@@ -11,12 +11,11 @@ src/engine/                 model.ts (types), ops.ts (apply, touched), resolve.t
 src/render/                 slide.ts (SlideView), text.ts, paint.ts, table.ts, chart.ts, fonts.ts, raster.ts (Canvas 2D display list)
 src/editor/                 editor.ts, stage.ts, filmstrip.ts, toolbar.ts, inspector.ts, commands.ts, actions.ts, views.ts
 src/present/                show.ts (show, presenter, audience), effects.ts (transitions, animations, morph)
-src/pdf/                    workbench.ts, viewer.ts, annotate.ts, fill.ts, organize.ts, panels.ts, find.ts, api.ts
 src/automation/             agent-bridge.ts (window tools for agents)
 src/live/socket.ts          LiveClient for /api/live
 src/io/api.ts               REST helpers
 src/ui/                     shell kit (dom, dialogs, menu, dropdown, commands, icons, themes, toast, colorpop) and home, dialogs-file, dialogs-insert
-src/styles/                 tokens.css (the only z-index source), shell, panels, dialogs, slides, views, app-dialogs, insert-dialogs, present, pdf, light-mode
+src/styles/                 tokens.css (the only z-index source), shell, panels, dialogs, slides, views, app-dialogs, insert-dialogs, present, review, light-mode
 ```
 
 ## TOC
@@ -101,6 +100,8 @@ The dialog posts to `/api/decks/{id}/check`; the engine runs the same lint agent
 
 The desktop shell passes files it was asked to open as repeated `?open=` parameters on the first load, and later through `window.__formsldOpen(paths)`. Decks go through `/api/open-path` into the editor, PDFs through `/api/pdf/open-path` into the workbench. The query is cleared with replaceState so a reload does not import the file again.
 
+Moved to formpdf in 0.6.0: the PDF half of this entry; the desktop shell no longer hands formsld .pdf paths (see 34).
+
 ## 16. Typed formatting survives the save · _v0.3.0 (render/text.ts readParas, inlineDelta, cssHex)
 
 Bold, italic, colour and the rest applied while typing (execCommand with styleWithCSS) showed on screen but were dropped on commit, because readParas took each run's style from the model and ignored the DOM. Every rendered run now carries its rendered CSS in `data-s`; readParas compares the run's live inline style with that and turns each difference into run properties, including a removed property (Chrome un-bolds by deleting `font-weight` rather than writing `normal`). Nested spans, `<b>`, `<i>`, `<u>`, `<s>`, `<font>` and `<a href>` are read as well, so links typed with createLink become `Run.link`. Verified: toggling bold three times across reloads stores `b: false`, `b: true`, `b: false` and renders 400, 700, 400.
@@ -137,6 +138,8 @@ Reflections render with `-webkit-box-reflect` and a linear mask whose stop is th
 
 Header and footer preview is a fixed-size miniature page whose six slots are patched as the fields change; tokens are inserted at the caret. The crop box is one overlay rectangle shared by typed margins and the drawn tool, kept in sync both ways by `syncCrop(source)`. Comment threads are keyed rows patched in place: replies and a status picked before Apply stay pending in the panel and are written with the comment. Find to redact lists matches with their context; Mark ticked adds the ticked matches to the marked areas, which Apply redactions removes later, and Redact all matches sends every match and marked area to the engine at once.
 
+Moved to formpdf in 0.6.0: this code left formsld with the workbench (see 34).
+
 ## 25. Small fixes · _v0.4.0 (ui/home.ts, io/api.ts DeckSummary.thumb, editor/inspector.ts docOff, automation/agent-bridge.ts)
 
 Home asked for thumbnails that did not exist yet and logged a 404 per new deck; the library now says whether `thumb.webp` exists and the card keeps its placeholder until one does. The layout cards in the Slide tab refresh when layouts, masters, the theme or the size change, so master edits show there at once. Agent thumbnails include the masters in their signature, so a master edit re-renders them.
@@ -152,6 +155,8 @@ Group children are stored in slide coordinates, so a group move or resize must r
 ## 28. Zero shift on Home and in the workbench · _v0.5.0 (ui/home.ts, styles/shell.css, pdf/panels.ts, styles/pdf.css, app.ts status bar)
 
 Measured under 4x CPU and 1.5 Mbps: the Recent decks row holds one skeleton card until the library arrives (the row is clipped to one line, so the reserved height is exact at any width) and an empty card replaces it when there are no decks; deck cards now get their title and meta when created (patchList only calls update on existing nodes, so first renders were blank); category chips render from the known categories at once with fixed-width counts; template previews mount after their fonts load; the Home title, the nav count badges, the workbench document name and its status count have reserved boxes; the Document properties list keeps all fifteen rows and patches values; the status bar agent indicator sits after the hint so its appearance moves nothing. The toolbar layout list rebuilds its options when the layout order or names change.
+
+Moved to formpdf in 0.6.0: the workbench half of this entry (pdf/panels.ts, styles/pdf.css); the Home and status bar parts stay.
 
 ## 29. Tables: border drag, cell ranges, rows that shrink · _v0.5.0 (editor/table-drag.ts, editor/table-panel.ts, editor/table-edit.ts, render/table.ts)
 
@@ -169,6 +174,12 @@ A custom show can repeat a slide, so the show tracks a position in its playlist,
 
 Paged layouts hide other pages with `.is-off` instead of removing nodes, so the page virtualisation and canvas eviction keep working; two-up layouts are a CSS grid justified towards the gutter, with the cover option shifting parity. Reading mode reserves each page section at the average height of the first chunk, stays hidden until the target page arrives, and compensates scrollTop for sections filled above the viewport (CSS scroll anchoring is off because WebKit lacks it). Read aloud speaks one sentence per utterance (Chrome cuts long ones) and highlights through the same text-layer ranges Find uses. Stamps keep their aspect on resize because their text is fitted to the box; the window SVG and the engine's appearance stream share their geometry constants. Form drafts are applied by `flush`, so Save writes them; Compare is read-only and never flushes staged comments. The Edited badge toggles visibility, not `hidden`, so the centred title never moves.
 
+Moved to formpdf in 0.6.0: this code left formsld with the workbench (see 34).
+
 ## 33. Mentions, activity and comparing decks · _v0.5.1 (editor/mentions.ts attachMentions, editor/compare.ts compareDecks, acceptAll, wordDiff, ui/review-dialogs.ts ActivityDialog, CompareDialog)
 
 The mention popup listens in the capture phase and calls `stopImmediatePropagation` on the keys it owns, so Enter picks a person instead of posting the comment and the arrows never reach the slide. The comment list is deck-wide so a mention on another slide is visible. Compare pairs slides by id only when at least 60% of the paired titles agree; otherwise it aligns by a longest common subsequence of slide content, because a .pptx round trip renumbers ids. Object names are ignored in the diff since import renames them. Accept ops are computed when Accept is pressed, against the deck as it is then, and Accept all is one apply, so it is one undo step. Gaps: the person's name is cached until reload; animations, comments and sections are not compared; comments on removed slides show as "Removed slide".
+
+## 34. The PDF workbench became formpdf · _v0.6.0 (app.ts openFiles, pdfMaterialNote; editor/editor.ts insertPdfPages; editor/commands.ts insert-pdf-pages; io/api.ts pdfPages)
+
+formsld is a slides product again: the workbench (src/pdf, styles/pdf.css, the Home entries, File > Open PDF Workbench, the pdf-only icons and pdfjs-dist) moved to its own repo, formpdf, so each app has one job and its own release pace. A PDF that is opened or dropped now goes to the intake dialog with the other material files of that drop, never with decks that were opened from the same drop; the first time, a toast says PDFs are material and points to formpdf, remembered in localStorage and harmless when storage throws. Insert > Slides from PDF Pages is the one PDF feature kept, because turning a handout into presentable slides is a deck task: the engine renders the pages into the media store and returns their sizes and text, and the window builds every slide (blank layout, white background, master shapes hidden, the page fitted with contain, the text in the notes) as one apply after the current slide, so it is one undo step and the filmstrip patches the new thumbnails in. The engine returns data rather than slides so ids come from the open deck and the import works on a deck with live peers. The command is enabled only in slide view (not in the master view).

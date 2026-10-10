@@ -1,6 +1,6 @@
 # formsld manual
 
-formsld makes presentations, pitch decks and PDFs. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.5.0. Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formsld makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.6.0. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-ai/formpdf); in formsld a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formsld Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -36,10 +36,9 @@ Home opens when no deck is open, and from the formsld mark in the title bar or F
 - **Start** greets you with three ways in: Choose files (opens the material dialog), Paste text (notes, a brief, an outline or a slide script, sent to the same dialog as `pasted.md`) and Use your agent (the Agents dialog). Open file and Blank deck sit at the top right. Below are your recent decks and the template gallery.
 - **Recent decks** lists everything in the library, newest first. Decks save as you work.
 - **Templates** shows all templates with category chips and a search box. Click one to name the deck and Use template, or download it as .pptx or .potx.
-- **PDF workbench** opens the PDF tools (see The PDF workbench).
 - **Claude Code, Codex, Cursor** opens the Agents dialog; **Local only** is a reminder that decks stay on this computer; **Preferences** opens Preferences.
 
-Dropping files anywhere on the window works too: .fsld, .pptx, .potx, .ppsx and .pptm open as decks, .pdf opens in the workbench, and anything else goes to the material dialog. Pictures, video and audio dropped on an open deck are placed on the slide; a picture dropped on a picture placeholder fills it.
+Dropping files anywhere on the window works too: .fsld, .pptx, .potx, .ppsx and .pptm open as decks, and a .pdf or anything else goes to the material dialog with the files attached. The first time a PDF arrives this way a note says that PDFs open as material and that PDF editing lives in formpdf. Pictures, video and audio dropped on an open deck are placed on the slide; a picture dropped on a picture placeholder fills it.
 
 ## Starting from your material
 
@@ -76,15 +75,15 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 
 | Menu | Holds |
 | --- | --- |
-| File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, PDF, Pictures, formsld file), Print, Open PDF Workbench, Delete Deck |
+| File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, PDF, Pictures, formsld file, Video, Animated GIF, Outline as Text, Outline as Rich Text), Print or Save as PDF, Delete Deck |
 | Edit | Undo, Redo, Undo Agent Turn, Cut, Copy, Paste, Duplicate, Delete, Select All, Find and Replace |
-| View | Normal, Slide Sorter, Outline, zoom, show or hide the slides panel, properties panel and speaker notes |
-| Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Table, Table (rows, columns, merge, split, distribute, header and banded rows), Chart, Link, New Comment |
-| Format | Bold, Italic, Underline, Strikethrough, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Alt Text, Table Style |
+| View | Normal, Slide Sorter, Outline, Slide Master, zoom, Ruler, Gridlines, Guides, Grid and Guides, show or hide the slides panel, properties panel and speaker notes |
+| Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Connector, Freeform and Scribble, Table, Table (rows, columns, merge, split, distribute, header and banded rows), Chart, Slides from PDF Pages, Link, New Comment |
+| Format | Bold, Italic, Underline, Strikethrough, Superscript, Subscript, All Caps, Small Caps, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Alt Text, Edit Points, Table Style, Table Borders |
 | Slide | New, Duplicate, Delete, Hide Slide, Layout, Reset Slide, Format Background, Change Template, Slide Size, Add Section, Rename Section |
-| Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock |
-| Review | Check Deck, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
-| Present | From Beginning, From Current Slide, Presenter View |
+| Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock, Selection Pane |
+| Review | Check Deck, Activity, Compare, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
+| Present | From Beginning, From Current Slide, Presenter View, Custom Shows, Set Up Show, Record, Clear timings and narration |
 | Help | formsld Help, Keyboard Shortcuts, Preferences |
 
 Right-click a slide thumbnail, an object or the empty slide for the matching short menu.
@@ -218,6 +217,7 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | View | Zoom In, Zoom Out | Mod+=, Mod+- |
 | | Fit to Window | Mod+0 |
 | | Actual Size | Alt+Mod+0 |
+| | Ruler, Gridlines, Guides | Alt+Shift+F9, Shift+F9, Alt+F9 |
 | Slide | New Slide | Mod+M |
 | | Duplicate Slide | Shift+Mod+D |
 | Format | Bold, Italic, Underline | Mod+B, Mod+I, Mod+U |
@@ -232,6 +232,7 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | Arrange | Bring to Front, Send to Back | Shift+Mod+], Shift+Mod+[ |
 | | Bring Forward, Send Backward | Mod+], Mod+[ |
 | | Group, Ungroup | Mod+G, Shift+Mod+G |
+| | Selection Pane | Alt+F10 |
 | Review | Approve Slide | Alt+Mod+A |
 | | New Comment | Alt+Mod+M |
 | Present | From Beginning | F5 |
@@ -281,27 +282,19 @@ Links on slides open in the show. Videos and audio play with their start, end an
 
 **Captions**: in the show, click CC or press J and your speech appears on the slide and on the audience window; the More menu sets the position (bottom or top), the size and the language you speak. Captions need Chrome or Edge, a microphone and a network connection; elsewhere the button is off and says so.
 
-## The PDF workbench
+## PDFs in formsld
 
-File > Open PDF Workbench, Home > PDF workbench, or open or drop a .pdf. The workbench has its own title bar (Undo, Redo, Open, Print, Save, Close), a page and bookmark sidebar, the pages, a side panel for the current tab, and a status bar with the page number, zoom, Fit width, Fit page and Rotate view. Password-protected PDFs ask for their password. Changes build up as a working copy; Save writes the PDF (and offers to save before closing or opening another one).
+formsld no longer edits PDFs; that moved to formpdf (github.com/nodemode-ai/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In formsld a PDF is one of two things:
 
-| Tab | What it does |
-| --- | --- |
-| View | Read the PDF; Select and Hand tools, Find in document, the document's properties (pages, title, author, version). Page display: Single page, Single page continuous, Two-page, Two-page continuous and Show cover page (also from the page button in the status bar); in the paged layouts Page Up and Page Down move a page or spread and scrolling past the edge turns the page. Reading turns the PDF into one readable column, page after page with headings and tables, and the text size buttons (or Mod with plus or minus) resize it; Esc goes back to the same page. Read aloud reads this page or to the end, highlights the sentence (and the word where the voice allows), and pauses, resumes and stops, with a voice and speed. Compare checks this PDF against an older or newer one (optionally pictures too): insertions show in green, changes in amber, deletions as red marks and picture changes in purple, the panel lists every difference with its before and after text, and nothing in either file changes |
-| Comment | Highlight, underline and strike through text; sticky notes, text boxes, freehand ink, rectangles, ellipses, lines and arrows in any colour and line width. Select a comment to reply to it or set its status (Accepted, Rejected, Completed); comments already in the PDF are listed with their replies. Apply to PDF writes them as real PDF annotations with their replies and status, or flattened into the page when Flatten into the page is on |
-| Fill & Sign | Fill the PDF's form fields and Apply to form (optionally flattened); add text; draw or type a signature in blue or black ink and place it. Stamps (also on the Comment toolbar): twelve business stamps (Approved, Not Approved, Draft, Final, Confidential and the rest), dynamic stamps that carry your name and the date and time, sign-here tags, check and cross marks, date and text, and a stamp from a picture; click a stamp, click the page, drag to move or resize; they stay as stamp comments unless flattened |
-| Prepare form | Draw text, multi-line, check box, radio (consecutive radios join one group), dropdown, list box, date and signature fields by dragging a box or clicking; select a field to move or resize it and set its name, tooltip, default, options, date format, font size, alignment, required and read-only. Fields already in the PDF are listed with their names to rename or delete. Apply to PDF (or Save) writes real form fields that Fill & Sign and other readers can fill |
-| Edit | Header and footer: left, centre and right text for each, with Page, Pages, Date, File and Bates tokens, a live preview, font, size, colour, margins, a page range, odd or even pages and a starting number; Bates numbering with a prefix, start and digits. Crop pages by typed margins, a box drawn on the page, or Remove white margins, for this page, all pages or a range. Page numbers (position, format, start) and a text watermark (opacity) |
-| Organize | Rotate, delete and reorder pages, insert a blank page or pages from another PDF, extract the selected pages; Apply changes. Split into files by ranges such as `1-3, 4-6, 7-`; Merge PDFs |
-| Extract | From this page, all pages or a range: text (copy, .txt or .md), pictures (download, or add to the open deck) and tables (copy as CSV or download as .xlsx) |
-| Protect | Add a password with an optional owner password and permissions; remove a password; Find text to redact (words or a phrase, email addresses, phone numbers, card numbers, dates or a regular expression, with Match case and Whole words), tick the matches and mark or redact them; mark areas and Apply redactions (the content under them is removed and the page is re-rendered as a picture); edit or remove the title, author, subject and keywords. Remove hidden information: Find hidden information counts metadata, JavaScript and actions, attachments, comments, form fields, hidden layers, links, bookmarks, thumbnails, private application data and hidden text; untick what to keep and Remove ticked (form fields are flattened so their values stay, hidden layers are dropped); Undo steps back until you save |
-| Convert | PDF to deck: Pages as slides (each page a picture slide with its text in the notes) or Rebuild editable (formsld reads the text, tables and pictures and drafts real slides in your template); Compress at a chosen quality; export pages as PNG pictures at 72, 144, 216 or 300 dpi; Save as Word (.docx) for a page range, with paragraphs, headings, pictures and tables as editable Word content and a page break after each page (multi-column pages flow into one column) |
+- **Material for a deck.** Open a .pdf (File > Open or Home > Open file) or drop one on the window and Start from your material opens with the PDF attached. Add a brief, pick a template and Draft: formsld reads the PDF's headings, text, tables and pictures and drafts real, editable slides. Scanned PDFs without a text layer arrive as page pictures. The first time this happens a note says so.
+- **Slides from PDF pages.** In an open deck, Insert > Slides from PDF Pages asks for a PDF and adds one slide per page after the current slide (up to 300 pages): each slide shows the page as a picture fitted to the slide on white, and the page's text goes into the speaker notes, so it stays searchable and an agent can read it. The new slides start in Draft and the whole import is one Undo step. Use it when the slides must look exactly like the PDF, for example last year's talk that only survives as a handout; use the material route when you want slides you can edit. A password-protected PDF is refused; unlock it in formpdf first.
 
-**Create PDF**: Create PDF from pictures or Combine files (from the Open menu, the empty workbench, or Home): add or drop pictures and PDFs, set the order by dragging or with the arrows, choose Fit to picture, A4 or Letter, margins and orientation, and Create PDF. The new PDF opens in the workbench; save it to keep it. Dropping pictures on the workbench starts the same dialog.
+Exporting a deck as PDF and printing are unchanged (see Import, export and print).
 
 ## Import, export and print
 
-- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx, .pptm and .pdf. A toast lists anything PowerPoint content formsld could not keep (for example ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx or .pdf) opens it: decks open in the editor, PDFs in the workbench.
+- **Open** (Mod+O): .fsld, .pptx, .potx, .ppsx and .pptm open as decks; a .pdf opens Start from your material with the PDF attached. A toast lists anything PowerPoint content formsld could not keep (for example ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fsld file (or choosing Open With formsld for a .pptx) opens it in the editor; the desktop app does not register for .pdf files.
+- **Slides from PDF pages** (Insert > Slides from PDF Pages): one picture slide per PDF page with the page text in the notes (see PDFs in formsld).
 - **Google Slides**: download your presentation as .pptx and open it; to go back, export .pptx and upload it to Drive, then Open with Google Slides.
 - **Export** (File > Export or the Export button):
   - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts are not embedded; the computer that opens it needs the template's fonts or substitutes similar ones.
@@ -346,7 +339,7 @@ Ask in plain language, for example: "Use formsld. Build an investor update from 
 
 `./formsld agents install` (and `./formsld agents sync` after an update) installs two skills:
 
-- **formsld-harness**, for building decks: the full loop from intake to handoff, with sub-skills for the deck director, intake reader, story architect, slide-script author (syntax and an example per layout), template curator, visual QA, review handoff and the PDF workbench.
+- **formsld-harness**, for building decks: the full loop from intake to handoff, with sub-skills for the deck director, intake reader, story architect, slide-script author (syntax and an example per layout), template curator, visual QA and review handoff. PDF editing is not part of these skills; it lives in formpdf.
 - **formsld-skillset**, for developing formsld itself.
 
 The MCP resource `formsld://guide` is the short guide agents read first, and the server offers a `build-deck` prompt.
@@ -391,7 +384,6 @@ Decks/.trash/                    deleted decks
 Templates/<template id>/template.json  imported and saved templates
 Media/<media id>.<ext>           every picture, video, audio and font, named by content hash, with a .json beside it
 Intake/<intake id>/intake.json   material read for drafting
-Pdf/                             working copies for the PDF workbench
 Exports/                         files written by Export and by agents
 settings.json                    preferences
 engine.json                      the running engine's port and process, removed when it stops
@@ -406,4 +398,5 @@ engine.json                      the running engine's port and process, removed 
 - **Something was missing after opening a .pptx**: the toast lists what could not be kept. Animations, ink, embedded fonts and linked media are the usual ones; SmartArt arrives as grouped shapes.
 - **An agent cannot connect**: check that formsld is running, that the address in the Agents dialog matches your agent's config, and that Let agents read and edit decks is on. Claude Desktop needs the stdio entry (`./formsld mcp`), not the URL. In Claude Code, `/mcp` shows the server's state.
 - **An agent's edits went wrong**: Edit > Undo Agent Turn, or File > Save Version before a big request and restore it from Version history.
-- **A PDF will not open**: if it is password protected, enter the password when asked; otherwise it may be damaged. The workbench edits a working copy in the library's `Pdf` folder; Save writes the result.
+- **A PDF opens the material dialog instead of a viewer**: that is by design since 0.6.0. formsld uses PDFs as material or as slides; to view or edit the PDF itself, use formpdf.
+- **Slides from PDF Pages refuses a PDF**: if it is password protected, unlock it in formpdf first; otherwise it may be damaged. A `Pdf` folder left in the data folder by an older version is no longer used and can be moved to formpdf's folder or deleted.

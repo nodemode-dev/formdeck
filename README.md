@@ -1,6 +1,8 @@
 # formsld
 
-Presentations, pitch decks and PDFs in the form family. An open alternative to Google Slides, PowerPoint and the Acrobat reader tools, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live, while you watch, then hand it to you for review.
+Presentations and pitch decks in the form family. An open alternative to PowerPoint, Keynote and Google Slides, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live, while you watch, then hand it to you for review.
+
+The PDF workbench that shipped with formsld up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In formsld a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
 Version 0.5.1 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
@@ -8,13 +10,13 @@ Version 0.5.1 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 | Area | In 0.5.1 |
 | --- | --- |
-| Start from material | Drop md, pdf, docx, pptx, txt, csv, xlsx, images, gifs or meeting notes, add a brief, pick a template, and get a drafted deck (about 80% there) in seconds, or hand the intake to an agent |
+| Start from material | Drop md, pdf, docx, pptx, txt, csv, xlsx, images, gifs or meeting notes, add a brief, pick a template, and get a drafted deck (about 80% there) in seconds, or hand the intake to an agent; a PDF opened or dropped anywhere in the app lands here as material |
 | Templates | 67 original templates in 9 categories, each with 21 semantic layouts and a 17-slide sample; import any .pptx or .potx as a template; export every template as .pptx |
 | Editing | Slides, editable theme colours and fonts, and a Slide Master view for the master and its layouts; shapes (all 187 Office presets, drawn from the ECMA-376 definitions) with shadow, glow, reflection and soft edges; freeform and scribble drawing with edit points; connectors that glue to shapes; text with autofit, line, paragraph and character spacing, superscript, subscript, caps and links; pictures with adjustments, crop and masks; tables with cell typing, border dragging, cell fills, borders, alignment and margins, merges and row and column commands; charts; video and audio; animations with motion paths (Animate tab); groups, align, distribute, flip; selection pane with reading order; rulers, gridlines, guides and smart guides; comments with replies, review status, Check Deck, versions, find and replace, slide sorter, outline view |
-| Exchange | PowerPoint and Google Slides via .pptx and .potx import and export; .fsld package; PDF and PNG export with a searchable text layer; video (MP4 or WebM) and animated GIF; the outline as .txt or .rtf; print with handouts and notes pages |
+| Exchange | PowerPoint, Keynote and Google Slides via .pptx and .potx import and export; .fsld package; slides from PDF pages (each page a picture with its text in the notes); PDF and PNG export with a searchable text layer; video (MP4 or WebM) and animated GIF; the outline as .txt or .rtf; print with handouts and notes pages |
 | Presenting | Full-screen show, twelve transitions including morph, animation builds, pen and laser, presenter view with a separate audience window, rehearsed timings, recorded narration, live captions (Chrome and Edge), looping, kiosk mode and custom shows |
-| PDF workbench | View in single, continuous or two-page layouts, reading mode and read aloud, search, compare two PDFs, comment with replies and status, stamps, fill and sign, create form fields, organize, merge and split, crop, headers and footers with Bates numbers, watermark, page numbers, extract text, images and tables, protect, find and redact, remove hidden information, compress, create a PDF from pictures, PDF to Word, PDF to deck |
-| Agents | MCP server (25 tools) over HTTP at /mcp or stdio, live edits attributed per agent turn and undone as one step, contact-sheet rendering and real DOM lint so the agent can see and fix its own slides |
+| Review | Comments with replies, mentions and assignees, review status per slide, an activity log, and comparing a deck with a saved version or another file |
+| Agents | MCP server (24 tools) over HTTP at /mcp or stdio, live edits attributed per agent turn and undone as one step, contact-sheet rendering and real DOM lint so the agent can see and fix its own slides |
 
 ## Quick start
 
@@ -52,11 +54,11 @@ CI builds all three platforms in `.github/workflows/desktop.yml`.
 ## Layout
 
 ```
-backend/    FastAPI engine: deck store and live channel, ops, compiler, intake, templates, pptx, pdf, mcp
-frontend/   Vanilla TypeScript and Vite app: render, editor, present, pdf, automation, ui
+backend/    FastAPI engine: deck store and live channel, ops, compiler, intake, templates, pptx, pdf_pages, mcp
+frontend/   Vanilla TypeScript and Vite app: render, editor, present, automation, ui
 setup/      install, boot, build, freeze, mcp_stdio, agents, cli, templates (with .bat twins)
 src-tauri/  desktop shell and the engine sidecar
-docs/       FORMAT.md (the deck contract)
+docs/       FORMAT.md (the deck contract), MANUAL.md, PARITY.md and parity.py
 ```
 
 The engine is authoritative: every change is a JSON op step with an inverse, broadcast over `/api/live` to every window and agent, autosaved, and undoable per step or per agent turn.
@@ -64,7 +66,8 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps in 0.5.1
 
 - Co-authoring across machines, share links and publishing to the web are not built.
-- One slide master per deck; no SmartArt editor, merge shapes, OCR or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Google Slides and Acrobat (0.5.1: 82.4%, 84.7% and 80.4%).
+- One slide master per deck; no SmartArt editor, merge shapes, stock or AI pictures, or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Google Slides and Acrobat (0.5.1: 82.4%, 84.7% and 80.4%).
+- PDF editing (annotate, fill and sign, organize, redact, convert) is not in formsld any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in formsld; in .pptx they round-trip as native charts for the common kinds.
 - Embedded fonts in .pptx are not written; templates use bundled open fonts that PowerPoint substitutes when missing.

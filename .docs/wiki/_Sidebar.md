@@ -6,7 +6,6 @@
 - [Templates](Templates)
 - [Editing](Editing)
 - [Presenting](Presenting)
-- [PDF Workbench](PDF-Workbench)
 - [Import and Export](Import-and-Export)
 - [Architecture](Architecture)
 - [Development](Development)

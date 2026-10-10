@@ -30,7 +30,7 @@ Windows: `formsld.bat install`, then `formsld.bat`. One-click installers: `forms
 
 ## Ports and folders
 
-The engine listens on 127.0.0.1:8197 (`FORMSLD_PORT`), the Vite app on localhost:5197. The library lives in `~/Formsld` (`FORMSLD_DATA_DIR`): `Decks`, `Templates`, `Media`, `Intake`, `Pdf`, `Exports`, `settings.json` and `engine.json`. The layout is in the [manual's data folder section](https://github.com/nodemode-ai/formsld/blob/main/docs/MANUAL.md#the-data-folder).
+The engine listens on 127.0.0.1:8197 (`FORMSLD_PORT`), the Vite app on localhost:5197. The library lives in `~/Formsld` (`FORMSLD_DATA_DIR`): `Decks`, `Templates`, `Media`, `Intake`, `Exports`, `settings.json` and `engine.json`. The layout is in the [manual's data folder section](https://github.com/nodemode-ai/formsld/blob/main/docs/MANUAL.md#the-data-folder).
 
 ## First deck
 

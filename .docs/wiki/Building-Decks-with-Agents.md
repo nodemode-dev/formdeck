@@ -30,7 +30,7 @@ The first agent edit asks the person once in the window: Allow agents to edit? T
 
 ## Skills
 
-`formsld-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff, PDF workbench) and `formsld-skillset` (developing formsld). The MCP resource `formsld://guide` is the short version, and the server offers a `build-deck` prompt.
+`formsld-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff) and `formsld-skillset` (developing formsld). The MCP resource `formsld://guide` is the short version, and the server offers a `build-deck` prompt.
 
 ## Without the window
 

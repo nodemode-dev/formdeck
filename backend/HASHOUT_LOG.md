@@ -8,7 +8,7 @@ Living log for the formsld engine, _v0.2.0. The code carries almost no comments;
 app/main.py                  app, CORS, discovery file (engine.json), routers, static dist
 app/core/                    config.py (ports, data dirs, settings), ids.py
 app/routers/                 system, decks (library, templates, import, export, build), media, live (WebSocket hub),
-                             intake, exports (compose, downloads), mcp (/mcp), pdf
+                             intake, exports (compose, downloads), mcp (/mcp); media also serves /media/pdf-pages
 app/services/model.py        deck helpers: normalize, resolve colours, contrast, summaries
 app/services/ops.py          generic JSON ops with inverses
 app/services/store.py        STORE: sessions, steps, undo by step or agent turn, autosave, versions
@@ -19,7 +19,7 @@ app/services/lint.py         static deck checks merged with window measurements
 app/services/bridge.py       calls window tools over the live channel
 app/services/templates/      67 designs, generator, art, samples, remap
 app/services/pptx/           read_pptx and write_pptx
-app/services/pdf/            core, edit, annot, docs (pypdf, pypdfium2, pdfplumber, reportlab)
+app/services/pdf_pages.py    PDF pages to media pictures plus page text, for Insert > Slides from PDF Pages
 app/services/package.py      .fsld pack and unpack
 ```
 
@@ -32,12 +32,12 @@ app/services/package.py      .fsld pack and unpack
 5. Lint groups contrast by colour pair · services/lint.py
 6. Frozen asset ids in slide specs · services/compiler/compile.py
 7. PDF export as raster plus text layer · routers/exports.py
-8. True redaction rasterizes · services/pdf
+8. True redaction rasterizes · services/pdf (moved to formpdf in 0.6.0)
 9. Snapshot message shape · routers/live.py
 10. Content before arc in autodraft · services/autodraft.py
 11. Short note lines stay separate · services/intake/markdown.py
 12. Stats before big number on pptx import · services/pptx/read_layouts.py
-13. PDF page text in reading order · services/pdf/core.py to_deck
+13. PDF page text in reading order · services/pdf/core.py to_deck (now services/pdf_pages.py)
 14. One lint for people and agents · routers/decks.py check
 15. Animations in PowerPoint files · services/pptx/write_anim.py, read_anim.py
 16. The animate MCP tool · routers/mcp.py
@@ -75,6 +75,8 @@ The window draws each slide on Canvas 2D and sends JPEG pages with text items; r
 
 Redaction renders the marked pages with pypdfium2, burns black boxes in and replaces those pages with images, so nothing under a box survives; the UI warns that those pages become images.
 
+Moved to formpdf in 0.6.0: this code left formsld with the workbench (see 29).
+
 ## 9. Snapshot message shape · _v0.2.0 (routers/live.py snapshot_message)
 
 Snapshots used to spread the store snapshot over the message, and its `deck` key overwrote the deck id. They now send `{t, deck: id, data, rev, canUndo, canRedo}`.
@@ -94,6 +96,8 @@ The generator names the stats layout "Statistics", which the big-number rule mat
 ## 13. PDF page text in reading order · _v0.2.2 (services/pdf/core.py to_deck)
 
 PDFium's text range follows the content stream, which many generators write bottom up, so speaker notes came out reversed. Notes now come from pdfplumber, which orders words by position; PDFium stays the fallback when pdfplumber cannot open the file. The workbench names the deck after the file when the PDF's title is a placeholder such as "untitled".
+
+Moved in 0.6.0: the workbench part went to formpdf; the pdfplumber-first, PDFium-fallback page text lives on in services/pdf_pages.py (see 29).
 
 ## 14. One lint for people and agents · _v0.2.2 (routers/decks.py check)
 
@@ -119,13 +123,19 @@ Deck paths are SVG data in points from the element centre; `p:animMotion` paths 
 
 Search runs over PDFium's text page, so matches carry real character boxes even across line breaks; each match returns its page, the matched text, trimmed context and one rect per line in top-left page points (the frame the redaction areas already use). Presets are regexes with a check function where a regex alone over-matches: phone numbers need 7 to 15 digits, card numbers pass Luhn, dates accept numeric and month-name forms. Results stop at 2000 matches with `truncated` set. `areas()` pads each rect by a point so redaction covers descenders, then the existing `edit.redact` removes the content.
 
+Moved to formpdf in 0.6.0: this code left formsld with the workbench (see 29).
+
 ## 20. Headers, footers, Bates numbers and cropping · _v0.4.0 (services/pdf/edit.py header_footer, crop, _content_margins)
 
 Header and footer text is drawn with reportlab on an overlay per page and merged, honouring each page's rotation and view box, with `<<page>>`, `<<pages>>`, `<<date>>`, `<<file>>` and `<<bates>>` tokens, a page range, odd or even pages and a start number. Bates numbers are a prefix plus a zero-padded counter. Crop writes `/CropBox` only, so content outside stays in the file and the crop can be undone; that is why the panel points to Redact for removal. Margins are given in the page as seen and un-rotated before they are applied. Remove white margins renders each page and finds the content bounds, padded by 4 points by default.
 
+Moved to formpdf in 0.6.0: this code left formsld with the workbench (see 29).
+
 ## 21. PDF comment threads · _v0.4.0 (services/pdf/annot.py _thread, comments; routers/pdf.py get_comments)
 
 Replies are Text annotations with `/IRT` pointing at the parent and the reply flag set, so Acrobat and other readers show them as a thread. Status is a separate hidden Text annotation with `/State` and `/StateModel /Review` (Accepted, Rejected, Completed, Cancelled, None), as Acrobat writes it. `comments()` reads both back: replies are followed up their `/IRT` chain to the root comment, and the latest review state per comment wins.
+
+Moved to formpdf in 0.6.0: this code left formsld with the workbench (see 29).
 
 ## 22. The library says whether a thumbnail exists · _v0.4.0 (services/store.py library)
 
@@ -151,6 +161,12 @@ The outline is produced by the engine so agents get it through `export_deck` as 
 
 Reading order is an XY-cut that prefers vertical gutters and merges bands that share one, so aligned paragraph gaps do not interleave columns; tables and pictures take part in the cut. Words use pdfplumber with `x_tolerance_ratio=0.15` because the 3 pt default glues tight words. Form fields get upright appearance streams with `/Matrix` and `/MK /R` for rotated pages, `NeedAppearances`, Acrobat's AFDate actions for date fields, and radio groups as a parent with widget kids. Sanitising flattens widgets by painting their normal appearance, drops hidden layers by filtering `/OC` marked content, drops text drawn in render mode 3 (tracking q/Q because the mode persists across BT/ET), and prunes orphans so removed data leaves the file. Compare pairs pages by exact text first, then aligns the rest by word-set similarity, and computes rectangles only for changed spans.
 
+Moved to formpdf in 0.6.0: this code left formsld with the workbench (see 29).
+
 ## 28. Who changed what · _v0.5.1 (services/store.py Store._log, activity; routers/decks.py activity, version_deck, compare_file; routers/mcp.py comments, t_get_context)
 
 Each step is appended to `Decks/[id]/activity.jsonl` with who, origin, label and the slides it touched. Steps from one person in a burst coalesce into one line, and the buffer is flushed in `save_now` so a quit loses nothing; the file is capped at 2000 lines. The person's name comes from the window over the live socket and the agent's from its MCP session. `GET /versions/{n}` returns a saved version as a deck for Compare, and `POST /compare-file` imports a .pptx or .fsld without adding it to the library. Comments gained mentions and an assignee; `filter: mine` lets an agent fetch only what is addressed to it, and `get_context` reports open comment counts and the last activity.
+
+## 29. The PDF workbench became formpdf · _v0.6.0 (services/pdf_pages.py pages; routers/media.py pdf_page_slides; routers/mcp.py TOOLS; main.py)
+
+services/pdf, routers/pdf.py and the `pdf` MCP tool moved to the formpdf repo, so the engine no longer registers `/api/pdf/*` and tools/list has 24 tools. What stayed is what a deck needs: the intake's own PDF reader (services/intake/pdf.py, untouched), the reportlab PDF export of decks, and `pdf_pages.pages`, which is the page loop of the old `to_deck` and nothing more: one pypdfium2 render per page at about 1,920 px wide into the media store, text from pdfplumber in reading order with PDFium as the fallback (see 13), at most 300 pages, under one module lock because PDFium is not thread safe. It returns `{name, pages, slides: [{page, w, h, media, text}], truncated}` instead of a deck, so the window builds the slides with ids from the open deck and the import lands as one undoable step. `POST /api/media/pdf-pages` writes the upload to a temporary folder, answers 415 for a non-PDF, 409 for a password-protected PDF (unlocking is formpdf's job) and 422 for a damaged one. pypdf left the requirements because nothing here imports it any more; pypdfium2 and pdfplumber stay for intake and this import, reportlab for export, python-docx and openpyxl for intake. `/api/capabilities` reports `pdf` from pypdfium2 alone.

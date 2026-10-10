@@ -1,8 +1,8 @@
 # Architecture
 
 ```
-frontend/  vanilla TypeScript and Vite: engine/ (model, ops, DeckDoc), render/, editor/, present/, pdf/, automation/, live/, ui/
-backend/   FastAPI engine: routers/ (decks, live, mcp, intake, exports, pdf, media, system), services/ (store, ops, compiler, autodraft, intake, templates, pptx, pdf, lint)
+frontend/  vanilla TypeScript and Vite: engine/ (model, ops, DeckDoc), render/, editor/, present/, automation/, live/, ui/
+backend/   FastAPI engine: routers/ (decks, live, mcp, intake, exports, media, system), services/ (store, ops, compiler, autodraft, intake, templates, pptx, pdf_pages, lint)
 src-tauri/ the desktop shell; the engine runs as a frozen sidecar
 ```
 
