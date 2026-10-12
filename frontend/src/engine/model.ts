@@ -128,11 +128,12 @@ export interface ShowSettings {
 }
 export interface DeckMeta { created?: string; modified?: string; author?: string; template?: string; app?: string; [k: string]: unknown }
 export interface Guide { id: string; axis: 'x' | 'y'; pos: number }
+export interface Macro { id: string; name: string; code: string; description?: string }
 
 export interface Deck {
   format: 'formdeck/deck'; formatVersion: 1; id: string; title: string; size: { w: number; h: number }; theme: Theme;
   masters: Master[]; layouts: Layout[]; slides: Slide[]; sections?: Section[]; comments?: Comment[]; media: Record<string, MediaInfo>; meta: DeckMeta;
-  show?: ShowSettings | null; customShows?: CustomShow[]; guides?: Guide[];
+  show?: ShowSettings | null; customShows?: CustomShow[]; guides?: Guide[]; macros?: Macro[];
   template?: { id: string; name: string; category?: string; tags?: string[]; source?: string; license?: string; description?: string } | null;
 }
 

@@ -297,6 +297,9 @@ class _Importer:
 
     def _deck_warnings(self, slide_entries: list) -> None:
         import_embedded(self.prs_part, self.ctx.media, self.ctx.deck_media, self.ctx.warn)
+        if any(str(p.partname).lower().endswith("vbaproject.bin") for p in self.package.iter_parts()):
+            self.ctx.where = ""
+            self.ctx.warn("This file contains VBA macro modules (vbaProject.bin). They were not imported and nothing was run; FormDeck macros are JavaScript.")
 
     def _title(self, slides: list) -> str:
         try:

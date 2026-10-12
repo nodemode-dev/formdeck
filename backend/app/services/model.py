@@ -241,6 +241,25 @@ def normalize(deck: dict) -> dict:
             deck["guides"] = guides
         else:
             deck.pop("guides")
+    if "macros" in deck:
+        raw = deck["macros"] if isinstance(deck["macros"], list) else []
+        macros = []
+        used_macros: set[str] = set()
+        for m in raw:
+            if not isinstance(m, dict) or not isinstance(m.get("code"), str):
+                continue
+            mid = str(m.get("id") or "")
+            if not mid or mid in used_macros:
+                mid = next(f"mac{k}" for k in range(len(macros) + 1, len(macros) + len(raw) + 3) if f"mac{k}" not in used_macros)
+            used_macros.add(mid)
+            item = {"id": mid, "name": str(m.get("name") or "Macro")[:80], "code": m["code"]}
+            if isinstance(m.get("description"), str) and m["description"].strip():
+                item["description"] = m["description"][:300]
+            macros.append(item)
+        if macros:
+            deck["macros"] = macros
+        else:
+            deck.pop("macros")
     for s in deck["slides"]:
         s.setdefault("elements", [])
     seen: set[str] = set()

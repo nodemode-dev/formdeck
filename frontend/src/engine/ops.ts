@@ -161,6 +161,7 @@ export function touched(ops: Op[]): Touched {
     else if (head === 'meta') t.meta = true;
     else if (head === 'comments') t.comments = true;
     else if (head === 'sections') t.sections = true;
+    else if (head === 'macros') t.meta = true;
     else if (head === 'media') t.media = true;
     else if (head === 'size') t.size = true;
     else if (head === 'title') t.title = true;
