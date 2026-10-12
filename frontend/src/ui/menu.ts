@@ -5,6 +5,7 @@ import type { Commands } from './commands';
 export type MenuItem = string | '-' | SubMenu;
 export interface SubMenu { label: string; items: MenuItem[] }
 const isSub = (i: MenuItem): i is SubMenu => typeof i === 'object';
+const MIN_DROP = 160;
 
 export class PopupMenu {
   readonly panel: HTMLElement;
@@ -82,15 +83,16 @@ export class PopupMenu {
     s?.close();
   }
 
-  openAt(x: number, y: number): void {
+  openAt(x: number, y: number, below = false): void {
     this.refresh();
     this.panel.style.visibility = 'hidden';
+    this.panel.style.maxHeight = below ? `${Math.max(MIN_DROP, window.innerHeight - y - 8)}px` : '';
     this.panel.hidden = false;
     this.panel.scrollTop = 0;
     const w = this.panel.offsetWidth, h = this.panel.offsetHeight;
     const fitsRight = x + w <= window.innerWidth - 4, fitsBelow = y + h <= window.innerHeight - 4;
     const left = Math.max(4, Math.min(fitsRight ? x : x - w, window.innerWidth - w - 4));
-    const top = Math.max(4, Math.min(fitsBelow ? y : y - h, window.innerHeight - h - 4));
+    const top = below ? y : Math.max(4, Math.min(fitsBelow ? y : y - h, window.innerHeight - h - 4));
     this.panel.style.left = `${Math.round(left)}px`;
     this.panel.style.top = `${Math.round(top)}px`;
     this.panel.style.visibility = '';
@@ -167,7 +169,7 @@ export class MenuBar {
     const b = m.btn.getBoundingClientRect();
     this.openIndex = i;
     setClass(m.btn, 'is-open', true);
-    m.menu.openAt(b.left, b.bottom + 4);
+    m.menu.openAt(b.left, b.bottom + 4, true);
   }
 
   close(): void {
