@@ -92,6 +92,10 @@ Right-click a slide thumbnail, an object or the empty slide for the matching sho
 
 The toolbar shows the groups that apply: New slide, Layout, Change template and Background for the slide; Text box, Picture, Shapes, Line, Arrow, Table and Chart to insert; font and size, bold, italic, underline, strike, text colour and highlight, alignment, lists and vertical alignment for text; fill and outline colour for shapes; Replace and Alt text for pictures; Edit data for charts; order, align and group for objects; Approve and Request changes for review.
 
+The toolbar is a ribbon like PowerPoint's: File, Home, Insert, Design, Transitions, Animations, Slide Show, Review and View tabs, plus tabs that appear with what you select (Shape Format, Picture Format, Table Design and Table Layout, Chart Design, SmartArt Design, 3D Model Format, Video or Audio Playback, Slide Master). The ribbon keeps one height, so the slide never moves when tabs change. Ctrl+F1 or double-clicking a tab collapses it (click a tab to open it over the slide); the toggle at the right switches to the simplified single-row toolbar. Arrow keys move between tabs and, after Down, between buttons.
+
+The Quick Access Toolbar holds Save, Undo, Redo and Present from Beginning. Right-click any ribbon button and choose Add to Quick Access Toolbar; File > Options > Customize Quick Access Toolbar adds, removes and orders any command and puts the bar above or below the ribbon. File > Options > Customize the Ribbon shows or hides tabs and groups and builds your own tabs and groups from any command. These choices are kept in this browser or app.
+
 ### Slides panel and sections
 
 Click a thumbnail to go to a slide; Shift or Mod click to select several; drag to reorder (a selection moves together). The badges on a thumbnail show hidden slides, comments and review status. Slide > Add Section starts a named section at the current slide; double-click a section head to rename it. With no object selected, the arrow keys and Page Up and Page Down move between slides, and Home and End go to the first and last.
@@ -129,6 +133,10 @@ Insert > Shapes (or the toolbar) opens the shape gallery in PowerPoint's groups 
 **Merge Shapes** (Format > Merge Shapes, or right-click with two or more shapes selected): the first shape you click decides the result's colour and outline. Union joins them into one outline; Combine joins them but cuts out where they overlap; Fragment splits them into separate pieces along every edge; Intersect keeps only the overlap; Subtract cuts the other shapes out of the first one. The result is a freeform you can resize or reshape with Edit Points, and Undo takes it back in one step. Pictures, lines, connectors and groups are not merged.
 
 **Icons** (Insert > Icons, or the toolbar): type a word such as chart or rocket, or pick a category, and switch between Filled and Outline. Click icons to select several, then choose Insert; double-click inserts one straight away. Icons you have used appear under Recently used. Each icon is a shape: change its fill or outline colour like any shape, resize it, or use Edit Points to reshape it. The library (5,817 icons) works offline.
+
+### 3D models
+
+Insert > 3D Models places a .glb file (or a .gltf with everything inside it; save other .gltf files as .glb first). Drag the round handle in its centre to turn the model; Shift keeps one axis and Alt rolls it. The 3D Model Format tab has 3D Model Views (front, back, sides, top, bottom and eight angled views), Reset 3D Model and Pan & Zoom (scroll inside the frame to zoom, drag to pan, Esc to finish). Each change is one undo step. Thumbnails, PDF, pictures and video use a picture of the current view; the show draws the model live. In .pptx the model is kept as a PowerPoint 3D model with that picture as the fallback for apps without 3D.
 
 ### Pictures
 
@@ -262,6 +270,7 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | | Bring Forward, Send Backward | Mod+], Mod+[ |
 | | Group, Ungroup | Mod+G, Shift+Mod+G |
 | | Selection Pane | Alt+F10 |
+| View | Collapse or expand the ribbon | Mod+F1 |
 | Review | Spelling | F7 |
 | Review | Approve Slide | Alt+Mod+A |
 | | New Comment | Alt+Mod+M |
@@ -334,6 +343,7 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
   - PNG or JPEG: the current slide or all slides at 1x, 2x or 3x; several slides arrive as a .zip.
   - FormDeck (.fdec): one file with every slide, picture and the template.
   - Video (MP4 where the browser can record it, otherwise WebM; 720p or 1080p) and Animated GIF (480, 720 or 960 px wide): seconds per slide for slides without a timing, recorded timings and narration, animations as build steps and transitions as fades. A video records in real time, so keep the window open; Cancel stops it. Hidden slides are skipped.
+  - Web page (File > Export > Publish as Web Page): one .html file with every slide (or hidden slides too) that plays in any browser, offline or from any web host, with arrow keys, clicks, full screen and optional auto-advance and looping; slide text is included for screen readers. Copy Embed Code gives an iframe to paste into a page that sits next to the file. Nothing is uploaded.
   - Outline as Text (.txt) or Rich Text (.rtf): each slide's title with its bullets indented by level, optionally with the speaker notes and hidden slides; the .rtf opens in Word's outline view.
   In the desktop app exports go to a path you choose (default the Exports folder); the browser downloads them.
 - **Print** (Mod+P): Full page slides, Notes pages, Outline, or Handouts with 2, 3 (with lines for notes), 4, 6 or 9 slides per page; A4 or Letter paper; colour or grayscale; include hidden slides; frame slides. Choose Save as PDF in the print window for a quick PDF; File > Export > PDF gives searchable text.
