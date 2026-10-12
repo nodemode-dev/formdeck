@@ -56,7 +56,7 @@ row(a, "Character spacing, caps, superscript, subscript", 1, 1, 1, F, "Character
 row(a, "Hyperlinks", 1, 1, 1, F, "Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py`")
 row(a, "Find and replace", 1, 1, 1, F, "`dialogs-insert.ts FindPanel` (match case, whole word)")
 row(a, "Spell check", 1, 1, 1, F, "`ui/dialogs-spelling.ts` Spelling (F7: suggestions, Change, Change All, Ignore, Add to Dictionary across slides, tables and notes) and Language (per run, Do not check spelling), `editor/spelling.ts` nspell with offline en-US, en-GB, es and fr dictionaries, run `lang` and `noProof` read and written in .pptx (`pptx/read_text.py`, `write_text.py`)")
-row(a, "WordArt and text effects", 1, 1, 0, P, "`render/text-fx.ts drawTextFx, paintTfx` (text fill, outline, shadow, glow, reflection, all 40 transforms), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; no bevel, 3-D text or picture fill")
+row(a, "WordArt and text effects", 1, 1, 0, F, "`render/text-fx.ts drawTextFx, paintTfx` (text fill incl. picture, outline, shadow, glow, soft edges, reflection, all 40 transforms), `render/fx3d.ts` (bevel lighting, extrusion, contour, materials, 3-D rotation, shared by text and shapes; `raster.ts` warps rotated layers), 3-D Format and 3-D Rotation sections of `editor/text-effects.ts TextFxPanel` with Bevel and 3-D rotation galleries and 3-D WordArt styles, `services/pptx/text_fx.py read_3d, append_3d` (`a:sp3d`, `a:scene3d` on `a:bodyPr` and `p:spPr`), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; the shape Format pane has no 3-D controls yet (set in the deck JSON or by MCP)")
 row(a, "Equations", 1, 1, 0, F, "`editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras`")
 
 a = "Shapes and drawing"
@@ -87,11 +87,11 @@ a = "Charts"
 row(a, "Native charts: column, bar, line, area, pie, doughnut, scatter, radar, combo", 1, 1, 1, F, "`frontend/src/render/chart.ts chartSvg`, `dialogs-insert.ts ChartDlg`")
 row(a, "Edit chart data in a grid, paste from a spreadsheet", 1, 1, 1, F, "`ChartDlg` grid with row and series tools, paste")
 row(a, "Chart options: title, legend, labels, gridlines, stacking, number format", 1, 1, 1, F, "`ChartDlg` side panel")
-row(a, "Charts linked to a live workbook", 1, 0, 1, N, "nothing found")
+row(a, "Charts linked to a live workbook", 1, 0, 1, F, "`ui/dialogs-insert.ts ChartDlg.linkWorkbook` links a chart to a .xlsx, .xlsm, .csv or .tsv file (sheet and range), `editor/chart-links.ts watchLinks` updates it when the file is saved, Format > Chart > Refresh Data and Break Link, `routers/workbooks.py`, `services/workbook.py`; .pptx keeps the link as an external `c:externalData` relationship (`pptx/write_chart.py _link_workbook`, `read_chart.py _linked_workbook`)")
 row(a, "Charts stay native charts in .pptx", 1, 0, 1, F, "`backend/app/services/pptx/write_chart.py`, `read_chart.py`")
 
 a = "Diagrams and SmartArt"
-row(a, "Diagram layouts (process, timeline, cycle, hierarchy)", 1, 0, 1, P, "timeline, process, team and stats drawn by `backend/app/services/compiler/compile.py` from a script; SmartArt imports as a group (`read_elements.py`); no diagram editor")
+row(a, "Diagram layouts (process, timeline, cycle, hierarchy)", 1, 0, 1, F, "`frontend/src/editor/diagram.ts` (12 layouts in 8 categories, colour schemes, styles), `editor/diagram-sync.ts` (regeneration by id, typing writes back to items), `ui/dialogs-diagram.ts` (gallery, text pane, change layout, reset, convert to shapes), `pptx/read_diagram.py` (SmartArt data model to `diagram`), script layouts still drawn by `backend/app/services/compiler/compile.py`")
 row(a, "Icons and 3D models", 1, 1, 0, P, "`ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; no 3D models")
 
 a = "Arrange and align"
@@ -150,7 +150,7 @@ row(a, "PDF export with searchable text and a slide outline", 1, 1, 1, F, "`fron
 row(a, "Slides as PNG or JPEG", 1, 1, 1, F, "`frontend/src/render/raster.ts rasterSlide`, `ExportDialog`")
 row(a, "Export video or animated GIF", 1, 1, 1, F, "`present/video-export.ts renderFrames, recordVideo` (MP4 or WebM with narration, builds as steps, fades), `routers/exports.py gif_bytes`")
 row(a, "OpenDocument .odp", 1, 0, 1, F, "`services/odp/writer.py OdpWriter` (ODF 1.3, schema-valid) and `odp/reader.py OdpReader`, `routers/decks.py export_bytes, import_bytes`, `ui/dialogs-file.ts EXPORTS.odp`, `src-tauri/tauri.conf.json fileAssociations`")
-row(a, "Embed fonts in .pptx", 1, 0, 0, N, "README Known gaps; `reader.py` warns embedded fonts are not imported")
+row(a, "Embed fonts in .pptx", 1, 0, 0, P, "`ui/dialogs-file.ts` Export Fonts (Only characters used, All characters), `services/pptx/embed_fonts.py`, `eot.py`, `font_sources.py` write uncompressed EOT `fntdata` parts and read plain and XOR-obfuscated ones back as deck fonts; MicroType Express compressed fonts (what PowerPoint itself often saves) are not read, CFF fonts are skipped, and no copy of PowerPoint was available to confirm it opens the files")
 row(a, "Export the outline as text", 1, 0, 1, F, "File > Export > Outline as .txt or .rtf with levels and notes (`routers/exports.py outline_bytes`), MCP `export_deck` txt and rtf")
 
 a = "Print"

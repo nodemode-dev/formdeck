@@ -18,12 +18,12 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.3
 | File and templates | 8 of 8 · 100% | 8 of 8 · 100% | 8 of 8 · 100% |
 | Slides and layouts | 10 of 10 · 100% | 10 of 10 · 100% | 7 of 7 · 100% |
 | Masters and themes | 3 of 3 · 100% | 1 of 1 · 100% | 3 of 3 · 100% |
-| Text | 11.5 of 12 · 96% | 10.5 of 11 · 95% | 9 of 9 · 100% |
+| Text | 12 of 12 · 100% | 11 of 11 · 100% | 9 of 9 · 100% |
 | Shapes and drawing | 7 of 7 · 100% | 7 of 7 · 100% | 6 of 6 · 100% |
 | Pictures and media | 6.5 of 8 · 81% | 6.5 of 8 · 81% | 6.5 of 8 · 81% |
 | Tables | 3 of 3 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
-| Charts | 4 of 5 · 80% | 3 of 3 · 100% | 4 of 5 · 80% |
-| Diagrams and SmartArt | 1 of 2 · 50% | 0.5 of 1 · 50% | 0.5 of 1 · 50% |
+| Charts | 5 of 5 · 100% | 3 of 3 · 100% | 5 of 5 · 100% |
+| Diagrams and SmartArt | 1.5 of 2 · 75% | 0.5 of 1 · 50% | 1 of 1 · 100% |
 | Arrange and align | 7 of 7 · 100% | 7 of 7 · 100% | 5 of 5 · 100% |
 | Transitions | 3 of 3 · 100% | 3 of 3 · 100% | 2 of 2 · 100% |
 | Animations | 4 of 4 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
@@ -31,13 +31,13 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.3
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Collaboration and sharing | 1.5 of 4 · 38% | 1.5 of 4 · 38% | 0.5 of 3 · 17% |
 | Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
-| Import and export | 7 of 8 · 88% | 5 of 5 · 100% | 7 of 7 · 100% |
+| Import and export | 7.5 of 8 · 94% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Automation and agents | 1.5 of 3 · 50% | 1 of 1 · 100% | 1.5 of 3 · 50% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **93 of 104 · 89.4%** | **82.5 of 88 · 93.8%** | **79 of 88 · 89.8%** |
+| **Overall** | **95.5 of 104 · 91.8%** | **83 of 88 · 94.3%** | **80.5 of 88 · 91.5%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 97 full, 8 partial and 7 none: 101 of 112 points, 90.2%.
+Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 100 full, 7 partial and 5 none: 103.5 of 112 points, 92.4%.
 
 ## Where FormDeck leads
 
@@ -109,7 +109,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Hyperlinks | yes | yes | yes | Full | Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py` |
 | Find and replace | yes | yes | yes | Full | `dialogs-insert.ts FindPanel` (match case, whole word) |
 | Spell check | yes | yes | yes | Full | `ui/dialogs-spelling.ts` Spelling (F7: suggestions, Change, Change All, Ignore, Add to Dictionary across slides, tables and notes) and Language (per run, Do not check spelling), `editor/spelling.ts` nspell with offline en-US, en-GB, es and fr dictionaries, run `lang` and `noProof` read and written in .pptx (`pptx/read_text.py`, `write_text.py`) |
-| WordArt and text effects | yes | yes | no | Partial | `render/text-fx.ts drawTextFx, paintTfx` (text fill, outline, shadow, glow, reflection, all 40 transforms), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; no bevel, 3-D text or picture fill |
+| WordArt and text effects | yes | yes | no | Full | `render/text-fx.ts drawTextFx, paintTfx` (text fill incl. picture, outline, shadow, glow, soft edges, reflection, all 40 transforms), `render/fx3d.ts` (bevel lighting, extrusion, contour, materials, 3-D rotation, shared by text and shapes; `raster.ts` warps rotated layers), 3-D Format and 3-D Rotation sections of `editor/text-effects.ts TextFxPanel` with Bevel and 3-D rotation galleries and 3-D WordArt styles, `services/pptx/text_fx.py read_3d, append_3d` (`a:sp3d`, `a:scene3d` on `a:bodyPr` and `p:spPr`), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; the shape Format pane has no 3-D controls yet (set in the deck JSON or by MCP) |
 | Equations | yes | yes | no | Full | `editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras` |
 
 ### Shapes and drawing
@@ -152,14 +152,14 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Native charts: column, bar, line, area, pie, doughnut, scatter, radar, combo | yes | yes | yes | Full | `frontend/src/render/chart.ts chartSvg`, `dialogs-insert.ts ChartDlg` |
 | Edit chart data in a grid, paste from a spreadsheet | yes | yes | yes | Full | `ChartDlg` grid with row and series tools, paste |
 | Chart options: title, legend, labels, gridlines, stacking, number format | yes | yes | yes | Full | `ChartDlg` side panel |
-| Charts linked to a live workbook | yes | no | yes | None | nothing found |
+| Charts linked to a live workbook | yes | no | yes | Full | `ui/dialogs-insert.ts ChartDlg.linkWorkbook` links a chart to a .xlsx, .xlsm, .csv or .tsv file (sheet and range), `editor/chart-links.ts watchLinks` updates it when the file is saved, Format > Chart > Refresh Data and Break Link, `routers/workbooks.py`, `services/workbook.py`; .pptx keeps the link as an external `c:externalData` relationship (`pptx/write_chart.py _link_workbook`, `read_chart.py _linked_workbook`) |
 | Charts stay native charts in .pptx | yes | no | yes | Full | `backend/app/services/pptx/write_chart.py`, `read_chart.py` |
 
 ### Diagrams and SmartArt
 
 | Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Diagram layouts (process, timeline, cycle, hierarchy) | yes | no | yes | Partial | timeline, process, team and stats drawn by `backend/app/services/compiler/compile.py` from a script; SmartArt imports as a group (`read_elements.py`); no diagram editor |
+| Diagram layouts (process, timeline, cycle, hierarchy) | yes | no | yes | Full | `frontend/src/editor/diagram.ts` (12 layouts in 8 categories, colour schemes, styles), `editor/diagram-sync.ts` (regeneration by id, typing writes back to items), `ui/dialogs-diagram.ts` (gallery, text pane, change layout, reset, convert to shapes), `pptx/read_diagram.py` (SmartArt data model to `diagram`), script layouts still drawn by `backend/app/services/compiler/compile.py` |
 | Icons and 3D models | yes | yes | no | Partial | `ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; no 3D models |
 
 ### Arrange and align
@@ -242,7 +242,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Slides as PNG or JPEG | yes | yes | yes | Full | `frontend/src/render/raster.ts rasterSlide`, `ExportDialog` |
 | Export video or animated GIF | yes | yes | yes | Full | `present/video-export.ts renderFrames, recordVideo` (MP4 or WebM with narration, builds as steps, fades), `routers/exports.py gif_bytes` |
 | OpenDocument .odp | yes | no | yes | Full | `services/odp/writer.py OdpWriter` (ODF 1.3, schema-valid) and `odp/reader.py OdpReader`, `routers/decks.py export_bytes, import_bytes`, `ui/dialogs-file.ts EXPORTS.odp`, `src-tauri/tauri.conf.json fileAssociations` |
-| Embed fonts in .pptx | yes | no | no | None | README Known gaps; `reader.py` warns embedded fonts are not imported |
+| Embed fonts in .pptx | yes | no | no | Partial | `ui/dialogs-file.ts` Export Fonts (Only characters used, All characters), `services/pptx/embed_fonts.py`, `eot.py`, `font_sources.py` write uncompressed EOT `fntdata` parts and read plain and XOR-obfuscated ones back as deck fonts; MicroType Express compressed fonts (what PowerPoint itself often saves) are not read, CFF fonts are skipped, and no copy of PowerPoint was available to confirm it opens the files |
 | Export the outline as text | yes | no | yes | Full | File > Export > Outline as .txt or .rtf with levels and notes (`routers/exports.py outline_bytes`), MCP `export_deck` txt and rtf |
 
 ### Print
