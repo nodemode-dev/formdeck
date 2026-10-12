@@ -162,6 +162,8 @@ export async function startApp(): Promise<void> {
       }
       setText(status.save, doc.hasPending ? 'Saving…' : 'Saved');
     }));
+    doc.onAck = () => syncChrome();
+    editorOff.push(() => { doc.onAck = null; });
     if (views) views.hide();
     setHidden(altView, true);
     refresh();

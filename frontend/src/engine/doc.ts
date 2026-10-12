@@ -15,6 +15,7 @@ export class DeckDoc {
   private pending: Pending[] = [];
   private readonly listeners = new Set<(e: DocEvent) => void>();
   send: ((step: { id: string; ops: Op[]; label: string; coalesce?: string }) => void) | null = null;
+  onAck: (() => void) | null = null;
   clientId = '';
 
   constructor(deck: Deck, rev: number) {
@@ -57,6 +58,7 @@ export class DeckDoc {
     if (msg.client && msg.client === this.clientId && mine >= 0) {
       this.pending.splice(mine, 1);
       this.rev = msg.rev;
+      this.onAck?.();
       return;
     }
     for (let i = this.pending.length - 1; i >= 0; i--) {
