@@ -19,7 +19,8 @@ Other commands from `./formdeck help`:
 | --- | --- |
 | `./formdeck backend`, `./formdeck frontend` | boot one half only |
 | `./formdeck build`, `./formdeck serve` | build the frontend into `frontend/dist`, then serve it from the engine on 127.0.0.1:8197 |
-| `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop build`, `./formdeck desktop check` | the Tauri desktop app (installs PyInstaller, runs it, bundles it, and checks the Rust and Tauri toolchain, which every build does first) |
+| `./build` (or `./formdeck desktop build`) | build the desktop app from a fresh checkout in one step: checks and installs what it needs, then bundles the app (see The desktop app) |
+| `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop check` | install PyInstaller and check the toolchain, run the desktop app from source, explain toolchain problems |
 | `./formdeck freeze` | freeze the engine into the desktop sidecar |
 | `./formdeck mcp` | the MCP server over stdio, for Claude Desktop and other stdio clients |
 | `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex and Cursor; refresh the skills |
@@ -31,7 +32,7 @@ Other commands from `./formdeck help`:
 
 ### The desktop app
 
-The desktop app needs no Python or Node: the engine travels inside it and starts on a free local port when the window opens. Install the package for your system:
+The desktop app needs no Python or Node: the engine travels inside it and starts on a free local port when the window opens. To build it yourself, run `./build` in the FormDeck folder on macOS or Linux; it installs what it needs and leaves the app in `src-tauri/target/release/bundle` (on a Mac, `macos/FormDeck.app` and `dmg/`). Install the package for your system:
 
 - **macOS**: open the .dmg and drag FormDeck to Applications. If the build is not notarised, macOS blocks the first start; allow it in System Settings > Privacy & Security > Open Anyway.
 - **Windows**: run the setup .exe or the .msi.

@@ -46,14 +46,13 @@ Without the window: `./formdeck build-deck notes.md q3.pdf shots/ --template aur
 
 ## Desktop builds
 
+One command builds the desktop app from a fresh checkout on macOS or Linux:
+
 ```
-./formdeck install-desktop   # PyInstaller and the Rust and Tauri toolchain check
-./formdeck desktop dev
-./formdeck desktop build     # freezes the engine sidecar, then bundles for the platform it runs on
-./formdeck desktop check     # what is wrong with the Rust and Tauri toolchain, if anything
+./build
 ```
 
-Rust must come from rustup (https://rustup.rs), and on a Mac the Xcode Command Line Tools must be installed (`xcode-select --install`). `desktop check` runs before every build and stops on the usual causes of a failed build: a second Rust install such as Homebrew's (`brew uninstall rust`), rustc and cargo from different installs, an Intel rustc on an Apple silicon Mac, missing Xcode tools, and a Tauri CLI that does not match the tauri crate. If Rust reports E0463 (it cannot load a crate it has just built), `desktop build` clears `src-tauri/target` and builds once more.
+It checks the system (Python 3.12+, Node 20.19+, the Xcode Command Line Tools on a Mac, WebKitGTK on Linux), installs Rust with rustup if it is missing (it asks first; `./build --yes` does not), uses rustup's Rust ahead of any other install and the native Apple silicon toolchain on an M-series Mac, creates the engine's Python environment and the window's npm packages (only again when their lists change), builds the window, freezes the engine into the app, and bundles it: `FormDeck.app` and a `.dmg` on macOS, `.deb`, `.rpm` and `.AppImage` on Linux, in `src-tauri/target/release/bundle`. Options: `--debug`, `--bundles app` (or `deb`, `appimage` and so on), `--clean`, `--reinstall`. If Rust reports E0463 (it cannot load a crate it has just built), the script clears the Rust build cache and tries once more. `./formdeck desktop build` runs the same script; `./formdeck desktop dev` runs the app from source, and `./formdeck desktop check` explains toolchain problems. On Windows use `formdeck.bat install` and `formdeck.bat desktop build`.
 
 | Platform | Packages | Built by |
 | --- | --- | --- |
