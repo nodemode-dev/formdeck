@@ -1,6 +1,6 @@
 # Template catalog
 
-The 67 built-in templates of formsld 0.2.0 in 9 categories, with their look and theme fonts (titles / body). `list_templates` is the authority: it also lists templates the person imported (category Imported) and the person's default. Every built-in template has all 21 semantic layouts with the same slots, so any script builds in any of them; only the look changes. Galleries hold three pictures in every built-in template.
+The 67 built-in templates of FormDeck 0.2.0 in 9 categories, with their look and theme fonts (titles / body). `list_templates` is the authority: it also lists templates the person imported (category Imported) and the person's default. Every built-in template has all 21 semantic layouts with the same slots, so any script builds in any of them; only the look changes. Galleries hold three pictures in every built-in template.
 
 ## Contents
 
@@ -44,7 +44,7 @@ The 67 built-in templates of formsld 0.2.0 in 9 categories, with their look and 
 | swiss | International style: grid, caps, one red | Inter |
 | calm | Sage greens and rounded type at a gentle pace | Nunito |
 | nordic | Cool polar greys and frosted blues | Manrope |
-| studio | formsld's own (the default): Studio Dark covers, white pages, one orange | Inter |
+| studio | FormDeck's own (the default): Studio Dark covers, white pages, one orange | Inter |
 | ink | Dark pages, white type, one spark of orange (dark) | Space Grotesk / Inter |
 | linen | Linen paper, a fine Garamond, rust accents | Cormorant Garamond / Work Sans |
 

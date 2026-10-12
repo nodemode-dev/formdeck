@@ -31,7 +31,7 @@ Reason: agents edit decks live while the person watches; any rebuild shows as fl
 ## Tokens, icons, z-index
 
 - z-index only through `--z-*` tokens in `frontend/src/styles/tokens.css` (`--z-raised`, `--z-chrome`, `--z-menu`, `--z-temp`, `--z-modal`, `--z-context`, `--z-toast`, `--z-overlay`...). Never a raw number. Floating UI mounts in `#overlay-root` (pointer-events none, its own stacking context; children set pointer-events auto).
-- CSS uses tokens (`--space-N`, `--radius-*`, `--fs-12|13|14`, `--text-*`, `--surface-*`, `--line-*`, `--accent-*`) and the `fs-` class idioms (`.fs-btn`, `.fs-btn-primary`, `.fs-icon-btn`, `.fs-field`, `.fs-input`, `.fs-seg`, `.fs-chip`). Dark is the default; `light-mode.css` flips the variables. Only slide content carries literal colours.
+- CSS uses tokens (`--space-N`, `--radius-*`, `--fd-12|13|14`, `--text-*`, `--surface-*`, `--line-*`, `--accent-*`) and the `fd-` class idioms (`.fd-btn`, `.fd-btn-primary`, `.fd-icon-btn`, `.fd-field`, `.fd-input`, `.fd-seg`, `.fd-chip`). Dark is the default; `light-mode.css` flips the variables. Only slide content carries literal colours.
 - Icons come from `ui/icons.ts` via `icon(name, size)`: inline SVG, 24 by 24 viewBox, `currentColor`, stroke width 1.75, round caps. A missing icon is added there in the same style. No icon libraries, no emoji as icons.
 
 ## Comments and the HASHOUT logs
@@ -56,7 +56,7 @@ No emoji anywhere (code, UI strings, logs, markdown, commit messages). No em das
 
 ## Tests
 
-Do not add tests, test files or test harnesses unless the person asks. Verify with scratch scripts and scratch engines outside the repository (`FORMSLD_DATA_DIR` pointing at a scratch folder) and describe the check in the hand-back.
+Do not add tests, test files or test harnesses unless the person asks. Verify with scratch scripts and scratch engines outside the repository (`FORMDECK_DATA_DIR` pointing at a scratch folder) and describe the check in the hand-back.
 
 ## Dependencies and licences
 
@@ -64,7 +64,7 @@ Only permissive dependencies already present. Frontend: @fontsource families, @t
 
 ## Ports, Vite and the engine
 
-- Engine 127.0.0.1:8197 (`FORMSLD_PORT`), Vite 5197 with `host: false` and `strictPort`, proxying `/api` and `/mcp` to the engine. Data in `~/Formsld` (`FORMSLD_DATA_DIR`).
+- Engine 127.0.0.1:8197 (`FORMDECK_PORT`), Vite 5197 with `host: false` and `strictPort`, proxying `/api` and `/mcp` to the engine. Data in `~/FormDeck` (`FORMDECK_DATA_DIR`).
 - The engine is authoritative: every deck change is a step of JSON ops through `STORE.step`; no code mutates a stored deck outside it.
 - Every `setup/` script has a `.bat` twin; change both.
 

@@ -12,19 +12,19 @@
 ## Layout of the window
 
 ```text
-.fs-app
-  header.fs-titlebar     brand (home), menubar, deck title input, undo and redo, strip and props toggles, agents, comment, Export, Present
-  .fs-options            the contextual toolbar
-  .fs-main
-    aside.fs-strip-col   filmstrip (head with count, sorter, new slide; .fs-strip-scroll)
-    .fs-resizer          strip width
-    .fs-stage-col        main.fs-stage (viewport, drop overlay, alt view host), row resizer, speaker notes
-    .fs-resizer          props width
-    aside.fs-props-col   inspector panel groups
-  footer.fs-status       slide counter, save state, agent activity, hint, view switch, zoom
+.fd-app
+  header.fd-titlebar     brand (home), menubar, deck title input, undo and redo, strip and props toggles, agents, comment, Export, Present
+  .fd-options            the contextual toolbar
+  .fd-main
+    aside.fd-strip-col   filmstrip (head with count, sorter, new slide; .fd-strip-scroll)
+    .fd-resizer          strip width
+    .fd-stage-col        main.fd-stage (viewport, drop overlay, alt view host), row resizer, speaker notes
+    .fd-resizer          props width
+    aside.fd-props-col   inspector panel groups
+  footer.fd-status       slide counter, save state, agent activity, hint, view switch, zoom
 ```
 
-Class toggles on `.fs-app` hide parts (`is-notes-hidden`, `is-strip-hidden`, `is-props-hidden`); the stage re-lays out on the next frame.
+Class toggles on `.fd-app` hide parts (`is-notes-hidden`, `is-strip-hidden`, `is-props-hidden`); the stage re-lays out on the next frame.
 
 ## Events between the parts
 
@@ -40,7 +40,7 @@ Class toggles on `.fs-app` hide parts (`is-notes-hidden`, `is-strip-hidden`, `is
 
 ## Themes and tokens
 
-UI themes (`ui/themes.ts`, 15 profiles such as Studio Dark, NodeMode Dark, Light, Sand) set CSS variables; accent and intensity are user choices saved under `nodemode_ui_settings`, applied before first paint by the boot script in `index.html`. `light-mode.css` flips variables for light profiles. Components use tokens only: spacing `--space-N`, radii `--radius-*`, type `--fs-12|13|14`, text `--text-primary|secondary|tertiary`, surfaces `--surface-*`, lines `--line-*`, accent `--accent-color` and tints, and the z scale (`--z-raised` 8 up to `--z-overlay` 50000, `--z-toast` 3000).
+UI themes (`ui/themes.ts`, 15 profiles such as Studio Dark, NodeMode Dark, Light, Sand) set CSS variables; accent and intensity are user choices saved under `nodemode_ui_settings`, applied before first paint by the boot script in `index.html`. `light-mode.css` flips variables for light profiles. Components use tokens only: spacing `--space-N`, radii `--radius-*`, type `--fd-12|13|14`, text `--text-primary|secondary|tertiary`, surfaces `--surface-*`, lines `--line-*`, accent `--accent-color` and tints, and the z scale (`--z-raised` 8 up to `--z-overlay` 50000, `--z-toast` 3000).
 
 ## Zero-flash patterns in this codebase
 

@@ -1,6 +1,6 @@
 ---
 name: present
-description: "formsld's slideshow in frontend/src/present: the Show (two fixed layers and cached SlideViews for previous, current and next, picture decode before transitions), twelve transitions including morph, entrance, emphasis and exit animation builds, pen, eraser and laser, black screen, slide grid, rehearsed timings, presenter view with notes and timers, and the audience window synced over a BroadcastChannel (or a Tauri presenter window). Use for any change to presenting, transitions, animations, presenter or audience behaviour."
+description: "FormDeck's slideshow in frontend/src/present: the Show (two fixed layers and cached SlideViews for previous, current and next, picture decode before transitions), twelve transitions including morph, entrance, emphasis and exit animation builds, pen, eraser and laser, black screen, slide grid, rehearsed timings, presenter view with notes and timers, and the audience window synced over a BroadcastChannel (or a Tauri presenter window). Use for any change to presenting, transitions, animations, presenter or audience behaviour."
 ---
 
 # Present
@@ -27,7 +27,7 @@ Present a deck with no blank frames, no layout jumps and both windows in sync, e
 - Animations use the individual `translate`, `scale` and `rotate` properties so they compose with an element's own rotation and flip.
 - Build state is recomputed from the step list on back, jump and live edits, never replayed.
 - Transition `dir` is the direction of motion, as in OOXML; morph matches elements between consecutive slides.
-- Presenter and audience sync over `BroadcastChannel('formsld-show-[deckId]')` with echo guards; either window can drive; ink and laser positions are posted too. In Tauri the audience window comes from the `open_presenter` command; in the browser from `window.open` (blocked pop-ups fall back to a single-window show with a toast).
+- Presenter and audience sync over `BroadcastChannel('formdeck-show-[deckId]')` with echo guards; either window can drive; ink and laser positions are posted too. In Tauri the audience window comes from the `open_presenter` command; in the browser from `window.open` (blocked pop-ups fall back to a single-window show with a toast).
 - Rehearsal records per-slide seconds and writes `transition.advanceAfter` only when the person keeps the timings.
 - Hidden slides are skipped in the show.
 

@@ -35,7 +35,7 @@ The twelve scheme slots map one to one to `clrScheme` (dk1, lt1, dk2, lt2, accen
 
 ## Elements
 
-| formsld | OOXML |
+| FormDeck | OOXML |
 | --- | --- |
 | shape with `geom` preset and `adj` | `p:sp` with `a:prstGeom` and `a:avLst` (`geom.py` maps names) |
 | shape with `path` (custom) | `a:custGeom` |
@@ -63,7 +63,7 @@ Pictures and media are copied from the content-addressed media store into `ppt/m
 
 ## Slides: notes, transitions, sections, review
 
-Speaker notes use the notes slide. Transitions map to `p:transition` (fade, push, wipe, split, cover, uncover, zoom and the rest; morph through `mc:AlternateContent` with a fade fallback). Sections use the PowerPoint sections extension. Review status and comments are formsld-only and are not written to pptx.
+Speaker notes use the notes slide. Transitions map to `p:transition` (fade, push, wipe, split, cover, uncover, zoom and the rest; morph through `mc:AlternateContent` with a fade fallback). Sections use the PowerPoint sections extension. Review status and comments are formdeck-only and are not written to pptx.
 
 ## Known gaps
 

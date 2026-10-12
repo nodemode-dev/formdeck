@@ -1,13 +1,13 @@
 ---
 name: pptx-exchange
-description: "formsld's PowerPoint and package exchange: read_pptx (theme, masters, layouts with semantic and slot detection, slides, shapes, pictures, groups, tables, native charts, SmartArt, media, notes, sections, transitions) and write_pptx (pptx and potx with layouts, placeholders, native tables and charts, transitions, sections, autofit scales), OOXML helpers, colour transforms, preset geometry mapping, and the .fsld package. Use when import or export fidelity is wrong, when adding a deck feature that must round-trip through PowerPoint or Google Slides, or when touching .fsld."
+description: "FormDeck's PowerPoint and package exchange: read_pptx (theme, masters, layouts with semantic and slot detection, slides, shapes, pictures, groups, tables, native charts, SmartArt, media, notes, sections, transitions) and write_pptx (pptx and potx with layouts, placeholders, native tables and charts, transitions, sections, autofit scales), OOXML helpers, colour transforms, preset geometry mapping, and the .fdec package. Use when import or export fidelity is wrong, when adding a deck feature that must round-trip through PowerPoint or Google Slides, or when touching .fdec."
 ---
 
 # pptx exchange
 
 ## Purpose
 
-Move decks between formsld and PowerPoint (and Google Slides through pptx) without losing what both sides can express, and say plainly what is lost. Hands back a reader or writer change verified by a round trip.
+Move decks between FormDeck and PowerPoint (and Google Slides through pptx) without losing what both sides can express, and say plainly what is lost. Hands back a reader or writer change verified by a round trip.
 
 ## File map
 
@@ -21,7 +21,7 @@ Move decks between formsld and PowerPoint (and Google Slides through pptx) witho
 | `services/pptx/writer.py` | `write_pptx(deck, media, out, template, font_scales)`: `_Exporter` builds theme, master, layouts, slides, sections, core properties; potx sets the template content type |
 | `services/pptx/write_*.py`, `write_context.py` | elements, text (normAutofit `fontScale` from font scales), styles, tables, native charts, slide transitions (morph through alternate content), sections |
 | `services/pptx/colors.py`, `geom.py`, `ooxml.py` | scheme colours and lumMod or lumOff, preset geometry and adjust values, namespaces, `EMU_PER_PT` 12,700 |
-| `services/package.py` | `.fsld`: `pack` (mimetype stored first, deck.json, media, optional thumbs), `unpack`, `is_package` |
+| `services/package.py` | `.fdec`: `pack` (mimetype stored first, deck.json, media, optional thumbs), `unpack`, `is_package` |
 | `routers/decks.py` | `import_bytes`, `export_bytes`, `/import`, `/open-path`, `/decks/{id}/export`, `/save`, `/download` |
 
 ## Invariants
@@ -31,7 +31,7 @@ Move decks between formsld and PowerPoint (and Google Slides through pptx) witho
 - Layout semantics are assigned once per semantic per master; rules live in `read_layouts.py` and decide which imported layouts the compiler can target.
 - Export writes placeholders that reference real layout placeholders, so PowerPoint's Reset slide and layout switching work.
 - Not round-tripped today: animations (dropped on import with a warning, not written), embedded fonts (not written; open fonts substituted when missing), bevel and 3-D text. OpenDocument .odp and .otp go through `services/odp/` (`OdpWriter`, `OdpReader`), not this package.
-- `.fsld` writers store `mimetype` first and uncompressed; readers ignore unknown files.
+- `.fdec` writers store `mimetype` first and uncompressed; readers ignore unknown files.
 
 ## Procedure
 

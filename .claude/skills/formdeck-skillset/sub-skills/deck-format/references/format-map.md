@@ -20,7 +20,7 @@ Where each part of `docs/FORMAT.md` lives in code. "Readers and writers" are the
 | Placeholders and inheritance | `Placeholder`, `PhType`; `resolve.ts` `chain`, `frameOf`, `inherit`, `levelStyle`, `bodyProps` | `lint.py` `_chain`, `_frame`; `compiler/compile.py` `frame`, `slots` | `pptx/read_layouts.py` (semantics and slots), `render/slide.ts` (prompts), `remap.py` |
 | Transitions and animations | `Transition`, `Animation` | (stored as given) | `present/effects.ts`, `present/show.ts`, `pptx` read and write of transitions and timing, inspector transition controls |
 | Review, comments, history | `Comment`, `Slide.review` | `model.review_counts` | `routers/mcp.py` `t_review`, `t_comments`; inspector review panel; `ui/dialogs-insert.ts` `addComment` |
-| The .fsld package | (none) | `services/package.py` `pack`, `unpack`, `is_package`, `MIMETYPE` | `routers/decks.py` export and import, `setup/cli.py` |
+| The .fdec package | (none) | `services/package.py` `pack`, `unpack`, `is_package`, `MIMETYPE` | `routers/decks.py` export and import, `setup/cli.py` |
 | Templates | `TemplateSummary` in `io/api.ts` | `services/templates/` | `routers/decks.py` template routes, `ui/dialogs-file.ts` `TemplateGrid` |
 | Ops | `engine/ops.ts` `Op`, `applyOp`, `touched` | `services/ops.py` | `store.py`, `live.py`, `doc.ts`, `routers/mcp.py` `apply_ops` |
 | Deck spec and slide script | (none) | `compiler/spec.py` `parse_script`, `compiler/compile.py` | `routers/mcp.py` (build_deck, add_slides, update_slide), `routers/decks.py` `/build`, `setup/cli.py`, `autodraft.py` `_emit` |
@@ -31,8 +31,8 @@ Where each part of `docs/FORMAT.md` lives in code. "Readers and writers" are the
 Settle each by changing one side deliberately; do not leave a third interpretation.
 
 - **Gallery slots.** FORMAT.md lists `image` to `image4`; every built-in template generates three picture slots (`image`, `image2`, `image3`). The compiler grids two or four pictures over the slot area.
-- **Imported templates.** FORMAT.md says imported templates are stored as `.fsld` packages under `Templates/`; the code writes `Templates/[id]/template.json` (`routers/decks.py save_as_template`), and `open_file asTemplate` keeps the imported slides in it.
-- **Stats layout name.** Built-in templates name the stats layout "Statistics"; `pptx/read_layouts.py` matches that name to bigNumber first, so a formsld pptx re-imported as a template loses its `stats` semantic (20 of 21 recognised).
+- **Imported templates.** FORMAT.md says imported templates are stored as `.fdec` packages under `Templates/`; the code writes `Templates/[id]/template.json` (`routers/decks.py save_as_template`), and `open_file asTemplate` keeps the imported slides in it.
+- **Stats layout name.** Built-in templates name the stats layout "Statistics"; `pptx/read_layouts.py` matches that name to bigNumber first, so a FormDeck pptx re-imported as a template loses its `stats` semantic (20 of 21 recognised).
 
 ## Inheritance in one paragraph
 

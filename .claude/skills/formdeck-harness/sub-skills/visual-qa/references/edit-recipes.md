@@ -1,6 +1,6 @@
 # Edit recipes
 
-Copy-ready calls for the fix loop, each checked against a running engine. Element ids come from `get_deck {deck, detail: "text", slides: ["n"]}`; lengths are points on a 960 by 540 slide (16:9); colours are `#RRGGBB` or theme names (dk1, lt1, dk2, lt2, accent1 to accent6, tx1, bg1). Field meanings are in the formsld deck contract (`docs/FORMAT.md` in the formsld repository).
+Copy-ready calls for the fix loop, each checked against a running engine. Element ids come from `get_deck {deck, detail: "text", slides: ["n"]}`; lengths are points on a 960 by 540 slide (16:9); colours are `#RRGGBB` or theme names (dk1, lt1, dk2, lt2, accent1 to accent6, tx1, bg1). Field meanings are in the FormDeck deck contract (`docs/FORMAT.md` in the FormDeck repository).
 
 ## Contents
 

@@ -1,6 +1,6 @@
 ---
 name: ui-verification
-description: "The throttled zero-flash verification every formsld UI change passes before hand-back: serve the built frontend from a scratch engine, drive headless Chromium with CPU and network throttling, record frames, and count layout shifts, rebuilt keyed nodes, blank stage frames and console errors while exercising the touched paths, including live agent edits arriving over MCP. Use when DOM, CSS, stage, filmstrip, inspector, dialog, view, slideshow or import code changed, or when asked whether a UI change was verified."
+description: "The throttled zero-flash verification every FormDeck UI change passes before hand-back: serve the built frontend from a scratch engine, drive headless Chromium with CPU and network throttling, record frames, and count layout shifts, rebuilt keyed nodes, blank stage frames and console errors while exercising the touched paths, including live agent edits arriving over MCP. Use when DOM, CSS, stage, filmstrip, inspector, dialog, view, slideshow or import code changed, or when asked whether a UI change was verified."
 ---
 
 # UI verification
@@ -15,7 +15,7 @@ The change type-checks (`cd frontend && npx tsc --noEmit`). Playwright with Chro
 
 ## Procedure
 
-1. **Serve the built app from a scratch engine.** Build the frontend (`./formsld build`, unless another job owns `frontend/dist` right now, then use the Vite dev server on a free port with the engine proxy), then from `backend/`: `FORMSLD_PORT=[port] FORMSLD_DATA_DIR=[scratch]/data FORMSLD_DIST=../frontend/dist venv/bin/python -m uvicorn app.main:app --port [port]` in the background with its pid saved.
+1. **Serve the built app from a scratch engine.** Build the frontend (`./formdeck build`, unless another job owns `frontend/dist` right now, then use the Vite dev server on a free port with the engine proxy), then from `backend/`: `FORMDECK_PORT=[port] FORMDECK_DATA_DIR=[scratch]/data FORMDECK_DIST=../frontend/dist venv/bin/python -m uvicorn app.main:app --port [port]` in the background with its pid saved.
 2. **Throttle.** Over the DevTools protocol: `Emulation.setCPUThrottlingRate` 4 (the repo rule), `Network.emulateNetworkConditions` with 400 ms latency and 64,000 bytes per second, `Network.setCacheDisabled` true.
 3. **Observe before load** (init script): a `layout-shift` PerformanceObserver summing values without recent input; a MutationObserver counting nodes with `data-key` removed and replaced by a different node with the same key in one batch (a moved node is not a rebuild); console and page error listeners.
 4. **Record.** `Page.startScreencast` during the hard reload and each interaction. Before `body.app-ready` every frame is the background colour; the first revealed frame must match the settled one.
@@ -33,5 +33,5 @@ The verdict, the numbers (shift, rebuilt nodes, errors, blank frames), and any f
 
 ## Owned resources
 
-- `references/harness.md` the Playwright and CDP outline, the observer snippets, the formsld interaction list, shell pitfalls, and how to drive MCP edits during the run. Open when building the harness.
+- `references/harness.md` the Playwright and CDP outline, the observer snippets, the FormDeck interaction list, shell pitfalls, and how to drive MCP edits during the run. Open when building the harness.
 - `checklists/verify-gate.md` run before stating the verdict.

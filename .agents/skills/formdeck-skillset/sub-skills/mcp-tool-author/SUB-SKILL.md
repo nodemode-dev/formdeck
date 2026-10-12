@@ -1,6 +1,6 @@
 ---
 name: mcp-tool-author
-description: "Adds or changes formsld's agent surface end to end: an MCP tool in backend/app/routers/mcp.py (schema, handler, consent, agent turns, token-lean text and structuredContent), a window tool in frontend/src/automation/agent-bridge.ts reached over /api/live (render_slides, measure, export_raster, focus, consent), lint checks in services/lint.py, the stdio bridge, the MCP resources and prompt, and the docs agents read (GUIDE, harness skill, CLAUDE.md, AGENTS.md). Use when adding a tool, changing a tool's arguments or output, adding a lint kind, or debugging consent, turns or window tool timeouts."
+description: "Adds or changes FormDeck's agent surface end to end: an MCP tool in backend/app/routers/mcp.py (schema, handler, consent, agent turns, token-lean text and structuredContent), a window tool in frontend/src/automation/agent-bridge.ts reached over /api/live (render_slides, measure, export_raster, focus, consent), lint checks in services/lint.py, the stdio bridge, the MCP resources and prompt, and the docs agents read (GUIDE, harness skill, CLAUDE.md, AGENTS.md). Use when adding a tool, changing a tool's arguments or output, adding a lint kind, or debugging consent, turns or window tool timeouts."
 ---
 
 # MCP tool author
@@ -20,7 +20,7 @@ Give agents one more reliable verb without breaking the others: exact schema, a 
 | `frontend/src/automation/agent-bridge.ts` | `AgentBridge.run(name, args)` dispatch, `exclusive` job queue, `renderSlides`, `measure` (`measureSlide`), `exportTool` (`compose`), `focus`, `consent` dialog, `uploadThumb` |
 | `frontend/src/live/socket.ts` | routes `{t: "tool"}` to `onTool` and answers `{t: "toolResult"}` |
 | `setup/mcp_stdio.py`, `setup/agents.py` | stdio bridge (starts the engine when needed, keeps the session id); agent config and skill install and sync |
-| Docs agents read | `GUIDE` in mcp.py, `.claude/skills/formsld-harness/references/tools.md` and the sub-skill that owns the workflow, `CLAUDE.md`, `AGENTS.md`, README tool count |
+| Docs agents read | `GUIDE` in mcp.py, `.claude/skills/formdeck-harness/references/tools.md` and the sub-skill that owns the workflow, `CLAUDE.md`, `AGENTS.md`, README tool count |
 
 ## Invariants
 

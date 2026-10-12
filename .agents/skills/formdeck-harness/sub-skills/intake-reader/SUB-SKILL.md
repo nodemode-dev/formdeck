@@ -1,6 +1,6 @@
 ---
 name: intake-reader
-description: "Reads the person's material through formsld's ingest digest: source, asset and table ids, get_source paging, meeting notes (decisions, actions, owners), PDFs, Word files, decks, spreadsheets, images and GIFs, and what to ignore. Use when ingesting files for a deck, when the digest leaves a question open, or when deciding which pictures and numbers a deck can use."
+description: "Reads the person's material through FormDeck's ingest digest: source, asset and table ids, get_source paging, meeting notes (decisions, actions, owners), PDFs, Word files, decks, spreadsheets, images and GIFs, and what to ignore. Use when ingesting files for a deck, when the digest leaves a question open, or when deciding which pictures and numbers a deck can use."
 ---
 
 # Intake reader

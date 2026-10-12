@@ -60,7 +60,7 @@ The engine sends `hello` (client id, version), `snapshot`, `ops`, `reject`, `not
 ## Storage layout
 
 ```text
-~/Formsld/                    FORMSLD_DATA_DIR
+~/FormDeck/                    FORMDECK_DATA_DIR
   Decks/[d_id]/deck.json      the deck (normalized on load)
   Decks/[d_id]/info.json      library summary
   Decks/[d_id]/versions/      named versions
@@ -74,4 +74,4 @@ The engine sends `hello` (client id, version), `snapshot`, `ops`, `reject`, `not
 
 ## A two-client scratch check
 
-Boot a scratch engine (`FORMSLD_PORT`, `FORMSLD_DATA_DIR` in scratch), create a deck with `POST /api/decks {title, template}`, open two `websockets` clients on `/api/live`, `sub` both, send a `step` from one and confirm the other receives the same `ops` and `rev`, send `undo` and confirm the inverse arrives, send a step with a bad id and confirm `reject` plus `snapshot`. Keep the script in scratch; the repository carries no tests.
+Boot a scratch engine (`FORMDECK_PORT`, `FORMDECK_DATA_DIR` in scratch), create a deck with `POST /api/decks {title, template}`, open two `websockets` clients on `/api/live`, `sub` both, send a `step` from one and confirm the other receives the same `ops` and `rev`, send `undo` and confirm the inverse arrives, send a step with a bad id and confirm `reject` plus `snapshot`. Keep the script in scratch; the repository carries no tests.

@@ -1,6 +1,6 @@
 ---
 name: editor-ui
-description: "The formsld window shell and editor: the composition root (app.ts), menus, toolbar, inspector panels, filmstrip, stage (selection, drag, resize, rotate, adjust handles, snapping, text editing), slide sorter and outline views, home and template picker, dialogs, commands and shortcuts, toasts, colour picker, UI themes, design tokens, z-index scale and the zero-flash DOM rules. Use for any panel, menu, toolbar, dialog, command, shortcut, stage interaction, style or theme change, then run ui-verification."
+description: "The FormDeck window shell and editor: the composition root (app.ts), menus, toolbar, inspector panels, filmstrip, stage (selection, drag, resize, rotate, adjust handles, snapping, text editing), slide sorter and outline views, home and template picker, dialogs, commands and shortcuts, toasts, colour picker, UI themes, design tokens, z-index scale and the zero-flash DOM rules. Use for any panel, menu, toolbar, dialog, command, shortcut, stage interaction, style or theme change, then run ui-verification."
 ---
 
 # Editor UI
@@ -14,7 +14,7 @@ Change the window without breaking its two promises: the person and agents edit 
 | Path | Role |
 | --- | --- |
 | `src/main.ts`, `index.html` | entry (audience window or `startApp`); pre-paint theme boot from `nodemode_ui_settings`; `#app` hidden until `body.app-ready`; `#overlay-root` |
-| `src/app.ts` | `SHELL` mounted once; `Commands`, `MenuBar` and `menus`, context and present menus, `Toolbar`, `Inspector`, `AgentBridge`, `Home`, `openDeck` and `attach`, status bar, resizers (`--fs-strip-w`, `--fs-props-w`, `--fs-notes-h` saved in localStorage), keyboard routing, drop and paste (`openFiles` sends a PDF to the intake dialog as material) |
+| `src/app.ts` | `SHELL` mounted once; `Commands`, `MenuBar` and `menus`, context and present menus, `Toolbar`, `Inspector`, `AgentBridge`, `Home`, `openDeck` and `attach`, status bar, resizers (`--fd-strip-w`, `--fd-props-w`, `--fd-notes-h` saved in localStorage), keyboard routing, drop and paste (`openFiles` sends a PDF to the intake dialog as material) |
 | `src/editor/editor.ts` | `Editor`: doc, current slide, selection, slide selection, peers, `apply`, `insert`, `insertFiles`, copy and paste, nudge, events (selection, current, doc, edit, view) |
 | `src/editor/stage.ts` | `Stage`: viewport, zoom and fit, pointer drags (move, resize, rotate, adjust, marquee, pan), smart guides (6 px), rAF-batched frame ops with coalesce keys, contenteditable editing with a 350 ms commit, `editFormat`, overlay and hints |
 | `src/editor/filmstrip.ts` | thumbnails keyed by slide id, sections with collapse, drag reorder, multi-select |
@@ -48,7 +48,7 @@ Change the window without breaking its two promises: the person and agents edit 
 
 1. Read the files in the map that the change touches and the matching HASHOUT frontend entries.
 2. New action: an op builder in `actions.ts`, a command in `commands.ts` (`AppHooks` for dialog-backed ones), a menu entry in `app.ts`, a toolbar or inspector control with `data-cmd`, and its shortcut on the command.
-3. New panel or dialog: mount once, patch on events; `Dialog` for modals; tokens and `fs-` idioms for CSS; icons from `icons.ts`.
+3. New panel or dialog: mount once, patch on events; `Dialog` for modals; tokens and `fd-` idioms for CSS; icons from `icons.ts`.
 4. Run `npx tsc --noEmit` and check only your files; then `sub-skills/ui-verification/SUB-SKILL.md`.
 5. HASHOUT frontend entry for any non-obvious interaction rule.
 

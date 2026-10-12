@@ -47,7 +47,7 @@
 In scratch (never in the repository):
 
 1. Ingest a few fixture pictures through a scratch engine to get asset ids.
-2. For each script under test, call `compiler.build(script, template=tid, intake=intake.load(id))` for every template id in `templates.catalog()`, with `backend/` on `sys.path` and `FORMSLD_DATA_DIR` set to scratch.
+2. For each script under test, call `compiler.build(script, template=tid, intake=intake.load(id))` for every template id in `templates.catalog()`, with `backend/` on `sys.path` and `FORMDECK_DATA_DIR` set to scratch.
 3. Require: no warnings, `slides[i]["spec"]["layout"]` equal to the intended semantic, and `lint.lint(deck)` without warnings or errors other than template contrast.
 4. For autodraft, draft from a mixed intake (markdown, notes, csv, pictures), compile the result, and read the script for stray agenda items, topic titles and dropped decisions.
 5. Build the result in a scratch window and look at a contact sheet when the change affects geometry.

@@ -46,6 +46,6 @@ Leave out: the tool calls you made, lint scores unless asked, praise for the dec
 | A company template for others | `export_deck {format: "potx"}` | Theme, masters and layouts as a PowerPoint template |
 | A PDF to send or print | `export_deck {format: "pdf"}` | Needs the window; text stays searchable and selectable |
 | Slide images for a doc or social post | `export_deck {format: "png", slides: ["1"]}` | One slide gives a .png, several a .zip |
-| A formsld file to move between machines | `export_deck {format: "fsld"}` | Deck plus media in one package; open_file reads it back |
+| A FormDeck file to move between machines | `export_deck {format: "fdec"}` | Deck plus media in one package; open_file reads it back |
 
 Give an absolute `path` when the person named a folder; otherwise report the Exports path the tool returned. Paths with spaces are fine.

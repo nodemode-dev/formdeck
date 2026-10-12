@@ -1,6 +1,6 @@
 ---
 name: engine-core
-description: "The authoritative deck engine of formsld: the session store with steps, inverses, coalescing, undo by step or agent turn, autosave and versions (services/store.py), the JSON op set (services/ops.py and frontend engine/ops.ts), the /api/live WebSocket protocol (routers/live.py, live/socket.ts) and the window's optimistic DeckDoc with rebase. Use when adding an op or a live message, when undo, redo or an agent turn misbehaves, when windows disagree about a deck, or when saves go missing."
+description: "The authoritative deck engine of FormDeck: the session store with steps, inverses, coalescing, undo by step or agent turn, autosave and versions (services/store.py), the JSON op set (services/ops.py and frontend engine/ops.ts), the /api/live WebSocket protocol (routers/live.py, live/socket.ts) and the window's optimistic DeckDoc with rebase. Use when adding an op or a live message, when undo, redo or an agent turn misbehaves, when windows disagree about a deck, or when saves go missing."
 ---
 
 # Engine core

@@ -1,6 +1,6 @@
 ---
 name: compiler-and-autodraft
-description: "formsld's slide compiler and the heuristic first draft: the markdown slide-script parser (compiler/spec.py), spec to slides in any template with layout choice, fallbacks, slot filling, synthesized stats, steps, people and grids, overflow splitting and frozen asset ids (compiler/compile.py), and autodraft (intake plus brief to a script, no model). Use when changing script syntax, a layout heuristic, how a slot is filled, overflow limits, or draft quality from draft_spec, /api/intake/{id}/draft or build-deck."
+description: "FormDeck's slide compiler and the heuristic first draft: the markdown slide-script parser (compiler/spec.py), spec to slides in any template with layout choice, fallbacks, slot filling, synthesized stats, steps, people and grids, overflow splitting and frozen asset ids (compiler/compile.py), and autodraft (intake plus brief to a script, no model). Use when changing script syntax, a layout heuristic, how a slot is filled, overflow limits, or draft quality from draft_spec, /api/intake/{id}/draft or build-deck."
 ---
 
 # Compiler and autodraft
@@ -32,7 +32,7 @@ Turn scripts and specs into slides that use the template's semantic layouts, and
 
 ## Procedure
 
-1. Syntax change: update `spec.py`, then the Deck spec and slide script section of `docs/FORMAT.md`, the `GUIDE` string in `routers/mcp.py`, and the harness skill's script reference (`.claude/skills/formsld-harness/sub-skills/slide-script-author/`), which agents read.
+1. Syntax change: update `spec.py`, then the Deck spec and slide script section of `docs/FORMAT.md`, the `GUIDE` string in `routers/mcp.py`, and the harness skill's script reference (`.claude/skills/formdeck-harness/sub-skills/slide-script-author/`), which agents read.
 2. Layout or slot change: `compile.py`; check `FALLBACK` and `LIMITS` stay consistent with the templates' geometry.
 3. Draft change: `autodraft.py`; read `references/pipeline.md` for the unit model and the selection order.
 4. Verify with the scratch recipe in `references/pipeline.md`: compile every layout example in every template, zero warnings, expected layouts, static lint clean.

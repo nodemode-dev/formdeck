@@ -1,6 +1,6 @@
 # Slide script syntax
 
-Exactly what the formsld compiler parses (`backend/app/services/compiler/spec.py` and `compile.py`, engine 0.2.0). Anything not listed here is either ignored or treated as plain body text. Every `markdown` block in this file compiles with no warnings.
+Exactly what the FormDeck compiler parses (`backend/app/services/compiler/spec.py` and `compile.py`, engine 0.2.0). Anything not listed here is either ignored or treated as plain body text. Every `markdown` block in this file compiles with no warnings.
 
 ## Contents
 

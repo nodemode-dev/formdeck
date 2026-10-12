@@ -51,7 +51,7 @@ engine handler -> bridge.window_call(name, args, deck, timeout)
   -> {t: "toolResult", id, result} -> TOOL_RESULTS[id] resolves -> handler returns or wraps it
 ```
 
-No window: `window_call` returns None, so return `_fail("[tool] needs the formsld window ... ask the person to open it")`. Timeout: an isError result naming the tool and the seconds.
+No window: `window_call` returns None, so return `_fail("[tool] needs the FormDeck window ... ask the person to open it")`. Timeout: an isError result naming the tool and the seconds.
 
 ## Adding a lint check
 
@@ -59,7 +59,7 @@ Static: add the check in `lint.py` (inside the slide or element loop) with `_iss
 
 ## Scratch test recipe
 
-1. Boot a scratch engine from `backend/` with `FORMSLD_PORT`, `FORMSLD_DATA_DIR` in scratch and `FORMSLD_DIST=../frontend/dist` (a built frontend) when window tools are involved.
+1. Boot a scratch engine from `backend/` with `FORMDECK_PORT`, `FORMDECK_DATA_DIR` in scratch and `FORMDECK_DIST=../frontend/dist` (a built frontend) when window tools are involved.
 2. MCP over HTTP: `POST /mcp` with no Origin header, `Content-Type: application/json`, `MCP-Protocol-Version: 2025-11-25`; call `initialize`, keep the `Mcp-Session-Id` response header, then `tools/list` and `tools/call` with that header.
 3. Window: open `http://127.0.0.1:[port]/` in headless Chromium (Playwright) and keep it open; click Allow when the consent dialog appears.
 4. Call the tool: happy path, a bad id (expect a next-step sentence), without the window (expect the clear failure), then `undo` and confirm the step reverts.

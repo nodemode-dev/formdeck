@@ -1,6 +1,6 @@
 ---
 name: intake
-description: "formsld's intake pipeline: files and folders to a structured intake with stable src, asset and table ids, the token-lean digest, and get_source paging (backend/app/services/intake, routers/intake.py). Covers type detection, readers for markdown, text, meeting notes, pdf, docx, pptx, csv, xlsx, images, gifs, video and audio, numbers extraction, picture classification and the digest's level-of-detail budget. Use when adding a file type, changing what the digest says, fixing a misread file, or changing the /api/intake contract."
+description: "FormDeck's intake pipeline: files and folders to a structured intake with stable src, asset and table ids, the token-lean digest, and get_source paging (backend/app/services/intake, routers/intake.py). Covers type detection, readers for markdown, text, meeting notes, pdf, docx, pptx, csv, xlsx, images, gifs, video and audio, numbers extraction, picture classification and the digest's level-of-detail budget. Use when adding a file type, changing what the digest says, fixing a misread file, or changing the /api/intake contract."
 ---
 
 # Intake
@@ -38,7 +38,7 @@ Read whatever the person drops in once, keep it as structured data, and give age
 2. A reader module returning the common shape (see `references/readers.md`), registered in `_handle`.
 3. Digest lines in `digest.py source_block` at every level of `_BRIEF` (and `_FULL`), so it shrinks gracefully.
 4. `get_source` paging for it if it has pages or slides.
-5. FORMAT.md Intake digest section (source kinds), the harness intake reference (`.claude/skills/formsld-harness/sub-skills/intake-reader/references/digest-format.md`), the `ingest` tool description and the MCP `GUIDE`.
+5. FORMAT.md Intake digest section (source kinds), the harness intake reference (`.claude/skills/formdeck-harness/sub-skills/intake-reader/references/digest-format.md`), the `ingest` tool description and the MCP `GUIDE`.
 6. Check with a scratch engine on a mixed folder: digest under the cap, ids stable on a second ingest, draft_spec builds without warnings.
 
 ## Gate

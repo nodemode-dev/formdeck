@@ -17,12 +17,12 @@
 ## From slide to DOM
 
 ```text
-.fs-slide (width, height = deck size x k)
-  .fs-slide-inner (deck size in px, transform: scale(k))
-    .fs-slide-bg            backgroundOf(deck, slide) as CSS
-    .fs-layer-master        master decorations (no ph), unless hidden by the slide or layout
-    .fs-layer-layout        layout decorations
-    .fs-layer-content       one .fs-el per slide element (data-key = id), plus prompts (data-key = p:[layout el id]) in edit mode
+.fd-slide (width, height = deck size x k)
+  .fd-slide-inner (deck size in px, transform: scale(k))
+    .fd-slide-bg            backgroundOf(deck, slide) as CSS
+    .fd-layer-master        master decorations (no ph), unless hidden by the slide or layout
+    .fd-layer-layout        layout decorations
+    .fd-layer-content       one .fd-el per slide element (data-key = id), plus prompts (data-key = p:[layout el id]) in edit mode
 ```
 
 Each element's style comes from `elementHtml`: `chain()` resolves the slide, layout and master elements, `frameOf` gives the box, shapes become inline SVG (`presetGeometry`, `svgFill`, `svgStroke`) plus a text block, pictures a cropped and fitted image box, charts `chartSvg`, tables `tableHtml`, groups nested elements in slide coordinates.
@@ -33,7 +33,7 @@ Each element's style comes from `elementHtml`: `chain()` resolves the slide, lay
 
 ## Text, bullets and autofit
 
-`textHtml` turns paragraphs into `p.fs-p` with run spans; each paragraph's level style comes from `levelStyle(chain, lvl)` (slide, layout, master list styles, then master text styles). Bullets render as an inline-block span `.fs-bu` sized to the hanging indent; autonumbering keeps per-level counters (`autoNumber(scheme, n)`). `fitText(box, flow, mode)` sets `--k` to 1 and, for shrink, binary-searches the largest scale that fits (seven steps, floor to 1/40). Grow mode is handled by the frame; none leaves overflow for lint to report. `readParas` converts edited HTML back into paragraphs on commit.
+`textHtml` turns paragraphs into `p.fd-p` with run spans; each paragraph's level style comes from `levelStyle(chain, lvl)` (slide, layout, master list styles, then master text styles). Bullets render as an inline-block span `.fd-bu` sized to the hanging indent; autonumbering keeps per-level counters (`autoNumber(scheme, n)`). `fitText(box, flow, mode)` sets `--k` to 1 and, for shrink, binary-searches the largest scale that fits (seven steps, floor to 1/40). Grow mode is handled by the frame; none leaves overflow for lint to report. `readParas` converts edited HTML back into paragraphs on commit.
 
 ## Shapes, pictures, charts, tables
 
@@ -45,4 +45,4 @@ Presets carry adjust handles the stage can drag (`handleValue`). Pictures honour
 
 ## Known rendering issues
 
-- Numbered bullets at large sizes: `.fs-bu` is an inline-block with a fixed width and no `white-space: nowrap`, so labels such as `2.` can wrap inside it on agenda slides (number on one line, the period and text below). The fix belongs in `styles/slides.css` (nowrap) or in sizing the span to its label.
+- Numbered bullets at large sizes: `.fd-bu` is an inline-block with a fixed width and no `white-space: nowrap`, so labels such as `2.` can wrap inside it on agenda slides (number on one line, the period and text below). The fix belongs in `styles/slides.css` (nowrap) or in sizing the span to its label.

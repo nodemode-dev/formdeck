@@ -3,15 +3,15 @@ name: formdeck-skillset
 description: "Guides development of the FormDeck (formerly formsld) codebase: its FastAPI engine, vanilla TypeScript and Vite editor, and Tauri desktop shell. Use whenever a task changes, fixes, reviews or explains FormDeck code: the deck store, ops and live channel, compiler and autodraft, intake, templates, pptx import and export, slides from PDF pages, the MCP server and window tools, the renderer and text autofit, stage, filmstrip, thumbnails, inspector, slide sorter, slideshow and presenter view, the .fdec and deck.json format, the sidecar freeze, or a UI flicker, flash or rebuild bug. Trigger on FormDeck or formsld with backend/app, frontend/src, src-tauri, setup, HASHOUT_LOG, docs/FORMAT.md, port 8197 or 5197, or adding an MCP tool, a layout, a template or an op. Encodes the repo laws: surgical edits, near-zero comments, no emoji or em dashes, tokens-only z-index, inline SVG icons, Conventional Commits with the version bump last. Not for building decks with FormDeck (use formdeck-harness)."
 license: Apache-2.0
 metadata:
-  author: formsld
-  version: "0.2.0"
+  author: nodemode-ai
+  version: "0.3.0"
 ---
 
-# formsld skillset
+# FormDeck skillset
 
-Route every change to formsld's code through this file. It maps the subsystems, states the laws that hold everywhere, and names the specialist to load. formsld is a presentation editor: a Python 3.12 FastAPI engine (`backend/`, port 8197) that owns every deck, a vanilla TypeScript 7 and Vite 8 window (`frontend/`, port 5197, no framework) that renders and edits through JSON ops over a WebSocket, and a Tauri 2 shell (`src-tauri/`) that runs the frozen engine as a sidecar.
+Route every change to FormDeck's code through this file. It maps the subsystems, states the laws that hold everywhere, and names the specialist to load. FormDeck is a presentation editor: a Python 3.12 FastAPI engine (`backend/`, port 8197) that owns every deck, a vanilla TypeScript 7 and Vite 8 window (`frontend/`, port 5197, no framework) that renders and edits through JSON ops over a WebSocket, and a Tauri 2 shell (`src-tauri/`) that runs the frozen engine as a sidecar.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). formsld keeps only PDF as material (the intake reader), Insert > Slides from PDF Pages and Export > PDF of a deck.
+PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). FormDeck keeps only PDF as material (the intake reader), Insert > Slides from PDF Pages and Export > PDF of a deck.
 
 ## Subsystem map
 
@@ -28,7 +28,7 @@ PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). formsld keeps onl
 | Slideshow, presenter, audience | `frontend/src/present/` | `present` |
 | Slides from PDF pages | `backend/app/services/pdf_pages.py`, `routers/media.py` (`/api/media/pdf-pages`), `Editor.insertPdfPages` | `editor-ui` |
 | MCP server and window tools | `backend/app/routers/mcp.py`, `services/bridge.py`, `services/lint.py`, `frontend/src/automation/agent-bridge.ts`, `setup/mcp_stdio.py` | `mcp-tool-author` |
-| Desktop app and sidecar | `src-tauri/`, `backend/formsld_engine.py`, `setup/freeze_backend`, `.github/workflows/desktop.yml` | `desktop-shell` |
+| Desktop app and sidecar | `src-tauri/`, `backend/formdeck_engine.py`, `setup/freeze_backend`, `.github/workflows/desktop.yml` | `desktop-shell` |
 | Proof that a UI change does not flash | a procedure, no repo code | `ui-verification` |
 
 ## Dependency graph
@@ -42,7 +42,7 @@ app.ts             -> everything; the composition root
 backend routers    -> services (store, compiler, intake, templates, pptx, pdf_pages, lint, bridge)
 services/compiler  -> model, media, templates (lazily)
 mcp.py             -> store, compiler, intake, templates, lint, bridge (window tools over /api/live)
-desktop shell      -> frozen engine (formsld_engine.py) -> serves frontend/dist
+desktop shell      -> frozen engine (formdeck_engine.py) -> serves frontend/dist
 ```
 
 The window reaches the engine only through `frontend/src/io/api.ts` (REST) and `LiveClient` (WebSocket). The engine never imports frontend code; window-only abilities (fonts, layout, rasterising) reach agents as window tools.
@@ -70,7 +70,7 @@ The window reaches the engine only through `frontend/src/io/api.ts` (REST) and `
 | Script syntax, a layout heuristic, overflow splitting, draft quality | `compiler-and-autodraft` |
 | A new input file type, digest wording, get_source paging | `intake` |
 | A new template, a motif, layout geometry, imported templates | `templates` |
-| pptx or potx import or export fidelity, .fsld packages | `pptx-exchange` |
+| pptx or potx import or export fidelity, .fdec packages | `pptx-exchange` |
 | Text measuring, autofit, charts, tables, thumbnails, PDF raster | `renderer` |
 | Panels, menus, toolbar, commands, shortcuts, dialogs, styles, themes | `editor-ui`, then `ui-verification` |
 | Transitions, animations, morph, presenter or audience window | `present`, then `ui-verification` |
@@ -92,16 +92,16 @@ Paths inside a SUB-SKILL.md resolve against that sub-skill's folder; a sibling i
 ## Running it
 
 ```text
-./formsld install            backend venv (backend/venv) and frontend packages
-./formsld                    engine 127.0.0.1:8197 and Vite 5197 together
-./formsld backend | frontend run one side
-./formsld serve              built frontend served by the engine (FORMSLD_DIST)
-./formsld doctor             toolchain, installs and ports
+./formdeck install            backend venv (backend/venv) and frontend packages
+./formdeck                    engine 127.0.0.1:8197 and Vite 5197 together
+./formdeck backend | frontend run one side
+./formdeck serve              built frontend served by the engine (FORMDECK_DIST)
+./formdeck doctor             toolchain, installs and ports
 cd frontend && npx tsc --noEmit                     type-check (CI runs npm run build)
-cd backend && venv/bin/python -m compileall -q app  syntax check; formsld_engine.py --selfcheck
+cd backend && venv/bin/python -m compileall -q app  syntax check; formdeck_engine.py --selfcheck
 ```
 
-Scratch engines for checks: `FORMSLD_PORT=[port] FORMSLD_DATA_DIR=[scratch]/data backend/venv/bin/python -m uvicorn app.main:app --port [port]` from `backend/`, stopped with `kill [pid]`.
+Scratch engines for checks: `FORMDECK_PORT=[port] FORMDECK_DATA_DIR=[scratch]/data backend/venv/bin/python -m uvicorn app.main:app --port [port]` from `backend/`, stopped with `kill [pid]`.
 
 ## Done means
 

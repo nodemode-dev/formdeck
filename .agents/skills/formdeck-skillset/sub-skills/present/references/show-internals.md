@@ -12,7 +12,7 @@
 
 ## Layers and the slide cache
 
-`.fs-show-frame` holds two `.fs-show-layer` elements, the ink canvas and the laser dot. SlideViews (mode `show`) for the previous, current and next slide are cached by id and moved between the layers and a stash; a transition animates the outgoing and incoming layers with the keyframes from `transitionPlan`, after the incoming slide's pictures have decoded. Morph builds per-element animations between matched elements of consecutive slides.
+`.fd-show-frame` holds two `.fd-show-layer` elements, the ink canvas and the laser dot. SlideViews (mode `show`) for the previous, current and next slide are cached by id and moved between the layers and a stash; a transition animates the outgoing and incoming layers with the keyframes from `transitionPlan`, after the incoming slide's pictures have decoded. Morph builds per-element animations between matched elements of consecutive slides.
 
 ## Steps and builds
 
@@ -24,7 +24,7 @@ Next: Right, Down, Space, Enter, PageDown, N. Previous: Left, Up, Backspace, Pag
 
 ## Presenter and audience sync
 
-Presenter view opens the audience window at `/?audience=1&deck=[id]&slide=[n]` (`window.open` popup, or `invoke('open_presenter', {url})` in Tauri) and talks over `BroadcastChannel('formsld-show-[deckId]')`. Messages: `hello` (audience joined; presenter answers with the current position and ink), `goto` (slide, step, end), `ink` (slide, strokes), `laser` (x, y, on), `media` (slide, id, play, time), `end`. Echo guards stop loops; either side can navigate. Swap displays focuses the audience window and tells the person to drag it to the projector.
+Presenter view opens the audience window at `/?audience=1&deck=[id]&slide=[n]` (`window.open` popup, or `invoke('open_presenter', {url})` in Tauri) and talks over `BroadcastChannel('formdeck-show-[deckId]')`. Messages: `hello` (audience joined; presenter answers with the current position and ink), `goto` (slide, step, end), `ink` (slide, strokes), `laser` (x, y, on), `media` (slide, id, play, time), `end`. Echo guards stop loops; either side can navigate. Swap displays focuses the audience window and tells the person to drag it to the projector.
 
 ## Ink, laser, black and white screens
 

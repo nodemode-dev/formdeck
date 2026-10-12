@@ -6,7 +6,7 @@ Scratch code only; the repository carries no self-authored tests.
 
 - Outline
 - Observer snippets
-- Interaction list for formsld
+- Interaction list for FormDeck
 - Driving agent edits during the run
 - Pitfalls
 
@@ -50,9 +50,9 @@ new MutationObserver((records) => {
 }).observe(document, { childList: true, subtree: true });
 ```
 
-Keyed nodes in formsld: slide content elements (`data-key` is the element id, `p:[id]` for prompts), filmstrip thumbnails, and every list built with `patchList`.
+Keyed nodes in FormDeck: slide content elements (`data-key` is the element id, `p:[id]` for prompts), filmstrip thumbnails, and every list built with `patchList`.
 
-## Interaction list for formsld
+## Interaction list for FormDeck
 
 Hard reload into a deck; home screen and template grid; open a deck; select, drag, resize and rotate a shape; double-click a placeholder and type; nudge with arrows; new slide, duplicate, delete, reorder by dragging in the filmstrip; change layout from the toolbar; apply another template; insert a picture, a table and a chart; undo and redo; slide sorter and outline (type in the outline); open and close export, template picker, background and preferences dialogs; switch UI theme between dark and light; zoom in, out and fit; resize the side panels; start the show, advance through a transition and a build, open presenter view; drop a PDF to open the intake with it attached, and add slides with Insert > Slides from PDF Pages. Run only the paths the change touches, plus reload and one live agent edit.
 

@@ -1,11 +1,11 @@
 {
-  "skill_name": "formsld-skillset",
-  "notes": "Run inside the formsld repository. Expected behaviours are observable in the files read, the edits made and the hand-back.",
+  "skill_name": "formdeck-skillset",
+  "notes": "Run inside the FormDeck repository. Expected behaviours are observable in the files read, the edits made and the hand-back.",
   "evals": [
     {
       "id": 1,
       "name": "add-mcp-tool-duplicate-deck",
-      "prompt": "Add an MCP tool duplicate_deck to formsld so agents can copy a deck before a risky restyle.",
+      "prompt": "Add an MCP tool duplicate_deck to FormDeck so agents can copy a deck before a risky restyle.",
       "files": [],
       "expected_behavior": [
         "Loads mcp-tool-author and reads backend/app/routers/mcp.py before editing",
@@ -21,7 +21,7 @@
       "prompt": "On agenda slides the numbers 2, 3, 4 sit on their own line with the period and text below. Fix it.",
       "files": [],
       "expected_behavior": [
-        "Loads renderer and finds the .fs-bu inline-block span in render/text.ts and styles/slides.css",
+        "Loads renderer and finds the .fd-bu inline-block span in render/text.ts and styles/slides.css",
         "Makes a single-region edit (for example white-space: nowrap or sizing the span to its label), no scripted edit",
         "Checks edit, thumbnail and raster output agree and runs ui-verification",
         "Adds a HASHOUT frontend entry"
@@ -30,7 +30,7 @@
     {
       "id": 3,
       "name": "stats-semantic-lost-on-pptx-reimport",
-      "prompt": "When I export a formsld deck to pptx and import it as a template, the stats layout disappears. Why, and fix it.",
+      "prompt": "When I export a FormDeck deck to pptx and import it as a template, the stats layout disappears. Why, and fix it.",
       "files": [],
       "expected_behavior": [
         "Loads pptx-exchange and templates and traces the Statistics layout name to read_layouts.py STRONG_NAMES matching bigNumber first",
@@ -56,14 +56,14 @@
       "files": [],
       "expected_behavior": [
         "Loads editor-ui; wires the control through an op builder and ed.apply with a coalesce key",
-        "Mounts the control once and patches its value with setValue; uses tokens and fs- classes; no raw z-index",
+        "Mounts the control once and patches its value with setValue; uses tokens and fd- classes; no raw z-index",
         "Runs ui-verification with a live agent edit and states the verdict in the prescribed words"
       ]
     },
     {
       "id": 6,
       "name": "release-commit-shape",
-      "prompt": "Commit the work and bump formsld to 0.2.1.",
+      "prompt": "Commit the work and bump FormDeck to 0.2.1.",
       "files": [],
       "expected_behavior": [
         "Uses Conventional Commits type(scope): summary (0.2.1) with a body for each logical change",
@@ -85,7 +85,7 @@
     {
       "id": 8,
       "name": "desktop-file-association-gap",
-      "prompt": "Double-clicking a .fsld file opens formsld but not the file. Fix it.",
+      "prompt": "Double-clicking a .fdec file opens FormDeck but not the file. Fix it.",
       "files": [],
       "expected_behavior": [
         "Loads desktop-shell and identifies that main.rs handles neither RunEvent::Opened nor file arguments",
@@ -96,29 +96,29 @@
     {
       "id": 9,
       "name": "harness-question-should-route-away",
-      "prompt": "Make me a 10 slide pitch deck from notes.md in formsld.",
+      "prompt": "Make me a 10 slide pitch deck from notes.md in FormDeck.",
       "files": [],
       "expected_behavior": [
         "Does not edit repository code",
-        "Routes to formsld-harness (building decks through the MCP tools)"
+        "Routes to formdeck-harness (building decks through the MCP tools)"
       ]
     }
   ],
   "trigger_evals": [
-    { "query": "add an MCP tool to formsld that duplicates a deck", "should_trigger": true },
-    { "query": "fix the text autofit bug in formsld's renderer", "should_trigger": true },
+    { "query": "add an MCP tool to FormDeck that duplicates a deck", "should_trigger": true },
+    { "query": "fix the text autofit bug in FormDeck's renderer", "should_trigger": true },
     { "query": "the slide sorter rebuilds every thumbnail when an agent edits, fix the flicker", "should_trigger": true },
-    { "query": "pptx import loses the stats layout in formsld", "should_trigger": true },
+    { "query": "pptx import loses the stats layout in FormDeck", "should_trigger": true },
     { "query": "add a new template to backend/app/services/templates", "should_trigger": true },
-    { "query": "the formsld sidecar fails to start in the desktop build", "should_trigger": true },
+    { "query": "the FormDeck sidecar fails to start in the desktop build", "should_trigger": true },
     { "query": "add a field to docs/FORMAT.md and the TS model", "should_trigger": true },
     { "query": "write the HASHOUT_LOG entry and commit with the version bump", "should_trigger": true },
-    { "query": "build me a pitch deck from these notes in formsld", "should_trigger": false },
-    { "query": "export my formsld deck to pdf", "should_trigger": false },
+    { "query": "build me a pitch deck from these notes in FormDeck", "should_trigger": false },
+    { "query": "export my FormDeck deck to pdf", "should_trigger": false },
     { "query": "fix the layers panel in formvis", "should_trigger": false },
     { "query": "write a FastAPI endpoint for a todo app", "should_trigger": false },
     { "query": "how do I make a Tauri app from scratch", "should_trigger": false },
     { "query": "merge these two PDFs", "should_trigger": false },
-    { "query": "add a redaction tool to the formsld PDF workbench", "should_trigger": false }
+    { "query": "add a redaction tool to the FormDeck PDF workbench", "should_trigger": false }
   ]
 }

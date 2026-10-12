@@ -1,6 +1,6 @@
 ---
 name: templates
-description: "formsld's template system: the 67 built-in designs as code (services/templates/catalog.py Design entries), the generator that builds theme, master and the 21 semantic layouts with motifs and hero covers, sample decks and art, the catalog API, imported templates from .pptx or .potx, remap for apply_template, and the template grid and previews in the window. Use when adding or changing a template, a motif, layout geometry or slots, the catalog, template export, or the template picker."
+description: "FormDeck's template system: the 67 built-in designs as code (services/templates/catalog.py Design entries), the generator that builds theme, master and the 21 semantic layouts with motifs and hero covers, sample decks and art, the catalog API, imported templates from .pptx or .potx, remap for apply_template, and the template grid and previews in the window. Use when adding or changing a template, a motif, layout geometry or slots, the catalog, template export, or the template picker."
 ---
 
 # Templates
@@ -20,7 +20,7 @@ Keep every template a complete, compatible design: one theme, one master, all 21
 | `services/templates/samples.py`, `art.py` | the 17-slide `SAMPLE` spec and abstract art pictures in the theme colours (`@art1` to `@art5`) |
 | `services/templates/remap.py` | `remap(deck, template_deck)`: clean slides recompiled from spec, edited slides keep elements with placeholders moved by slot |
 | `routers/decks.py` | `/api/templates`, `/api/templates/{tid}` (deck with samples), `/download` (pptx or potx), delete, `save_as_template`, `/decks/{id}/apply-template` |
-| `setup/templates.py` | `./formsld templates export [dir] --format pptx|potx|both --only ids` |
+| `setup/templates.py` | `./formdeck templates export [dir] --format pptx|potx|both --only ids` |
 | `frontend/src/ui/dialogs-file.ts` `TemplateGrid`, `templatePicker`; `ui/home.ts` `templatePreview`, `mountDeckPreview` | the picker and previews |
 
 ## Invariants
@@ -37,8 +37,8 @@ Keep every template a complete, compatible design: one theme, one master, all 21
 1. Add a `_d(...)` entry in `catalog.py`: unique id, category from `CATEGORIES`, a six-accent palette with readable `dk1` on `lt1`, fonts that are bundled, a motif and hero kind, tags and a one-line description.
 2. A new motif or hero kind goes in `generator.py` (`_motif`, `_bg`), drawn as master or layout decoration with no placeholders.
 3. Build it in scratch: `template_deck(id)` has 21 layouts with semantics; the harness layout examples compile without warnings; `sample_deck(id)` builds; lint shows no contrast warnings on the template's own text pairs, or the pair is deliberate.
-4. Look at it: build the sample deck in a scratch window and render a contact sheet; export it with `./formsld templates export --only [id]` and open the pptx.
-5. Update the counts where they appear (README "67 original templates", MCP texts, the harness catalog reference `.claude/skills/formsld-harness/sub-skills/template-curator/references/template-catalog.md`).
+4. Look at it: build the sample deck in a scratch window and render a contact sheet; export it with `./formdeck templates export --only [id]` and open the pptx.
+5. Update the counts where they appear (README "67 original templates", MCP texts, the harness catalog reference `.claude/skills/formdeck-harness/sub-skills/template-curator/references/template-catalog.md`).
 
 ## Gate
 

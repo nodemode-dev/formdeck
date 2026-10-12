@@ -1,6 +1,6 @@
 ---
 name: renderer
-description: "formsld's slide renderer in frontend/src/render: SlideView (DOM at 1px per point, layered background, master, layout and content, keyed patching by touched paths), text HTML with bullets and autonumbering, shrink autofit via one --k scale, shapes from 150 presets as inline SVG, paint helpers, charts as SVG, tables, bundled fonts, and the Canvas 2D raster display list used for thumbnails, contact sheets, PNG and PDF export. Use when text measures or wraps wrong, autofit misbehaves, a shape, chart or table draws wrong, thumbnails or exports differ from the stage, or fonts load late."
+description: "FormDeck's slide renderer in frontend/src/render: SlideView (DOM at 1px per point, layered background, master, layout and content, keyed patching by touched paths), text HTML with bullets and autonumbering, shrink autofit via one --k scale, shapes from 150 presets as inline SVG, paint helpers, charts as SVG, tables, bundled fonts, and the Canvas 2D raster display list used for thumbnails, contact sheets, PNG and PDF export. Use when text measures or wraps wrong, autofit misbehaves, a shape, chart or table draws wrong, thumbnails or exports differ from the stage, or fonts load late."
 ---
 
 # Renderer
@@ -13,7 +13,7 @@ Draw any deck identically on the stage, in thumbnails, in the show, in print and
 
 | Path | Role |
 | --- | --- |
-| `render/slide.ts` | `SlideView(getDeck, slideId, mode)`: `.fs-slide` with `.fs-slide-inner` scaled by one transform; layers `bg`, `master`, `layout`, `content`; `setScale`, `update(touched)`, `fitAll`, `refit`, `fit`, `nodeFor`; `elementHtml`, `decorations`, prompts for empty placeholders in edit mode; `mediaUrl` |
+| `render/slide.ts` | `SlideView(getDeck, slideId, mode)`: `.fd-slide` with `.fd-slide-inner` scaled by one transform; layers `bg`, `master`, `layout`, `content`; `setScale`, `update(touched)`, `fitAll`, `refit`, `fit`, `nodeFor`; `elementHtml`, `decorations`, prompts for empty placeholders in edit mode; `mediaUrl` |
 | `render/text.ts` | `textHtml` (paragraph and run CSS from the level chain, bullets and `autoNumber`, prompts), `fitText` (binary search of `--k`, floor to 1/40), `readParas` (contenteditable back to paras), `paraLevel` |
 | `render/paint.ts` | `cssBackground`, `svgFill` (solid, gradient, image, pattern), `svgStroke` (dash, caps, arrowheads), `cssFilter` (shadow, glow, soft edge), `cssColor` |
 | `engine/geometry/presets.ts`, `ooxml-presets.json` | an interpreter for the 187 ECMA-376 preset definitions: guide formulas, paths, text rectangle, connection sites, solved adjust handles (`presetGeometry`, `handleAdjust`, `handleValue`, `isLineGeom`, `PRESET_GROUPS` with PowerPoint's gallery groups plus More Shapes) |
@@ -29,7 +29,7 @@ Draw any deck identically on the stage, in thumbnails, in the show, in print and
 
 ## Invariants
 
-- 1 px equals 1 pt inside `.fs-slide-inner`; scaling is a single CSS transform on it, so text measures as it prints (HASHOUT frontend 1).
+- 1 px equals 1 pt inside `.fd-slide-inner`; scaling is a single CSS transform on it, so text measures as it prints (HASHOUT frontend 1).
 - `update(touched)` never rebuilds the content layer: nodes are keyed by element id (and `p:[layout element]` for prompts), a box-only change rewrites the style attribute, an image change swaps attributes in place, and only changed nodes are repainted and refit. Decorations and backgrounds repaint only when their keys change.
 - Autofit shrink writes one `--k` per text box after layout; `fitAll()` must run once the view is in the DOM (thumbnails and rasters call it after mounting).
 - Fonts load before measuring: `await ensureFonts(fontsOfDeck(deck))` before mounting a view that will be measured or rasterised.

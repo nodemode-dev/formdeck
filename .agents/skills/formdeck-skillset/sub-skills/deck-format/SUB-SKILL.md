@@ -1,6 +1,6 @@
 ---
 name: deck-format
-description: "The formsld deck contract: docs/FORMAT.md (deck.json, colours, fills, lines, effects, elements, text, tables, charts, placeholders and inheritance, transitions, animations, review, comments, the .fsld package, templates, ops, the deck spec and slide script, the intake digest) and its implementations in frontend/src/engine/model.ts and backend/app/services/model.py. Use when adding or changing any deck field, element type or property, and when two parts of formsld disagree about deck data."
+description: "The FormDeck deck contract: docs/FORMAT.md (deck.json, colours, fills, lines, effects, elements, text, tables, charts, placeholders and inheritance, transitions, animations, review, comments, the .fdec package, templates, ops, the deck spec and slide script, the intake digest) and its implementations in frontend/src/engine/model.ts and backend/app/services/model.py. Use when adding or changing any deck field, element type or property, and when two parts of FormDeck disagree about deck data."
 ---
 
 # Deck format
