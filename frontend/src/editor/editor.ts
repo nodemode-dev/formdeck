@@ -14,6 +14,7 @@ import { Filmstrip } from './filmstrip';
 import { remapCopies } from './connectors';
 import { layoutMenuItems } from './master-view';
 import { MERGE_MENU } from './merge-shapes';
+import { probeVideo } from './media-preview';
 import { Stage } from './stage';
 
 export type EditorEvent = 'selection' | 'current' | 'doc' | 'edit' | 'view';
@@ -310,12 +311,14 @@ export class Editor {
     if (!s) return;
     let metas;
     try { metas = await api.upload(files); } catch (e) { toast(`Could not add ${files.length === 1 ? files[0].name : 'the files'}: ${e instanceof Error ? e.message : e}`, 'error'); return; }
+    const probes = await Promise.all(files.map(probeVideo));
     const deck = this.doc.deck;
     const ops: Op[] = [];
     const ids: string[] = [];
     const used = this.doc.usedIds();
     metas.forEach((m, i) => {
-      if (!deck.media[m.id]) ops.push({ op: 'set', path: ['media', m.id], value: { name: m.name, mime: m.mime, w: m.w, h: m.h, bytes: m.bytes, ...(m.frames ? { frames: m.frames } : {}) } });
+      const pv = probes[i];
+      if (!deck.media[m.id]) ops.push({ op: 'set', path: ['media', m.id], value: { name: m.name, mime: m.mime, w: m.w ?? pv?.w, h: m.h ?? pv?.h, bytes: m.bytes, ...(m.frames ? { frames: m.frames } : {}), ...(m.duration || pv?.duration ? { duration: m.duration || pv?.duration } : {}) } });
       const id = this.doc.nextId('e', used);
       ids.push(id);
       const kind = m.mime.startsWith('video/') ? 'video' : m.mime.startsWith('audio/') ? 'audio' : 'image';
@@ -325,7 +328,7 @@ export class Editor {
         ops.push({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: { id, type: 'image', src: m.id, ph: clone(lel.ph), slot: lel.slot, fit: 'cover', alt: m.name.replace(/\.[^.]+$/, ''), ...(lel.type === 'shape' && lel.geom && lel.geom !== 'rect' ? { mask: lel.geom, adj: lel.adj } : {}) } });
         return;
       }
-      const iw = m.w ?? 800, ih = m.h ?? 600;
+      const iw = m.w ?? pv?.w ?? (kind === 'video' ? 1280 : 800), ih = m.h ?? pv?.h ?? (kind === 'video' ? 720 : 600);
       const maxW = deck.size.w * 0.6, maxH = deck.size.h * 0.6;
       const sc = Math.min(1, maxW / iw, maxH / ih);
       const w = kind === 'audio' ? 48 : iw * sc, h = kind === 'audio' ? 48 : ih * sc;
@@ -333,7 +336,8 @@ export class Editor {
       const base = { id, x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w: Math.round(w), h: Math.round(h) };
       ops.push({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: kind === 'image' ? { ...base, type: 'image', src: m.id, fit: 'stretch', alt: m.name.replace(/\.[^.]+$/, '') } : { ...base, type: 'media', kind, src: m.id } });
     });
-    if (this.apply([...ops, ...dirtyOp(s)], files.length > 1 ? 'Insert pictures' : 'Insert picture')) this.select(ids);
+    const label = files.length > 1 ? 'Insert files' : metas[0]?.mime.startsWith('video/') ? 'Insert video' : metas[0]?.mime.startsWith('audio/') ? 'Insert audio' : 'Insert picture';
+    if (this.apply([...ops, ...dirtyOp(s)], label)) this.select(ids);
   }
 
   pickPdfPages(): Promise<File | null> {

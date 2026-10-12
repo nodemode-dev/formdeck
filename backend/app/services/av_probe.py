@@ -38,6 +38,22 @@ def mp4_seconds(data: bytes) -> float:
     return 0.0
 
 
+def mp4_size(data: bytes) -> tuple[int, int] | None:
+    for kind, body, end in _boxes(data, 0, len(data)):
+        if kind != b"moov":
+            continue
+        for trak, tb, te in _boxes(data, body, end):
+            if trak != b"trak":
+                continue
+            for sub_kind, sb, se in _boxes(data, tb, te):
+                if sub_kind != b"tkhd" or se - sb < 84:
+                    continue
+                w, h = struct.unpack(">II", data[se - 8:se])
+                if w >> 16 and h >> 16:
+                    return w >> 16, h >> 16
+    return None
+
+
 def wav_seconds(data: bytes) -> float:
     if data[:4] != b"RIFF" or data[8:12] != b"WAVE":
         return 0.0

@@ -8,6 +8,7 @@ import { toast } from '../ui/toast';
 import type { Editor } from './editor';
 import { alignOps, bodyPropOps, deleteSlideOps, dirtyOp, distributeOps, groupOps, newShape, newTextBox, paraStyleOps, runStyleOps, ungroupOps, zOrderOps } from './actions';
 import { tableColorOps } from './table-edit';
+import { isPreviewing, selectedMedia, togglePreview } from './media-preview';
 
 export interface AppHooks {
   editor(): Editor | null;
@@ -177,6 +178,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'insert-text', label: 'Text Box', icon: 'textBox', enabled: has, run: () => { const ed = E(); if (!ed) return; const d = ed.doc.deck.size; const id = ed.insert(newTextBox({ x: Math.round(d.w / 2 - 160), y: Math.round(d.h / 2 - 30), w: 320, h: 60 }) as SlideElement, 'Insert text box'); if (id) requestAnimationFrame(() => ed.stage.beginEdit(id)); } },
     { id: 'insert-image', label: 'Picture...', icon: 'image', enabled: has, run: () => void E()?.pickImage() },
     { id: 'insert-media', label: 'Video or Audio...', icon: 'video', enabled: has, run: () => void E()?.pickImage() },
+    { id: 'media-play', label: () => (isPreviewing(E()) ? 'Pause' : 'Play'), keys: ['Alt+P'], icon: 'play', enabled: () => !!selectedMedia(E()), run: () => togglePreview(E()) },
     { id: 'insert-shapes', label: 'Shapes...', icon: 'shapes', enabled: has, run: () => h.shapes() },
     { id: 'insert-line', label: 'Line', icon: 'line', enabled: has, run: () => insertShape('line') },
     { id: 'insert-arrow', label: 'Arrow', icon: 'arrow', enabled: has, run: () => { const ed = E(); if (!ed) return; const d = ed.doc.deck.size; ed.insert({ ...newShape('straightConnector1', { x: d.w / 2 - 100, y: d.h / 2, w: 200, h: 1 }), line: { color: 'tx1', width: 2, tail: { type: 'triangle' } } } as SlideElement, 'Insert arrow'); } },

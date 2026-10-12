@@ -88,10 +88,14 @@ def _svg_size(data: bytes) -> tuple[int, int] | None:
 def probe(data: bytes, mime: str) -> dict:
     info: dict = {}
     if mime.startswith(("video/", "audio/")):
-        from .av_probe import av_seconds
+        from .av_probe import av_seconds, mp4_size
         secs = av_seconds(data, mime)
         if secs > 0:
             info["duration"] = secs
+        if mime in ("video/mp4", "video/quicktime"):
+            size = mp4_size(data)
+            if size:
+                info["w"], info["h"] = size
         return info
     if mime == "image/svg+xml":
         size = _svg_size(data)

@@ -9,6 +9,7 @@ import type { Editor } from './editor';
 import { runStyleOps } from './actions';
 import { editorTheme } from './master-view';
 import { tableRunProbe, tableTextFormat } from './table-edit';
+import { selectedMedia } from './media-preview';
 
 type Ctx = 'slide' | 'text' | 'shape' | 'image' | 'table' | 'chart' | 'multi' | 'none';
 
@@ -46,7 +47,7 @@ export class Toolbar {
 <span class="fd-sep" data-g="anchor"></span>
 <div class="fd-tb-group" data-g="paint"><button class="fd-tb-btn fd-tb-color" type="button" data-act="fill" title="Fill colour" aria-label="Fill colour">${icon('fill', 16)}</button><button class="fd-tb-btn fd-tb-color" type="button" data-act="line" title="Outline colour" aria-label="Outline colour">${icon('pen', 16)}</button></div>
 <span class="fd-sep" data-g="paint"></span>
-<div class="fd-tb-group" data-g="image">${lbtn('replace-image', 'image', 'Replace')}${btn('alt-text', 'info', 'Alt text')}</div>
+<div class="fd-tb-group" data-g="image">${lbtn('replace-image', 'image', 'Replace')}${btn('alt-text', 'info', 'Alt text')}${btn('media-play', 'play', 'Play or pause (Alt+P)')}</div>
 <span class="fd-sep" data-g="image"></span>
 <div class="fd-tb-group" data-g="chart">${lbtn('edit-chart', 'chartBar', 'Edit data')}</div>
 <span class="fd-sep" data-g="chart"></span>
@@ -154,7 +155,8 @@ export class Toolbar {
       if (sep) setHidden(sep, !show[g]);
     }
     const names: Record<Ctx, [string, string]> = { slide: ['Slide', 'slide'], text: ['Text', 'textBox'], shape: ['Shape', 'shapes'], image: ['Picture', 'image'], table: ['Table', 'table'], chart: ['Chart', 'chart'], multi: ['Objects', 'group'], none: ['FormDeck', 'slides'] };
-    const [label, ic] = names[ctx];
+    const media = ctx === 'image' ? selectedMedia(ed) : null;
+    const [label, ic] = media ? [media.kind === 'video' ? 'Video' : 'Audio', 'video'] : names[ctx];
     setText(this.title.querySelector('.fd-tb-title-text'), label);
     const iconHost = this.title.querySelector<HTMLElement>('.fd-tb-title-icon');
     if (iconHost && iconHost.dataset.ic !== ic) { iconHost.dataset.ic = ic; iconHost.innerHTML = icon(ic, 14); }

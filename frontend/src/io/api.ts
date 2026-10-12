@@ -46,11 +46,11 @@ export const api = {
     return json<{ deck: Deck; name: string }>(await fetch('/api/compare-file', { method: 'POST', body: fd }));
   },
   openPath: (path: string, asTemplate = false) => post<DeckSummary & { template?: string }>('/api/open-path', { path, asTemplate }),
-  async upload(files: File[]): Promise<Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number }>> {
+  async upload(files: File[]): Promise<Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number; duration?: number }>> {
     const fd = new FormData();
     for (const f of files) fd.append('files', f, f.name);
     const res = await fetch('/api/media', { method: 'POST', body: fd });
-    return (await json<{ media: Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number }> }>(res)).media;
+    return (await json<{ media: Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number; duration?: number }> }>(res)).media;
   },
   async pdfPages(file: File): Promise<PdfPages> {
     const fd = new FormData();
