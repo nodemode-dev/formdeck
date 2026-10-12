@@ -41,6 +41,10 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 19. Links, spacing, effects, picture adjustments, theme editing, replies · ui/link-dialog.ts, editor/inspector.ts
 40. formsld becomes FormDeck · main.ts, app.ts, present/show.ts
 41. The fd- prefix and .fdec files · all styles and ui modules, editor/commands.ts, ui/dialogs-file.ts, app.ts
+42. Typing into what you select · editor/stage.ts, app.ts
+43. Menu bar dropdowns stay under the bar · ui/menu.ts
+44. Playing media in the editor · editor/media-preview.ts, editor/commands.ts, editor/toolbar.ts, editor/editor.ts
+45. Toasts stack upward · ui/toast.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -213,3 +217,19 @@ UI preferences were stored under `formsld.*` keys; `main.ts` copies each one to 
 ## 41. The fd- prefix and .fdec files · _v0.7.2 (every file under src that used fs-; editor/commands.ts export-fdec; ui/dialogs-file.ts ExportFormat, SaveAsDialog fmt; app.ts open filters)
 
 The family convention is one two-letter prefix per app, so FormDeck's classes, custom properties (`--fd-12`, `--fd-pasteboard`), data attributes and SVG id prefixes moved from `fs-` to `fd-` in one release. No `fd-` existed before and every `fs-` followed a non-word character, so the swap had one meaning; each file was checked to equal its previous version with `fd-` mapped back, and the built app was screenshotted against 0.7.1 (Home, editor, a selection, an open menu) with identical pixels. Deck files are `.fdec`; the format key in the window is `fdec`, and every file picker and drop filter still takes `.fsld`. A deck linked to an older `.fsld` keeps saving to that path, because the save format follows the linked path's extension.
+
+## 42. Typing into what you select · _v0.8.1 (editor/stage.ts down clickEdit, up, beginEdit promptRun; app.ts keydown printable keys and Tab)
+
+A pointer press on an element records `edit` on the move drag when it would start text editing (a placeholder, or a text-bearing shape already selected alone); `up` begins editing at the press point only when the drag never moved, so dragging still moves and a plain click types. A printable key with one shape or table selected calls `beginEdit` and then `insertText`, so the first key is not lost; no command uses a plain letter, so nothing is shadowed. When editing starts on an empty placeholder, the prompt run is emptied in place (`replaceChildren(br)`) and the caret is put inside that run, so typed text keeps the run's style and the prompt never becomes text; `readParas` ignores the trailing `br`. Tab cycling only applies when focus is on the body or inside the stage, so keyboard users keep Tab navigation in toolbars and panels.
+
+## 43. Menu bar dropdowns stay under the bar · _v0.8.1 (ui/menu.ts PopupMenu.openAt below, MIN_DROP; MenuBar.open)
+
+`openAt(x, y, true)` sets the panel's `maxHeight` to the room below `y` (never less than 160 px) before measuring, and never moves the panel above `y`, so a long menu scrolls inside instead of sliding over the bar. Context menus call `openAt(x, y)` and keep flipping to fit, with `maxHeight` cleared.
+
+## 44. Playing media in the editor · _v0.8.1 (editor/media-preview.ts togglePreview, probeVideo; editor/commands.ts media-play; editor/toolbar.ts media label; editor/editor.ts insertFiles)
+
+Preview toggles the existing `video` or `audio` node of the selected element (found by `data-id` in the stage), unmuting it, applying `volume`, seeking to `start` when outside the trim, and stopping at `end` through a `timeupdate` listener that is removed on stop; stopping mutes it again, as the renderer expects. `probeVideo` reads `videoWidth`, `videoHeight` and `duration` from a detached element on an object URL, gives up after 4 s, and revokes the URL; an unreadable clip is sized 16:9.
+
+## 45. Toasts stack upward · _v0.8.1 (ui/toast.ts stack)
+
+`stack` walks the toasts oldest first, so a new toast gets the next offset above the others and the ones already shown keep theirs.

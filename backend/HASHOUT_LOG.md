@@ -44,6 +44,7 @@ app/services/package.py      .fdec pack and unpack (older .fsld read too)
 17. Covered merged cells read as span 1 · services/pptx/read_table.py
 35. formsld becomes FormDeck, old installs keep working · core/config.py, formdeck_engine.py, services/model.py, services/odp, routers/mcp.py
 36. .fdec deck files · services/package.py, routers/decks.py, routers/mcp.py, setup/cli.py, setup/agents.py
+37. Video size from MP4 track headers · services/av_probe.py, services/media.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -200,3 +201,7 @@ Every engine setting is read through `config.env(key)`, which takes `FORMDECK_<k
 ## 36. .fdec deck files · _v0.7.2 (services/package.py EXT, FORMATS; routers/decks.py export_bytes, import_bytes, save, download; routers/mcp.py export_deck, open_file; setup/cli.py; setup/agents.py LEGACY_SERVERS, LEGACY_SKILLS)
 
 `package.EXT` is `fdec` and `package.FORMATS` is `("fdec", "fsld")`: every writer names files `.fdec`, every reader and format check accepts both, and agents asking for format `fsld` get an `.fdec`. Saving a deck linked to an older `.fsld` path keeps that path and its extension, because the save format comes from the path. `agents install` and `sync` remove the `formsld` and `formsld-stdio` MCP entries, a Codex `[mcp_servers.formsld]` table and installed `formsld-*` skill folders (only when their SKILL.md names them so), leaving every other entry as it was. The 0.7.1 rename also lost the space after "FormDeck" in 24 agent-facing messages in mcp.py: the editing tool trims trailing whitespace from a replacement, so a replacement must never end in a space.
+
+## 37. Video size from MP4 track headers · _v0.8.1 (services/av_probe.py mp4_size; services/media.py probe)
+
+`mp4_size` walks `moov` then each `trak` and reads the last 8 bytes of `tkhd`, the width and height in 16.16 fixed point (the same place in version 0 and 1 boxes), returning the first non-zero pair; audio tracks carry zero there and are skipped. `probe` adds `w` and `h` for `video/mp4` and `video/quicktime`, so clips uploaded by agents or the window are placed at their real shape. WebM is not parsed here; the window measures it before inserting.
