@@ -14,7 +14,7 @@ if exist "%ROOT%\backend\app\fonts" set FONTS=--add-data "%ROOT%\backend\app\fon
 cd backend
 if exist build\pyinstaller rmdir /s /q build\pyinstaller
 if exist dist-engine rmdir /s /q dist-engine
-pyinstaller --noconfirm --clean --onefile --name formdeck-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller --add-data "%ROOT%\frontend\dist;frontend_dist" --collect-submodules app --collect-submodules uvicorn --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 --collect-all latex2mathml --add-data "%ROOT%\backend\app\services\odp\presets.json;app\services\odp" %FONTS% "%ROOT%\backend\formdeck_engine.py" || exit /b 1
+pyinstaller --noconfirm --clean --onefile --name formdeck-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller --add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\addins;addins"--collect-submodules app --collect-submodules uvicorn --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 --collect-all latex2mathml --add-data "%ROOT%\backend\app\services\odp\presets.json;app\services\odp" %FONTS% "%ROOT%\backend\formdeck_engine.py" || exit /b 1
 if not exist "%ROOT%\src-tauri\binaries" mkdir "%ROOT%\src-tauri\binaries"
 copy /y dist-engine\formdeck-engine.exe "%ROOT%\src-tauri\binaries\formdeck-engine-%TRIPLE%.exe" >nul || exit /b 1
 "%ROOT%\src-tauri\binaries\formdeck-engine-%TRIPLE%.exe" --selfcheck || exit /b 1

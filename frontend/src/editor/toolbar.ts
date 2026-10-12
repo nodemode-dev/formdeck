@@ -10,6 +10,7 @@ import { Qat } from '../ui/qat';
 import { Ribbon, type GroupDef, type Item, type Rows, type TabDef, type Unit } from '../ui/ribbon';
 import type { Editor } from './editor';
 import { runStyleOps } from './actions';
+import { addinBar } from './addins';
 import { DIAGRAM_MENU } from './diagram-commands';
 import { MODEL3D_VIEW_IDS } from './model3d-commands';
 import { MASTER_PLACEHOLDER_IDS, editorTheme } from './master-view';
@@ -57,11 +58,12 @@ function ribbonTabs(): TabDef[] {
       G('paragraph', 'Paragraph', R([I('bullets'), I('numbering'), I('outdent'), I('indent')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('anchor-t'), I('anchor-m'), I('anchor-b')])),
       G('drawing', 'Drawing', A('shapes', 'shapes', 'Shapes'), M('arrange', 'arrange', 'Arrange', ARRANGE_ITEMS), R([A('fill', 'fill', 'Shape Fill', { text: true, swatch: true })], [A('line', 'pen', 'Shape Outline', { text: true, swatch: true })], [T('edit-points', 'Edit Points')])),
       G('editing', 'Editing', R([T('find', 'Find')], [T('select-all', 'Select All')], [T('selection-pane', 'Selection Pane')])),
+      G('addins', 'Add-ins', L('addins-dialog', 'Add-ins')),
     ] },
     { id: 'insert', label: 'Insert', groups: [
       G('slides', 'Slides', L('new-slide', 'New Slide'), L('insert-pdf-pages', 'From PDF')),
       G('tables', 'Tables', L('insert-table', 'Table')),
-      G('images', 'Images', L('insert-image', 'Pictures'), L('insert-stock', 'Stock Images'), L('insert-ai-image', 'Generate with AI', { icon: 'sparkle' })),
+      G('images', 'Images', L('insert-image', 'Pictures'), R([T('insert-stock', 'Stock Images')], [T('insert-ai-image', 'Generate with AI', { icon: 'sparkle' })])),
       G('illustrations', 'Illustrations', A('shapes', 'shapes', 'Shapes'), L('insert-icons', 'Icons'), L('insert-model3d', '3D Models', { icon: 'model3d' }), L('insert-diagram', 'SmartArt'), L('insert-chart', 'Chart'), R([T('insert-line', 'Line')], [T('insert-arrow', 'Arrow')], [M('connector', 'line', 'Connector', CONNECTOR_ITEMS, { text: true })]), R([T('draw-freeform', 'Freeform')], [T('draw-scribble', 'Scribble')])),
       G('links', 'Links', L('insert-link', 'Link')),
       G('comments', 'Comments', L('add-comment', 'Comment')),
@@ -106,6 +108,10 @@ function ribbonTabs(): TabDef[] {
       G('zoom', 'Zoom', L('zoom-in', 'Zoom In'), L('zoom-out', 'Zoom Out'), L('zoom-fit', 'Fit to Window'), L('zoom-100', '100%', { icon: 'maximize' })),
       G('macros', 'Macros', L('macro-dialog', 'Macros'), L('macro-editor', 'Macro Editor')),
       G('ribbon', 'Ribbon', L('ribbon-simplified', 'Simplified Ribbon'), L('ribbon-collapse', 'Collapse Ribbon'), L('ribbon-customize', 'Customize Ribbon'), L('qat-customize', 'Customize Quick Access'), L('qat-below', 'Quick Access Position')),
+    ] },
+    { id: 'addins', label: 'Add-ins', groups: [
+      G('manage', 'Manage', L('addins-store', 'Get Add-ins'), L('addins-mine', 'My Add-ins')),
+      G('commands', 'Add-in Commands', S('addins-bar')),
     ] },
     { id: 'master', label: 'Slide Master', ctx: true, groups: [
       G('edit', 'Edit Master', L('master-insert-master', 'Insert Slide Master'), L('master-insert-layout', 'Insert Layout'), R([T('master-duplicate-layout', 'Duplicate Layout')], [T('master-delete-layout', 'Delete Layout')], [T('master-rename-layout', 'Rename')])),
@@ -282,6 +288,7 @@ export class Toolbar {
         'tr-gallery': () => this.galleries.gallery('tr'), 'an-gallery': () => this.galleries.gallery('an'),
         'tr-duration': () => this.galleries.transitionDuration(), 'tr-after': () => this.galleries.transitionAfter(),
         'an-duration': () => this.galleries.animationDuration(), 'an-delay': () => this.galleries.animationDelay(),
+        'addins-bar': () => addinBar(),
       },
       act: (a, anchor) => this.act(a, anchor),
       after: () => this.sync(),
