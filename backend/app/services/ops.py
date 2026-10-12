@@ -7,13 +7,25 @@ class OpError(ValueError):
     pass
 
 
+def _find_by_id(lst: list, id_):
+    for item in lst:
+        if isinstance(item, dict) and item.get("id") == id_:
+            return item
+    for item in lst:
+        if isinstance(item, dict) and isinstance(item.get("children"), list):
+            inner = _find_by_id(item["children"], id_)
+            if inner is not None:
+                return inner
+    return None
+
+
 def _step(container, key):
     if isinstance(key, dict) and "id" in key:
         if not isinstance(container, list):
             raise OpError(f"id step {key['id']} on a non-list")
-        for item in container:
-            if isinstance(item, dict) and item.get("id") == key["id"]:
-                return item
+        found = _find_by_id(container, key["id"])
+        if found is not None:
+            return found
         raise OpError(f"no item with id {key['id']}")
     if isinstance(container, list):
         if not isinstance(key, int) or not -len(container) <= key < len(container):

@@ -205,3 +205,7 @@ Every engine setting is read through `config.env(key)`, which takes `FORMDECK_<k
 ## 37. Video size from MP4 track headers · _v0.8.1 (services/av_probe.py mp4_size; services/media.py probe)
 
 `mp4_size` walks `moov` then each `trak` and reads the last 8 bytes of `tkhd`, the width and height in 16.16 fixed point (the same place in version 0 and 1 boxes), returning the first non-zero pair; audio tracks carry zero there and are skipped. `probe` adds `w` and `h` for `video/mp4` and `video/quicktime`, so clips uploaded by agents or the window are placed at their real shape. WebM is not parsed here; the window measures it before inserting.
+
+## 38. Id steps reach group children · _v0.8.2 (services/ops.py _find_by_id, _step)
+
+An `{ "id": ... }` path step looks at the list's own items first, then inside the `children` of groups in that list, depth first, so agent and window ops can edit an element that sits in a group with the same path shape as a top-level one. The list's own items are checked first, so every path that resolved before resolves to the same item now; only paths that used to fail can reach a child. `del`, `ins` and `move` still act only on the list the path names.

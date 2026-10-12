@@ -11,10 +11,21 @@ type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 const clone = <T>(v: T): T => (v === undefined ? v : structuredClone(v));
 
+function findById(list: unknown[], id: string): unknown {
+  for (const x of list) if (isObj(x) && x.id === id) return x;
+  for (const x of list) {
+    if (isObj(x) && Array.isArray(x.children)) {
+      const inner = findById(x.children, id);
+      if (inner !== undefined) return inner;
+    }
+  }
+  return undefined;
+}
+
 function step(node: unknown, key: PathKey): unknown {
   if (typeof key === 'object') {
     if (!Array.isArray(node)) throw new OpError(`id step ${key.id} on a non-list`);
-    const found = node.find((x) => isObj(x) && x.id === key.id);
+    const found = findById(node, key.id);
     if (found === undefined) throw new OpError(`no item with id ${key.id}`);
     return found;
   }
