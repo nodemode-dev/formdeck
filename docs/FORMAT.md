@@ -55,7 +55,7 @@ The contracts every part of FormDeck reads and writes: the deck model (`deck.jso
 | `layouts` | each belongs to a master. `semantic` is one of the 21 layout names below, or absent for a layout that answers to none |
 | `slides` | in order. `layout` names a layout id |
 | `sections` | a section starts at its slide and runs to the next section's start |
-| `media` | every picture, video, audio and font the deck uses, keyed by media id. The bytes live in the package or the library, never in deck.json |
+| `media` | every picture, video, audio and font the deck uses, keyed by media id. The bytes live in the package or the library, never in deck.json. A stock picture's entry carries `credit` (`title`, `creator`, `creatorUrl`, `license`, `licenseUrl`, `source`, `provider`, `text`), so the licence travels with the deck |
 | `show` | optional Set Up Show settings (below); absent means a speaker-led show of all slides that uses timings when present |
 | `customShows` | optional named slide lists: `[ { "id": "cs1", "name": "Short version", "slides": ["s1", "s4", "s2"] } ]`. Order is play order, a slide may repeat, and hidden slides play when listed |
 | `guides` | optional drawing guides shared by every slide: `[ { "id": "g1", "axis": "x", "pos": 480 } ]`. `axis` `x` is a vertical guide at `pos` points from the slide's left edge, `y` a horizontal guide at `pos` points from the top. Objects snap to them while they are shown. In .pptx they are the `p15:sldGuideLst` extension of presentation.xml (`pos` in eighths of a point, `orient="horz"` for `y`) |
