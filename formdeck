@@ -17,7 +17,7 @@ usage: ./formdeck [command] [options]
   build               production build of the frontend into frontend/dist
   serve               serve the built frontend from the backend on 127.0.0.1:8197
   freeze              freeze the backend into the Tauri sidecar binary
-  desktop dev|build|check  run, bundle or check the toolchain for the desktop app
+  desktop dev|build|check  run, bundle (the same as ./build) or check the toolchain for the desktop app
   doctor              check the toolchain, installs and ports
   mcp                 formdeck over MCP's stdio transport, for Claude Desktop and other MCP clients
   agents install|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
