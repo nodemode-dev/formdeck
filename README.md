@@ -16,6 +16,7 @@ Version 0.8.8 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 | Exchange | PowerPoint, Keynote and Google Slides via .pptx and .potx import and export (WordArt, equations, several masters and media trim stay native); OpenDocument .odp and .otp import and export for LibreOffice Impress; .fdec package (older .fsld opens); slides from PDF pages (each page a picture with its text in the notes); PDF and PNG export with a searchable text layer; video (MP4 or WebM) and animated GIF; the outline as .txt or .rtf; print with handouts and notes pages |
 | Presenting | Full-screen show, twelve transitions including morph, animation builds, pen and laser, presenter view with a separate audience window, rehearsed timings, recorded narration, live subtitles with translation (Chrome and Edge), looping, kiosk mode and custom shows |
 | Review | Comments with replies, mentions and assignees, review status per slide, an activity log, and comparing a deck with a saved version or another file |
+| Add-ins | A Store of add-ins that add ribbon commands and task panes, each installed only after you see its permissions, checked against its checksum and run in the macro sandbox; write your own with docs/ADDINS.md |
 | Agents | MCP server (25 tools, including masters, WordArt and equations in set_text and edit_elements, and .odp export) over HTTP at /mcp or stdio, live edits attributed per agent turn and undone as one step, contact-sheet rendering and real DOM lint so the agent can see and fix its own slides |
 
 ## Quick start
@@ -69,7 +70,8 @@ backend/    FastAPI engine: deck store and live channel, ops, compiler, intake, 
 frontend/   Vanilla TypeScript and Vite app: render, editor, present, automation, ui
 setup/      install, boot, build, freeze, mcp_stdio, agents, cli, templates (with .bat twins)
 src-tauri/  desktop shell and the engine sidecar
-docs/       FORMAT.md (the deck contract), MANUAL.md, PARITY.md and parity.py
+docs/       FORMAT.md (the deck contract), MANUAL.md, ADDINS.md, PARITY.md and parity.py
+addins/     the add-in catalog index, FormDeck's own add-ins and their packages
 ```
 
 The engine is authoritative: every change is a JSON op step with an inverse, broadcast over `/api/live` to every window and agent, autosaved, and undoable per step or per agent turn.
@@ -77,7 +79,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps
 
 - Co-authoring across machines, share links, hosted publishing and presenting to a remote audience are not built; they need the engine to accept connections from other computers.
-- No add-in marketplace and no validated PDF/UA export yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.8.8: 95.7%, 97.2% and 94.9%).
+- The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export is not yet validated as PDF/UA; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.8.9: 96.2%, 97.2% and 95.5%).
 - Stock Images and AI pictures need an internet connection; AI pictures also need an OpenAI key or a compatible image server, and subtitle translation needs Chrome's built-in translator or a chat model.
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in FormDeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
