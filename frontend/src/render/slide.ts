@@ -10,6 +10,7 @@ import { tableHtml } from './table';
 import { fitText, textHtml, type TextCtx } from './text';
 import { activeWarp, drawTextFx, needsOverlay } from './text-fx';
 import { cssTransform3d, depthSteps, fx3Of, layers3d } from './fx3d';
+import { canvasSpec, hydrateModels, modelLive, viewOf } from './model3d';
 
 export type RenderMode = 'edit' | 'thumb' | 'show' | 'print';
 export const mediaUrl = (id: string): string => `/api/media/${id}`;
@@ -143,7 +144,8 @@ function imageBlock(ctx: Ctx, el: ImageElement, f: Frame, c: Chain): string {
     const d = mask && mask !== 'rect' ? presetGeometry(mask, Math.max(1, f.w), Math.max(1, f.h), el.adj).paths.map((p) => p.d).join(' ') : `M0 0H${round(f.w)}V${round(f.h)}H0Z`;
     outline = `<svg class="fd-geom" viewBox="0 0 ${round(f.w)} ${round(f.h)}" width="${round(f.w)}" height="${round(f.h)}">${line.defs ? `<defs>${line.defs}</defs>` : ''}<path d="${d}" fill="none" ${line.attrs}/></svg>`;
   }
-  return `<div class="fd-imgbox" style="${clip}${eff ? `filter:${eff};` : ''}"><img class="fd-img" alt="${esc(el.alt ?? '')}" draggable="false" decoding="async" src="${mediaUrl(el.src)}" style="left:${round(left)}px;top:${round(top)}px;width:${round(dw)}px;height:${round(dh)}px;${filters.length ? `filter:${filters.join(' ')};` : ''}"></div>${outline}`;
+  const m3d = el.model && modelLive(ctx.mode) ? `<canvas class="fd-m3d" data-m3d="${esc(canvasSpec(el.model.src, viewOf(el.model)))}" data-w="${round(f.w)}" data-h="${round(f.h)}"></canvas>` : '';
+  return `<div class="fd-imgbox" style="${clip}${eff ? `filter:${eff};` : ''}"><img class="fd-img" alt="${esc(el.alt ?? '')}" draggable="false" decoding="async" src="${mediaUrl(el.src)}" style="left:${round(left)}px;top:${round(top)}px;width:${round(dw)}px;height:${round(dh)}px;${filters.length ? `filter:${filters.join(' ')};` : ''}">${m3d}</div>${outline}`;
 }
 
 function chartBlock(ctx: Ctx, el: ChartElement, f: Frame, c: Chain): string {
@@ -421,11 +423,15 @@ export class SlideView {
     else delete node.dataset.ph;
     node.setAttribute('style', h.box);
     node.innerHTML = prompt ? this.promptInner(local, el, h.inner) : h.inner;
+    if (el.type === 'image' && el.model) hydrateModels(node);
   }
 
   private patchImage(node: HTMLElement, ctx: Ctx, el: SlideElement): boolean {
     const img = node.querySelector<HTMLImageElement>(':scope > .fd-imgbox > .fd-img');
-    if (!img || el.type !== 'image' || !img.src.endsWith(mediaUrl(el.src))) return false;
+    if (!img || el.type !== 'image') return false;
+    const canvas = node.querySelector<HTMLCanvasElement>(':scope > .fd-imgbox > .fd-m3d');
+    if (!!canvas !== (!!el.model && modelLive(ctx.mode))) return false;
+    if (!canvas && !img.src.endsWith(mediaUrl(el.src))) return false;
     const h = elementHtml(ctx, el);
     const t = document.createElement('template');
     t.innerHTML = h.inner;
@@ -437,6 +443,15 @@ export class SlideView {
     box.setAttribute('style', nextBox.getAttribute('style') ?? '');
     img.setAttribute('style', nextImg.getAttribute('style') ?? '');
     img.alt = nextImg.alt;
+    const nextCanvas = t.content.querySelector<HTMLCanvasElement>('canvas.fd-m3d');
+    if (canvas && nextCanvas) {
+      const src = nextImg.getAttribute('src') ?? '';
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      canvas.dataset.m3d = nextCanvas.dataset.m3d;
+      canvas.dataset.w = nextCanvas.dataset.w;
+      canvas.dataset.h = nextCanvas.dataset.h;
+      hydrateModels(node);
+    }
     node.querySelector(':scope > svg.fd-geom')?.remove();
     const outline = t.content.querySelector('svg.fd-geom');
     if (outline) node.appendChild(outline);

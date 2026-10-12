@@ -14,7 +14,7 @@ def short(prefix: str, n: int = 6) -> str:
 
 
 def media_id(data: bytes, kind: str) -> str:
-    prefix = {"image": "img_", "video": "vid_", "audio": "aud_", "font": "fnt_"}.get(kind, "doc_")
+    prefix = {"image": "img_", "video": "vid_", "audio": "aud_", "font": "fnt_", "model": "mdl_"}.get(kind, "doc_")
     return prefix + hashlib.sha256(data).hexdigest()[:10]
 
 

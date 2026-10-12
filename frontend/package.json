@@ -50,10 +50,12 @@
     "dictionary-es": "4.0.0",
     "dictionary-fr": "3.0.0",
     "nspell": "2.1.5",
-    "temml": "0.14.0"
+    "temml": "0.14.0",
+    "three": "0.180.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.11.4",
+    "@types/three": "0.180.0",
     "typescript": "7.0.2",
     "vite": "8.3.0"
   }

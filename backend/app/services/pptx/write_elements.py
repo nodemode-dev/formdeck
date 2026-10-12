@@ -10,6 +10,7 @@ from .read_layouts import match_layout_ph
 from .write_chart import chart_graphic_data
 from .write_context import NATIVE_IMAGE_MIMES, to_png
 from .write_media import media_settings, write_audio
+from .write_model3d import write_model3d
 from .text_fx import append_3d
 from .write_style import effects_element, fill_element, line_element
 from .write_table import table_graphic_data
@@ -261,6 +262,8 @@ class ElementWriter:
         if rid is None:
             if el.get("ph"):
                 self._shape({k: v for k, v in el.items() if k not in ("src", "crop", "fit", "focus", "mask")}, container)
+            return
+        if el.get("model") and isinstance(self.ctx.part, SlidePart) and write_model3d(self, el, container, rid):
             return
         self._picture(el, container, rid)
 

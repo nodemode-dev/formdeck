@@ -6,6 +6,7 @@ from .ooxml import CHART_URI, DIAGRAM_DRAWING_RT, DIAGRAM_URI, NS, TABLE_URI, bo
 from .read_chart import read_chart
 from .read_diagram import read_diagram
 from .read_media import read_media_settings
+from .read_model3d import read_model3d
 from .read_style import fill_element, read_effects, read_fill, read_line, style_effects, style_fill, style_font, style_line
 from .read_table import read_table
 from .read_text import plain_text, read_text_body
@@ -137,6 +138,9 @@ def _read_child(child, ctx, tf: Transform) -> list:
             ctx.warn(f"skipped a {tag} element that could not be read ({type(exc).__name__}: {exc})")
             return []
     if tag == "AlternateContent":
+        model = read_model3d(child, ctx, tf)
+        if model is not None:
+            return [model]
         branch = find(child, "mc:Fallback")
         choice = find(child, "mc:Choice")
         if choice is not None and "a14" in (choice.get("Requires") or "").split() and choice.find(".//{http://schemas.microsoft.com/office/drawing/2010/main}m") is not None:

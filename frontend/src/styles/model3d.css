@@ -1,0 +1,19 @@
+.fd-m3d { position: absolute; inset: 0; width: 100%; height: 100%; visibility: hidden; pointer-events: none; }
+.fd-imgbox.is-live > .fd-m3d { visibility: visible; }
+.fd-imgbox.is-live > .fd-img { visibility: hidden; }
+.fd-m3d-ctl { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: var(--z-selected); pointer-events: none; }
+.fd-m3d-orbit { position: absolute; display: grid; place-items: center; width: 34px; height: 34px; margin: -17px 0 0 -17px; padding: 0; border: 1px solid var(--fd-sel); border-radius: 50%; background: color-mix(in srgb, #fff 92%, transparent); color: var(--fd-sel); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); cursor: grab; pointer-events: auto; touch-action: none; }
+.fd-m3d-orbit:active { cursor: grabbing; }
+.fd-m3d-orbit > svg { pointer-events: none; }
+.fd-m3d-ctl[hidden], .fd-m3d-orbit[hidden], .fd-m3d-zone[hidden] { display: none; }
+.fd-m3d-zone { position: absolute; pointer-events: auto; touch-action: none; cursor: grab; }
+.fd-m3d-zone:active { cursor: grabbing; }
+.fd-m3d-dlg { display: grid; gap: var(--space-3); min-width: 0; }
+.fd-m3d-stage { position: relative; display: grid; place-items: center; width: 100%; height: 280px; border: 1px dashed var(--line-2); border-radius: var(--radius-md); background: var(--surface-field); overflow: hidden; touch-action: none; }
+.fd-m3d-stage.is-over { border-color: var(--accent-line); background: var(--accent-soft); }
+.fd-m3d-stage > canvas.fd-m3d { visibility: visible; pointer-events: auto; cursor: grab; touch-action: none; }
+.fd-m3d-stage > canvas.fd-m3d:active { cursor: grabbing; }
+.fd-m3d-stage > .fd-m3d-hint { position: relative; margin: 0; padding: 0 var(--space-4); text-align: center; pointer-events: none; }
+.fd-m3d-stage[data-has] > .fd-m3d-hint { display: none; }
+.fd-m3d-info { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-width: 0; }
+.fd-m3d-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

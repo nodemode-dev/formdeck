@@ -64,8 +64,9 @@ export interface ShapeElement extends ElementBase {
   type: 'shape'; geom?: string; adj?: Record<string, number>; path?: string; pathSize?: [number, number]; conn?: Connection; fill?: Fill | null; line?: Line | null; effects?: Effects; text?: TextBody;
   sp3d?: Sp3d; scene3d?: Scene3d;
 }
+export interface Model3d { src: string; rot?: [number, number, number]; zoom?: number; pan?: [number, number] }
 export interface ImageElement extends ElementBase {
-  type: 'image'; src: string; crop?: { l: number; t: number; r: number; b: number }; fit?: 'cover' | 'contain' | 'stretch';
+  type: 'image'; src: string; model?: Model3d; crop?: { l: number; t: number; r: number; b: number }; fit?: 'cover' | 'contain' | 'stretch';
   focus?: [number, number]; mask?: string; adj?: Record<string, number>; line?: Line | null; effects?: Effects;
   adjust?: { brightness?: number; contrast?: number; saturation?: number; grayscale?: boolean; blur?: number };
 }

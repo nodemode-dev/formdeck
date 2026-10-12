@@ -10,7 +10,7 @@ EXT_BY_MIME = {
     "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp", "image/svg+xml": ".svg", "image/bmp": ".bmp",
     "image/tiff": ".tif", "image/avif": ".avif", "image/heic": ".heic", "video/mp4": ".mp4", "video/webm": ".webm", "video/quicktime": ".mov",
     "audio/mpeg": ".mp3", "audio/mp4": ".m4a", "audio/wav": ".wav", "audio/ogg": ".ogg", "audio/flac": ".flac", "font/ttf": ".ttf",
-    "font/otf": ".otf", "font/woff2": ".woff2", "application/pdf": ".pdf",
+    "font/otf": ".otf", "font/woff2": ".woff2", "application/pdf": ".pdf", "model/gltf-binary": ".glb",
 }
 _PIL_MIME = {"PNG": "image/png", "JPEG": "image/jpeg", "GIF": "image/gif", "WEBP": "image/webp", "BMP": "image/bmp", "TIFF": "image/tiff", "MPO": "image/jpeg"}
 
@@ -24,6 +24,8 @@ def kind_of(mime: str) -> str:
         return "audio"
     if mime.startswith("font/"):
         return "font"
+    if mime.startswith("model/"):
+        return "model"
     return "doc"
 
 
@@ -60,6 +62,8 @@ def sniff_mime(data: bytes, name: str) -> str:
         return "audio/ogg"
     if head.startswith(b"fLaC"):
         return "audio/flac"
+    if head.startswith(b"glTF"):
+        return "model/gltf-binary"
     if head.startswith(b"wOF2"):
         return "font/woff2"
     if head[:4] in (b"\x00\x01\x00\x00", b"true"):
