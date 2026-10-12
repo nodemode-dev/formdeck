@@ -16,6 +16,7 @@ import type { ConnEnd, ConnKind, Connection, ShapeElement } from '../engine/mode
 import { connectorMid, lineEnds, nearestSite, routeConnector, slideToLocal, type Site } from '../engine/geometry/connectors';
 import type { Pt } from '../engine/geometry/path';
 import { endPoint, geometryOps, glueOps, isLineLike, kindOf, sitesOf, targetAt, xfOf } from './connectors';
+import { buzz, installInputKind, isTouchInput, Press } from '../ui/touch';
 import { aidPrefs, StageAids } from './rulers';
 import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
@@ -25,8 +26,8 @@ type Drag =
   | { kind: 'resize'; id: string; h: string; f0: Frame; rot: number; aspect: number; x0: number; y0: number }
   | { kind: 'rotate'; id: string; cx: number; cy: number }
   | { kind: 'adjust'; id: string; index: number; key: string; f: Frame }
-  | { kind: 'marquee'; x0: number; y0: number; add: boolean; base: string[] }
-  | { kind: 'pan'; x0: number; y0: number; px: number; py: number }
+  | { kind: 'marquee'; x0: number; y0: number; add: boolean; base: string[]; tap?: boolean }
+  | { kind: 'pan'; x0: number; y0: number; px: number; py: number; tap?: boolean }
   | { kind: 'cells'; el: string; r: number; c: number }
   | { kind: 'end'; id: string; which: 0 | 1; ck: ConnKind; fixed: Pt; fixedDir: Pt | null; fixedEnd?: ConnEnd }
   | { kind: 'mid'; id: string };
@@ -66,6 +67,14 @@ export class Stage {
   private siteHot = -1;
   private live: { ops: Op[]; label: string; key: string } | null = null;
   private liveFrame = 0;
+  private readonly touches = new Map<number, { x: number; y: number }>();
+  private pinch: { a: number; b: number; d0: number; z0: number; sx: number; sy: number } | null = null;
+  private pinchFrame = 0;
+  private readonly press = new Press();
+  private longAt = 0;
+  private dblAt = 0;
+  private lastTap: { t: number; x: number; y: number } | null = null;
+  private caretFrame = 0;
 
   constructor(private readonly ed: Editor, readonly root: HTMLElement) {
     this.viewport = document.createElement('div');
@@ -88,6 +97,11 @@ export class Stage {
     this.viewport.addEventListener('contextmenu', (e) => this.context(e));
     window.addEventListener('pointermove', (e) => this.move(e));
     window.addEventListener('pointerup', (e) => this.up(e));
+    window.addEventListener('pointercancel', (e) => this.cancelPointer(e));
+    this.viewport.addEventListener('gesturestart', (e) => e.preventDefault());
+    window.addEventListener('fd-input', () => { if (this.viewport.isConnected) this.drawOverlay(); });
+    document.addEventListener('selectionchange', () => this.queueCaret());
+    installInputKind();
     window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !this.editing && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) this.space = true; });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') this.space = false; });
     window.addEventListener('keydown', (e) => this.tableKey(e), true);
@@ -174,8 +188,8 @@ export class Stage {
   layout(): void {
     const deck = this.ed.doc.deck;
     const r = this.root.getBoundingClientRect();
-    const pad = 48;
-    const fit = Math.max(0.05, Math.min((r.width - pad * 2) / deck.size.w, (r.height - pad * 2) / deck.size.h));
+    const pad = r.width < 640 ? 16 : 48;
+    const fit = this.fitK(r);
     const k = this.zoom === 'fit' ? fit : this.zoom * (96 / 72);
     this.k = k;
     const w = deck.size.w * k, h = deck.size.h * k;
@@ -192,6 +206,12 @@ export class Stage {
     this.aids.sync();
     this.draw.sync();
     this.points.sync();
+  }
+
+  private fitK(r: DOMRect = this.root.getBoundingClientRect()): number {
+    const size = this.ed.doc.deck.size;
+    const pad = r.width < 640 ? 32 : 96;
+    return Math.max(0.05, Math.min((r.width - pad) / size.w, (r.height - pad) / size.h));
   }
 
   setZoom(z: number | 'fit', anchor?: { x: number; y: number }): void {
@@ -261,21 +281,24 @@ export class Stage {
         const hw = (f.w * k) / 2, hh = (f.h * k) / 2;
         const pos: Record<string, [number, number]> = { nw: [-hw, -hh], n: [0, -hh], ne: [hw, -hh], e: [hw, 0], se: [hw, hh], s: [0, hh], sw: [-hw, hh], w: [-hw, 0] };
         const small = f.w * k < 24 || f.h * k < 24;
+        const touch = isTouchInput();
+        const hit = touch ? `;--hit:${Math.round(Math.max(20, Math.min(44, Math.min(f.w, f.h) * k / 2)))}px` : '';
+        const stem = touch ? 40 : 24;
         for (const h of HANDLES) {
           if (small && ['n', 's', 'e', 'w'].includes(h)) continue;
           const [x, y] = at(...pos[h]);
-          parts.push(`<div class="fd-handle" data-h="${h}" style="left:${x}px;top:${y}px"></div>`);
+          parts.push(`<div class="fd-handle" data-h="${h}" style="left:${x}px;top:${y}px${hit}"></div>`);
         }
-        const [rx, ry] = at(0, -hh - 24);
+        const [rx, ry] = at(0, -hh - stem);
         const [sx, sy] = at(0, -hh);
-        parts.push(`<div class="fd-rot-stem" style="left:${(rx + sx) / 2}px;top:${Math.min(ry, sy)}px;height:${Math.abs(ry - sy) || 24}px;transform:rotate(${rot}deg)"></div>`);
-        parts.push(`<div class="fd-handle is-rot" data-h="rot" style="left:${rx}px;top:${ry}px"></div>`);
+        parts.push(`<div class="fd-rot-stem" style="left:${(rx + sx) / 2}px;top:${Math.min(ry, sy)}px;height:${Math.abs(ry - sy) || stem}px;transform:rotate(${rot}deg)"></div>`);
+        parts.push(`<div class="fd-handle is-rot" data-h="rot" style="left:${rx}px;top:${ry}px${touch ? ';--hit:44px' : ''}"></div>`);
         if (el.type === 'shape' && !el.path) {
           const c = chain(this.ed.doc.deck, slide, el);
           const g = presetGeometry(geomOf(c), Math.max(1, f.w), Math.max(1, f.h), adjOf(c));
           for (const h of g.handles) {
             const [x, y] = at(h.x * k - hw, h.y * k - hh);
-            parts.push(`<div class="fd-handle is-adj" data-h="adj" data-i="${h.index}" style="left:${x}px;top:${y}px"></div>`);
+            parts.push(`<div class="fd-handle is-adj" data-h="adj" data-i="${h.index}" style="left:${x}px;top:${y}px${hit}"></div>`);
           }
         }
       }
@@ -306,12 +329,13 @@ export class Stage {
     if (pend) Object.assign(xf, { x: pend.x, y: pend.y, w: pend.w, h: pend.h });
     const k = this.k;
     const out: string[] = [];
+    const hit = isTouchInput() ? ';--hit:44px' : '';
     lineEnds(xf).forEach(([x, y], i) => {
       const glued = !!(i === 0 ? el.conn?.start : el.conn?.end);
-      out.push(`<div class="fd-handle is-end${glued ? ' is-glued' : ''}" data-h="end${i}" style="left:${this.ox + x * k}px;top:${this.oy + y * k}px"></div>`);
+      out.push(`<div class="fd-handle is-end${glued ? ' is-glued' : ''}" data-h="end${i}" style="left:${this.ox + x * k}px;top:${this.oy + y * k}px${hit}"></div>`);
     });
     const mid = connectorMid(xf, el.geom ?? '', el.adj);
-    if (mid) out.push(`<div class="fd-handle is-adj" data-h="mid" style="left:${this.ox + mid[0] * k}px;top:${this.oy + mid[1] * k}px"></div>`);
+    if (mid) out.push(`<div class="fd-handle is-adj" data-h="mid" style="left:${this.ox + mid[0] * k}px;top:${this.oy + mid[1] * k}px${hit}"></div>`);
     return out;
   }
 
@@ -344,6 +368,11 @@ export class Stage {
       return;
     }
     if (e.button !== 0) return;
+    if (e.pointerType === 'touch' && this.touchDown(e)) return;
+    if (this.viewOnly()) {
+      if (e.pointerType === 'touch' && this.zoom !== 'fit') this.drag = { kind: 'pan', x0: e.clientX, y0: e.clientY, px: this.panX, py: this.panY };
+      return;
+    }
     const target = e.target as HTMLElement;
     const handle = target.closest?.('.fd-handle') as HTMLElement | null;
     const slide = this.slide();
@@ -452,20 +481,139 @@ export class Stage {
         if (el && !el.locked) frames.set(id, this.frameOf(el));
       }
       this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined, pick: drill ? hit.id : undefined };
+      if (e.pointerType === 'touch') this.armPress(e);
       return;
     }
     e.preventDefault();
     const add = e.shiftKey || e.metaKey || e.ctrlKey;
-    if (!add) this.ed.select([]);
-    this.drag = { kind: 'marquee', x0: p.x, y0: p.y, add, base: add ? this.ed.selection : [] };
+    const touch = e.pointerType === 'touch';
+    if (touch && this.zoom !== 'fit') {
+      this.drag = { kind: 'pan', x0: e.clientX, y0: e.clientY, px: this.panX, py: this.panY, tap: true };
+      this.armPress(e);
+      return;
+    }
+    if (!add && !touch) this.ed.select([]);
+    this.drag = { kind: 'marquee', x0: p.x, y0: p.y, add, base: add ? this.ed.selection : [], tap: touch && !add };
+    if (touch) this.armPress(e);
+  }
+
+  private viewOnly(): boolean { return !!this.viewport.closest('.is-view-only'); }
+
+  private touchDown(e: PointerEvent): boolean {
+    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    this.press.cancel();
+    if (this.touches.size > 2) return true;
+    if (this.touches.size < 2) return false;
+    const d = this.drag;
+    if (d) {
+      if (d.kind === 'move') { d.edit = undefined; d.pick = undefined; }
+      if (d.kind === 'marquee' || d.kind === 'pan') d.tap = false;
+      this.finish(null);
+    }
+    const [a, b] = Array.from(this.touches.keys());
+    const pa = this.touches.get(a) as { x: number; y: number }, pb = this.touches.get(b) as { x: number; y: number };
+    const r = this.root.getBoundingClientRect();
+    const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+    this.pinch = { a, b, d0: Math.max(1, Math.hypot(pa.x - pb.x, pa.y - pb.y)), z0: this.k / (96 / 72), sx: (mx - r.left - this.ox) / this.k, sy: (my - r.top - this.oy) / this.k };
+    e.preventDefault();
+    return true;
+  }
+
+  private queuePinch(): void {
+    if (this.pinchFrame) return;
+    this.pinchFrame = requestAnimationFrame(() => { this.pinchFrame = 0; this.applyPinch(); });
+  }
+
+  private applyPinch(): void {
+    const p = this.pinch;
+    const a = p ? this.touches.get(p.a) : undefined, b = p ? this.touches.get(p.b) : undefined;
+    if (!p || !a || !b) return;
+    const z = Math.max(0.1, Math.min(4, p.z0 * (Math.hypot(a.x - b.x, a.y - b.y) / p.d0)));
+    const r = this.root.getBoundingClientRect();
+    const size = this.ed.doc.deck.size;
+    const k = z * (96 / 72);
+    this.zoom = z;
+    this.panX = (r.width - size.w * k) / 2 - ((a.x + b.x) / 2 - r.left - p.sx * k);
+    this.panY = (r.height - size.h * k) / 2 - ((a.y + b.y) / 2 - r.top - p.sy * k);
+    this.layout();
+  }
+
+  private touchUp(e: PointerEvent): boolean {
+    const p = this.pinch;
+    if (this.pinchFrame) { cancelAnimationFrame(this.pinchFrame); this.pinchFrame = 0; this.applyPinch(); }
+    this.touches.delete(e.pointerId);
+    this.press.cancel();
+    if (!p || (e.pointerId !== p.a && e.pointerId !== p.b)) return false;
+    this.pinch = null;
+    if (this.k <= this.fitK() * 1.04) { this.zoom = 'fit'; this.layout(); }
+    return true;
+  }
+
+  private cancelPointer(e: PointerEvent): void {
+    if (e.pointerType !== 'touch') return;
+    this.touches.delete(e.pointerId);
+    this.press.cancel();
+    const p = this.pinch;
+    if (p && (e.pointerId === p.a || e.pointerId === p.b)) { this.pinch = null; return; }
+    if (this.drag) this.finish(null);
+  }
+
+  private armPress(e: PointerEvent): void {
+    const target = e.target, x = e.clientX, y = e.clientY;
+    this.press.arm(e, () => {
+      const d = this.drag;
+      if (!d || this.pinch || this.editing || (d.kind === 'move' && d.moved)) return;
+      if (d.kind !== 'move' && d.kind !== 'marquee' && d.kind !== 'pan') return;
+      this.drag = null;
+      this.marquee = null;
+      const hit = this.hitElement(target);
+      if (hit.id && !this.ed.selection.includes(hit.id)) this.ed.select([hit.id]);
+      else if (!hit.id) this.ed.select([]);
+      this.drawOverlay();
+      this.longAt = performance.now();
+      buzz();
+      this.ed.contextMenu(x, y, hit.id ? 'element' : 'slide');
+    });
+  }
+
+  private queueCaret(): void {
+    if (!this.editing || this.caretFrame || !isTouchInput()) return;
+    this.caretFrame = requestAnimationFrame(() => { this.caretFrame = 0; this.revealCaret(); });
+  }
+
+  revealCaret(): void {
+    if (!this.editing || this.zoom === 'fit') return;
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    if (!range) return;
+    const rect = range.getClientRects()[0] ?? (range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement)?.getBoundingClientRect();
+    if (!rect) return;
+    const r = this.root.getBoundingClientRect();
+    const m = 28;
+    const dy = rect.bottom > r.bottom - m ? rect.bottom - (r.bottom - m) : rect.top < r.top + m ? rect.top - (r.top + m) : 0;
+    const dx = rect.right > r.right - m ? rect.right - (r.right - m) : rect.left < r.left + m ? rect.left - (r.left + m) : 0;
+    if (!dx && !dy) return;
+    this.panX += dx;
+    this.panY += dy;
+    this.layout();
   }
 
   private move(e: PointerEvent): void {
+    if (e.pointerType === 'touch') {
+      const t = this.touches.get(e.pointerId);
+      if (t) { t.x = e.clientX; t.y = e.clientY; }
+      this.press.move(e);
+      if (this.pinch) { this.queuePinch(); return; }
+    }
     const d = this.drag;
     if (!d) {
       return;
     }
     if (d.kind === 'pan') {
+      if (d.tap) {
+        if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 8) return;
+        d.tap = false;
+      }
       this.zoom = this.zoom === 'fit' ? this.k / (96 / 72) : this.zoom;
       this.panX = d.px - (e.clientX - d.x0);
       this.panY = d.py - (e.clientY - d.y0);
@@ -523,6 +671,11 @@ export class Stage {
       return;
     }
     if (d.kind === 'marquee') {
+      if (d.tap) {
+        if (Math.hypot((p.x - d.x0) * this.k, (p.y - d.y0) * this.k) < 8) return;
+        d.tap = false;
+        if (!d.add) this.ed.select([]);
+      }
       const m = { x: Math.min(d.x0, p.x), y: Math.min(d.y0, p.y), w: Math.abs(p.x - d.x0), h: Math.abs(p.y - d.y0) };
       this.marquee = m;
       const hits = slide.elements.filter((el) => {
@@ -536,7 +689,7 @@ export class Stage {
     }
     if (d.kind === 'move') {
       let dx = p.x - d.x0, dy = p.y - d.y0;
-      if (!d.moved && Math.hypot(dx * this.k, dy * this.k) < 3) return;
+      if (!d.moved && Math.hypot(dx * this.k, dy * this.k) < (this.touches.size ? 8 : 3)) return;
       d.moved = true;
       if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
       const frames = Array.from(d.frames.values());
@@ -687,11 +840,19 @@ export class Stage {
     this.drawOverlay();
   }
 
-  private up(_e: PointerEvent): void {
-    void _e;
+  private up(e: PointerEvent): void {
+    if (e.pointerType === 'touch' && this.touchUp(e)) return;
+    this.finish(e);
+  }
+
+  private finish(e: PointerEvent | null): void {
     const d = this.drag;
     if (!d) return;
     this.drag = null;
+    if (!e) {
+      if (d.kind === 'move') { d.edit = undefined; d.pick = undefined; }
+      if (d.kind === 'marquee' || d.kind === 'pan') d.tap = false;
+    }
     setClass(this.viewport, 'is-cell-range', false);
     if (this.frame) { cancelAnimationFrame(this.frame); this.frame = 0; }
     if (d.kind === 'end' || d.kind === 'mid') { this.flushLive(); this.sites = null; }
@@ -701,14 +862,33 @@ export class Stage {
     this.tip = null;
     this.drawOverlay();
     if (d.kind === 'move' && !d.moved && d.pick) this.ed.select([d.pick]);
+    if ((d.kind === 'marquee' || d.kind === 'pan') && d.tap) this.ed.select([]);
     if (d.kind === 'move' && !d.moved && d.edit && this.editing !== d.edit.id) {
       const go = d.edit;
-      requestAnimationFrame(() => this.beginEdit(go.id, { x: go.x, y: go.y }));
+      if (e?.pointerType === 'touch') this.beginEdit(go.id, { x: go.x, y: go.y });
+      else requestAnimationFrame(() => this.beginEdit(go.id, { x: go.x, y: go.y }));
     }
+    const tapped = d.kind === 'move' ? !d.moved : (d.kind === 'marquee' || d.kind === 'pan') && !!d.tap;
+    if (e?.pointerType === 'touch' && tapped && e.type === 'pointerup') this.touchTap(e);
+  }
+
+  private touchTap(e: PointerEvent): void {
+    const now = performance.now();
+    const last = this.lastTap;
+    if (last && now - last.t < 380 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 32) {
+      this.lastTap = null;
+      this.dblAt = now;
+      this.dblHit(e.target, e.clientX, e.clientY, true);
+    } else this.lastTap = { t: now, x: e.clientX, y: e.clientY };
   }
 
   private dbl(e: MouseEvent): void {
-    const hit = this.hitElement(e.target);
+    if (performance.now() - this.dblAt < 700 || this.viewOnly()) return;
+    this.dblHit(e.target, e.clientX, e.clientY, false);
+  }
+
+  private dblHit(target: EventTarget | null, cx: number, cy: number, touch: boolean): void {
+    const hit = this.hitElement(target);
     if (!hit.id) return;
     const el = this.ed.element(hit.id);
     if (!el) return;
@@ -718,14 +898,15 @@ export class Stage {
         if (!slide) return;
         this.ed.apply([{ op: 'set', path: [...elPath(slide.id, el.id), 'text'], value: { paras: [{ runs: [{ t: '' }], align: 'c' }], anchor: 'm' } }], 'Add text');
       }
-      requestAnimationFrame(() => this.beginEdit(hit.id as string, { x: e.clientX, y: e.clientY }));
-    } else if (el.type === 'table') this.beginEdit(hit.id, { x: e.clientX, y: e.clientY });
+      requestAnimationFrame(() => this.beginEdit(hit.id as string, { x: cx, y: cy }));
+    } else if (el.type === 'table') this.beginEdit(hit.id, { x: cx, y: cy });
     else if (el.type === 'chart') this.ed.run('edit-chart');
-    else if (el.type === 'image') this.ed.run('replace-image');
+    else if (el.type === 'image' && !touch) this.ed.run('replace-image');
   }
 
   beginEdit(id: string, at?: { x: number; y: number }): void {
     const tbl = this.ed.element(id);
+    if (this.editing === id && tbl?.type !== 'table') return;
     if (tbl?.type === 'table') {
       const hint = this.cells && this.cells.el === id ? { r: this.cells.ar, c: this.cells.ac } : null;
       const tc = (at ? this.cellOf(document.elementFromPoint(at.x, at.y), id) : null) ?? hint ?? { r: 0, c: 0 };
@@ -1069,7 +1250,7 @@ export class Stage {
 
   private tableParts(el: TableElement, f: Frame, rot: number): string[] {
     const k = this.k;
-    const W = f.w * k, H = f.h * k, gap = 7;
+    const W = f.w * k, H = f.h * k, gap = isTouchInput() ? 16 : 7;
     const box = (cls: string, x: number, y: number, w: number, h: number): string => `<div class="${cls}" style="left:${this.ox + f.x * k + x}px;top:${this.oy + f.y * k + y}px;width:${w}px;height:${h}px;transform-origin:${W / 2 - x}px ${H / 2 - y}px;transform:rotate(${rot}deg)"></div>`;
     const out = el.locked ? [] : [box('fd-table-grip', -gap, -gap, W + 2 * gap, gap), box('fd-table-grip', -gap, H, W + 2 * gap, gap), box('fd-table-grip', -gap, 0, gap, H), box('fd-table-grip', W, 0, gap, H)];
     const c = this.cells;
@@ -1137,6 +1318,7 @@ export class Stage {
 
   private context(e: MouseEvent): void {
     e.preventDefault();
+    if (this.viewOnly() || performance.now() - this.longAt < 1500) return;
     const hit = this.hitElement(e.target);
     if (hit.id && !this.ed.selection.includes(hit.id)) this.ed.select([hit.id]);
     if (!hit.id) this.ed.select([]);

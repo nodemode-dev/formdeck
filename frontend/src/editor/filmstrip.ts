@@ -3,6 +3,7 @@ import { holderOf, layoutUsage } from '../engine/holders';
 import { SlideView } from '../render/slide';
 import { icon } from '../ui/icons';
 import { el, setClass, setHidden, setStyleVar, setText, setTitle } from '../ui/dom';
+import { buzz, isTouchInput, Press } from '../ui/touch';
 import type { Editor } from './editor';
 import { moveSlidesOps } from './actions';
 import { hasAnimations } from './animation-pane';
@@ -29,7 +30,7 @@ export class Filmstrip {
   private readonly ro = new ResizeObserver(() => this.resize());
 
   constructor(private readonly ed: Editor, private readonly scroll: HTMLElement, private readonly count: HTMLElement) {
-    this.list = el('<div class="fd-strip-list" role="listbox" aria-label="Slides" aria-multiselectable="true"></div>');
+    this.list = el('<div class="fd-strip-list" role="listbox" tabindex="0" aria-label="Slides" aria-multiselectable="true"></div>');
     this.mlist = el('<div class="fd-strip-list fd-mstrip" role="listbox" aria-label="Slide master and layouts" hidden></div>');
     setStyleVar(this.mlist, '--fd-mthumb-indent', `${LAYOUT_INDENT}px`);
     scroll.append(this.list, this.mlist);
@@ -50,6 +51,7 @@ export class Filmstrip {
     this.list.addEventListener('pointerdown', (e) => this.down(e));
     this.list.addEventListener('contextmenu', (e) => {
       e.preventDefault();
+      if (isTouchInput()) return;
       const id = this.idAt(e.target);
       if (id && !this.ed.slideSel.includes(id)) this.ed.setSlideSelection([id], id);
       this.ed.contextMenu(e.clientX, e.clientY, 'thumb');
@@ -70,7 +72,17 @@ export class Filmstrip {
     return ((t as HTMLElement | null)?.closest?.('.fd-thumb') as HTMLElement | null)?.dataset.key ?? null;
   }
 
+  private horizontal(): boolean {
+    return getComputedStyle(this.masterMode ? this.mlist : this.list).flexDirection === 'row';
+  }
+
   private thumbWidth(): number {
+    if (this.horizontal()) {
+      const cs = getComputedStyle(this.scroll);
+      const size = this.ed.doc.deck.size;
+      const h = (this.scroll.clientHeight || 96) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 10;
+      return Math.max(48, Math.round(Math.max(24, h) * (size.w / size.h)));
+    }
     const w = this.scroll.clientWidth || 220;
     return Math.max(80, w - 20 - 22 - 6 - 4);
   }
@@ -299,6 +311,11 @@ export class Filmstrip {
     const it = this.masterMode ? this.mitems.get(id) : this.items.get(id);
     if (!it) return;
     const r = it.node.getBoundingClientRect(), s = this.scroll.getBoundingClientRect();
+    if (this.horizontal()) {
+      if (r.left < s.left + 4) this.scroll.scrollLeft -= s.left + 4 - r.left;
+      else if (r.right > s.right - 4) this.scroll.scrollLeft += r.right - s.right + 4;
+      return;
+    }
     if (r.top < s.top + 4) this.scroll.scrollTop -= s.top + 4 - r.top;
     else if (r.bottom > s.bottom - 4) this.scroll.scrollTop += r.bottom - s.bottom + 4;
   }
@@ -310,10 +327,62 @@ export class Filmstrip {
     window.setTimeout(() => it.node.classList.remove('is-agent'), 1200);
   }
 
+  private touchDown(e: PointerEvent, id: string): void {
+    const node = this.items.get(id)?.node;
+    const x0 = e.clientX, y0 = e.clientY;
+    let lifted = false, moved = false;
+    const press = new Press(380, 8);
+    const block = (ev: TouchEvent): void => { if (lifted && ev.cancelable) ev.preventDefault(); };
+    const off = (): void => {
+      window.removeEventListener('pointermove', moving);
+      window.removeEventListener('pointerup', done);
+      window.removeEventListener('pointercancel', done);
+      window.removeEventListener('touchmove', block);
+    };
+    const moving = (ev: PointerEvent): void => {
+      if (ev.pointerId !== e.pointerId) return;
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) moved = true;
+      if (!lifted) { press.move(ev); return; }
+      this.showDrop(ev.clientX, ev.clientY);
+    };
+    const done = (ev: PointerEvent): void => {
+      if (ev.pointerId !== e.pointerId) return;
+      off();
+      press.cancel();
+      node?.classList.remove('is-lifted');
+      const up = ev.type === 'pointerup';
+      if (lifted && moved && up && this.dragIds && this.dropAt >= 0) {
+        const ops = moveSlidesOps(this.ed.doc, this.dragIds, this.dropAt);
+        if (ops.length) this.ed.apply(ops, this.dragIds.length > 1 ? 'Move slides' : 'Move slide');
+      } else if (lifted && !moved && up) this.ed.contextMenu(ev.clientX, ev.clientY, 'thumb');
+      else if (!lifted && !moved && up) {
+        if (!this.ed.slideSel.includes(id)) this.ed.setSlideSelection([id], id);
+        else this.ed.setCurrent(id);
+        this.anchor = id;
+      }
+      this.dragIds = null;
+      this.dropAt = -1;
+      for (const it of this.items.values()) it.node.classList.remove('is-drop-before', 'is-drop-after');
+    };
+    press.arm(e, () => {
+      lifted = true;
+      buzz();
+      if (!this.ed.slideSel.includes(id)) this.ed.setSlideSelection([id], id);
+      this.anchor = id;
+      this.dragIds = this.ed.slideSel.length ? [...this.ed.slideSel] : [id];
+      node?.classList.add('is-lifted');
+    });
+    window.addEventListener('pointermove', moving);
+    window.addEventListener('pointerup', done);
+    window.addEventListener('pointercancel', done);
+    window.addEventListener('touchmove', block, { passive: false });
+  }
+
   private down(e: PointerEvent): void {
     if (e.button !== 0) return;
     const id = this.idAt(e.target);
     if (!id) return;
+    if (e.pointerType === 'touch') { this.touchDown(e, id); return; }
     const slides = this.ed.doc.deck.slides.map((s) => s.id);
     if (e.shiftKey && this.anchor) {
       const a = slides.indexOf(this.anchor), b = slides.indexOf(id);
@@ -327,11 +396,12 @@ export class Filmstrip {
       else this.ed.setCurrent(id);
       this.anchor = id;
     }
-    const y0 = e.clientY;
+    const horiz = this.horizontal();
+    const a0 = horiz ? e.clientX : e.clientY;
     const moving = (ev: PointerEvent): void => {
-      if (!this.dragIds && Math.abs(ev.clientY - y0) > 6) this.dragIds = this.ed.slideSel.length ? [...this.ed.slideSel] : [id];
+      if (!this.dragIds && Math.abs((horiz ? ev.clientX : ev.clientY) - a0) > 6) this.dragIds = this.ed.slideSel.length ? [...this.ed.slideSel] : [id];
       if (!this.dragIds) return;
-      this.showDrop(ev.clientY);
+      this.showDrop(ev.clientX, ev.clientY);
     };
     const done = (): void => {
       window.removeEventListener('pointermove', moving);
@@ -348,14 +418,15 @@ export class Filmstrip {
     window.addEventListener('pointerup', done);
   }
 
-  private showDrop(y: number): void {
+  private showDrop(x: number, y: number): void {
     const slides = this.ed.doc.deck.slides;
+    const horiz = this.horizontal();
     let at = slides.length;
     for (let i = 0; i < slides.length; i++) {
       const it = this.items.get(slides[i].id);
       if (!it || it.node.hidden) continue;
       const r = it.node.getBoundingClientRect();
-      if (y < r.top + r.height / 2) { at = i; break; }
+      if (horiz ? x < r.left + r.width / 2 : y < r.top + r.height / 2) { at = i; break; }
     }
     this.dropAt = at;
     slides.forEach((s, i) => {
@@ -365,6 +436,11 @@ export class Filmstrip {
       setClass(it.node, 'is-drop-after', at === slides.length && i === slides.length - 1);
     });
     const sr = this.scroll.getBoundingClientRect();
+    if (horiz) {
+      if (x < sr.left + 30) this.scroll.scrollLeft -= 8;
+      if (x > sr.right - 30) this.scroll.scrollLeft += 8;
+      return;
+    }
     if (y < sr.top + 30) this.scroll.scrollTop -= 8;
     if (y > sr.bottom - 30) this.scroll.scrollTop += 8;
   }

@@ -195,3 +195,27 @@ button.fd-csd-row { cursor: pointer; }
 .fd-dlg-progress { display: block; height: 4px; overflow: hidden; border-radius: 2px; background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--line-1); visibility: hidden; }
 .fd-dlg-progress.is-on { visibility: visible; }
 .fd-dlg-progress-fill { display: block; height: 100%; background: var(--accent-color); transform: scaleX(var(--p, 0)); transform-origin: left center; transition: transform 160ms linear; }
+
+.fd-show { overscroll-behavior: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.fd-show-stage { touch-action: none; }
+.fd-show-tmenu { position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: var(--z-menu); display: none; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--glass-border); border-radius: var(--radius-pill); background: var(--glass-bg); color: var(--text-secondary); opacity: 0.72; -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); }
+.fd-show-tmenu:hover, .fd-show-tmenu[aria-expanded="true"] { opacity: 1; color: var(--text-primary); }
+html[data-input="touch"] .fd-show:not(.is-presenter):not(.is-kiosk):not(.is-bar-off) .fd-show-tmenu { display: inline-flex; }
+.fd-show.is-touchbar .fd-show-bar { opacity: 1; transform: none; pointer-events: auto; }
+html[data-input="touch"] .fd-show-bar .fd-icon-btn, html[data-input="touch"] .fd-show-pnav .fd-icon-btn { width: 44px; height: 44px; }
+html[data-input="touch"] .fd-show-ptools .fd-icon-btn { width: 44px; height: 44px; }
+html[data-input="touch"] .fd-show-pop .fd-menu-item { height: 44px; }
+@media (max-width: 720px) {
+  .fd-show-bar { left: var(--space-2); right: calc(44px + var(--space-4)); bottom: var(--space-2); overflow-x: auto; }
+  .fd-show-grid-list { grid-template-columns: repeat(auto-fill, 156px); gap: var(--space-4) var(--space-3); padding: var(--space-4); }
+  .fd-show-grid-hint { display: none; }
+}
+@media (orientation: portrait) and (max-width: 1100px), (max-width: 760px) {
+  .fd-show.is-presenter { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 40%) auto auto minmax(0, 1fr); grid-template-areas: "top" "clock" "cur" "tools" "nav" "side"; }
+  .fd-show.is-presenter .fd-show-stage { margin: 0 var(--space-3); }
+  .fd-show-split { display: none; }
+  .fd-show-pclock, .fd-show-ptools, .fd-show-pnav { padding-left: var(--space-3); padding-right: var(--space-3); }
+  .fd-show-side { padding: var(--space-3); }
+  .fd-show-next { justify-self: start; width: auto; height: min(22vh, 180px); }
+  .fd-show-ptop .fd-btn { white-space: nowrap; }
+}

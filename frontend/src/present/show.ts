@@ -13,6 +13,7 @@ import { mutedOf, preparePlayback, seekBookmark } from './media-play';
 import { Recorder } from './recorder';
 import { buildState, buildSteps, displaced, type Item, type Step, type Unit } from './steps';
 import { usePresenterView } from './presenter-prefs';
+import { horizontalSwipe, installInputKind, isTouchInput } from '../ui/touch';
 
 export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean; rehearse?: boolean }
 
@@ -82,6 +83,7 @@ const ROOT = `<div class="fd-show" tabindex="-1" role="application" aria-roledes
 <div class="fd-show-blank" hidden></div>
 <div class="fd-show-end" hidden><span>End of slide show. Click to exit.</span></div>
 <div class="fd-show-chip" role="status" hidden></div>
+<button class="fd-show-tmenu fd-icon-btn" type="button" data-act="touch-bar" title="Show controls" aria-label="Show controls" aria-expanded="false">${icon('more3', 18)}</button>
 </div>
 <div class="fd-show-bar" role="toolbar" aria-label="Slide show controls">
 ${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-count"></span>${btn('next', 'Next (Right)', icon('chevronRight', 16))}<span class="fd-sep"></span>${TOOLS}${btn('more', 'More', icon('more3', 16))}
@@ -263,6 +265,7 @@ class Show {
   private swallow = false;
   private stale = false;
   private tapped = false;
+  private swipedAt = 0;
   private mode: Mode = 'pointer';
   private blank: Blank = 'normal';
   private pen = INKS[0][0];
@@ -443,7 +446,7 @@ class Show {
     this.tick = window.setInterval(() => this.onTick(), 250);
     const r = this.root;
     r.addEventListener('pointermove', (e) => {
-      this.activity();
+      if (e.pointerType !== 'touch') this.activity();
       if (this.mode === 'laser') this.moveLaser(e);
       if (this.zoomPick) this.zoomHover(e);
       const pan = this.panFrom;
@@ -486,17 +489,59 @@ class Show {
       if (b && r.contains(b)) { this.act(b.dataset.act ?? '', b); r.focus({ preventScroll: true }); return; }
       if (!swallow && t.closest('.fd-show-stage')) this.stageClick(e, t);
     });
-    r.addEventListener('contextmenu', (e) => { e.preventDefault(); if (this.zoomed || this.zoomPick) { this.unzoom(); return; } if ((e.target as HTMLElement).closest('.fd-show-stage') && this.mode === 'pointer' && !this.kiosk()) this.prev(); });
+    r.addEventListener('contextmenu', (e) => { e.preventDefault(); if (isTouchInput()) return; if (this.zoomed || this.zoomPick) { this.unzoom(); return; } if ((e.target as HTMLElement).closest('.fd-show-stage') && this.mode === 'pointer' && !this.kiosk()) this.prev(); });
     this.stage.addEventListener('wheel', (e) => {
       if (Math.abs(e.deltaY) < 4 || performance.now() - this.wheelAt < 320 || !this.gridEl.hidden || this.kiosk()) return;
       this.wheelAt = performance.now();
       if (e.deltaY > 0) this.next(); else this.prev();
     }, { passive: true });
     this.stage.addEventListener('pointerleave', () => { if (this.mode === 'laser') { this.showLaser(-1, -1); this.post({ type: 'laser', x: 0, y: 0, on: false }); } });
+    installInputKind();
+    this.touchGestures();
     this.canvas.addEventListener('pointerdown', (e) => this.inkDown(e));
     this.canvas.addEventListener('pointermove', (e) => this.inkMove(e));
     this.canvas.addEventListener('pointerup', () => this.inkUp());
     this.canvas.addEventListener('pointercancel', () => this.inkUp());
+  }
+
+  private touchGestures(): void {
+    const pts = new Map<number, { x: number; y: number }>();
+    let swipe: { x: number; y: number; t: number; id: number } | null = null;
+    let two: { t: number; ok: boolean } | null = null;
+    this.stage.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch') return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 1) { swipe = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }; two = null; } else { swipe = null; two = { t: performance.now(), ok: true }; }
+    });
+    const end = (e: PointerEvent): void => {
+      if (e.pointerType !== 'touch') return;
+      const from = pts.get(e.pointerId);
+      const s = swipe;
+      pts.delete(e.pointerId);
+      if (two && from && (Math.hypot(e.clientX - from.x, e.clientY - from.y) > 14 || e.type !== 'pointerup')) two.ok = false;
+      if (two && !pts.size) {
+        const hit = two.ok && performance.now() - two.t < 450;
+        two = null;
+        if (hit) { this.swipedAt = performance.now(); this.touchBar(); }
+        return;
+      }
+      if (!s || s.id !== e.pointerId) return;
+      swipe = null;
+      if (e.type !== 'pointerup' || this.mode !== 'pointer' || this.zoomed || this.zoomPick || !this.gridEl.hidden || this.kiosk() || !this.rehearseEl.hidden) return;
+      const dir = horizontalSwipe(e.clientX - s.x, e.clientY - s.y, performance.now() - s.t);
+      if (!dir) return;
+      this.swipedAt = performance.now();
+      if (dir > 0) this.next(); else this.prev();
+    };
+    this.stage.addEventListener('pointerup', end);
+    this.stage.addEventListener('pointercancel', end);
+  }
+
+  private touchBar(): void {
+    const on = !this.root.classList.contains('is-touchbar');
+    setClass(this.root, 'is-touchbar', on);
+    this.root.querySelector('.fd-show-tmenu')?.setAttribute('aria-expanded', String(on));
+    if (!on) this.closePops();
   }
 
   private audienceUrl(slide: number): string {
@@ -784,6 +829,7 @@ class Show {
       case 'more': if (anchor) this.togglePop(this.more, anchor); break;
       case 'auto': this.toggleAuto(); this.closePops(); break;
       case 'bar': this.root.classList.toggle('is-bar-off'); this.closePops(); break;
+      case 'touch-bar': this.touchBar(); break;
       case 'fullscreen': void this.fullscreen(!(document.fullscreenElement || this.full === 'tauri')); this.closePops(); break;
       case 'end': this.closePops(); void this.exit(); break;
       case 'timer-pause':
@@ -814,7 +860,7 @@ class Show {
   }
 
   private stageClick(e: MouseEvent, t: HTMLElement): void {
-    if (e.button !== 0 || this.mode === 'pen' || this.mode === 'eraser' || !this.rehearseEl.hidden) return;
+    if (e.button !== 0 || this.mode === 'pen' || this.mode === 'eraser' || !this.rehearseEl.hidden || performance.now() - this.swipedAt < 450) return;
     if (this.zoomPick) { this.zoomPick = false; setClass(this.root, 'is-zoompick', false); setHidden(q(this.frame, '.fd-show-zoombox'), true); this.applyZoom(this.zoomAt(e)); this.syncTools(); return; }
     if (this.zoomed) return;
     if (this.audienceMode && !TAURI && !this.tapped && !document.fullscreenElement) { this.tapped = true; this.flash('', -1); void this.fullscreen(true); return; }
@@ -1365,7 +1411,7 @@ class Show {
   private toggleGrid(): void {
     if (!this.gridEl.hidden) { setHidden(this.gridEl, true); this.syncTools(); return; }
     this.closePops();
-    this.grid ??= new Thumbs(this.doc, q(this.gridEl, '.fd-show-grid-list'), 232, (id) => { setHidden(this.gridEl, true); this.syncTools(); this.jump(id); });
+    this.grid ??= new Thumbs(this.doc, q(this.gridEl, '.fd-show-grid-list'), window.innerWidth <= 720 ? 156 : 232, (id) => { setHidden(this.gridEl, true); this.syncTools(); this.jump(id); });
     this.grid.sync();
     setHidden(this.gridEl, false);
     this.gridFocus = Math.max(0, this.doc.slideIndex(this.cur));

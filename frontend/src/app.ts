@@ -15,6 +15,7 @@ import { MenuBar, PopupMenu, type MenuDef, type MenuItem } from './ui/menu';
 import { registerModel3dCommands, MODEL3D_MENU } from './editor/model3d-commands';
 import { installModelHandle } from './editor/model3d-handle';
 import { applyTheme } from './ui/themes';
+import { installResponsive } from './ui/responsive';
 import { toast } from './ui/toast';
 import { Editor } from './editor/editor';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
@@ -43,10 +44,7 @@ const SHELL = `<div class="fd-app">
 <div class="fd-title-tools">
 <button class="fd-icon-btn" type="button" data-cmd="undo" title="Undo">${icon('undo', 16)}</button>
 <button class="fd-icon-btn" type="button" data-cmd="redo" title="Redo">${icon('redo', 16)}</button>
-<span class="fd-sep"></span>
-<button class="fd-tt-btn fd-sheet-btn" type="button" data-cmd="toggle-strip" title="Slides">${icon('slides', 16)}</button>
-<button class="fd-tt-btn fd-sheet-btn" type="button" data-cmd="toggle-props" title="Properties">${icon('panelProps', 16)}</button>
-<button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
+<span class="fd-sep"></span><button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
 <button class="fd-tt-btn" type="button" data-cmd="add-comment" title="Comment">${icon('comment', 16)}</button>
 <button class="fd-share-btn" type="button" data-act="share">${icon('download', 14)}<span>Export</span></button>
 <div class="fd-present-btn"><button class="fd-present-main" type="button" data-cmd="present-current">${icon('play', 14)}<span>Present</span></button><button class="fd-present-more" type="button" aria-expanded="false" aria-label="Present options" data-act="present-menu">${icon('chevronDown', 14)}</button></div>
@@ -96,6 +94,7 @@ export async function startApp(): Promise<void> {
   const status = { slide: q(root, '.fd-st-slide'), save: q(root, '.fd-st-save-text'), dot: q(root, '.fd-st-save .fd-st-dot'), agent: q(root, '.fd-st-agent'), hint: q(root, '.fd-st-hint'), zoom: q(root, '.fd-st-zoom') };
   const zoomSlider = q<HTMLInputElement>(root, '.fd-zoom');
   let editor: Editor | null = null;
+  installResponsive(root, { editor: () => editor });
   let editorOff: Array<() => void> = [];
   let agentsAllowed = false;
   let views: { refresh(): void; show(kind: 'sorter' | 'outline'): void; hide(): void } | null = null;
