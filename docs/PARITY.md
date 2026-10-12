@@ -31,13 +31,13 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.5
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Collaboration and sharing | 2 of 4 · 50% | 2 of 4 · 50% | 1 of 3 · 33% |
 | Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
-| Import and export | 7.5 of 8 · 94% | 5 of 5 · 100% | 7 of 7 · 100% |
+| Import and export | 8 of 8 · 100% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
-| Automation and agents | 1.5 of 3 · 50% | 1 of 1 · 100% | 1.5 of 3 · 50% |
+| Automation and agents | 2 of 3 · 67% | 1 of 1 · 100% | 2 of 3 · 67% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **96.5 of 104 · 92.8%** | **84 of 88 · 95.5%** | **81 of 88 · 92.0%** |
+| **Overall** | **97.5 of 104 · 93.8%** | **84 of 88 · 95.5%** | **81.5 of 88 · 92.6%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 101 full, 7 partial and 4 none: 104.5 of 112 points, 93.3%.
+Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 103 full, 5 partial and 4 none: 105.5 of 112 points, 94.2%.
 
 ## Where FormDeck leads
 
@@ -242,7 +242,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Slides as PNG or JPEG | yes | yes | yes | Full | `frontend/src/render/raster.ts rasterSlide`, `ExportDialog` |
 | Export video or animated GIF | yes | yes | yes | Full | `present/video-export.ts renderFrames, recordVideo` (MP4 or WebM with narration, builds as steps, fades), `routers/exports.py gif_bytes` |
 | OpenDocument .odp | yes | no | yes | Full | `services/odp/writer.py OdpWriter` (ODF 1.3, schema-valid) and `odp/reader.py OdpReader`, `routers/decks.py export_bytes, import_bytes`, `ui/dialogs-file.ts EXPORTS.odp`, `src-tauri/tauri.conf.json fileAssociations` |
-| Embed fonts in .pptx | yes | no | no | Partial | `ui/dialogs-file.ts` Export Fonts (Only characters used, All characters), `services/pptx/embed_fonts.py`, `eot.py`, `font_sources.py` write uncompressed EOT `fntdata` parts and read plain and XOR-obfuscated ones back as deck fonts; MicroType Express compressed fonts (what PowerPoint itself often saves) are not read, CFF fonts are skipped, and no copy of PowerPoint was available to confirm it opens the files |
+| Embed fonts in .pptx | yes | no | no | Full | `ui/dialogs-file.ts` Export Fonts (Only characters used, All characters), `services/pptx/embed_fonts.py`, `eot.py`, `font_sources.py` write uncompressed EOT `fntdata` parts; import reads plain, XOR-obfuscated and MicroType Express compressed fonts (`services/pptx/mtx.py`), checked on 12 fonts from PowerPoint and Google Slides files against an independent decoder; CFF fonts are not embedded on export and no copy of PowerPoint confirmed it opens the exported files |
 | Export the outline as text | yes | no | yes | Full | File > Export > Outline as .txt or .rtf with levels and notes (`routers/exports.py outline_bytes`), MCP `export_deck` txt and rtf |
 
 ### Print
@@ -263,7 +263,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Agent consent and on/off switch | no | no | no | Full | `agent-bridge.ts` consent, Preferences and Agent tab |
 | Skills shipped for Claude Code, Codex and Cursor | no | no | no | Full | `.claude/skills/formdeck-harness`, `setup/agents.py install` |
 | Headless build from files on the command line | no | no | no | Full | `setup/cli.py` (`./formdeck build-deck`) |
-| Scripting and macros | yes | no | yes | Partial | raw ops through `mcp.py apply_ops` and `/api/decks/{id}/steps`; no in-app script editor |
+| Scripting and macros | yes | no | yes | Full | View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run |
 | Add-in marketplace | yes | no | yes | None | nothing found |
 
 ### Platform (shown, not scored)

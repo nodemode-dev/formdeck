@@ -150,7 +150,7 @@ row(a, "PDF export with searchable text and a slide outline", 1, 1, 1, F, "`fron
 row(a, "Slides as PNG or JPEG", 1, 1, 1, F, "`frontend/src/render/raster.ts rasterSlide`, `ExportDialog`")
 row(a, "Export video or animated GIF", 1, 1, 1, F, "`present/video-export.ts renderFrames, recordVideo` (MP4 or WebM with narration, builds as steps, fades), `routers/exports.py gif_bytes`")
 row(a, "OpenDocument .odp", 1, 0, 1, F, "`services/odp/writer.py OdpWriter` (ODF 1.3, schema-valid) and `odp/reader.py OdpReader`, `routers/decks.py export_bytes, import_bytes`, `ui/dialogs-file.ts EXPORTS.odp`, `src-tauri/tauri.conf.json fileAssociations`")
-row(a, "Embed fonts in .pptx", 1, 0, 0, P, "`ui/dialogs-file.ts` Export Fonts (Only characters used, All characters), `services/pptx/embed_fonts.py`, `eot.py`, `font_sources.py` write uncompressed EOT `fntdata` parts and read plain and XOR-obfuscated ones back as deck fonts; MicroType Express compressed fonts (what PowerPoint itself often saves) are not read, CFF fonts are skipped, and no copy of PowerPoint was available to confirm it opens the files")
+row(a, "Embed fonts in .pptx", 1, 0, 0, F, "`ui/dialogs-file.ts` Export Fonts (Only characters used, All characters), `services/pptx/embed_fonts.py`, `eot.py`, `font_sources.py` write uncompressed EOT `fntdata` parts; import reads plain, XOR-obfuscated and MicroType Express compressed fonts (`services/pptx/mtx.py`), checked on 12 fonts from PowerPoint and Google Slides files against an independent decoder; CFF fonts are not embedded on export and no copy of PowerPoint confirmed it opens the exported files")
 row(a, "Export the outline as text", 1, 0, 1, F, "File > Export > Outline as .txt or .rtf with levels and notes (`routers/exports.py outline_bytes`), MCP `export_deck` txt and rtf")
 
 a = "Print"
@@ -165,7 +165,7 @@ row(a, "Agent sees and measures its own slides", 0, 0, 0, F, "`agent-bridge.ts` 
 row(a, "Agent consent and on/off switch", 0, 0, 0, F, "`agent-bridge.ts` consent, Preferences and Agent tab")
 row(a, "Skills shipped for Claude Code, Codex and Cursor", 0, 0, 0, F, "`.claude/skills/formdeck-harness`, `setup/agents.py install`")
 row(a, "Headless build from files on the command line", 0, 0, 0, F, "`setup/cli.py` (`./formdeck build-deck`)")
-row(a, "Scripting and macros", 1, 0, 1, P, "raw ops through `mcp.py apply_ops` and `/api/decks/{id}/steps`; no in-app script editor")
+row(a, "Scripting and macros", 1, 0, 1, F, "View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run")
 row(a, "Add-in marketplace", 1, 0, 1, N, "nothing found")
 
 a = "Platform"
