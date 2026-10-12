@@ -108,17 +108,52 @@ fn system_fonts() -> Vec<String> {
 #[tauri::command]
 async fn open_presenter(app: tauri::AppHandle, url: String) -> Result<(), String> {
     let target = loopback_url(&url)?;
+    let other = other_monitor(&app);
     if let Some(existing) = app.get_webview_window("presenter") {
         existing.navigate(target).map_err(|e| e.to_string())?;
+        if let Some(m) = &other {
+            existing.set_position(tauri::Position::Physical(*m.position())).map_err(|e| e.to_string())?;
+            existing.set_fullscreen(true).map_err(|e| e.to_string())?;
+        }
         return existing.set_focus().map_err(|e| e.to_string());
     }
-    WebviewWindowBuilder::new(&app, "presenter", WebviewUrl::External(target))
-        .title("FormDeck presenter")
-        .inner_size(PRESENTER_LOGICAL.0, PRESENTER_LOGICAL.1)
-        .center()
-        .build()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    let builder = WebviewWindowBuilder::new(&app, "presenter", WebviewUrl::External(target)).title("FormDeck slide show");
+    let builder = match &other {
+        Some(m) => {
+            let scale = m.scale_factor();
+            let at = m.position();
+            builder.position(at.x as f64 / scale, at.y as f64 / scale).fullscreen(true)
+        }
+        None => builder.inner_size(PRESENTER_LOGICAL.0, PRESENTER_LOGICAL.1).center(),
+    };
+    builder.build().map(|_| ()).map_err(|e| e.to_string())
+}
+
+fn other_monitor(app: &tauri::AppHandle) -> Option<tauri::Monitor> {
+    let here = app.get_webview_window("main")?.current_monitor().ok().flatten()?;
+    app.available_monitors().ok()?.into_iter().find(|m| m.position() != here.position())
+}
+
+#[tauri::command]
+fn monitor_count(app: tauri::AppHandle) -> usize {
+    app.available_monitors().map(|m| m.len()).unwrap_or(0)
+}
+
+#[tauri::command]
+async fn swap_presenter(app: tauri::AppHandle) -> Result<(), String> {
+    let main = app.get_webview_window("main").ok_or("no main window")?;
+    let show = app.get_webview_window("presenter").ok_or("no slide show window")?;
+    let main_at = main.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
+    let show_at = show.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
+    if main_at.position() == show_at.position() {
+        return Ok(());
+    }
+    for (window, monitor) in [(&main, &show_at), (&show, &main_at)] {
+        window.set_fullscreen(false).map_err(|e| e.to_string())?;
+        window.set_position(tauri::Position::Physical(*monitor.position())).map_err(|e| e.to_string())?;
+        window.set_fullscreen(true).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -148,7 +183,7 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .invoke_handler(tauri::generate_handler![system_fonts, open_presenter, print_window])
+        .invoke_handler(tauri::generate_handler![system_fonts, open_presenter, print_window, monitor_count, swap_presenter])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())

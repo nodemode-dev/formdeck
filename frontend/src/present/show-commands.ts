@@ -6,13 +6,14 @@ import type { LiveClient } from '../live/socket';
 import type { Commands } from '../ui/commands';
 import { exportDialog } from '../ui/dialogs-file';
 import { toast } from '../ui/toast';
+import { setUsePresenterView, usePresenterView } from './presenter-prefs';
 
 const timed = (s: Slide): boolean => s.transition?.advanceAfter !== undefined && s.transition?.advanceAfter !== null;
 const narrated = (s: Slide): boolean => s.elements.some((e) => e.type === 'media' && !!e.narration);
 
 export function registerShowCommands(cmds: Commands, E: () => Editor | null, live: LiveClient, bridge: AgentBridge): void {
   const inSlides = (): boolean => { const ed = E(); return !!ed && ed.holderKind === 'slide'; };
-  const start = (from: 'start' | 'current', extra: { record?: boolean; custom?: string } = {}): void => {
+  const start = (from: 'start' | 'current', extra: { record?: boolean; custom?: string; rehearse?: boolean } = {}): void => {
     const ed = E();
     if (!ed) return;
     const at = from === 'start' ? 0 : Math.max(0, ed.doc.slideIndex(ed.current));
@@ -48,5 +49,7 @@ export function registerShowCommands(cmds: Commands, E: () => Editor | null, liv
     { id: 'export-gif', label: 'Export as Animated GIF', icon: 'fileImage', enabled: () => !!E(), run: exporter('gif') },
     { id: 'export-txt', label: 'Export Outline as Text (.txt)', icon: 'fileText', enabled: () => !!E(), run: exporter('txt') },
     { id: 'export-rtf', label: 'Export Outline as Rich Text (.rtf)', icon: 'fileText', enabled: () => !!E(), run: exporter('rtf') },
+    { id: 'use-presenter-view', label: 'Use Presenter View', enabled: () => true, checked: () => usePresenterView(), run: () => setUsePresenterView(!usePresenterView()) },
+    { id: 'rehearse-timings', label: 'Rehearse Timings', icon: 'record', enabled: inSlides, run: () => start('start', { rehearse: true }) },
   );
 }

@@ -12,8 +12,9 @@ import { effectFx, morph, transitionPlan, type Box, type Dir } from './effects';
 import { mutedOf, preparePlayback, seekBookmark } from './media-play';
 import { Recorder } from './recorder';
 import { buildState, buildSteps, displaced, type Item, type Step, type Unit } from './steps';
+import { usePresenterView } from './presenter-prefs';
 
-export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean }
+export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean; rehearse?: boolean }
 
 interface Stroke { c: string; w: number; p: number[] }
 type Mode = 'pointer' | 'pen' | 'eraser' | 'laser';
@@ -25,13 +26,37 @@ type Msg =
   | { type: Blank }
   | { type: 'ink'; slide: string; strokes: Stroke[] }
   | { type: 'laser'; x: number; y: number; on: boolean }
+  | { type: 'zoom'; x: number; y: number; on: boolean }
   | { type: 'media'; slide: string; id: string; play: boolean; t: number }
   | { type: 'hello' }
   | { type: 'end' };
 
 const TAURI = '__TAURI_INTERNALS__' in window;
+
+interface ScreenBox { left: number; top: number; width: number; height: number }
+interface DetailedScreen extends Screen { left: number; top: number; availLeft: number; availTop: number; isPrimary?: boolean }
+export interface ScreenLayout { count: number; other: ScreenBox | null; here: Screen | null; otherScreen: Screen | null }
+
+export async function screenLayout(): Promise<ScreenLayout> {
+  const none: ScreenLayout = { count: 0, other: null, here: null, otherScreen: null };
+  if (TAURI) {
+    try { return { ...none, count: Number(await (await import('@tauri-apps/api/core')).invoke('monitor_count')) || 0 }; } catch { return none; }
+  }
+  const scr = window.screen as Screen & { isExtended?: boolean };
+  if (scr.isExtended === false) return { ...none, count: 1 };
+  const details = (window as unknown as { getScreenDetails?: () => Promise<{ screens: DetailedScreen[]; currentScreen: DetailedScreen }> }).getScreenDetails;
+  if (!scr.isExtended || !details) return none;
+  try {
+    const d = await details.call(window);
+    const other = d.screens.find((s) => s !== d.currentScreen) ?? null;
+    return { count: d.screens.length, other: other ? { left: other.left, top: other.top, width: other.width, height: other.height } : null, here: d.currentScreen, otherScreen: other };
+  } catch {
+    return { ...none, count: 2 };
+  }
+}
 const IDLE_MS = 2500;
 const NOTES_KEY = 'formdeck.notesSize';
+const SPLIT_KEY = 'formdeck.presenterSplit';
 const PEN_W = 0.0045;
 const INKS: Array<[string, string]> = [['#ef4444', 'Red'], ['#facc15', 'Yellow'], ['#3b82f6', 'Blue'], ['#ffffff', 'White']];
 const KEYS: Record<string, string> = {
@@ -52,7 +77,7 @@ const CC_SET = `<div class="fd-show-ccset"><div class="fd-show-ccrow"><span>Capt
 
 const ROOT = `<div class="fd-show" tabindex="-1" role="application" aria-roledescription="slide show" aria-label="Slide show">
 <div class="fd-show-stage">
-<div class="fd-show-frame"><div class="fd-show-layer"></div><div class="fd-show-layer"></div><canvas class="fd-show-ink"></canvas><div class="fd-show-laser" hidden></div><div class="fd-show-cc" aria-live="polite" hidden><span class="fd-show-cc-text"></span></div></div>
+<div class="fd-show-frame"><div class="fd-show-zoomwrap"><div class="fd-show-layer"></div><div class="fd-show-layer"></div><canvas class="fd-show-ink"></canvas></div><div class="fd-show-zoombox" hidden></div><div class="fd-show-laser" hidden></div><div class="fd-show-cc" aria-live="polite" hidden><span class="fd-show-cc-text"></span></div></div>
 <div class="fd-show-stash" aria-hidden="true"></div>
 <div class="fd-show-blank" hidden></div>
 <div class="fd-show-end" hidden><span>End of slide show. Click to exit.</span></div>
@@ -63,23 +88,24 @@ ${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-c
 </div>
 <div class="fd-show-console" hidden>
 <header class="fd-show-ptop">
-<span class="fd-show-timer">0:00</span><button class="fd-icon-btn is-sm" type="button" data-act="timer-pause" title="Pause timer"></button><button class="fd-icon-btn is-sm" type="button" data-act="timer-reset" title="Reset timer">${icon('refresh', 14)}</button>
-<span class="fd-sep"></span><span class="fd-show-clock"></span><span class="fd-show-status"></span><span class="fd-show-flex"></span>
-<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="rehearse" title="Record how long each slide takes">Rehearse</button>
-<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="swap" title="Bring the audience window forward">${icon('presenter', 14)}Swap displays</button>
-<button class="fd-btn fd-btn-sm" type="button" data-act="end">End show</button>
+<span class="fd-show-flex"></span>
+<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="display" aria-haspopup="menu" title="Display settings">${icon('presenter', 14)}Display Settings</button>
+<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="end">End Slide Show</button>
 </header>
-<div class="fd-show-pnav">${btn('prev', 'Previous (Left)', icon('chevronLeft', 18))}<span class="fd-show-pcount"></span>${btn('next', 'Next (Right)', icon('chevronRight', 18))}<span class="fd-sep"></span>${TOOLS}</div>
+<div class="fd-show-pclock"><span class="fd-show-timer" role="timer" aria-label="Elapsed time">0:00</span><button class="fd-icon-btn is-sm" type="button" data-act="timer-pause" title="Pause the timer"></button><button class="fd-icon-btn is-sm" type="button" data-act="timer-reset" title="Restart the timer">${icon('refresh', 14)}</button><span class="fd-show-status"></span><span class="fd-show-flex"></span><span class="fd-show-clock" aria-label="Current time"></span></div>
+<div class="fd-show-ptools" role="toolbar" aria-label="Presenter tools">${btn('pen', 'Pen and laser pointer tools', icon('pen', 18))}${btn('grid', 'See all slides (G)', icon('grid', 18))}${btn('zoom', 'Zoom into the slide', icon('zoomIn', 18))}${btn('captions', 'Toggle subtitles (J)', icon('captions', 18))}${btn('black', 'Black or unblack slide show (B)', svg(BLANK_ICON, 18))}${btn('more', 'More slide show options', icon('more3', 18))}</div>
+<div class="fd-show-pnav">${btn('prev', 'Previous (Left)', icon('chevronLeft', 20))}<span class="fd-show-pcount"></span>${btn('next', 'Next (Right)', icon('chevronRight', 20))}</div>
+<div class="fd-show-split" role="separator" aria-orientation="vertical" aria-label="Resize the slide and notes panes" tabindex="0"></div>
 <aside class="fd-show-side">
-<div class="fd-show-label">Next</div>
-<div class="fd-show-next"><div class="fd-show-next-slot"></div><div class="fd-show-next-end" hidden>End of show</div></div>
-<div class="fd-show-notes-head"><span class="fd-show-label">Notes</span><span class="fd-show-flex"></span>${btn('notes-minus', 'Smaller notes text', icon('minus', 14))}${btn('notes-plus', 'Larger notes text', icon('plus', 14))}</div>
-<div class="fd-show-notes"></div>
+<div class="fd-show-label">Next Slide</div>
+<div class="fd-show-next"><div class="fd-show-next-slot"></div><div class="fd-show-next-end" hidden>End of slide show</div></div>
+<div class="fd-show-notes" aria-label="Speaker notes"></div>
+<div class="fd-show-notes-foot">${btn('notes-plus', 'Make the text larger', '<span class="fd-show-aa" aria-hidden="true">A<sup>+</sup></span>')}${btn('notes-minus', 'Make the text smaller', '<span class="fd-show-aa" aria-hidden="true">A<sup>-</sup></span>')}</div>
 </aside>
-<div class="fd-show-strip" aria-label="Slides"></div>
 </div>
-<div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
-<div class="fd-show-pop fd-show-more" hidden>${item('white', 'White screen', 'W')}${item('auto', 'Pause automatic advance', 'S')}${item('bar', 'Hide controls', 'Ctrl+H')}${item('fullscreen', 'Full screen', 'F')}<div class="fd-menu-sep"></div>${item('captions', 'Turn on captions', 'J')}${CC_SET}<div class="fd-menu-sep"></div>${item('end', 'End show', 'Esc')}</div>
+<div class="fd-show-pop fd-show-display" hidden>${item('swap', 'Swap Presenter View and Slide Show')}${item('duplicate', 'Duplicate Slide Show')}</div>
+<div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('laser', 'Laser pointer', 'L')}${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
+<div class="fd-show-pop fd-show-more" hidden>${item('presenter-on', 'Show Presenter View')}${item('presenter-off', 'Hide Presenter View')}${item('white', 'White screen', 'W')}${item('auto', 'Pause automatic advance', 'S')}${item('bar', 'Hide controls', 'Ctrl+H')}${item('fullscreen', 'Full screen', 'F')}<div class="fd-menu-sep"></div>${item('captions', 'Turn on captions', 'J')}${CC_SET}<div class="fd-menu-sep"></div>${item('end', 'End show', 'Esc')}</div>
 <div class="fd-show-grid" hidden><div class="fd-show-grid-head"><span class="fd-show-grid-title">All slides</span><span class="fd-show-grid-hint">Arrow keys to move, Enter to open, Esc to close</span>${btn('grid-close', 'Close (Esc)', icon('close', 16))}</div><div class="fd-show-grid-list"></div></div>
 <div class="fd-show-rehearse" hidden><span class="fd-show-rehearse-text"></span><button class="fd-btn fd-btn-primary fd-btn-sm" type="button" data-act="keep">Keep timings</button><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-act="discard">Discard</button></div>
 </div>`;
@@ -197,6 +223,12 @@ class Show {
   private readonly countEl: HTMLElement;
   private readonly pens: HTMLElement;
   private readonly more: HTMLElement;
+  private readonly displayPop: HTMLElement;
+  private zoomed: { x: number; y: number } | null = null;
+  private panFrom: { x: number; y: number; zx: number; zy: number } | null = null;
+  private solo = false;
+  private nudgeSplit: (d: number) => void = () => undefined;
+  private zoomPick = false;
   private readonly gridEl: HTMLElement;
   private readonly rehearseEl: HTMLElement;
   private readonly consoleEl: HTMLElement;
@@ -252,7 +284,6 @@ class Show {
   private presenting = false;
   private muted = false;
   private grid: Thumbs | null = null;
-  private strip: Thumbs | null = null;
   private gridFocus = 0;
   private notesFor = '';
   private nfs = 18;
@@ -294,6 +325,7 @@ class Show {
     this.countEl = q(r, '.fd-show-count');
     this.pens = q(r, '.fd-show-pens');
     this.more = q(r, '.fd-show-more');
+    this.displayPop = q(r, '.fd-show-display');
     this.gridEl = q(r, '.fd-show-grid');
     this.rehearseEl = q(r, '.fd-show-rehearse');
     this.consoleEl = q(r, '.fd-show-console');
@@ -335,9 +367,11 @@ class Show {
       this.chan = new BroadcastChannel(`formdeck-show-${this.doc.id}`);
       this.chan.onmessage = (e: MessageEvent<Msg>) => this.onMsg(e.data);
     }
-    if (this.opts.presenter && !this.audienceMode) this.openAudience();
+    let presenter = this.opts.presenter;
+    if (!presenter && !this.audienceMode && !this.opts.record && !this.opts.rehearse && usePresenterView()) presenter = (await screenLayout()).count >= 2;
+    if (presenter && !this.audienceMode) void this.openAudience();
     else if (!this.audienceMode || TAURI) void this.fullscreen(true);
-    else this.flash('Click anywhere or press F for full screen', 6000);
+    else if (new URLSearchParams(location.search).get('placed') !== '1') this.flash('Click anywhere or press F for full screen', 6000);
     if (this.audienceMode) this.post({ type: 'hello' });
     await ensureFonts(fontsOfDeck(this.doc.deck));
     if (this.closed) return;
@@ -353,6 +387,7 @@ class Show {
     this.busy--;
     if (this.rec) void this.rec.init();
     await this.go(first.id, 'start', false, this.pos);
+    if (this.opts.rehearse && !this.rehearsal) this.toggleRehearse();
   }
 
   private fromStart(): boolean {
@@ -408,10 +443,41 @@ class Show {
     this.offs.push(() => ro.disconnect());
     this.tick = window.setInterval(() => this.onTick(), 250);
     const r = this.root;
-    r.addEventListener('pointermove', (e) => { this.activity(); if (this.mode === 'laser') this.moveLaser(e); });
+    r.addEventListener('pointermove', (e) => {
+      this.activity();
+      if (this.mode === 'laser') this.moveLaser(e);
+      if (this.zoomPick) this.zoomHover(e);
+      const pan = this.panFrom;
+      if (pan && this.zoomed && e.buttons & 1) {
+        const fr = this.frame.getBoundingClientRect();
+        this.applyZoom({ x: clamp(pan.zx - (e.clientX - pan.x) / Math.max(1, fr.width) / 2, 0, 0.5), y: clamp(pan.zy - (e.clientY - pan.y) / Math.max(1, fr.height) / 2, 0, 0.5) });
+      }
+    });
+    this.stage.addEventListener('pointerdown', (e) => { this.panFrom = this.zoomed && e.button === 0 ? { x: e.clientX, y: e.clientY, zx: this.zoomed.x, zy: this.zoomed.y } : null; });
+    r.addEventListener('pointerup', () => { this.panFrom = null; });
+    const split = q(r, '.fd-show-split');
+    const setSplit = (pct: number): void => {
+      const v = clamp(pct, 35, 80);
+      setStyleVar(this.root, '--pv-cur', `${v.toFixed(1)}%`);
+      split.setAttribute('aria-valuenow', String(Math.round(v)));
+      try { localStorage.setItem(SPLIT_KEY, String(v)); } catch { return; }
+    };
+    try { const saved = Number(localStorage.getItem(SPLIT_KEY)); if (saved) setSplit(saved); } catch { setSplit(60); }
+    if (!split.getAttribute('aria-valuenow')) split.setAttribute('aria-valuenow', '60');
+    split.setAttribute('aria-valuemin', '35');
+    split.setAttribute('aria-valuemax', '80');
+    split.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      split.setPointerCapture(e.pointerId);
+      const move = (ev: PointerEvent): void => { setSplit((ev.clientX / Math.max(1, this.root.clientWidth)) * 100); };
+      const up = (): void => { split.removeEventListener('pointermove', move); split.removeEventListener('pointerup', up); this.layout(true); };
+      split.addEventListener('pointermove', move);
+      split.addEventListener('pointerup', up);
+    });
+    this.nudgeSplit = (d) => { setSplit(Number(split.getAttribute('aria-valuenow') || 60) + d); this.layout(true); };
     r.addEventListener('pointerdown', (e) => {
       const t = e.target as HTMLElement;
-      if (this.popOpen() && !t.closest('.fd-show-pop') && !t.closest('[data-act="pen"], [data-act="more"]')) { this.closePops(); this.swallow = true; }
+      if (this.popOpen() && !t.closest('.fd-show-pop') && !t.closest('[data-act="pen"], [data-act="more"], [data-act="display"]')) { this.closePops(); this.swallow = true; }
     }, true);
     r.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
@@ -421,7 +487,7 @@ class Show {
       if (b && r.contains(b)) { this.act(b.dataset.act ?? '', b); r.focus({ preventScroll: true }); return; }
       if (!swallow && t.closest('.fd-show-stage')) this.stageClick(e, t);
     });
-    r.addEventListener('contextmenu', (e) => { e.preventDefault(); if ((e.target as HTMLElement).closest('.fd-show-stage') && this.mode === 'pointer' && !this.kiosk()) this.prev(); });
+    r.addEventListener('contextmenu', (e) => { e.preventDefault(); if (this.zoomed || this.zoomPick) { this.unzoom(); return; } if ((e.target as HTMLElement).closest('.fd-show-stage') && this.mode === 'pointer' && !this.kiosk()) this.prev(); });
     this.stage.addEventListener('wheel', (e) => {
       if (Math.abs(e.deltaY) < 4 || performance.now() - this.wheelAt < 320 || !this.gridEl.hidden || this.kiosk()) return;
       this.wheelAt = performance.now();
@@ -438,21 +504,56 @@ class Show {
     return `${location.origin}/?audience=1&deck=${encodeURIComponent(this.doc.id)}&slide=${slide}&from=${this.fromStart() ? 'start' : 'current'}${this.opts.custom ? `&custom=${encodeURIComponent(this.opts.custom)}` : ''}`;
   }
 
-  private openAudience(): void {
-    const url = this.audienceUrl(this.opts.start);
-    this.presenting = true;
+  private consoleOn(on: boolean): void {
+    this.presenting = on;
+    setClass(this.root, 'is-presenter', on);
+    setHidden(this.consoleEl, !on);
+    this.layout(true);
+    this.syncUi();
+  }
+
+  private async openAudience(): Promise<void> {
+    const layout = await screenLayout();
+    if (this.closed) return;
+    if (layout.count === 1) { this.presenterHere(); return; }
+    const url = this.audienceUrl(Math.max(0, this.cur ? this.curIndex : this.opts.start));
+    this.solo = false;
     this.muted = true;
-    setClass(this.root, 'is-presenter', true);
-    setHidden(this.consoleEl, false);
-    this.strip = new Thumbs(this.doc, q(this.root, '.fd-show-strip'), 128, (id) => this.jump(id));
-    this.strip.sync();
+    this.consoleOn(true);
     if (TAURI) {
+      void this.fullscreen(true);
       void import('@tauri-apps/api/core').then((m) => m.invoke('open_presenter', { url })).catch(() => this.noAudience());
       return;
     }
-    const w = window.open(url, 'formdeck-audience', 'popup');
+    const o = layout.other;
+    if (o && layout.here) {
+      try { await document.documentElement.requestFullscreen({ navigationUI: 'hide', screen: layout.here } as FullscreenOptions); this.full = 'dom'; } catch { this.full = null; }
+    }
+    const w = window.open(`${url}${o ? '&placed=1' : ''}`, 'formdeck-audience', o ? `popup,fullscreen,left=${o.left},top=${o.top},width=${o.width},height=${o.height}` : 'popup');
     if (w) this.audienceWin = w;
     else this.noAudience();
+  }
+
+  private presenterHere(): void {
+    this.solo = true;
+    this.muted = false;
+    this.consoleOn(true);
+    void this.fullscreen(true);
+  }
+
+  private duplicate(): void {
+    if (!this.presenting) return;
+    const hadAudience = !this.solo;
+    this.solo = false;
+    this.muted = hadAudience;
+    this.consoleOn(false);
+    void this.fullscreen(true);
+  }
+
+  private async presenterOn(): Promise<void> {
+    if (this.presenting || this.audienceMode) return;
+    if (this.audienceWin && !this.audienceWin.closed) { this.muted = true; this.consoleOn(true); return; }
+    await this.openAudience();
   }
 
   private noAudience(): void {
@@ -461,18 +562,33 @@ class Show {
     this.muted = false;
     setClass(this.root, 'is-presenter', false);
     setHidden(this.consoleEl, true);
-    this.strip?.dispose();
-    this.strip = null;
-    toast('The audience window could not open, so the show runs in this window. Allow pop-ups for FormDeck to use presenter view.');
+    toast('The slide show window could not open, so the show runs in this window. Allow pop-ups for FormDeck to use Presenter View with a second display.');
     void this.fullscreen(true);
     this.layout(true);
     this.syncUi();
   }
 
-  private swapDisplays(): void {
-    if (TAURI || (this.audienceWin && !this.audienceWin.closed)) {
-      this.audienceWin?.focus();
-      this.flash('Drag the audience window to the projector display, then click it or press F for full screen.', 4200);
+  private async swapDisplays(): Promise<void> {
+    if (this.solo) { this.flash('There is no second display to swap with.', 2600); return; }
+    if (TAURI) {
+      try { await (await import('@tauri-apps/api/core')).invoke('swap_presenter'); } catch { this.flash('Could not swap the displays.', 2600); }
+      return;
+    }
+    if (this.audienceWin && !this.audienceWin.closed) {
+      const layout = await screenLayout();
+      const aw = this.audienceWin;
+      if (layout.other && layout.here && layout.otherScreen) {
+        const here = { left: window.screenX, top: window.screenY, width: window.outerWidth, height: window.outerHeight };
+        try {
+          await document.documentElement.requestFullscreen({ navigationUI: 'hide', screen: layout.otherScreen } as FullscreenOptions);
+          this.full = 'dom';
+          aw.moveTo(here.left, here.top);
+          aw.resizeTo(here.width, here.height);
+          return;
+        } catch { this.full = document.fullscreenElement ? 'dom' : null; }
+      }
+      aw.focus();
+      this.flash('Move the slide show window to the other display, then click it or press F for full screen.', 4200);
       return;
     }
     const url = this.audienceUrl(Math.max(0, this.curIndex));
@@ -516,6 +632,7 @@ class Show {
       else if (m.type === 'black' || m.type === 'white' || m.type === 'normal') this.setBlank(m.type);
       else if (m.type === 'ink') { this.ink.set(m.slide, m.strokes); if (m.slide === this.cur) this.drawInk(); }
       else if (m.type === 'laser') this.showLaser(m.on ? m.x : -1, m.y);
+      else if (m.type === 'zoom') this.applyZoom(m.on ? { x: m.x, y: m.y } : null);
       else if (m.type === 'media') {
         const a = this.mediaNode(m.slide, m.id);
         if (a && m.play === a.paused) {
@@ -574,6 +691,7 @@ class Show {
     if (this.closed) return;
     e.stopPropagation();
     const k = e.key, mod = e.ctrlKey || e.metaKey;
+    if ((e.target as Element | null)?.classList?.contains('fd-show-split') && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); this.nudgeSplit(k === 'ArrowLeft' ? -2 : 2); return; }
     if ((e.target as Element | null)?.closest?.('.fd-show-ccset')) { if (k === 'Escape') { e.preventDefault(); this.closePops(); this.root.focus({ preventScroll: true }); } return; }
     if (!this.gridEl.hidden) { this.gridKey(e); return; }
     if (!this.rehearseEl.hidden) {
@@ -648,6 +766,7 @@ class Show {
       case 'white': this.setBlank(this.blank === 'white' ? 'normal' : 'white'); this.closePops(); break;
       case 'escape':
         if (this.popOpen()) this.closePops();
+        else if (this.zoomed || this.zoomPick) this.unzoom();
         else if (this.mode !== 'pointer') this.setMode('pointer');
         else if (this.blank !== 'normal') this.setBlank('normal');
         else void this.exit();
@@ -680,7 +799,15 @@ class Show {
         try { localStorage.setItem(NOTES_KEY, String(this.nfs)); } catch { break; }
         break;
       case 'rehearse': this.toggleRehearse(); break;
-      case 'swap': this.swapDisplays(); break;
+      case 'display': if (anchor) this.togglePop(this.displayPop, anchor); break;
+      case 'swap': this.closePops(); void this.swapDisplays(); break;
+      case 'duplicate': this.closePops(); this.duplicate(); break;
+      case 'presenter-on': this.closePops(); void this.presenterOn(); break;
+      case 'presenter-off': this.closePops(); this.duplicate(); break;
+      case 'zoom':
+        if (this.zoomed || this.zoomPick) this.unzoom();
+        else { this.zoomPick = true; this.setMode('pointer'); setClass(this.root, 'is-zoompick', true); this.flash('Click the part of the slide to zoom into. Esc returns.', 2600); }
+        break;
       case 'keep': this.keepTimings(); break;
       case 'discard': this.rehearsal = null; void this.exit(); break;
     }
@@ -689,6 +816,8 @@ class Show {
 
   private stageClick(e: MouseEvent, t: HTMLElement): void {
     if (e.button !== 0 || this.mode === 'pen' || this.mode === 'eraser' || !this.rehearseEl.hidden) return;
+    if (this.zoomPick) { this.zoomPick = false; setClass(this.root, 'is-zoompick', false); setHidden(q(this.frame, '.fd-show-zoombox'), true); this.applyZoom(this.zoomAt(e)); this.syncTools(); return; }
+    if (this.zoomed) return;
     if (this.audienceMode && !TAURI && !this.tapped && !document.fullscreenElement) { this.tapped = true; this.flash('', -1); void this.fullscreen(true); return; }
     if (this.atEnd) { this.next(); return; }
     if (this.blank !== 'normal') { this.setBlank('normal'); return; }
@@ -937,6 +1066,7 @@ class Show {
   private async go(id: string, at: 'start' | 'built' | number, animate: boolean, pos?: number): Promise<void> {
     const slide = this.doc.slide(id);
     if (!slide || this.closed) return;
+    if ((this.zoomed || this.zoomPick) && id !== this.cur && !this.remote) this.unzoom();
     this.busy++;
     try {
       this.clearAuto();
@@ -1034,7 +1164,6 @@ class Show {
     }
     if (t.size) this.layout(true);
     this.grid?.sync(t);
-    this.strip?.sync(t);
     if (!deck.slides.length) { void this.close(); return; }
     if (!this.doc.slide(this.cur)) {
       const i = clamp(this.curIndex, 0, deck.slides.length - 1);
@@ -1178,10 +1307,41 @@ class Show {
   private closePops(): void {
     setHidden(this.pens, true);
     setHidden(this.more, true);
+    setHidden(this.displayPop, true);
     setClass(this.root, 'is-pinned', false);
   }
 
-  private popOpen(): boolean { return !this.pens.hidden || !this.more.hidden; }
+  private applyZoom(z: { x: number; y: number } | null): void {
+    this.zoomed = z;
+    const wrap = q(this.frame, '.fd-show-zoomwrap');
+    setClass(this.frame, 'is-zoomed', !!z);
+    wrap.style.transform = z ? `scale(2) translate(${(-z.x * 100).toFixed(3)}%, ${(-z.y * 100).toFixed(3)}%)` : '';
+    this.post(z ? { type: 'zoom', x: z.x, y: z.y, on: true } : { type: 'zoom', x: 0, y: 0, on: false });
+  }
+
+  private unzoom(): void {
+    this.zoomPick = false;
+    setClass(this.root, 'is-zoompick', false);
+    setHidden(q(this.frame, '.fd-show-zoombox'), true);
+    if (this.zoomed) this.applyZoom(null);
+    this.syncTools();
+  }
+
+  private zoomAt(e: PointerEvent | MouseEvent): { x: number; y: number } {
+    const r = this.frame.getBoundingClientRect();
+    return { x: clamp((e.clientX - r.left) / Math.max(1, r.width) - 0.25, 0, 0.5), y: clamp((e.clientY - r.top) / Math.max(1, r.height) - 0.25, 0, 0.5) };
+  }
+
+  private zoomHover(e: PointerEvent): void {
+    const box = q(this.frame, '.fd-show-zoombox');
+    if (!this.zoomPick) { setHidden(box, true); return; }
+    const z = this.zoomAt(e);
+    box.style.left = `${z.x * 100}%`;
+    box.style.top = `${z.y * 100}%`;
+    setHidden(box, false);
+  }
+
+  private popOpen(): boolean { return !this.pens.hidden || !this.more.hidden || !this.displayPop.hidden; }
 
   private setMode(m: Mode): void {
     if (this.mode === 'laser' && m !== 'laser') { this.showLaser(-1, -1); this.post({ type: 'laser', x: 0, y: 0, on: false }); }
@@ -1331,7 +1491,6 @@ class Show {
       setClass(this.notes, 'is-empty', !text);
       if (this.notesFor !== this.cur) { this.notes.scrollTop = 0; this.notesFor = this.cur; }
       this.syncNext();
-      this.strip?.mark(this.cur, true);
     }
     if (!this.gridEl.hidden) this.grid?.mark(this.cur, false);
     this.syncTools();
@@ -1365,7 +1524,9 @@ class Show {
     on('grid', !this.gridEl.hidden);
     on('captions', this.ccOn);
     for (const b of Array.from(this.pens.querySelectorAll<HTMLElement>('[data-act="color"]'))) setClass(b, 'is-chosen', this.mode === 'pen' && b.dataset.color === this.pen);
-    setClass(q(this.root, '.fd-show-ptop [data-act="rehearse"]'), 'is-on', !!this.rehearsal);
+    on('zoom', this.zoomPick || !!this.zoomed);
+    setHidden(q(this.more, '[data-act="presenter-on"]'), this.presenting || this.audienceMode);
+    setHidden(q(this.more, '[data-act="presenter-off"]'), !this.presenting);
   }
 
   private syncTimerButton(): void {
@@ -1524,7 +1685,6 @@ class Show {
     for (const v of this.views.values()) for (const m of Array.from(v.el.querySelectorAll('video'))) m.pause();
     for (const a of this.audio.values()) { a.pause(); a.removeAttribute('src'); a.load(); }
     this.grid?.dispose();
-    this.strip?.dispose();
     this.cc?.stop();
     this.chan?.close();
     this.rec?.leave();
