@@ -105,14 +105,22 @@ body.fd-showing #app { visibility: hidden; }
 .fd-show-bar .fd-icon-btn:disabled, .fd-show-pnav .fd-icon-btn:disabled { opacity: 0.4; cursor: default; }
 .fd-show-pop .fd-menu-item:disabled { opacity: 0.45; cursor: default; }
 
-.fd-show-cc { position: absolute; left: 50%; bottom: 5%; z-index: var(--z-menu); max-width: min(88%, 1200px); padding: 0.28em 0.7em; border-radius: 6px; background: rgba(8, 8, 10, 0.8); color: #fff; font-size: 4.6cqh; font-weight: 500; line-height: 1.32; text-align: center; overflow-wrap: break-word; transform: translateX(-50%); pointer-events: none; }
-.fd-show-cc.is-top { top: 5%; bottom: auto; }
-.fd-show-cc.is-s { font-size: 3.4cqh; }
-.fd-show-cc.is-l { font-size: 6.4cqh; }
+.fd-show-cc { position: absolute; left: 50%; top: 0; z-index: var(--z-menu); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; overflow: hidden; color: #fff; font-weight: 500; line-height: 1.32; text-align: center; transform: translateX(-50%); pointer-events: none; }
+.fd-show-cc.is-start { justify-content: flex-start; }
+.fd-show-cc-line { flex: none; width: 100%; overflow-wrap: break-word; }
+.fd-show-cc-line > span { padding: 0.08em 0.6em; border-radius: 0.2em; background: rgba(8, 8, 10, 0.8); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.fd-show-cc-line.is-interim { color: rgba(255, 255, 255, 0.72); }
+.fd-show-cc-line.is-interim > span { background: rgba(8, 8, 10, 0.55); }
 .fd-show-ccset { display: grid; gap: 6px; padding: 4px 6px 6px; }
+.fd-cc-fields { display: grid; gap: var(--space-3); }
+.fd-cc-body { display: grid; gap: var(--space-3); }
+.fd-cc-body .fd-cc-fields .fd-seg button { white-space: nowrap; }
+.fd-cc-status { min-height: 2.9em; }
+.fd-cc-pack { display: flex; align-items: center; gap: var(--space-2); }
 .fd-show-ccrow { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--fd-12); }
 .fd-show-ccrow .fd-seg button { height: 24px; white-space: nowrap; }
-.fd-show-cclang { height: 28px; padding: 0 6px; }
+.fd-show-ccrow .fd-input { height: 28px; padding: 0 6px; }
+.fd-show-ccrow input[type="checkbox"] { justify-self: start; }
 
 .fd-show.is-recording { grid-template-rows: auto minmax(0, 1fr); }
 .fd-show.is-recording .fd-show-stage { grid-row: 2; }

@@ -7,7 +7,7 @@ import { mediaUrl, SlideView } from '../render/slide';
 import { el, patchList, q, reserve, setClass, setDisabled, setHidden, setHtml, setStyleVar, setText, setTitle } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
-import { Captions, CAPTION_LANGS, captionsSupported, type CaptionPrefs } from './captions';
+import { Captions, CaptionView, bindCaptionFields, captionFields, captionsSupported, type CapLine, type CaptionPrefs } from './captions';
 import { effectFx, morph, transitionPlan, type Box, type Dir } from './effects';
 import { mutedOf, preparePlayback, seekBookmark } from './media-play';
 import { Recorder } from './recorder';
@@ -21,7 +21,7 @@ type Mode = 'pointer' | 'pen' | 'eraser' | 'laser';
 type Blank = 'black' | 'white' | 'normal';
 type Msg =
   | { type: 'goto'; slide: string; step: number; end?: boolean; pos?: number }
-  | { type: 'cc'; on: boolean; text: string; prefs: CaptionPrefs }
+  | { type: 'cc'; on: boolean; lines: CapLine[]; prefs: CaptionPrefs }
   | { type: 'cc-toggle' }
   | { type: Blank }
   | { type: 'ink'; slide: string; strokes: Stroke[] }
@@ -72,12 +72,12 @@ const PAUSE_ICON = '<path d="M9 6v12M15 6v12"/>';
 const btn = (act: string, title: string, ic: string): string => `<button class="fd-icon-btn" type="button" data-act="${act}" title="${title}" aria-label="${title}">${ic}</button>`;
 const item = (act: string, label: string, keys = ''): string => `<button class="fd-menu-item" type="button" data-act="${act}"><span class="fd-menu-label">${label}</span><span class="fd-menu-keys">${keys}</span></button>`;
 const TOOLS = btn('pen', 'Pen (Ctrl+P)', icon('pen', 16)) + btn('laser', 'Laser pointer (L)', icon('laser', 16)) + btn('black', 'Black screen (B)', svg(BLANK_ICON, 16)) + btn('grid', 'All slides (G)', icon('grid', 16)) + btn('captions', 'Captions (J)', icon('captions', 16));
-const seg = (key: string, opts: Array<[string, string]>): string => `<div class="fd-seg is-quiet" data-cc="${key}">${opts.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}</div>`;
-const CC_SET = `<div class="fd-show-ccset"><div class="fd-show-ccrow"><span>Caption position</span>${seg('pos', [['bottom', 'Bottom'], ['top', 'Top']])}</div><div class="fd-show-ccrow"><span>Caption size</span>${seg('size', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']])}</div><label class="fd-show-ccrow"><span>Spoken language</span><select class="fd-input fd-show-cclang" aria-label="Spoken language" data-native>${CAPTION_LANGS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label></div>`;
+const CC_SET = '<div class="fd-show-ccset"></div>';
 
 const ROOT = `<div class="fd-show" tabindex="-1" role="application" aria-roledescription="slide show" aria-label="Slide show">
 <div class="fd-show-stage">
-<div class="fd-show-frame"><div class="fd-show-zoomwrap"><div class="fd-show-layer"></div><div class="fd-show-layer"></div><canvas class="fd-show-ink"></canvas></div><div class="fd-show-zoombox" hidden></div><div class="fd-show-laser" hidden></div><div class="fd-show-cc" aria-live="polite" hidden><span class="fd-show-cc-text"></span></div></div>
+<div class="fd-show-frame"><div class="fd-show-zoomwrap"><div class="fd-show-layer"></div><div class="fd-show-layer"></div><canvas class="fd-show-ink"></canvas></div><div class="fd-show-zoombox" hidden></div><div class="fd-show-laser" hidden></div></div>
+<div class="fd-show-cc" aria-live="polite" hidden><div class="fd-show-cc-line" hidden><span></span></div><div class="fd-show-cc-line" hidden><span></span></div></div>
 <div class="fd-show-stash" aria-hidden="true"></div>
 <div class="fd-show-blank" hidden></div>
 <div class="fd-show-end" hidden><span>End of slide show. Click to exit.</span></div>
@@ -298,11 +298,11 @@ class Show {
   private list: string[] | null = null;
   private pos = -1;
   private readonly rec: Recorder | null = null;
-  private readonly ccEl: HTMLElement;
-  private readonly ccTextEl: HTMLElement;
+  private readonly ccView: CaptionView;
+  private ccSync: ((p: CaptionPrefs) => void) | null = null;
   private cc: Captions | null = null;
   private ccOn = false;
-  private ccText = '';
+  private ccLines: CapLine[] = [];
   private ccPrefs: CaptionPrefs = Captions.prefs();
 
   constructor(private readonly opts: ShowOptions, private readonly audienceMode: boolean) {
@@ -336,8 +336,7 @@ class Show {
     try { this.nfs = clamp(Number(localStorage.getItem(NOTES_KEY)) || 18, 12, 44); } catch { this.nfs = 18; }
     setStyleVar(this.notes, '--notes-fs', `${this.nfs}px`);
     setClass(r, 'is-audience', audienceMode);
-    this.ccEl = q(r, '.fd-show-cc');
-    this.ccTextEl = q(r, '.fd-show-cc-text');
+    this.ccView = new CaptionView(q(r, '.fd-show-cc'));
     const pen = /^#[0-9a-f]{6}$/i.test(this.set.pen ?? '') ? (this.set.pen as string).toLowerCase() : '';
     if (pen) {
       this.pen = pen;
@@ -628,7 +627,7 @@ class Show {
     if (m.type === 'cc-toggle') { if (!this.audienceMode) this.toggleCaptions(); return; }
     this.remote = true;
     try {
-      if (m.type === 'cc') { this.applyPrefs(m.prefs, false); if (this.audienceMode) this.showCaption(m.on, m.text); }
+      if (m.type === 'cc') { this.applyPrefs(m.prefs, false); if (this.audienceMode) this.showCaption(m.on, m.lines); }
       else if (m.type === 'black' || m.type === 'white' || m.type === 'normal') this.setBlank(m.type);
       else if (m.type === 'ink') { this.ink.set(m.slide, m.strokes); if (m.slide === this.cur) this.drawInk(); }
       else if (m.type === 'laser') this.showLaser(m.on ? m.x : -1, m.y);
@@ -1254,8 +1253,9 @@ class Show {
   private layout(force = false): void {
     if (this.closed) return;
     const size = this.doc.deck.size;
-    const W = this.stage.clientWidth, H = this.stage.clientHeight;
-    if (W && H) {
+    const dock = this.ccView.dock(this.stage.clientHeight);
+    const W = this.stage.clientWidth, H = this.stage.clientHeight - dock.top - dock.bottom;
+    if (W && H > 0) {
       const k = Math.min(W / size.w, H / size.h);
       const fw = Math.round(size.w * k * 100) / 100, fh = Math.round(size.h * k * 100) / 100;
       if (force || k !== this.k || fw !== this.fw || fh !== this.fh) {
@@ -1270,6 +1270,7 @@ class Show {
         this.canvas.height = Math.max(1, Math.round(fh * dpr));
         this.drawInk();
       }
+      this.ccView.place(this.stage, this.fw, this.fh);
     }
     this.syncNext();
   }
@@ -1585,22 +1586,18 @@ class Show {
     }
     const box = q(this.root, '.fd-show-ccset');
     setHidden(box, !ok);
-    box.addEventListener('click', (e) => {
-      const b = (e.target as HTMLElement).closest<HTMLElement>('button[data-v]');
-      const key = b?.parentElement?.dataset.cc;
-      if (!b?.dataset.v || !key) return;
-      this.applyPrefs(key === 'pos' ? { ...this.ccPrefs, pos: b.dataset.v === 'top' ? 'top' : 'bottom' } : { ...this.ccPrefs, size: b.dataset.v === 's' ? 's' : b.dataset.v === 'l' ? 'l' : 'm' }, true);
-    });
-    const lang = q<HTMLSelectElement>(box, '.fd-show-cclang');
-    lang.addEventListener('change', () => this.applyPrefs({ ...this.ccPrefs, lang: lang.value }, true));
+    const fields = captionFields('fd-show-ccrow');
+    box.appendChild(fields);
+    this.ccSync = bindCaptionFields(fields, (p) => this.applyPrefs(p, true));
     this.syncCaptionUi();
+    if (!this.audienceMode) void Captions.load().then((p) => { if (!this.closed) this.applyPrefs(p, false); });
+    if (ok && !this.audienceMode && this.ccPrefs.always) window.setTimeout(() => { if (!this.closed && !this.ccOn) this.toggleCaptions(); }, 800);
   }
 
   private applyPrefs(p: CaptionPrefs, local: boolean): void {
-    const relang = p.lang !== this.ccPrefs.lang;
     this.ccPrefs = p;
     if (local) Captions.save(p);
-    if (relang && this.ccOn && this.cc) this.cc.setLang(p.lang);
+    if (this.ccOn) this.cc?.update(p);
     this.syncCaptionUi();
     if (local) this.postCaption();
   }
@@ -1611,45 +1608,36 @@ class Show {
     if (!captionsSupported()) { this.flash('Captions need Chrome or Edge', 3000); return; }
     if (this.ccOn) {
       this.cc?.stop();
-      this.showCaption(false, '');
+      this.showCaption(false, []);
     } else {
-      this.cc ??= new Captions((text) => { this.showCaption(true, text); this.postCaption(); }, (reason) => {
-        this.showCaption(false, '');
+      this.cc ??= new Captions((lines) => { this.showCaption(true, lines); this.postCaption(); }, (reason) => {
+        this.showCaption(false, []);
         this.flash(reason, 5000);
         this.postCaption();
         this.syncTools();
-      });
-      this.showCaption(true, '');
-      this.cc.start(this.ccPrefs.lang);
+      }, (text, ms) => this.flash(text, ms));
+      this.showCaption(true, []);
+      this.cc.start(this.ccPrefs);
       this.flash('Captions on. Your speech appears on the slide.', 2500);
     }
     this.postCaption();
     this.syncTools();
   }
 
-  private showCaption(on: boolean, text: string): void {
+  private showCaption(on: boolean, lines: CapLine[]): void {
     this.ccOn = on;
-    this.ccText = on ? text : '';
-    setText(this.ccTextEl, this.ccText);
-    setHidden(this.ccEl, !this.ccText);
+    this.ccLines = on ? lines : [];
     this.syncCaptionUi();
   }
 
   private postCaption(): void {
-    this.post({ type: 'cc', on: this.ccOn, text: this.ccText, prefs: this.ccPrefs });
+    this.post({ type: 'cc', on: this.ccOn, lines: this.ccLines, prefs: this.ccPrefs });
   }
 
   private syncCaptionUi(): void {
-    const p = this.ccPrefs;
-    setClass(this.ccEl, 'is-top', p.pos === 'top');
-    setClass(this.ccEl, 'is-s', p.size === 's');
-    setClass(this.ccEl, 'is-l', p.size === 'l');
-    for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('.fd-show-ccset button[data-v]'))) {
-      const key = b.parentElement?.dataset.cc;
-      setClass(b, 'is-on', b.dataset.v === (key === 'pos' ? p.pos : p.size));
-    }
-    const lang = this.root.querySelector<HTMLSelectElement>('.fd-show-cclang');
-    if (lang && lang.value !== p.lang) lang.value = p.lang;
+    if (this.ccView.set(this.ccOn, this.ccPrefs)) this.layout(true);
+    this.ccView.render(this.ccLines);
+    this.ccSync?.(this.ccPrefs);
     setText(this.more.querySelector('[data-act="captions"] .fd-menu-label'), this.ccOn ? 'Turn off captions' : 'Turn on captions');
   }
 
