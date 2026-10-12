@@ -65,7 +65,7 @@ const SHELL = `<div class="fd-app">
 <footer class="fd-status">
 <div class="fd-status-left"><span class="fd-st fd-st-slide"></span><span class="fd-st fd-st-save"><span class="fd-st-dot"></span><span class="fd-st-save-text"></span></span><span class="fd-st-hint"></span><span class="fd-st fd-st-agent" hidden>${icon('agent', 12)}<span></span></span></div>
 <div class="fd-status-right">
-<div class="fd-seg is-quiet" role="tablist"><button type="button" data-cmd="view-normal" title="Normal">${icon('slide', 14)}</button><button type="button" data-cmd="view-sorter" title="Slide sorter">${icon('sorter', 14)}</button><button type="button" data-cmd="view-outline" title="Outline">${icon('outline', 14)}</button><button type="button" data-cmd="present-current" title="Present">${icon('present', 14)}</button></div>
+<div class="fd-seg is-quiet" role="group" aria-label="Views"><button type="button" data-cmd="view-normal" title="Normal">${icon('slide', 14)}</button><button type="button" data-cmd="view-sorter" title="Slide sorter">${icon('sorter', 14)}</button><button type="button" data-cmd="view-outline" title="Outline">${icon('outline', 14)}</button><button type="button" data-cmd="present-current" title="Present">${icon('present', 14)}</button></div>
 <button class="fd-icon-btn" type="button" data-cmd="zoom-out" title="Zoom out">${icon('zoomOut', 14)}</button>
 <input class="fd-slider fd-zoom" type="range" min="10" max="400" value="100" aria-label="Zoom" style="width:96px">
 <button class="fd-icon-btn" type="button" data-cmd="zoom-in" title="Zoom in">${icon('zoomIn', 14)}</button>

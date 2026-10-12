@@ -755,7 +755,7 @@ class BgDlg extends Modal {
     this.d.scrim.classList.add('fd-scrim-through', 'fd-ins-side');
     const colorBtn = (k: string, label: string): string => `<div class="fd-field"><span>${label}</span><button class="fd-btn fd-ins-color" type="button" data-color="${k}"><span class="fd-swatch"></span><span class="fd-ins-color-name"></span>${icon('chevronDown', 12)}</button></div>`;
     this.root = el(`<div class="fd-bgdlg">
-<div class="fd-seg" data-f="kind" role="tablist" aria-label="Fill"><button type="button" data-k="solid">Solid</button><button type="button" data-k="gradient">Gradient</button><button type="button" data-k="image">Picture</button><button type="button" data-k="pattern">Pattern</button></div>
+<div class="fd-seg" data-f="kind" role="group" aria-label="Fill"><button type="button" data-k="solid">Solid</button><button type="button" data-k="gradient">Gradient</button><button type="button" data-k="image">Picture</button><button type="button" data-k="pattern">Pattern</button></div>
 <div class="fd-bgdlg-pane" data-pane="solid">${colorBtn('solid', 'Colour')}</div>
 <div class="fd-bgdlg-pane" data-pane="gradient" hidden>
 <div class="fd-field"><span>Type</span><div class="fd-seg" data-f="gkind"><button type="button" data-g="linear">Linear</button><button type="button" data-g="radial">Radial</button></div></div>

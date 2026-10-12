@@ -9,7 +9,7 @@ class LinkDialog extends Dialog {
   private ed: Editor | null = null;
   private range: Range | null = null;
   private kind: 'url' | 'slide' = 'url';
-  private readonly seg = el('<div class="fd-seg" role="tablist"><button type="button" data-k="url">Web address</button><button type="button" data-k="slide">Slide in this deck</button></div>');
+  private readonly seg = el('<div class="fd-seg" role="group" aria-label="Link to"><button type="button" data-k="url">Web address</button><button type="button" data-k="slide">Slide in this deck</button></div>');
   private readonly url = el<HTMLInputElement>('<input class="fd-input" type="url" placeholder="https://example.com" spellcheck="false" aria-label="Web address">');
   private readonly slide = el<HTMLSelectElement>('<select class="fd-input" aria-label="Slide"></select>');
   private readonly note = el('<p class="fd-note fd-link-note"></p>');

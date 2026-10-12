@@ -231,7 +231,7 @@ export class Home {
       });
     }
     const card = (t: TemplateSummary): HTMLElement => {
-      const n = el(`<button class="fd-card" type="button" data-template="${escapeHtml(t.id)}"><span class="fd-card-preview" data-tpl="${escapeHtml(t.id)}"></span><span class="fd-card-body"><span class="fd-card-name"></span><span class="fd-card-meta"></span></span></button>`);
+      const n = el(`<button class="fd-card" type="button" data-template="${escapeHtml(t.id)}"><span class="fd-card-preview" data-tpl="${escapeHtml(t.id)}" aria-hidden="true"></span><span class="fd-card-body"><span class="fd-card-name"></span><span class="fd-card-meta"></span></span></button>`);
       setText(n.querySelector('.fd-card-name'), t.name);
       setText(n.querySelector('.fd-card-meta'), `${t.category} · ${t.fonts.major}${t.fonts.minor !== t.fonts.major ? ` + ${t.fonts.minor}` : ''}`);
       const prev = n.querySelector('.fd-card-preview') as HTMLElement;
