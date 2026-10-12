@@ -1,6 +1,6 @@
 # FormDeck parity
 
-How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.7 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
+How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.8 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
 
 ## Method
 
@@ -20,14 +20,14 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.7
 | Masters and themes | 3 of 3 · 100% | 1 of 1 · 100% | 3 of 3 · 100% |
 | Text | 12 of 12 · 100% | 11 of 11 · 100% | 9 of 9 · 100% |
 | Shapes and drawing | 7 of 7 · 100% | 7 of 7 · 100% | 6 of 6 · 100% |
-| Pictures and media | 6.5 of 8 · 81% | 6.5 of 8 · 81% | 6.5 of 8 · 81% |
+| Pictures and media | 8 of 8 · 100% | 8 of 8 · 100% | 8 of 8 · 100% |
 | Tables | 3 of 3 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
 | Charts | 5 of 5 · 100% | 3 of 3 · 100% | 5 of 5 · 100% |
 | Diagrams and SmartArt | 2 of 2 · 100% | 1 of 1 · 100% | 1 of 1 · 100% |
 | Arrange and align | 7 of 7 · 100% | 7 of 7 · 100% | 5 of 5 · 100% |
 | Transitions | 3 of 3 · 100% | 3 of 3 · 100% | 2 of 2 · 100% |
 | Animations | 4 of 4 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
-| Slideshow and presenter | 7.5 of 9 · 83% | 7 of 7 · 100% | 7.5 of 9 · 83% |
+| Slideshow and presenter | 8 of 9 · 89% | 7 of 7 · 100% | 8 of 9 · 89% |
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Collaboration and sharing | 2 of 4 · 50% | 2 of 4 · 50% | 1 of 3 · 33% |
 | Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
@@ -35,9 +35,9 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.7
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Automation and agents | 2 of 3 · 67% | 1 of 1 · 100% | 2 of 3 · 67% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **97.5 of 104 · 93.8%** | **84 of 88 · 95.5%** | **81.5 of 88 · 92.6%** |
+| **Overall** | **99.5 of 104 · 95.7%** | **85.5 of 88 · 97.2%** | **83.5 of 88 · 94.9%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 103 full, 5 partial and 4 none: 105.5 of 112 points, 94.2%.
+Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 106 full, 3 partial and 3 none: 107.5 of 112 points, 96.0%.
 
 ## Where FormDeck leads
 
@@ -50,10 +50,11 @@ Rows FormDeck implements that the product does not offer:
 
 ## Where FormDeck trails most
 
-- **Collaboration and sharing, 1.5 of 4.** Windows and agents co-edit live on one computer; there are no share links, no publishing to the web and no co-editing across machines.
-- **Diagrams and SmartArt, 1 of 2.** The compiler draws timelines, processes, teams and stats from a script and Insert > Icons has 5,817 icons, but there is no SmartArt editor and no 3-D models.
-- **Accessibility, 2 of 4 against PowerPoint.** Check Deck and the reading order view work; the window's own screen reader labels are incomplete and exported PDFs are untagged.
-- **Pictures and the rest.** No stock photos or AI pictures, no bevel or 3-D text, no charts linked to a live workbook, no fonts embedded in .pptx, no tagged PDF, and captions need Chrome or Edge.
+- **Collaboration and sharing, 2 of 4 against PowerPoint.** Windows and agents co-edit live on one computer and Publish as Web Page writes a self-contained player, but there are no share links, no hosted publishing and no co-editing across machines. All three need the engine to accept connections from other computers, which waits on the owner's approval.
+- **Slideshow and presenter, 8 of 9.** Presenting to a remote audience with Q&A is missing, for the same reason.
+- **Accessibility, 3.5 of 4 against PowerPoint.** Exported PDFs are tagged with a structure tree, but the text is an invisible layer over the slide picture and has not been checked with a PDF/UA validator.
+- **Automation, 2 of 3.** Macros and agents cover scripting; there is no add-in marketplace.
+- **Smaller limits.** Subtitles need Chrome or Edge; stock images are pictures only (no video or stickers); AI pictures need an OpenAI key or a compatible image server.
 
 Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Slide Clean Up layout suggestions, PowerPoint Speaker Coach, a live camera on slides (PowerPoint Cameo, Keynote live video), nonlinear zoom and linked navigation (PowerPoint Zoom, Keynote linked objects), and Keynote's multipresenter and FaceTime presenting.
 
@@ -131,8 +132,8 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Insert pictures by file, drop or paste | yes | yes | yes | Full | `editor/editor.ts pickImage, insertFiles`, `app.ts` paste and drop |
 | Crop and crop to shape | yes | yes | yes | Full | `inspector.ts` Crop (left, right, top, bottom), Fit (fill, fit, stretch) and Shape mask (square, round, circle); no drag crop handles |
 | Picture adjustments | yes | yes | yes | Full | `inspector.ts` Brightness, Contrast, Saturation, Blur, Grayscale and Reset picture |
-| Generate or edit pictures with AI | yes | yes | yes | None | nothing found |
-| Stock pictures and icons library | yes | yes | yes | Partial | `ui/dialogs-icons.ts IconsDlg` offline library of 5,817 icons with search, categories and recents; no stock photos |
+| Generate or edit pictures with AI | yes | yes | yes | Full | Insert > Generate with AI and Picture Format > Edit with AI (`ui/dialogs-ai-image.ts`, `services/ai_images.py`): variants, shape, style, masked edits and Remove background through an OpenAI-compatible images API with the user's key or a local server, one undo step; checked against a stand-in server, no real model called |
+| Stock pictures and icons library | yes | yes | yes | Full | `ui/dialogs-icons.ts IconsDlg` offline library of 5,817 icons; Insert > Stock Images (`ui/dialogs-stock.ts`, `services/stock.py`): Openverse photos and illustrations with licence, shape and kind filters, credit kept in alt text, notes and media; checked against replayed responses, the live API not called from here; no stock video or stickers |
 | Video and audio with start, end, loop and autoplay | yes | yes | yes | Full | `editor/media-panel.ts MediaPanel`, `ui/dialogs-media.ts MediaDlg` (trim, frame stepping, poster frame, bookmarks), `present/media-play.ts preparePlayback` (fades, volume, mute, rewind, hide, full screen), `show.ts stepsFor` (click sequence), `pptx/write_media.py media_settings` and `read_media.py` (p14:trim, p14:fade, p14:bmkLst, vol, mute, repeatCount, fill, fullScrn) |
 | Animated GIFs | yes | yes | yes | Full | rendered as images; `pptx/write_context.py NATIVE_IMAGE_MIMES` keeps GIF bytes |
 | Alt text | yes | yes | yes | Full | `dialogs-insert.ts AltDlg`, `inspector.ts` Alt text |
@@ -201,7 +202,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Black or white screen, all-slides grid | yes | yes | yes | Full | `show.ts setBlank, toggleGrid` |
 | Rehearse timings and automatic advance | yes | yes | yes | Full | `show.ts toggleRehearse, keepTimings, toggleAuto` |
 | Record the show with narration | yes | yes | yes | Full | `present/recorder.ts Recorder` (per-slide narration, timings, retake), `pptx/write_media.py write_audio`, `write_anim.py _media_entries` (autoplay audio) |
-| Live captions and subtitles | yes | no | yes | Partial | `present/captions.ts Captions` (Web Speech, Chrome and Edge only), `show.ts toggleCaptions` synced to the audience window; no translation |
+| Live captions and subtitles | yes | no | yes | Full | `present/captions.ts Captions` (Web Speech, Chrome and Edge only), `show.ts toggleCaptions` synced to the audience window; Subtitle Settings (`ui/dialogs-captions.ts`): spoken and subtitle language, four positions, size, always on; translation per phrase by Chrome's on-device Translator or the chat model (`present/caption-translate.ts`, `routers/captions.py`), checked with stubbed speech, translator and model |
 | Loop until Esc and custom shows | yes | yes | yes | Full | `present/show-dialogs.ts SetupShowDialog, CustomShowsDialog`, `show.ts playlist`, `pptx/show_props.py write_show, read_show` |
 | Present to a remote audience with Q&A | yes | no | yes | None | nothing found |
 
