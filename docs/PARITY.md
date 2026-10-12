@@ -1,6 +1,6 @@
 # FormDeck parity
 
-How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.1 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1; no row moved from 0.7.1 to 0.8.1). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
+How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.2 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2; no row moved from 0.7.1 to 0.8.2). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
 
 ## Method
 
