@@ -67,6 +67,7 @@
 .fd-overlay { position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: visible; pointer-events: none; }
 .fd-sel { position: absolute; box-sizing: border-box; border: 1px solid var(--fd-sel); pointer-events: none; transform-origin: 50% 50%; }
 .fd-sel.is-multi { border-style: dashed; }
+.fd-sel.is-parent { border-style: dashed; border-color: color-mix(in srgb, var(--fd-sel) 55%, transparent); }
 .fd-sel.is-editing { border-color: color-mix(in srgb, var(--fd-sel) 70%, transparent); border-style: dashed; }
 .fd-hover-box { position: absolute; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--fd-sel) 60%, transparent); pointer-events: none; }
 .fd-handle { position: absolute; width: var(--fd-handle); height: var(--fd-handle); margin: calc(var(--fd-handle) / -2) 0 0 calc(var(--fd-handle) / -2); border: 1px solid var(--fd-sel); border-radius: 2px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); pointer-events: auto; touch-action: none; }

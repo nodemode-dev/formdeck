@@ -10,7 +10,7 @@ import { anyDialogOpen } from '../ui/dialogs';
 import { el as html, setClass, setHidden, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import type { Editor } from './editor';
-import { bounds, dirtyOp, fillPlaceholderOps, setFrameOps } from './actions';
+import { bounds, dirtyOp, fillPlaceholderOps, groupChain, refitGroupOps, setFrameOps } from './actions';
 import { clearCellsOps, fitFrameOps, insertRowOps } from './table-edit';
 import type { ConnEnd, ConnKind, Connection, ShapeElement } from '../engine/model';
 import { connectorMid, lineEnds, nearestSite, routeConnector, slideToLocal, type Site } from '../engine/geometry/connectors';
@@ -21,7 +21,7 @@ import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
 
 type Drag =
-  | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean; edit?: { id: string; x: number; y: number } }
+  | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean; edit?: { id: string; x: number; y: number }; pick?: string }
   | { kind: 'resize'; id: string; h: string; f0: Frame; rot: number; aspect: number; x0: number; y0: number }
   | { kind: 'rotate'; id: string; cx: number; cy: number }
   | { kind: 'adjust'; id: string; index: number; key: string; f: Frame }
@@ -235,8 +235,13 @@ export class Stage {
     if (this.cells && !(sel.length === 1 && sel[0] === this.cells.el)) this.cells = null;
     const parts: string[] = [];
     if (slide && this.view) {
-      const els = sel.map((id) => slide.elements.find((e) => e.id === id)).filter((e): e is SlideElement => !!e);
+      const els = sel.map((id) => this.ed.element(id)).filter((e): e is SlideElement => !!e);
       const k = this.k;
+      const parents = new Set(els.flatMap((el) => groupChain(slide.elements, el.id).slice(-1)).filter((g) => !sel.includes(g.id)));
+      for (const g of parents) {
+        const f = this.frameOf(g);
+        parts.push(`<div class="fd-sel is-parent" style="left:${this.ox + f.x * k}px;top:${this.oy + f.y * k}px;width:${f.w * k}px;height:${f.h * k}px"></div>`);
+      }
       for (const el of els) {
         if (this.points?.id === el.id || (els.length === 1 && isLineLike(this.ed.doc.deck, slide, el))) continue;
         const f = this.frameOf(el);
@@ -280,7 +285,7 @@ export class Stage {
       for (const p of this.ed.peers.values()) {
         if (p.slide !== this.ed.current) continue;
         for (const id of p.sel ?? []) {
-          const el = slide.elements.find((e) => e.id === id);
+          const el = this.ed.element(id);
           if (!el) continue;
           const f = this.frameOf(el);
           parts.push(`<div class="fd-presence" style="--peer:${p.color};left:${this.ox + f.x * k - 2}px;top:${this.oy + f.y * k - 2}px;width:${f.w * k + 4}px;height:${f.h * k + 4}px"><span class="fd-presence-name">${p.name}</span></div>`);
@@ -317,8 +322,18 @@ export class Stage {
 
   private hitElement(target: EventTarget | null): { id: string | null; ph: string | null; node: HTMLElement | null } {
     const t = target as HTMLElement | null;
-    const node = t?.closest?.('.fd-layer-content > .fd-el') as HTMLElement | null;
-    if (!node) return { id: null, ph: null, node: null };
+    let node = t?.closest?.('.fd-layer-content > .fd-el') as HTMLElement | null;
+    if (!node || !t) return { id: null, ph: null, node: null };
+    const sel = this.ed.selection;
+    while (node.classList.contains('fd-grp')) {
+      const group: HTMLElement = node;
+      let inner = t.closest('.fd-el') as HTMLElement | null;
+      while (inner && inner !== group && inner.parentElement?.closest('.fd-el') !== group) inner = inner.parentElement?.closest('.fd-el') as HTMLElement | null;
+      if (!inner || inner === group) break;
+      const active = sel.some((id) => id === group.dataset.id || !!group.querySelector(`[data-id="${CSS.escape(id)}"]`));
+      if (!active) break;
+      node = inner;
+    }
     return { id: node.dataset.id || null, ph: node.dataset.ph || null, node };
   }
 
@@ -338,7 +353,7 @@ export class Stage {
       if (this.editing) this.endEdit();
       const frames = new Map<string, Frame>();
       for (const id of this.ed.selection) {
-        const el = slide.elements.find((x) => x.id === id);
+        const el = this.ed.element(id);
         if (el && !el.locked) frames.set(id, this.frameOf(el));
       }
       const p = this.toSlide(e);
@@ -348,7 +363,7 @@ export class Stage {
     if (handle) {
       e.preventDefault();
       const id = this.ed.selection[0];
-      const el = slide.elements.find((x) => x.id === id);
+      const el = this.ed.element(id);
       if (!el) return;
       const f = this.frameOf(el);
       const h = handle.dataset.h ?? '';
@@ -423,19 +438,20 @@ export class Stage {
       }
       const add = e.shiftKey || e.metaKey || e.ctrlKey;
       let sel = this.ed.selection;
-      const hitEl = slide.elements.find((x) => x.id === hit.id);
+      const hitEl = this.ed.element(hit.id);
+      const drill = !add && !sel.includes(hit.id) && groupChain(slide.elements, hit.id).some((g) => sel.includes(g.id));
       const textual = hitEl?.type === 'shape' && !hitEl.locked && (!!hitEl.ph || !!hitEl.text);
-      const clickEdit = !add && textual && (!!hitEl?.ph || (sel.length === 1 && sel[0] === hit.id));
+      const clickEdit = !add && !drill && textual && (!!hitEl?.ph || (sel.length === 1 && sel[0] === hit.id));
       if (add) sel = sel.includes(hit.id) ? sel.filter((x) => x !== hit.id) : [...sel, hit.id];
-      else if (!sel.includes(hit.id)) sel = [hit.id];
+      else if (!drill && !sel.includes(hit.id)) sel = [hit.id];
       this.ed.select(sel);
-      if (tc && sel.length === 1) this.setCells(hit.id, tc.r, tc.c, tc.r, tc.c, false);
+      if (tc && sel.length === 1 && !drill) this.setCells(hit.id, tc.r, tc.c, tc.r, tc.c, false);
       const frames = new Map<string, Frame>();
       for (const id of sel) {
-        const el = slide.elements.find((x) => x.id === id);
+        const el = this.ed.element(id);
         if (el && !el.locked) frames.set(id, this.frameOf(el));
       }
-      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined };
+      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined, pick: drill ? hit.id : undefined };
       return;
     }
     e.preventDefault();
@@ -475,7 +491,7 @@ export class Stage {
     if (!slide) return;
     const deck = this.ed.doc.deck;
     if (d.kind === 'end' || d.kind === 'mid') {
-      const el = slide.elements.find((x) => x.id === d.id);
+      const el = this.ed.element(d.id);
       if (!el || el.type !== 'shape') return;
       if (d.kind === 'mid') {
         const xf = xfOf(deck, slide, el);
@@ -531,7 +547,7 @@ export class Stage {
       const sdy = dy + snapped.dy;
       this.guides = snapped.guides;
       for (const [id, f] of d.frames) {
-        const el = slide.elements.find((x) => x.id === id);
+        const el = this.ed.element(id);
         this.pendingOps.set(id, { ...f, x: f.x + sdx, y: f.y + sdy, rot: el?.rot });
       }
       this.tip = { x: e.clientX - this.root.getBoundingClientRect().left, y: e.clientY - this.root.getBoundingClientRect().top + 14, text: `${Math.round(b.x + sdx)}, ${Math.round(b.y + sdy)}` };
@@ -539,7 +555,7 @@ export class Stage {
       return;
     }
     if (d.kind === 'resize') {
-      const el = slide.elements.find((x) => x.id === d.id);
+      const el = this.ed.element(d.id);
       if (!el) return;
       const corner = ['nw', 'ne', 'se', 'sw'].includes(d.h);
       const f = this.resized(d, p, el.type === 'image' && corner ? !e.shiftKey : e.shiftKey, e.altKey);
@@ -549,7 +565,7 @@ export class Stage {
       return;
     }
     if (d.kind === 'rotate') {
-      const el = slide.elements.find((x) => x.id === d.id);
+      const el = this.ed.element(d.id);
       if (!el) return;
       let ang = (Math.atan2(p.y - d.cy, p.x - d.cx) * 180) / Math.PI + 90;
       if (e.shiftKey) ang = Math.round(ang / 15) * 15;
@@ -562,7 +578,7 @@ export class Stage {
       return;
     }
     if (d.kind === 'adjust') {
-      const el = slide.elements.find((x) => x.id === d.id);
+      const el = this.ed.element(d.id);
       if (!el || el.type !== 'shape') return;
       const c = chain(deck, slide, el);
       const g = presetGeometry(geomOf(c), Math.max(1, d.f.w), Math.max(1, d.f.h), adjOf(c));
@@ -624,8 +640,9 @@ export class Stage {
     type Cand = { at: number; from: number; to: number; quiet?: boolean };
     const vx: Cand[] = prefs.smart ? [{ at: 0, from: 0, to: deck.size.h }, { at: deck.size.w / 2, from: 0, to: deck.size.h }, { at: deck.size.w, from: 0, to: deck.size.h }] : [];
     const hy: Cand[] = prefs.smart ? [{ at: 0, from: 0, to: deck.size.w }, { at: deck.size.h / 2, from: 0, to: deck.size.w }, { at: deck.size.h, from: 0, to: deck.size.w }] : [];
+    const holders = new Set(Array.from(moving).flatMap((id) => groupChain(slide?.elements ?? [], id).map((g) => g.id)));
     for (const el of prefs.smart ? slide?.elements ?? [] : []) {
-      if (moving.has(el.id) || el.hidden) continue;
+      if (moving.has(el.id) || holders.has(el.id) || el.hidden) continue;
       const f = this.frameOf(el);
       for (const x of [f.x, f.x + f.w / 2, f.x + f.w]) vx.push({ at: x, from: Math.min(f.y, b.y), to: Math.max(f.y + f.h, b.y + b.h) });
       for (const y of [f.y, f.y + f.h / 2, f.y + f.h]) hy.push({ at: y, from: Math.min(f.x, b.x), to: Math.max(f.x + f.w, b.x + b.w) });
@@ -658,11 +675,14 @@ export class Stage {
     const slide = this.slide();
     if (!slide || !this.pendingOps.size) { this.drawOverlay(); return; }
     const ops = [];
+    const kids = new Map<string, Frame>();
     for (const [id, f] of this.pendingOps) {
-      const el = slide.elements.find((x) => x.id === id);
+      const el = this.ed.element(id);
       if (el) ops.push(...setFrameOps(this.ed.doc.deck, slide, el, f));
+      if (el && !slide.elements.includes(el)) kids.set(id, { x: f.x, y: f.y, w: f.w, h: f.h });
     }
     this.pendingOps.clear();
+    if (kids.size) ops.push(...refitGroupOps(slide, kids));
     if (ops.length) this.ed.apply([...ops, ...dirtyOp(slide)], label, coalesce);
     this.drawOverlay();
   }
@@ -680,6 +700,7 @@ export class Stage {
     this.marquee = null;
     this.tip = null;
     this.drawOverlay();
+    if (d.kind === 'move' && !d.moved && d.pick) this.ed.select([d.pick]);
     if (d.kind === 'move' && !d.moved && d.edit && this.editing !== d.edit.id) {
       const go = d.edit;
       requestAnimationFrame(() => this.beginEdit(go.id, { x: go.x, y: go.y }));
@@ -887,7 +908,7 @@ export class Stage {
 
   fitRows(id: string, label: string, coalesce?: string): void {
     const slide = this.slide();
-    const el = slide?.elements.find((x) => x.id === id);
+    const el = this.ed.element(id);
     if (!slide || !el || el.type !== 'table' || this.editing === id) return;
     const ops = this.growOps(slide, el);
     if (ops.length) this.ed.apply([...ops, ...dirtyOp(slide)], label, coalesce);

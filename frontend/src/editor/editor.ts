@@ -2,14 +2,14 @@ import type { DeckDoc, DocEvent } from '../engine/doc';
 import type { Layout, Para, PhType, Slide, SlideElement } from '../engine/model';
 import { elPath, setHolderResolver, slidePath, type Op } from '../engine/ops';
 import { BODY_PH, displayElement, holderKindOf, holderOf, holderOps, holderParas, masterPlaceholder, type Holder, type HolderKind } from '../engine/holders';
-import { masterOf, TITLE_KINDS } from '../engine/resolve';
+import { masterOf, TITLE_KINDS, type Frame } from '../engine/resolve';
 import { api } from '../io/api';
 import type { LiveClient } from '../live/socket';
 import type { Commands } from '../ui/commands';
 import type { MenuItem, PopupMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import { setText } from '../ui/dom';
-import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, resolvedFrame } from './actions';
+import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, refitGroupOps, resolvedFrame, setFrameOps } from './actions';
 import { Filmstrip } from './filmstrip';
 import { remapCopies } from './connectors';
 import { layoutMenuItems } from './master-view';
@@ -89,8 +89,7 @@ export class Editor {
     }
     const slide = this.slide;
     if (slide) {
-      const ids = new Set(slide.elements.map((x) => x.id));
-      const sel = this.selection.filter((id) => ids.has(id));
+      const sel = this.selection.filter((id) => !!this.element(id));
       if (sel.length !== this.selection.length) this.selection = sel;
     }
     this.slideSel = this.slideSel.filter((id) => deck.slides.some((s) => s.id === id));
@@ -147,9 +146,10 @@ export class Editor {
   selected(): SlideElement[] {
     const s = this.slide;
     if (!s) return [];
+    if (this.holderKind === 'slide') return this.selection.map((id) => this.element(id)).filter((e): e is SlideElement => !!e);
     const els = this.selection.map((id) => s.elements.find((e) => e.id === id)).filter((e): e is SlideElement => !!e);
     const h = this.holder;
-    if (this.holderKind === 'slide' || !h) return els;
+    if (!h) return els;
     return els.map((e) => displayElement(this.doc.deck, this.holderKind, h, e));
   }
 
@@ -441,12 +441,15 @@ export class Editor {
     const s = this.slide;
     if (!s) return;
     const ops: Op[] = [];
+    const kids = new Map<string, Frame>();
     for (const e of this.selected()) {
       if (e.locked) continue;
       const f = resolvedFrame(this.doc.deck, s, e);
-      ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'x'], value: Math.round((f.x + dx) * 100) / 100 }, { op: 'set', path: [...elPath(s.id, e.id), 'y'], value: Math.round((f.y + dy) * 100) / 100 });
-      if (e.w === undefined) ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'w'], value: f.w }, { op: 'set', path: [...elPath(s.id, e.id), 'h'], value: f.h });
+      const to = { x: f.x + dx, y: f.y + dy, w: f.w, h: f.h };
+      ops.push(...setFrameOps(this.doc.deck, s, e, to));
+      if (!s.elements.includes(e)) kids.set(e.id, to);
     }
+    if (kids.size) ops.push(...refitGroupOps(s, kids));
     this.apply([...ops, ...dirtyOp(s)], 'Nudge', 'nudge');
   }
 

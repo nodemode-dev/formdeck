@@ -147,7 +147,7 @@ Every element has:
 
 **table**: `table` (below). **chart**: `chart` (below).
 
-**group**: `children`, elements whose frames are in slide coordinates. The group's frame is their bounds.
+**group**: `children`, elements whose frames are in slide coordinates. The group's frame is their bounds; editors refit it in the same step when a child moves, resizes or is deleted, and delete the group when its last child goes.
 
 **media**: `src` (media id), `kind` (`video` or `audio`), `poster` (an image media id: the frame shown in the editor, in thumbnails and exports, and in the show before the video plays), `autoplay`, `loop`, `start`, `end` (seconds), `volume` 0 to 1, `hideInShow` (the icon or frame is not drawn in the show or in video and GIF exports, as PowerPoint's Hide During Show), `narration` (recorded by Record Slide Show: audio that plays when its slide starts unless the show is set to play without narration, removed by Clear Narration).
 
@@ -276,7 +276,7 @@ Built-in templates ship as code (`backend/app/services/templates/`), are generat
 
 ## Ops
 
-Every change to a deck is a list of ops applied in order. Paths are arrays of keys and indexes into deck.json; elements and slides are addressed by id with the `{ "id": "..." }` step so a path survives reordering.
+Every change to a deck is a list of ops applied in order. Paths are arrays of keys and indexes into deck.json; elements and slides are addressed by id with the `{ "id": "..." }` step so a path survives reordering. An `{ "id": "..." }` step that finds no item at its level looks inside the `children` of groups at that level, nested groups included, so `["slides", { "id": "s3" }, "elements", { "id": "e7" }, "x"]` reaches e7 inside a group as well. `del`, `ins` and `move` act on the list the path names; to remove a child, name the group's `children` list.
 
 ```json
 { "op": "set", "path": ["slides", { "id": "s3" }, "elements", { "id": "e4" }, "x"], "value": 120 }

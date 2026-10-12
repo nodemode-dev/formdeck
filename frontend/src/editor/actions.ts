@@ -124,7 +124,28 @@ export function addElementOps(doc: DeckDoc, slide: Slide, el: Omit<SlideElement,
 }
 
 export function deleteElementOps(slide: Slide, ids: string[]): Op[] {
-  return [...ids.filter((id) => slide.elements.some((e) => e.id === id)).map((id) => ({ op: 'del', path: [...slidePath(slide.id), 'elements'], id }) as Op), ...dirtyOp(slide)];
+  const gone = new Set(ids);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const id of Array.from(gone)) {
+      const gs = groupChain(slide.elements, id);
+      const parent = gs[gs.length - 1];
+      if (parent && !gone.has(parent.id) && parent.children.every((c) => gone.has(c.id))) { gone.add(parent.id); grew = true; }
+    }
+  }
+  const ops: Op[] = [];
+  const kept = new Map<string, Frame>();
+  for (const id of gone) {
+    if (slide.elements.some((e) => e.id === id)) { ops.push({ op: 'del', path: [...slidePath(slide.id), 'elements'], id }); continue; }
+    const gs = groupChain(slide.elements, id);
+    if (!gs.length || gs.some((g) => gone.has(g.id))) continue;
+    const parent = gs[gs.length - 1];
+    ops.push({ op: 'del', path: [...elPath(slide.id, parent.id), 'children'], id });
+    const sib = parent.children.find((c) => !gone.has(c.id));
+    if (sib) kept.set(sib.id, { x: sib.x ?? 0, y: sib.y ?? 0, w: sib.w ?? 0, h: sib.h ?? 0 });
+  }
+  return [...ops, ...refitGroupOps(slide, kept, gone), ...dirtyOp(slide)];
 }
 
 export function fillPlaceholderOps(doc: DeckDoc, slide: Slide, layoutElId: string): { ops: Op[]; id: string } | null {
@@ -219,6 +240,31 @@ export function groupOps(doc: DeckDoc, slide: Slide, ids: string[]): { ops: Op[]
   const ops: Op[] = els.map((e) => ({ op: 'del', path: [...slidePath(slide.id), 'elements'], id: e.id }) as Op);
   ops.push({ op: 'ins', path: [...slidePath(slide.id), 'elements'], index: Math.max(0, at), value: { id, type: 'group', name: 'Group', ...b, children } });
   return { ops: [...ops, ...dirtyOp(slide)], id };
+}
+
+export function groupChain(list: SlideElement[], id: string): Array<Extract<SlideElement, { type: 'group' }>> {
+  for (const e of list) {
+    if (e.type !== 'group') continue;
+    if (e.children.some((c) => c.id === id)) return [e];
+    const inner = groupChain(e.children, id);
+    if (inner.length) return [e, ...inner];
+  }
+  return [];
+}
+
+export function refitGroupOps(slide: Slide, frames: Map<string, Frame>, gone: Set<string> = new Set()): Op[] {
+  const known = new Map(frames);
+  const found = new Map<string, { g: Extract<SlideElement, { type: 'group' }>; d: number }>();
+  for (const id of frames.keys()) groupChain(slide.elements, id).forEach((g, d) => found.set(g.id, { g, d }));
+  const order = Array.from(found.values()).sort((a, b) => b.d - a.d).map((x) => x.g);
+  const r2 = (v: number): number => Math.round(v * 100) / 100;
+  const ops: Op[] = [];
+  for (const g of order) {
+    const b = bounds(g.children.filter((c) => !gone.has(c.id)).map((c) => known.get(c.id) ?? { x: c.x ?? 0, y: c.y ?? 0, w: c.w ?? 0, h: c.h ?? 0 }));
+    known.set(g.id, b);
+    for (const k of ['x', 'y', 'w', 'h'] as const) if (g[k] !== r2(b[k])) ops.push({ op: 'set', path: [...elPath(slide.id, g.id), k], value: r2(b[k]) });
+  }
+  return ops;
 }
 
 export function ungroupOps(slide: Slide, ids: string[]): { ops: Op[]; ids: string[] } {
