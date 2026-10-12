@@ -53,7 +53,7 @@ export class Inspector {
 
   constructor(host: HTMLElement) {
     this.format = el(`<div class="fd-insp">
-<div class="fd-prop-section" data-s="none"><div class="fd-empty"><span class="fd-empty-icon">${icon('cursor', 22)}</span><div class="fd-empty-title">Nothing selected</div><div class="fd-empty-note">Select an object on the slide to format it. Double-click text to type.</div></div></div>
+<div class="fd-prop-section" data-s="none"><div class="fd-empty"><span class="fd-empty-icon">${icon('cursor', 22)}</span><div class="fd-empty-title">Nothing selected</div><div class="fd-empty-note">Select an object on the slide to format it. Click text to type.</div></div></div>
 <div class="fd-prop-section" data-s="frame"><div class="fd-panel-head"><span class="fd-panel-title">Position and size</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Position</span><div class="fd-prop-ctl fd-pair">${num('x', 'X')}${num('y', 'Y')}</div></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Size</span><div class="fd-prop-ctl fd-pair">${num('w', 'W')}${num('h', 'H')}</div></div>

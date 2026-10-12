@@ -21,7 +21,7 @@ import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
 
 type Drag =
-  | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean }
+  | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean; edit?: { id: string; x: number; y: number } }
   | { kind: 'resize'; id: string; h: string; f0: Frame; rot: number; aspect: number; x0: number; y0: number }
   | { kind: 'rotate'; id: string; cx: number; cy: number }
   | { kind: 'adjust'; id: string; index: number; key: string; f: Frame }
@@ -423,6 +423,9 @@ export class Stage {
       }
       const add = e.shiftKey || e.metaKey || e.ctrlKey;
       let sel = this.ed.selection;
+      const hitEl = slide.elements.find((x) => x.id === hit.id);
+      const textual = hitEl?.type === 'shape' && !hitEl.locked && (!!hitEl.ph || !!hitEl.text);
+      const clickEdit = !add && textual && (!!hitEl?.ph || (sel.length === 1 && sel[0] === hit.id));
       if (add) sel = sel.includes(hit.id) ? sel.filter((x) => x !== hit.id) : [...sel, hit.id];
       else if (!sel.includes(hit.id)) sel = [hit.id];
       this.ed.select(sel);
@@ -432,7 +435,7 @@ export class Stage {
         const el = slide.elements.find((x) => x.id === id);
         if (el && !el.locked) frames.set(id, this.frameOf(el));
       }
-      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false };
+      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined };
       return;
     }
     e.preventDefault();
@@ -677,6 +680,10 @@ export class Stage {
     this.marquee = null;
     this.tip = null;
     this.drawOverlay();
+    if (d.kind === 'move' && !d.moved && d.edit && this.editing !== d.edit.id) {
+      const go = d.edit;
+      requestAnimationFrame(() => this.beginEdit(go.id, { x: go.x, y: go.y }));
+    }
   }
 
   private dbl(e: MouseEvent): void {
@@ -713,7 +720,10 @@ export class Stage {
     this.editing = id;
     this.editOriginal = structuredClone(el);
     if (this.view) this.view.editingId = id;
-    node.querySelector('.fd-prompt')?.classList.remove('fd-prompt');
+    const prompt = node.querySelector<HTMLElement>('.fd-prompt');
+    const promptRun = prompt?.querySelector<HTMLElement>('.fd-r') ?? null;
+    prompt?.classList.remove('fd-prompt');
+    if (promptRun) promptRun.replaceChildren(document.createElement('br'));
     flow.contentEditable = 'true';
     flow.spellcheck = true;
     document.execCommand('defaultParagraphSeparator', false, 'p');
@@ -721,7 +731,11 @@ export class Stage {
     flow.focus({ preventScroll: true });
     const sel = window.getSelection();
     let range: Range | null = null;
-    if (at && 'caretRangeFromPoint' in document) range = (document as Document & { caretRangeFromPoint(x: number, y: number): Range | null }).caretRangeFromPoint(at.x, at.y);
+    if (promptRun) {
+      range = document.createRange();
+      range.setStart(promptRun, 0);
+      range.collapse(true);
+    } else if (at && 'caretRangeFromPoint' in document) range = (document as Document & { caretRangeFromPoint(x: number, y: number): Range | null }).caretRangeFromPoint(at.x, at.y);
     if (!range || !flow.contains(range.startContainer)) {
       range = document.createRange();
       range.selectNodeContents(flow);

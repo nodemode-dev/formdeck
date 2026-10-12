@@ -191,7 +191,7 @@ export async function startApp(): Promise<void> {
     setClass(status.dot, 'is-ok', live.connected && !ed.doc.hasPending);
     setClass(status.dot, 'is-warn', !live.connected);
     const sel = ed.selected();
-    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : sel.length ? `${sel.length} selected · Shift-drag keeps proportions, Alt-drag skips snapping` : 'Double-click a placeholder to type. Drop pictures anywhere.');
+    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : sel.length ? `${sel.length} selected · Shift-drag keeps proportions, Alt-drag skips snapping` : 'Click a placeholder to type. Drop pictures anywhere.');
   }
 
   live.onNotice = (t, k) => toast(t, k);
@@ -370,6 +370,25 @@ export async function startApp(): Promise<void> {
       if (e.key === 'Enter' && ed.selection.length === 1) {
         const one = ed.selected()[0];
         if (one.type === 'shape') { e.preventDefault(); ed.stage.beginEdit(one.id); return; }
+      }
+      if (e.key === 'Tab' && (t === document.body || !!t.closest?.('.fd-stage'))) {
+        const els = (ed.slide?.elements ?? []).filter((x) => !x.hidden);
+        if (els.length) {
+          e.preventDefault();
+          const at = ed.selection.length ? els.findIndex((x) => x.id === ed.selection[ed.selection.length - 1]) : -1;
+          const next = at < 0 ? (e.shiftKey ? els.length - 1 : 0) : (at + (e.shiftKey ? -1 : 1) + els.length) % els.length;
+          ed.select([els[next].id]);
+          return;
+        }
+      }
+      if (e.key.length === 1 && ed.selection.length === 1) {
+        const one = ed.selected()[0];
+        if ((one.type === 'shape' || one.type === 'table') && !one.locked) {
+          e.preventDefault();
+          ed.stage.beginEdit(one.id);
+          if (ed.stage.editing === one.id) document.execCommand('insertText', false, e.key);
+          return;
+        }
       }
       if (e.key === 'Home') { e.preventDefault(); const s = ed.doc.deck.slides[0]; if (s) ed.setSlideSelection([s.id], s.id); return; }
       if (e.key === 'End') { e.preventDefault(); const s = ed.doc.deck.slides[ed.doc.deck.slides.length - 1]; if (s) ed.setSlideSelection([s.id], s.id); return; }
