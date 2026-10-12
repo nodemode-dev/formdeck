@@ -18,6 +18,8 @@ async function json<T>(res: Response): Promise<T> {
 const post = <T>(url: string, body: unknown = {}): Promise<T> => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => json<T>(r));
 const get = <T>(url: string): Promise<T> => fetch(url).then((r) => json<T>(r));
 
+export interface WorkbookTable { sheets: string[]; sheet: string; categories: string[]; series: Array<{ name: string; values: Array<number | null> }>; mtime: number; path: string }
+
 export const api = {
   health: () => get<{ ok: boolean; version: string }>('/api/health'),
   capabilities: () => get<Record<string, unknown>>('/api/capabilities'),
@@ -32,7 +34,7 @@ export const api = {
   template: (id: string, w = 960, h = 540) => get<Deck>(`/api/templates/${encodeURIComponent(id)}?w=${w}&h=${h}`),
   applyTemplate: (deckId: string, template: string, client: string) => post<{ rev: number }>(`/api/decks/${deckId}/apply-template`, { template, client }),
   build: (body: { markdown?: string; spec?: unknown; template?: string; intake?: string; title?: string; size?: string }) => post<DeckSummary>('/api/build', body),
-  export: (deckId: string, format: string, path?: string, fontScales?: unknown) => post<{ path: string; bytes: number }>(`/api/decks/${deckId}/export`, { format, path, fontScales }),
+  export: (deckId: string, format: string, path?: string, fontScales?: unknown, embedFonts?: string) => post<{ path: string; bytes: number; warnings?: string[] }>(`/api/decks/${deckId}/export`, { format, path, fontScales, embedFonts }),
   save: (deckId: string, body: { path?: string; format?: string; fontScales?: unknown } = {}) => post<{ saved: string; bytes?: number }>(`/api/decks/${deckId}/save`, body),
   saveTemplate: (deckId: string, name: string) => post<{ template: string }>(`/api/decks/${deckId}/save-template`, { name }),
   versions: (deckId: string) => get<{ versions: Array<{ n: number; name: string; at: string; slides: number }> }>(`/api/decks/${deckId}/versions`),
@@ -45,6 +47,8 @@ export const api = {
     fd.append('file', file, file.name);
     return json<{ deck: Deck; name: string }>(await fetch('/api/compare-file', { method: 'POST', body: fd }));
   },
+  workbookRead: (path: string, sheet?: string, range?: string) => post<WorkbookTable>('/api/workbooks/read', { path, sheet, range }),
+  workbookStat: (paths: string[]) => post<{ mtimes: Record<string, number | null> }>('/api/workbooks/stat', { paths }),
   openPath: (path: string, asTemplate = false) => post<DeckSummary & { template?: string }>('/api/open-path', { path, asTemplate }),
   async upload(files: File[]): Promise<Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number; duration?: number }>> {
     const fd = new FormData();
@@ -67,7 +71,7 @@ export const api = {
     await fetch(`/api/decks/${deckId}/thumb`, { method: 'PUT', body: blob });
   },
   mediaUrl: (id: string) => `/api/media/${id}`,
-  downloadUrl: (deckId: string, format: string) => `/api/decks/${deckId}/download?format=${format}`,
+  downloadUrl: (deckId: string, format: string, embedFonts?: string) => `/api/decks/${deckId}/download?format=${format}${embedFonts ? `&embedFonts=${embedFonts}` : ''}`,
   templateDownloadUrl: (id: string, format = 'pptx') => `/api/templates/${encodeURIComponent(id)}/download?format=${format}`,
   post,
   get,

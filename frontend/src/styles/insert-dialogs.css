@@ -31,6 +31,12 @@
 .fd-chartdlg-data, .fd-chartdlg-side { display: grid; align-content: start; gap: var(--space-3); min-width: 0; }
 .fd-chartdlg-tools { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 .fd-chartdlg-tools .fd-btn-sm { gap: 4px; }
+.fd-chartdlg-link { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.fd-chartdlg-link [data-f="lpath"] { flex: 1 1 auto; min-width: 0; }
+.fd-chartdlg-link select { flex: 0 1 120px; min-width: 0; }
+.fd-chartdlg-range { flex: 0 0 84px; }
+.fd-chartdlg-link .fd-btn-sm { flex: none; gap: 4px; }
+.fd-chartdlg-linknote { min-height: 1.45em; }
 .fd-chartdlg-gridwrap { max-height: 320px; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line-2); border-radius: var(--radius-md); background: var(--surface-field); }
 .fd-chartdlg-grid { border-collapse: collapse; table-layout: fixed; }
 .fd-chartdlg-grid td, .fd-chartdlg-grid th { width: 88px; min-width: 88px; height: 28px; padding: 0; border: 1px solid var(--line-1); font-weight: 400; }

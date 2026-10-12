@@ -33,7 +33,7 @@ export class Toolbar {
 <span class="fd-sep" data-g="slide"></span>
 <div class="fd-tb-group" data-g="master">${lbtn('master-insert-layout', 'slideAdd', 'New layout')}${btn('master-duplicate-layout', 'duplicate', 'Duplicate layout')}${btn('master-hide-graphics', 'eyeOff', 'Hide background graphics')}${btn('format-background', 'background', 'Background')}${lbtn('close-master', 'close', 'Close Master View')}</div>
 <span class="fd-sep" data-g="master"></span>
-<div class="fd-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-wordart', 'wordArt', 'WordArt')}${btn('insert-image', 'image', 'Picture')}<button class="fd-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-equation', 'equation', 'Equation')}${btn('insert-media', 'video', 'Video or audio')}${btn('insert-icons', 'iconLib', 'Icons')}${btn('add-comment', 'comment', 'Comment')}</div>
+<div class="fd-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-wordart', 'wordArt', 'WordArt')}${btn('insert-image', 'image', 'Picture')}<button class="fd-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-equation', 'equation', 'Equation')}${btn('insert-media', 'video', 'Video or audio')}${btn('insert-icons', 'iconLib', 'Icons')}${btn('insert-diagram', 'diagram', 'SmartArt')}${btn('add-comment', 'comment', 'Comment')}</div>
 <span class="fd-sep" data-g="insert"></span>
 <div class="fd-tb-group" data-g="font"><select class="fd-tb-font" aria-label="Font" title="Font" style="width:140px"></select><input class="fd-tb-field is-num fd-tb-size" type="number" min="1" max="400" step="1" aria-label="Font size" title="Font size"></div>
 <span class="fd-sep" data-g="font"></span>
@@ -49,8 +49,10 @@ export class Toolbar {
 <span class="fd-sep" data-g="paint"></span>
 <div class="fd-tb-group" data-g="image">${lbtn('replace-image', 'image', 'Replace')}${btn('alt-text', 'info', 'Alt text')}${btn('media-play', 'play', 'Play or pause (Alt+P)')}</div>
 <span class="fd-sep" data-g="image"></span>
-<div class="fd-tb-group" data-g="chart">${lbtn('edit-chart', 'chartBar', 'Edit data')}</div>
+<div class="fd-tb-group" data-g="chart">${lbtn('edit-chart', 'chartBar', 'Edit data')}${lbtn('chart-refresh', 'refresh', 'Refresh data')}</div>
 <span class="fd-sep" data-g="chart"></span>
+<div class="fd-tb-group" data-g="diagram">${lbtn('diagram-pane', 'diagram', 'Text pane')}${lbtn('diagram-layout', 'layout', 'Layout')}${btn('diagram-reset', 'refresh', 'Reset graphic')}${btn('diagram-convert', 'ungroup', 'Convert to shapes')}</div>
+<span class="fd-sep" data-g="diagram"></span>
 <div class="fd-tb-group" data-g="table">${btn('table-row-above', 'tableRowAbove', 'Insert row above')}${btn('table-row-below', 'tableRowBelow', 'Insert row below')}${btn('table-col-left', 'tableColLeft', 'Insert column left')}${btn('table-col-right', 'tableColRight', 'Insert column right')}${btn('table-delete-row', 'tableRowDelete', 'Delete row')}${btn('table-delete-col', 'tableColDelete', 'Delete column')}${btn('table-merge', 'tableMerge', 'Merge cells')}${btn('table-split', 'tableSplit', 'Split cell')}${btn('table-distribute-rows', 'tableDistRows', 'Distribute rows')}${btn('table-distribute-cols', 'tableDistCols', 'Distribute columns')}${btn('table-header-row', 'tableHeader', 'Header row')}${btn('table-banded-rows', 'tableBanded', 'Banded rows')}<button class="fd-tb-btn fd-tb-color" type="button" data-act="fill" title="Cell fill" aria-label="Cell fill">${icon('fill', 16)}</button>${btn('table-borders', 'borderAll', 'Borders')}</div>
 <span class="fd-sep" data-g="table"></span>
 <div class="fd-tb-group" data-g="arrange">${btn('bring-forward', 'bringForward', 'Bring forward')}${btn('send-backward', 'sendBackward', 'Send backward')}${btn('align-center', 'alignHcenterEdge', 'Align centre')}${btn('align-middle', 'alignVcenterEdge', 'Align middle')}${btn('group', 'group', 'Group')}${btn('ungroup', 'ungroup', 'Ungroup')}${btn('delete', 'delete', 'Delete')}</div>
@@ -148,6 +150,7 @@ export class Toolbar {
       font: ctx === 'text' || ctx === 'shape' || cells, style: ctx === 'text' || ctx === 'shape' || cells, para: ctx === 'text' || ctx === 'shape' || cells,
       list: ctx === 'text', anchor: ctx === 'text' || ctx === 'shape' || cells, paint: ctx === 'shape' || ctx === 'text',
       image: ctx === 'image', chart: ctx === 'chart', arrange: ctx !== 'slide' && ctx !== 'none', review: ctx === 'slide' && !inMaster,
+      diagram: !!ed && ed.selected().some((e) => e.type === 'group' && !!e.diagram),
     };
     for (const [g, node] of Object.entries(this.groups)) {
       setHidden(node, !show[g]);

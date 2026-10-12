@@ -16,6 +16,7 @@ import { icon } from './icons';
 import { toast } from './toast';
 import { findMentions, myName, people } from '../editor/mentions';
 import { editorTheme } from '../editor/master-view';
+import { mergeTable } from '../editor/chart-links';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const clampN = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
@@ -256,6 +257,10 @@ class ChartDlg extends Modal {
   private readonly format: HTMLSelectElement;
   private readonly checks: Record<'labels' | 'stacked' | 'percent' | 'grid', HTMLInputElement>;
   private readonly applyBtn: HTMLButtonElement;
+  private readonly lpath: HTMLInputElement;
+  private readonly lsheet: HTMLSelectElement;
+  private readonly lrange: HTMLInputElement;
+  private readonly lnote: HTMLElement;
 
   constructor() {
     super('Insert Chart', 880);
@@ -268,6 +273,8 @@ class ChartDlg extends Modal {
 <div class="fd-chartdlg-tools">${sm('row+', 'plus', 'Row', 'Add a category row')}${sm('row-', 'minus', 'Row', 'Remove the selected row')}${sm('col+', 'plus', 'Series', 'Add a series column')}${sm('col-', 'minus', 'Series', 'Remove the selected series')}<span class="fd-ins-grow"></span>${sm('paste', '', 'Paste table', 'Replace the data with a table from the clipboard')}</div>
 <div class="fd-chartdlg-gridwrap"><table class="fd-chartdlg-grid"><tbody></tbody></table></div>
 <p class="fd-note">First column: categories. First row: series names. Paste cells from a spreadsheet into any cell with ${isMac ? 'Cmd' : 'Ctrl'}+V.</p>
+<div class="fd-chartdlg-link"><input class="fd-input" type="text" data-f="lpath" placeholder="Link a workbook: /path/to/book.xlsx or .csv" aria-label="Workbook path" spellcheck="false"><select data-f="lsheet" aria-label="Sheet" hidden></select><input class="fd-input fd-chartdlg-range" type="text" data-f="lrange" placeholder="A1:D6" aria-label="Range (optional)" spellcheck="false">${sm('link', 'link', 'Link', 'Read the data from this file and keep it updated')}${sm('unlink', '', 'Unlink', 'Keep the data and stop following the file')}</div>
+<p class="fd-note fd-chartdlg-linknote"></p>
 </section>
 <section class="fd-chartdlg-side">
 <div class="fd-chartdlg-preview" aria-label="Preview"></div>
@@ -334,6 +341,17 @@ class ChartDlg extends Modal {
       n.addEventListener('change', () => this.schedule());
     }
     this.checks.percent.addEventListener('change', () => { if (this.checks.percent.checked) setChecked(this.checks.stacked, true); });
+    this.lpath = q<HTMLInputElement>(this.root, '[data-f="lpath"]');
+    this.lsheet = q<HTMLSelectElement>(this.root, '[data-f="lsheet"]');
+    this.lrange = q<HTMLInputElement>(this.root, '[data-f="lrange"]');
+    this.lnote = q(this.root, '.fd-chartdlg-linknote');
+    q(this.root, '.fd-chartdlg-link').addEventListener('click', (e) => {
+      const act = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
+      if (act === 'link') void this.linkWorkbook();
+      else if (act === 'unlink') { delete this.base.link; this.syncLink(); }
+    });
+    this.lsheet.addEventListener('change', () => { if (this.base.link) void this.linkWorkbook(); });
+    this.lpath.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.linkWorkbook(); } });
     this.d.button('Cancel', 'ghost', () => this.d.close());
     this.applyBtn = this.d.button('Insert', 'primary', () => this.apply());
   }
@@ -357,6 +375,9 @@ class ChartDlg extends Modal {
       this.size = { w: Math.max(40, f.w), h: Math.max(30, f.h) };
     }
     this.load(chart);
+    this.lpath.value = chart.link?.path ?? '';
+    this.lrange.value = chart.link?.range ?? '';
+    this.syncLink();
     this.d.setTitle(edit ? 'Edit Chart' : 'Insert Chart');
     setText(this.applyBtn, edit ? 'Save' : 'Insert');
     reserve(this.preview, { width: PREV_W, height: Math.round(clampN(PREV_W * this.size.h / this.size.w, 160, 300)) });
@@ -520,6 +541,37 @@ class ChartDlg extends Modal {
   private focusCell(r: number, c: number): void {
     const inp = this.tbody.rows[r]?.cells[c]?.firstElementChild;
     if (inp instanceof HTMLInputElement) { inp.focus(); inp.select(); }
+  }
+
+  private async linkWorkbook(): Promise<void> {
+    const path = this.lpath.value.trim();
+    if (!path) { setText(this.lnote, 'Type the full path of a .xlsx, .xlsm, .csv or .tsv file on this computer.'); return; }
+    const range = this.lrange.value.trim() || undefined;
+    const sheet = this.base.link && this.base.link.path === path && !this.lsheet.hidden ? this.lsheet.value || undefined : undefined;
+    setText(this.lnote, 'Reading the workbook...');
+    try {
+      const t = await api.workbookRead(path, sheet, range);
+      const merged = mergeTable({ ...this.build(), link: { path: t.path, ...(range ? { range } : {}) } }, t);
+      this.load(merged);
+      this.lpath.value = t.path;
+      if (t.sheets.length > 1) {
+        this.lsheet.replaceChildren(...t.sheets.map((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; return o; }));
+        this.lsheet.value = t.sheet;
+      }
+      this.syncLink(t.sheets.length > 1);
+      this.sync();
+      this.schedule();
+    } catch (err) {
+      setText(this.lnote, (err as Error).message);
+    }
+  }
+
+  private syncLink(sheets = this.lsheet.options.length > 1): void {
+    const link = this.base.link;
+    setHidden(this.lsheet, !link || !sheets);
+    setDisabled(q<HTMLButtonElement>(this.root, '[data-act="unlink"]'), !link);
+    const name = link?.path.split(/[\\/]/).pop() ?? '';
+    setText(this.lnote, link ? `Linked to ${name}${link.sheet ? `, sheet ${link.sheet}` : ''}${link.range ? `, ${link.range}` : ''}. The chart updates when the file is saved; Format > Chart > Refresh Data reads it now.` : '');
   }
 
   private build(): ChartData {

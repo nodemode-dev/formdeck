@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pptx.chart.data import CategoryChartData, XyChartData
 from pptx.enum.chart import XL_CHART_TYPE as XL
 from pptx.enum.chart import XL_LEGEND_POSITION as LEGEND
@@ -81,7 +83,28 @@ def add_chart_part(chart: dict, ctx) -> str | None:
         _split_combo(part, chart)
     _style_chart(part.chart, chart, kind, ctx)
     _schema_fixes(part._element)
+    link = (chart.get("link") or {}).get("path") if isinstance(chart.get("link"), dict) else None
+    if link:
+        _link_workbook(part, str(link), ctx)
     return ctx.part.relate_to(part, RT.CHART)
+
+
+def _link_workbook(part, path: str, ctx) -> None:
+    ext = find(part._element, "c:externalData")
+    rid_attr = f"{{{NS['r']}}}id"
+    if ext is None or not ext.get(rid_attr):
+        return
+    try:
+        uri = Path(path).expanduser().as_uri()
+    except ValueError:
+        ctx.warn(f"chart link kept embedded: {path} is not an absolute path")
+        return
+    part.rels.pop(ext.get(rid_attr))
+    ext.set(rid_attr, part.relate_to(uri, RT.OLE_OBJECT, is_external=True))
+    auto = find(ext, "c:autoUpdate")
+    if auto is None:
+        auto = sub(ext, "c:autoUpdate")
+    auto.set("val", "0")
 
 
 def _schema_fixes(chart_space) -> None:

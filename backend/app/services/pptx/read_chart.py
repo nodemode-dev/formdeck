@@ -1,6 +1,9 @@
+import re
+import urllib.parse
+
 from pptx.enum.chart import XL_LEGEND_POSITION
 
-from .ooxml import find, findall, local, xpath
+from .ooxml import NS, find, findall, local, xpath
 from .read_style import fill_element, read_fill
 
 PLOT_KINDS = {
@@ -27,7 +30,26 @@ def read_chart(chart_part, ctx) -> dict | None:
         ctx.warn("chart of an unsupported type skipped")
         return None
     with ctx.using_part(chart_part):
-        return _build_chart(chart, plots, ctx)
+        data = _build_chart(chart, plots, ctx)
+    link = _linked_workbook(chart_part)
+    if link:
+        data["link"] = {"path": link}
+    return data
+
+
+def _linked_workbook(chart_part) -> str | None:
+    ext = find(chart_part._element, "c:externalData")
+    rid = ext.get(f"{{{NS['r']}}}id") if ext is not None else None
+    rel = chart_part.rels.get(rid) if rid else None
+    if rel is None or not rel.is_external:
+        return None
+    target = rel.target_ref.split("!")[0]
+    if not target.lower().startswith("file:"):
+        return None
+    path = urllib.parse.unquote(urllib.parse.urlparse(target).path or target[5:])
+    if re.match(r"^/[A-Za-z]:[\\/]", path):
+        path = path[1:]
+    return path or None
 
 
 def _plot_kind(plot_el) -> str | None:
