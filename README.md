@@ -80,6 +80,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 
 - Co-authoring across machines, share links, hosted publishing and presenting to a remote audience are not built; they need the engine to accept connections from other computers.
 - The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export is not yet validated as PDF/UA; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.8.9: 96.2%, 97.2% and 95.5%).
+- The window works with touch and on tablet- and phone-sized screens, but a phone or tablet cannot reach the engine yet: it accepts connections only from the computer it runs on.
 - Stock Images and AI pictures need an internet connection; AI pictures also need an OpenAI key or a compatible image server, and subtitle translation needs Chrome's built-in translator or a chat model.
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in FormDeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
