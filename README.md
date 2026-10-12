@@ -4,7 +4,7 @@ Presentations and pitch decks in the form family. An open alternative to PowerPo
 
 The PDF workbench that shipped with formsld up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In formsld a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
-Version 0.7.0 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.7.1 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
@@ -66,7 +66,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps in 0.7.0
 
 - Co-authoring across machines, share links and publishing to the web are not built.
-- No SmartArt editor, 3-D models, bevel or 3-D text, stock or AI pictures, charts linked to a live workbook, or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.7.0: 87.0%, 91.5% and 87.5%).
+- No SmartArt editor, 3-D models, bevel or 3-D text, stock or AI pictures, charts linked to a live workbook, or tagged PDF yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.7.1: 87.0%, 91.5% and 87.5%, unchanged since 0.7.0).
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in formsld any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in formsld; in .pptx they round-trip as native charts for the common kinds.
