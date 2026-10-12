@@ -1114,7 +1114,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "formsld"
+name = "formdeck"
 version = "0.7.0"
 dependencies = [
  "fontdb",

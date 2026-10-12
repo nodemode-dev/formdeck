@@ -45,7 +45,7 @@ fn hand_over(handle: &tauri::AppHandle, paths: Vec<String>) {
         Some(window) => {
             let list = serde_json::to_string(&paths).unwrap_or_else(|_| "[]".into());
             let _ = window.eval(&format!(
-                "(function f(n){{if(window.__formsldOpen)window.__formsldOpen({list});else if(n<60)setTimeout(function(){{f(n+1)}},250)}})(0)"
+                "(function f(n){{if(window.__formdeckOpen)window.__formdeckOpen({list});else if(n<60)setTimeout(function(){{f(n+1)}},250)}})(0)"
             ));
             let _ = window.set_focus();
         }
@@ -70,7 +70,7 @@ fn check_for_updates(handle: tauri::AppHandle) {
         let Ok(Some(update)) = updater.check().await else { return };
         let install = handle
             .dialog()
-            .message(format!("formsld {} is available. Install it and restart?", update.version))
+            .message(format!("FormDeck {} is available. Install it and restart?", update.version))
             .title("Update available")
             .buttons(MessageDialogButtons::OkCancel)
             .blocking_show();
@@ -113,7 +113,7 @@ async fn open_presenter(app: tauri::AppHandle, url: String) -> Result<(), String
         return existing.set_focus().map_err(|e| e.to_string());
     }
     WebviewWindowBuilder::new(&app, "presenter", WebviewUrl::External(target))
-        .title("formsld presenter")
+        .title("FormDeck presenter")
         .inner_size(PRESENTER_LOGICAL.0, PRESENTER_LOGICAL.1)
         .center()
         .build()
@@ -158,11 +158,11 @@ fn main() {
             let handle = app.handle().clone();
             let (mut rx, child) = app
                 .shell()
-                .sidecar("formsld-engine")
+                .sidecar("formdeck-engine")
                 .expect("sidecar binary is bundled")
-                .env("FORMSLD_PORT", "0")
+                .env("FORMDECK_PORT", "0")
                 .spawn()
-                .expect("the formsld engine failed to spawn");
+                .expect("the FormDeck engine failed to spawn");
             app.state::<Backend>().0.lock().unwrap().replace(child);
             let from_args: Vec<String> = std::env::args()
                 .skip(1)
@@ -216,7 +216,7 @@ fn main() {
                             })
                             .unwrap_or(FALLBACK_LOGICAL);
                         let _ = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
-                            .title("formsld")
+                            .title("FormDeck")
                             .inner_size(width, height)
                             .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
                             .center()
@@ -228,7 +228,7 @@ fn main() {
                         close_splash(&handle);
                         handle
                             .dialog()
-                            .message("The formsld engine failed to start. Please relaunch the app.")
+                            .message("The FormDeck engine failed to start. Please relaunch the app.")
                             .blocking_show();
                         kill_backend(&handle);
                         std::process::exit(1);

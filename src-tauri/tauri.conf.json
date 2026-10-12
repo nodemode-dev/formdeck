@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "formsld",
+  "productName": "FormDeck",
   "version": "0.7.0",
-  "identifier": "ai.nodemode.formsld",
+  "identifier": "ai.nodemode.formdeck",
   "build": {
     "frontendDist": "../frontend/dist"
   },
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "splash",
-        "title": "formsld",
+        "title": "FormDeck",
         "url": "splash.html",
         "width": 360,
         "height": 180,
@@ -30,7 +30,7 @@
     "shortDescription": "Presentations and decks",
     "longDescription": "formsld is a presentation editor in the NodeMode design system: slides, layouts, masters and templates in its own .fsld decks, PowerPoint, Keynote and Google Slides exchange through .pptx, PDF export, and agent automation that builds and edits decks in plain language.",
     "copyright": "Copyright 2026 nodemode-ai.",
-    "externalBin": ["binaries/formsld-engine"],
+    "externalBin": ["binaries/formdeck-engine"],
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
     "macOS": {
       "minimumSystemVersion": "12.0",
@@ -47,7 +47,7 @@
   "plugins": {
     "updater": {
       "pubkey": "",
-      "endpoints": ["https://github.com/nodemode-ai/formsld/releases/latest/download/latest.json"]
+      "endpoints": ["https://github.com/nodemode-ai/formdeck/releases/latest/download/latest.json"]
     }
   }
 }

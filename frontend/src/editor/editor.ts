@@ -235,7 +235,7 @@ export class Editor {
 
   private syncTitle(): void {
     if (document.activeElement !== this.roots.title && this.roots.title.value !== this.doc.deck.title) this.roots.title.value = this.doc.deck.title;
-    document.title = `${this.doc.deck.title} · formsld`;
+    document.title = `${this.doc.deck.title} · FormDeck`;
   }
 
   contextMenu(x: number, y: number, kind: 'element' | 'slide' | 'thumb'): void {
@@ -385,7 +385,7 @@ export class Editor {
         return { ...e, ...f };
       })) };
       const text = this.selected().map((e) => ('text' in e && e.text ? e.text.paras.map((p) => p.runs.map((r) => r.t).join('')).join('\n') : '')).filter(Boolean).join('\n\n');
-      void navigator.clipboard?.writeText(text || 'formsld objects').catch(() => undefined);
+      void navigator.clipboard?.writeText(text || 'FormDeck objects').catch(() => undefined);
       if (cut) this.deleteSelection();
     } else if (this.holderKind === 'slide') {
       const ids = this.slideSel.length ? this.slideSel : [this.current];

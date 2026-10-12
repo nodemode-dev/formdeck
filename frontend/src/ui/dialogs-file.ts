@@ -102,7 +102,7 @@ function caps(): Promise<Settings> {
 
 async function exportPath(title: string, ext: string): Promise<string> {
   const c = await caps();
-  const dir = str(c.dataDir) || '~/Formsld';
+  const dir = str(c.dataDir) || '~/FormDeck';
   const sep = dir.includes('\\') && !dir.includes('/') ? '\\' : '/';
   return `${dir.replace(/[\\/]+$/, '')}${sep}Exports${sep}${safeName(title)}.${ext}`;
 }
@@ -351,7 +351,7 @@ async function postForm<T>(url: string, fd: FormData): Promise<T> {
 function intakePrompt(id: string, tid: string, brief: string, slides: string, size: string): string {
   const count = slides === 'auto' ? '' : `, about ${slides} slides`;
   return [
-    `Use the formsld MCP server. Build a deck from intake ${id} with template ${tid || 'the default'}${count}, size ${size}.`,
+    `Use the FormDeck MCP server. Build a deck from intake ${id} with template ${tid || 'the default'}${count}, size ${size}.`,
     `Brief: ${brief || 'work out the audience, goal and tone from the material.'}`,
     'Start with get_context, then draft_spec, refine the script, build_deck, then render_slides and lint_deck and fix issues.',
   ].join('\n');
@@ -406,8 +406,8 @@ class IntakeDialog extends Dialog {
     this.handoff = el(`<div class="fs-intake-handoff" hidden>
 <div class="fs-intake-handoff-head"><span class="fs-intake-handoff-icon">${icon('agent', 20)}</span><div><div class="fs-intake-handoff-title">Your material is ready for an agent</div><div class="fs-note fs-intake-handoff-sub"></div></div></div>
 <div class="fs-dlg-code"><div class="fs-dlg-code-head"><span class="fs-dlg-code-title">Prompt</span>${copyBtn('')}</div><pre class="fs-dlg-code-text fs-intake-prompt"></pre></div>
-<ol class="fs-dlg-steps"><li>Open Claude Code, Codex or Cursor with the formsld MCP server connected.</li><li>Paste the prompt. The agent reads your material, writes a slide script and builds the deck in your template.</li><li>Watch the slides land here as it works. Edit &gt; Undo Agent Turn takes back a whole turn.</li></ol>
-<button class="fs-dlg-link" type="button" data-agents>${icon('link2', 14)}<span>Connect an agent to formsld</span></button>
+<ol class="fs-dlg-steps"><li>Open Claude Code, Codex or Cursor with the FormDeck MCP server connected.</li><li>Paste the prompt. The agent reads your material, writes a slide script and builds the deck in your template.</li><li>Watch the slides land here as it works. Edit &gt; Undo Agent Turn takes back a whole turn.</li></ol>
+<button class="fs-dlg-link" type="button" data-agents>${icon('link2', 14)}<span>Connect an agent to FormDeck</span></button>
 </div>`);
     this.body.append(this.form, this.handoff);
     q(this.form, '.fs-intake-grid').appendChild(this.grid.root);
@@ -627,11 +627,11 @@ class SaveAsDialog extends Dialog {
   constructor() {
     super('Save a copy', 540);
     this.choices = el(`<div class="fs-dlg-choices" role="radiogroup" aria-label="Where to save">
-<button class="fs-dlg-choice" type="button" role="radio" data-mode="file"><span class="fs-dlg-choice-icon">${icon('save', 18)}</span><span class="fs-dlg-choice-text"><span class="fs-dlg-choice-title">A file on this computer</span><span class="fs-dlg-choice-sub">.fsld keeps everything for formsld. .pptx opens in PowerPoint, Keynote and Google Slides.</span></span></button>
+<button class="fs-dlg-choice" type="button" role="radio" data-mode="file"><span class="fs-dlg-choice-icon">${icon('save', 18)}</span><span class="fs-dlg-choice-text"><span class="fs-dlg-choice-title">A file on this computer</span><span class="fs-dlg-choice-sub">.fsld keeps everything for FormDeck. .pptx opens in PowerPoint, Keynote and Google Slides.</span></span></button>
 <button class="fs-dlg-choice" type="button" role="radio" data-mode="library"><span class="fs-dlg-choice-icon">${icon('duplicate', 18)}</span><span class="fs-dlg-choice-text"><span class="fs-dlg-choice-title">A copy in your library</span><span class="fs-dlg-choice-sub">A separate deck you can change without touching this one.</span></span></button>
 </div>`);
     this.fileOpts = el(`<div class="fs-dlg-stack">
-<div class="fs-field"><span>Format</span><div class="fs-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fsld">formsld (.fsld)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
+<div class="fs-field"><span>Format</span><div class="fs-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fsld">FormDeck (.fsld)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
 <label class="fs-field fs-dlg-path"><span>Save to</span><input class="fs-input" type="text" spellcheck="false" aria-label="File path"></label>
 <p class="fs-note fs-dlg-browser-note">Your browser saves the file to its downloads folder.</p>
 </div>`);
@@ -742,7 +742,7 @@ const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }>
   jpeg: { label: 'JPEG', ext: 'jpg', sub: 'Smaller pictures of your slides. Several slides arrive together in a .zip.' },
   potx: { label: 'Template', ext: 'potx', sub: 'A PowerPoint template with this deck’s masters, layouts, colours and fonts.' },
   odp: { label: 'OpenDocument', ext: 'odp', sub: 'Editable slides for LibreOffice Impress and other OpenDocument apps, with master pages, notes and transitions.' },
-  fsld: { label: 'formsld', ext: 'fsld', sub: 'One file with every slide, picture and the template, for formsld on any computer.' },
+  fsld: { label: 'FormDeck', ext: 'fsld', sub: 'One file with every slide, picture and the template, for FormDeck on any computer.' },
   video: { label: 'Video', ext: 'mp4', sub: 'A movie of the show with its timings, narration, builds and fades. It records in real time.' },
   gif: { label: 'GIF', ext: 'gif', sub: 'A looping animated picture of your slides for chat, email and web pages.' },
   txt: { label: 'Outline', ext: 'txt', sub: 'Slide titles and bullet points as plain text, indented by level.' },
@@ -823,7 +823,7 @@ class ExportDialog extends Dialog {
     this.formats = el(`<div class="fs-seg fs-dlg-formats" role="group" aria-label="Format">${ids.map((f) => `<button type="button" data-v="${f}">${EXPORTS[f].label}</button>`).join('')}</div>`);
     this.sub = el('<p class="fs-note fs-dlg-format-sub"></p>');
     const office = el(`<div class="fs-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. Fonts are not embedded, so the computer that opens the file needs <span class="fs-dlg-fonts"></span> installed or it substitutes a similar font.</div></div>`);
-    const fsld = el(`<div class="fs-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in formsld. Agents can read it too.</div></div>`);
+    const fsld = el(`<div class="fs-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in FormDeck. Agents can read it too.</div></div>`);
     const pdf = el(`<div class="fs-dlg-stack">
 <div class="fs-field"><span>Slides</span><div class="fs-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
 <label class="fs-field fs-dlg-custom" hidden><span>Numbers</span><input class="fs-input" type="text" spellcheck="false" placeholder="For example 1-3, 5, 8-" aria-label="Slide numbers"></label>
@@ -920,7 +920,7 @@ class ExportDialog extends Dialog {
     const whole = Math.round(secs);
     const len = `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
     setText(this.motionNote, f === 'gif' ? `${plural(shown.length, 'slide')}, about ${len} per loop. Hidden slides are skipped.`
-      : !canVideo ? 'This window cannot record video. Use Chrome, Edge or the formsld desktop app.'
+      : !canVideo ? 'This window cannot record video. Use Chrome, Edge or the FormDeck desktop app.'
       : `About ${len} long as ${this.ext().toUpperCase()}, recorded in real time, so keep this window open. Hidden slides are skipped.`);
   }
 
@@ -1457,7 +1457,7 @@ class VersionsDialog extends Dialog {
     super('Version history', 540);
     const row = el(`<div class="fs-dlg-inline"><input class="fs-input" type="text" spellcheck="false" placeholder="Name this version, for example Before the board review" aria-label="Version name"><button class="fs-btn" type="button">${icon('save', 14)}<span>Save a version</span></button></div>`);
     this.list = el('<div class="fs-list fs-dlg-versions"></div>');
-    this.empty = el(`<div class="fs-empty" hidden><span class="fs-empty-icon">${icon('history', 20)}</span><div class="fs-empty-title">No saved versions yet</div><div class="fs-empty-note">formsld saves every change as you work. Save a named version before big edits so you can come back to it.</div></div>`);
+    this.empty = el(`<div class="fs-empty" hidden><span class="fs-empty-icon">${icon('history', 20)}</span><div class="fs-empty-title">No saved versions yet</div><div class="fs-empty-note">FormDeck saves every change as you work. Save a named version before big edits so you can come back to it.</div></div>`);
     const box = el('<div class="fs-dlg-versions-box"></div>');
     box.append(this.list, this.empty);
     this.body.append(row, el('<p class="fs-note">Restoring brings back the slides, template and comments of that version as one step you can undo.</p>'), box);
@@ -1748,11 +1748,11 @@ export function preferencesDialog(h: { agentsAllowed: () => boolean; setAgents: 
 }
 
 const SETUP: Array<{ id: string; tab: string; title: string; note: string; text: (url: string) => string }> = [
-  { id: 'install', tab: 'All at once', title: 'In the formsld folder', note: 'Writes the Claude Code, Codex and Cursor configs and installs the formsld skill, so agents know the deck format and tools.', text: () => './formsld agents install' },
-  { id: 'claude', tab: 'Claude Code', title: 'In a terminal', note: 'Run once. Then ask Claude Code to build or edit a deck.', text: (u) => `claude mcp add --transport http formsld ${u}` },
-  { id: 'codex', tab: 'Codex', title: '~/.codex/config.toml', note: 'Add this table, then restart Codex.', text: (u) => `[mcp_servers.formsld]\nurl = "${u}"` },
-  { id: 'cursor', tab: 'Cursor', title: '~/.cursor/mcp.json', note: 'Or .cursor/mcp.json inside a project. Cursor picks it up on the next chat.', text: (u) => `{\n  "mcpServers": {\n    "formsld": { "url": "${u}" }\n  }\n}` },
-  { id: 'desktop', tab: 'Claude Desktop', title: 'claude_desktop_config.json', note: 'Claude Desktop starts local servers over stdio: ./formsld mcp runs the same tools. Use the full path to your formsld folder.', text: () => '{\n  "mcpServers": {\n    "formsld": { "command": "/path/to/formsld/formsld", "args": ["mcp"] }\n  }\n}' },
+  { id: 'install', tab: 'All at once', title: 'In the FormDeck folder', note: 'Writes the Claude Code, Codex and Cursor configs and installs the FormDeck skill, so agents know the deck format and tools.', text: () => './formdeck agents install' },
+  { id: 'claude', tab: 'Claude Code', title: 'In a terminal', note: 'Run once. Then ask Claude Code to build or edit a deck.', text: (u) => `claude mcp add --transport http formdeck ${u}` },
+  { id: 'codex', tab: 'Codex', title: '~/.codex/config.toml', note: 'Add this table, then restart Codex.', text: (u) => `[mcp_servers.formdeck]\nurl = "${u}"` },
+  { id: 'cursor', tab: 'Cursor', title: '~/.cursor/mcp.json', note: 'Or .cursor/mcp.json inside a project. Cursor picks it up on the next chat.', text: (u) => `{\n  "mcpServers": {\n    "formdeck": { "url": "${u}" }\n  }\n}` },
+  { id: 'desktop', tab: 'Claude Desktop', title: 'claude_desktop_config.json', note: 'Claude Desktop starts local servers over stdio: ./formdeck mcp runs the same tools. Use the full path to your FormDeck folder.', text: () => '{\n  "mcpServers": {\n    "formdeck": { "command": "/path/to/formdeck/formdeck", "args": ["mcp"] }\n  }\n}' },
 ];
 
 class AgentsDialog extends Dialog {
@@ -1814,7 +1814,7 @@ class AgentsDialog extends Dialog {
     void caps().then((c) => {
       if (typeof c.port === 'number' || typeof c.port === 'string') { this.port = String(c.port); this.syncPort(); }
       const dir = str(c.dataDir);
-      setText(this.engine, `formsld ${VERSION} on port ${this.port}${dir ? ` · library in ${dir}` : ''}`);
+      setText(this.engine, `FormDeck ${VERSION} on port ${this.port}${dir ? ` · library in ${dir}` : ''}`);
       if (dir) this.engine.title = dir;
     });
   }
@@ -1829,7 +1829,7 @@ class AgentsDialog extends Dialog {
   private syncPort(): void {
     const url = `http://127.0.0.1:${this.port}/mcp`;
     setText(this.url, url);
-    setText(this.engine, `formsld ${VERSION} on port ${this.port}`);
+    setText(this.engine, `FormDeck ${VERSION} on port ${this.port}`);
     SETUP.forEach((s, i) => setText(q(this.blocks[i], '.fs-dlg-code-text'), s.text(url)));
   }
 
@@ -1848,14 +1848,14 @@ export function agentsDialog(h: { agentsAllowed: () => boolean; setAgents: (on: 
 export function copyAgentPrompt(deck: Deck | null): void {
   const text = deck
     ? [
-      `In formsld, deck ${deck.id} "${deck.title}" (${plural(deck.slides.length, 'slide')}, template ${deck.template?.name ?? (str(deck.meta.template) || 'custom')}) is open.`,
-      'Use the formsld MCP tools: get_deck (outline) to read it, then make the changes I ask for in small, clearly named steps.',
+      `In FormDeck, deck ${deck.id} "${deck.title}" (${plural(deck.slides.length, 'slide')}, template ${deck.template?.name ?? (str(deck.meta.template) || 'custom')}) is open.`,
+      'Use the FormDeck MCP tools: get_deck (outline) to read it, then make the changes I ask for in small, clearly named steps.',
       'After each change run render_slides on the slides you touched and lint_deck, and fix what they find.',
       'Set slides you finish to review status Review, and leave a comment where you need my input.',
       'My request: ',
     ].join('\n')
     : [
-      'Use the formsld MCP server to make a deck.',
+      'Use the FormDeck MCP server to make a deck.',
       'Call ingest with the files below, then get_context, draft_spec, refine the script, build_deck, then render_slides and lint_deck and fix issues.',
       'Brief: ',
       'Files: ',
@@ -1865,19 +1865,19 @@ export function copyAgentPrompt(deck: Deck | null): void {
 
 class HelpDialog extends Dialog {
   constructor() {
-    super('formsld Help', 560);
+    super('FormDeck Help', 560);
     this.body.appendChild(el(`<div class="fs-dlg-stack">
-<div class="fs-dlg-about">${brandMark(36)}<div><div class="fs-dlg-about-name">formsld</div><div class="fs-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div></div></div>
+<div class="fs-dlg-about">${brandMark(36)}<div><div class="fs-dlg-about-name">FormDeck</div><div class="fs-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div></div></div>
 <section class="fs-dlg-section"><div class="fs-dlg-section-title">Quick start</div><ol class="fs-dlg-steps">
-<li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck (.pptx or .odp) on Home and formsld drafts the slides in your template.</li>
+<li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck (.pptx or .odp) on Home and FormDeck drafts the slides in your template.</li>
 <li><strong>Pick a template.</strong> Change it any time with Slide &gt; Apply Template. Your content follows.</li>
 <li><strong>Edit on the slide.</strong> Double-click to type, drop pictures anywhere, and use the panel on the right for layout, colours and review status.</li>
 <li><strong>Bring in your agent.</strong> Connect Claude Code, Codex or Cursor from Review &gt; Agents. It edits the same deck live and every turn undoes as one step.</li>
 <li><strong>Present and share.</strong> Present from the title bar, export .pptx for PowerPoint, Keynote and Google Slides, .odp for LibreOffice Impress, or PDF and pictures.</li>
 </ol></section>
 <section class="fs-dlg-section"><div class="fs-dlg-section-title">Learn more</div>
-<p class="fs-dlg-text">The full manual is docs/MANUAL.md in your formsld folder. The deck format agents and tools read is described in docs/FORMAT.md.</p>
-<p class="fs-dlg-text">Your decks, templates and pictures stay on this computer, in the Formsld folder in your home folder.</p>
+<p class="fs-dlg-text">The full manual is docs/MANUAL.md in your FormDeck folder. The deck format agents and tools read is described in docs/FORMAT.md.</p>
+<p class="fs-dlg-text">Your decks, templates and pictures stay on this computer, in the FormDeck folder in your home folder.</p>
 <p class="fs-dlg-text">Press <kbd class="fs-key">${escapeHtml(formatKeys('Mod+/'))}</kbd> to see every keyboard shortcut, or open Help &gt; Keyboard Shortcuts.</p>
 </section>
 </div>`));

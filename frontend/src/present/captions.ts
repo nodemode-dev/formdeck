@@ -9,7 +9,7 @@ interface Recognizer {
 }
 type RecognizerCtor = new () => Recognizer;
 
-const KEY = 'formsld.captions';
+const KEY = 'formdeck.captions';
 const MAX = 150;
 const CLEAR_MS = 5000;
 

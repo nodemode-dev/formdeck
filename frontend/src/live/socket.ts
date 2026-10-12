@@ -145,7 +145,7 @@ export class LiveClient {
     if (t === 'tool') {
       let result: unknown;
       try {
-        result = this.onTool ? await this.onTool(String(m.name), (m.args as Record<string, unknown>) ?? {}) : { content: [{ type: 'text', text: 'formsld has no window tools ready.' }], isError: true };
+        result = this.onTool ? await this.onTool(String(m.name), (m.args as Record<string, unknown>) ?? {}) : { content: [{ type: 'text', text: 'FormDeck has no window tools ready.' }], isError: true };
       } catch (e) {
         result = { content: [{ type: 'text', text: `The window could not run ${String(m.name)}: ${e instanceof Error ? e.message : String(e)}` }], isError: true };
       }

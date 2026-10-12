@@ -123,7 +123,7 @@ export class Inspector {
     this.agent = el(`<div class="fs-insp">
 <div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Outside agents</span></div>
 <div class="fs-prop-row"><span class="fs-prop-label">Allow</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="agents"><span></span></label><span class="fs-note fs-mcp-status"></span></div></div>
-<div class="fs-note">Claude Code, Codex and Cursor build and edit decks here through formsld's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.</div>
+<div class="fs-note">Claude Code, Codex and Cursor build and edit decks here through FormDeck's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.</div>
 <div class="fs-prop-row"><span class="fs-prop-label"></span><div class="fs-prop-ctl"><button class="fs-btn fs-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt for your agent</button></div></div></div>
 <div class="fs-prop-section"><div class="fs-panel-head"><span class="fs-panel-title">Activity</span></div><div class="fs-activity"></div></div>
 </div>`);

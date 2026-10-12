@@ -103,7 +103,7 @@ export class AltViews {
 }
 
 interface Card { node: HTMLElement; frame: HTMLElement; num: HTMLElement; flags: HTMLElement; view: SlideView | null }
-const WKEY = 'formsld.sorter.w';
+const WKEY = 'formdeck.sorter.w';
 const REVIEW: Record<string, string> = { review: 'Ready for review', changes: 'Changes requested', approved: 'Approved' };
 
 class Sorter extends Pane {

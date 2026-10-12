@@ -31,7 +31,7 @@ type Msg =
 
 const TAURI = '__TAURI_INTERNALS__' in window;
 const IDLE_MS = 2500;
-const NOTES_KEY = 'formsld.notesSize';
+const NOTES_KEY = 'formdeck.notesSize';
 const PEN_W = 0.0045;
 const INKS: Array<[string, string]> = [['#ef4444', 'Red'], ['#facc15', 'Yellow'], ['#3b82f6', 'Blue'], ['#ffffff', 'White']];
 const KEYS: Record<string, string> = {
@@ -332,7 +332,7 @@ class Show {
     this.root.focus({ preventScroll: true });
     this.listen();
     if (this.audienceMode || this.opts.presenter) {
-      this.chan = new BroadcastChannel(`formsld-show-${this.doc.id}`);
+      this.chan = new BroadcastChannel(`formdeck-show-${this.doc.id}`);
       this.chan.onmessage = (e: MessageEvent<Msg>) => this.onMsg(e.data);
     }
     if (this.opts.presenter && !this.audienceMode) this.openAudience();
@@ -450,7 +450,7 @@ class Show {
       void import('@tauri-apps/api/core').then((m) => m.invoke('open_presenter', { url })).catch(() => this.noAudience());
       return;
     }
-    const w = window.open(url, 'formsld-audience', 'popup');
+    const w = window.open(url, 'formdeck-audience', 'popup');
     if (w) this.audienceWin = w;
     else this.noAudience();
   }
@@ -463,7 +463,7 @@ class Show {
     setHidden(this.consoleEl, true);
     this.strip?.dispose();
     this.strip = null;
-    toast('The audience window could not open, so the show runs in this window. Allow pop-ups for formsld to use presenter view.');
+    toast('The audience window could not open, so the show runs in this window. Allow pop-ups for FormDeck to use presenter view.');
     void this.fullscreen(true);
     this.layout(true);
     this.syncUi();
@@ -476,8 +476,8 @@ class Show {
       return;
     }
     const url = this.audienceUrl(Math.max(0, this.curIndex));
-    this.audienceWin = window.open(url, 'formsld-audience', 'popup');
-    if (!this.audienceWin) toast('The audience window was blocked. Allow pop-ups for formsld.');
+    this.audienceWin = window.open(url, 'formdeck-audience', 'popup');
+    if (!this.audienceWin) toast('The audience window was blocked. Allow pop-ups for FormDeck.');
   }
 
   private async fullscreen(on: boolean): Promise<void> {
@@ -1556,7 +1556,7 @@ export async function bootAudience(): Promise<void> {
   const start = Math.max(0, Number(p.get('slide') ?? '0') || 0);
   const from = p.get('from') === 'current' ? 'current' as const : p.get('from') === 'start' ? 'start' as const : undefined;
   const custom = p.get('custom') || undefined;
-  document.title = 'formsld audience';
+  document.title = 'FormDeck audience';
   const live = new LiveClient('audience');
   const ready = new Promise<void>((ok) => { live.onStatus = (on) => { if (on) { live.onStatus = null; ok(); } }; });
   live.onNotice = (t, kind) => toast(t, kind);

@@ -153,7 +153,7 @@ export class Toolbar {
       const sep = this.root.querySelector<HTMLElement>(`.fs-sep[data-g="${g}"]`);
       if (sep) setHidden(sep, !show[g]);
     }
-    const names: Record<Ctx, [string, string]> = { slide: ['Slide', 'slide'], text: ['Text', 'textBox'], shape: ['Shape', 'shapes'], image: ['Picture', 'image'], table: ['Table', 'table'], chart: ['Chart', 'chart'], multi: ['Objects', 'group'], none: ['formsld', 'slides'] };
+    const names: Record<Ctx, [string, string]> = { slide: ['Slide', 'slide'], text: ['Text', 'textBox'], shape: ['Shape', 'shapes'], image: ['Picture', 'image'], table: ['Table', 'table'], chart: ['Chart', 'chart'], multi: ['Objects', 'group'], none: ['FormDeck', 'slides'] };
     const [label, ic] = names[ctx];
     setText(this.title.querySelector('.fs-tb-title-text'), label);
     const iconHost = this.title.querySelector<HTMLElement>('.fs-tb-title-icon');

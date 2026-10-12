@@ -8,7 +8,7 @@ import type { Stage } from './stage';
 import '../styles/draw.css';
 
 export interface AidPrefs { ruler: boolean; grid: boolean; guides: boolean; snapGrid: boolean; smart: boolean; spacing: number }
-const KEY = 'formsld.aids';
+const KEY = 'formdeck.aids';
 const DEFAULTS: AidPrefs = { ruler: false, grid: false, guides: false, snapGrid: false, smart: true, spacing: 9 };
 const RULER = 20;
 export type Unit = 'in' | 'cm';

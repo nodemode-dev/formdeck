@@ -10,7 +10,7 @@ import type { Editor } from './editor';
 
 interface Row { key: string; el: SlideElement; depth: number; parent: string | null }
 
-const KEY = 'formsld.selectionPane';
+const KEY = 'formdeck.selectionPane';
 const LABELS = new Map(PRESET_GROUPS.flatMap((g) => g.items.map((i) => [i.geom, i.label] as [string, string])));
 const PH_NAMES: Record<string, string> = { title: 'Title', ctrTitle: 'Title', subTitle: 'Subtitle', body: 'Text Placeholder', obj: 'Content Placeholder', pic: 'Picture Placeholder', chart: 'Chart Placeholder', tbl: 'Table Placeholder', dt: 'Date Placeholder', ftr: 'Footer Placeholder', sldNum: 'Slide Number Placeholder' };
 

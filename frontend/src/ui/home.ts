@@ -62,7 +62,7 @@ export class Home {
   constructor(private readonly hooks: HomeHooks) {
     this.root = el(`<section class="fs-home" aria-label="Home" hidden>
 <nav class="fs-home-nav">
-<div class="fs-home-brand">${brandMark(26)}formsld <span>by NodeMode</span></div>
+<div class="fs-home-brand">${brandMark(26)}FormDeck <span>by NodeMode</span></div>
 <button class="fs-home-nav-item is-active" type="button" data-v="start">${icon('sparkle', 16)}<span>Start</span></button>
 <button class="fs-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fs-badge is-count fs-deck-count">0</span></button>
 <button class="fs-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fs-badge is-count fs-tpl-count">0</span></button>
@@ -79,7 +79,7 @@ export class Home {
 <div class="fs-home-hero">
 <span class="fs-home-hero-icon">${icon('inbox', 26)}</span>
 <div class="fs-home-hero-text"><div class="fs-home-hero-title">Start from your material</div>
-<div class="fs-home-hero-sub">Drop meeting notes, a brief, a report, pictures or an old deck. formsld reads it, outlines a story and drafts the slides in your template for you to review. Your agent can take it from there.</div>
+<div class="fs-home-hero-sub">Drop meeting notes, a brief, a report, pictures or an old deck. FormDeck reads it, outlines a story and drafts the slides in your template for you to review. Your agent can take it from there.</div>
 <div class="fs-home-formats"><span class="fs-home-format">MD</span><span class="fs-home-format">PDF</span><span class="fs-home-format">DOCX</span><span class="fs-home-format">PPTX</span><span class="fs-home-format">TXT</span><span class="fs-home-format">CSV</span><span class="fs-home-format">XLSX</span><span class="fs-home-format">PNG</span><span class="fs-home-format">JPG</span><span class="fs-home-format">GIF</span></div></div>
 <div class="fs-home-hero-actions"><button class="fs-btn fs-btn-primary" type="button" data-a="choose">${icon('upload', 14)}Choose files</button><button class="fs-btn" type="button" data-a="paste">${icon('fileText', 14)}Paste text</button><button class="fs-btn fs-btn-ghost" type="button" data-a="agents">${icon('agent', 14)}Use your agent</button></div>
 </div>
@@ -121,7 +121,7 @@ export class Home {
       else if (a === 'paste') void this.pasteText();
       else if (a === 'prefs') this.hooks.preferences();
       else if (a === 'agents') this.hooks.agents();
-      else if (a === 'local') toast('Your decks, templates and pictures stay in your Formsld folder on this computer.');
+      else if (a === 'local') toast('Your decks, templates and pictures stay in your FormDeck folder on this computer.');
       else if (a === 'import-template') this.importTemplate();
       const card = t.closest('.fs-card') as HTMLElement | null;
       if (card?.dataset.deck) this.hooks.openDeck(card.dataset.deck);
@@ -208,7 +208,7 @@ export class Home {
   open(): void {
     setHidden(this.root, false);
     document.body.classList.add('nm-home');
-    document.title = 'formsld';
+    document.title = 'FormDeck';
     void this.load();
   }
 

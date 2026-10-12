@@ -134,7 +134,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'export-odp', label: 'Export as OpenDocument Presentation (.odp)', icon: 'fileOdp', enabled: has, run: () => h.exportAs('odp') },
     { id: 'export-pdf', label: 'Export as PDF', icon: 'filePdf', enabled: has, run: () => h.exportAs('pdf') },
     { id: 'export-png', label: 'Export Slides as Pictures', icon: 'fileImage', enabled: has, run: () => h.exportAs('png') },
-    { id: 'export-fsld', label: 'Download formsld File (.fsld)', icon: 'download', enabled: has, run: () => h.exportAs('fsld') },
+    { id: 'export-fsld', label: 'Download FormDeck File (.fsld)', icon: 'download', enabled: has, run: () => h.exportAs('fsld') },
     { id: 'print', label: 'Print or Save as PDF...', keys: ['Mod+P'], enabled: has, run: () => h.print() },
     { id: 'undo', label: 'Undo', keys: ['Mod+Z'], icon: 'undo', enabled: () => !!E()?.doc.canUndo, run: () => { const ed = E(); if (!ed) return; ed.stage.endEdit(); ed.live.undo(ed.doc.id); } },
     { id: 'redo', label: 'Redo', keys: ['Shift+Mod+Z', 'Mod+Y'], icon: 'redo', enabled: () => !!E()?.doc.canRedo, run: () => { const ed = E(); if (ed) ed.live.redo(ed.doc.id); } },
@@ -227,7 +227,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'intake', label: 'Start from Your Material...', icon: 'inbox', run: () => h.intake() },
     { id: 'agents', label: 'Agents and MCP...', icon: 'agent', run: () => h.agents() },
     { id: 'preferences', label: 'Preferences...', keys: ['Mod+,'], icon: 'settings', run: () => h.preferences() },
-    { id: 'help', label: 'formsld Help', keys: ['F1'], icon: 'info', run: () => h.help() },
+    { id: 'help', label: 'FormDeck Help', keys: ['F1'], icon: 'info', run: () => h.help() },
     { id: 'shortcuts', label: 'Keyboard Shortcuts', keys: ['Mod+/'], run: () => h.shortcuts() },
     { id: 'delete-deck', label: 'Delete Deck...', enabled: has, run: async () => { const ed = E(); if (!ed) return; if (await confirmAction('Delete deck', `Move "${ed.doc.deck.title}" to the trash folder in your library?`, 'Delete', true)) { const { api } = await import('../io/api'); await api.remove(ed.doc.id); toast('Moved to the trash folder.'); h.home(); } } },
   ];

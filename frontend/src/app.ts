@@ -32,7 +32,7 @@ import { VERSION } from './version';
 
 const SHELL = `<div class="fs-app">
 <header class="fs-titlebar">
-<div class="fs-brand" role="button" tabindex="0" title="Home" data-cmd="home">${brandMark(20)}<span class="fs-brand-name">formsld</span></div>
+<div class="fs-brand" role="button" tabindex="0" title="Home" data-cmd="home">${brandMark(20)}<span class="fs-brand-name">FormDeck</span></div>
 <nav class="fs-menubar" aria-label="Main menu"></nav>
 <input class="fs-doc-title" value="" aria-label="Deck title" spellcheck="false" placeholder="Untitled deck">
 <div class="fs-title-tools">
@@ -321,11 +321,11 @@ export async function startApp(): Promise<void> {
         const w = Math.max(edge === 'strip' ? 140 : 240, Math.min(edge === 'strip' ? 420 : 520, start + (edge === 'strip' ? ev.clientX - x0 : x0 - ev.clientX)));
         setStyleVar(root, prop, `${w}px`);
       };
-      const up = (): void => { node.classList.remove('is-dragging'); window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); try { localStorage.setItem(`formsld.${edge}`, getComputedStyle(root).getPropertyValue(prop)); } catch { return; } };
+      const up = (): void => { node.classList.remove('is-dragging'); window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); try { localStorage.setItem(`formdeck.${edge}`, getComputedStyle(root).getPropertyValue(prop)); } catch { return; } };
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', up);
     });
-    try { const saved = localStorage.getItem(`formsld.${edge}`); if (saved) setStyleVar(root, edge === 'strip' ? '--fs-strip-w' : '--fs-props-w', saved.trim()); } catch { return; }
+    try { const saved = localStorage.getItem(`formdeck.${edge}`); if (saved) setStyleVar(root, edge === 'strip' ? '--fs-strip-w' : '--fs-props-w', saved.trim()); } catch { return; }
   };
   resizer('strip');
   resizer('props');
@@ -427,7 +427,7 @@ export async function startApp(): Promise<void> {
   }
 
   function pdfMaterialNote(): void {
-    const key = 'formsld.pdfAsMaterial';
+    const key = 'formdeck.pdfAsMaterial';
     try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch { }
     toast('PDFs open as material for a new deck. To edit a PDF itself, use formpdf.');
   }
@@ -441,14 +441,14 @@ export async function startApp(): Promise<void> {
       } catch (err) { toast(`Could not open ${p}: ${err instanceof Error ? err.message : err}`, 'error'); }
     }
   }
-  (window as unknown as { __formsldOpen?: (paths: string[]) => void }).__formsldOpen = (paths) => void openPaths(paths);
+  (window as unknown as { __formdeckOpen?: (paths: string[]) => void }).__formdeckOpen = (paths) => void openPaths(paths);
 
   enhanceAllSelects(document);
   try {
     const settings = await api.settings();
     agentsAllowed = !!settings.agentsAllowed;
     live.setAgents(agentsAllowed);
-  } catch { toast('The formsld engine is not answering yet; retrying.', 'error'); }
+  } catch { toast('The FormDeck engine is not answering yet; retrying.', 'error'); }
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');
   const files = params.getAll('open').filter(Boolean);
@@ -459,5 +459,5 @@ export async function startApp(): Promise<void> {
     void openPaths(files);
   }
   revealApp();
-  document.title = `formsld ${VERSION}`;
+  document.title = `FormDeck ${VERSION}`;
 }

@@ -14,8 +14,8 @@ interface Entry { name: string; cat: number; tags: string; o: string; f: string;
 interface Library { source: string; license: string; copyright: string; box: number; stroke: number; cats: string[]; icons: Entry[] }
 
 const CELL = 64;
-const RECENT_KEY = 'formsld.icons.recent';
-const STYLE_KEY = 'formsld.icons.style';
+const RECENT_KEY = 'formdeck.icons.recent';
+const STYLE_KEY = 'formdeck.icons.style';
 const RECENT_MAX = 48;
 
 let library: Promise<Library> | null = null;

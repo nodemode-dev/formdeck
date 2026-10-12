@@ -39,6 +39,7 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 17. Table cells are edited in place · editor/stage.ts, render/table.ts, editor/table-edit.ts
 18. The Animate tab · editor/animation-pane.ts
 19. Links, spacing, effects, picture adjustments, theme editing, replies · ui/link-dialog.ts, editor/inspector.ts
+40. formsld becomes FormDeck · main.ts, app.ts, present/show.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -203,3 +204,7 @@ An equation run stores both `tex` and `mml`; the window renders the stored MathM
 ## 39. Media playback and the icon library · _v0.7.0 (editor/media-panel.ts MediaPanel; ui/dialogs-media.ts MediaDlg; present/media-play.ts preparePlayback; show.ts stepsFor, stepMedia; ui/dialogs-icons.ts IconsDlg)
 
 Clips in the click sequence become empty steps appended after the slide's animation steps and tagged in a WeakMap, so steps.ts did not change; advancing plays the clip and stepping back pauses and resets it. Any seek clears a video's poster, so with a poster the editor drops the `#t=` fragment, the show seeks to the trim start only on play, and rewind calls `load()` to bring the poster back; opacity fades only while playing. Frame stepping assumes 30 fps. The icon data (Tabler 3.49.0 without the Brand category; ten filled icons dropped because their union differs from even-odd fill) is fetched through a `?url` import when the dialog opens, so TypeScript never parses 1.6 MB and first paint never loads it; the grid is a virtual pool of cells moved by transform inside a scroll box that reserves its height.
+
+## 40. formsld becomes FormDeck · _v0.7.1 (main.ts LEGACY_PREFIX loop; app.ts __formdeckOpen; present/show.ts BroadcastChannel and audience window names)
+
+UI preferences were stored under `formsld.*` keys; `main.ts` copies each one to `formdeck.*` (only when the new key is empty) and removes the old one before the app starts, so panel layout, rulers, captions and recents survive the rename in the browser. The pre-paint theme reads `nodemode_ui_settings`, a family key, so first paint is unaffected. The desktop app's new identifier `ai.nodemode.formdeck` gives its webview a new storage origin, so desktop preferences start fresh once. The open-file hook is now `window.__formdeckOpen`, renamed in `src-tauri/src/main.rs` in the same commit; the presenter channel and audience window are `formdeck-show-*` and `formdeck-audience`, so a show and its audience must run the same version.

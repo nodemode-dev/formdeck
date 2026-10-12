@@ -169,7 +169,7 @@ export function linearToTex(src: string): string {
   return out.join('').trim();
 }
 
-const MODE_KEY = 'formsld.equationMode';
+const MODE_KEY = 'formdeck.equationMode';
 function savedMode(): 'tex' | 'linear' {
   try { return localStorage.getItem(MODE_KEY) === 'linear' ? 'linear' : 'tex'; } catch { return 'tex'; }
 }
