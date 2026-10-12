@@ -25,7 +25,7 @@ export interface Effects {
 
 export interface Run {
   t: string; b?: boolean; i?: boolean; u?: boolean; s?: boolean; sz?: number; font?: string; color?: Color; hl?: Color;
-  link?: Link; sup?: boolean; sub?: boolean; caps?: 'all' | 'small'; spc?: number;
+  link?: Link; sup?: boolean; sub?: boolean; caps?: 'all' | 'small'; spc?: number; lang?: string; noProof?: boolean;
   fill?: Fill; ln?: Line; fx?: Effects; math?: MathRun;
 }
 export interface MathRun { tex: string; mml?: string; display?: boolean }

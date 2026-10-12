@@ -118,7 +118,9 @@ export function textHtml(body: TextBody | undefined, tc: TextCtx): string {
       const text = r.t.replace(/‹#›/g, String(tc.slideNumber));
       const link = r.link ? ` data-link="${esc('url' in r.link ? r.link.url : '#' + r.link.slide)}"` : '';
       const css = runCss(r, lvl, tc);
-      runs += `<span class="fd-r" style="${css}" data-s="${css}"${link}${runHasFx(r) ? fxAttr(fxSpec(r, tc.theme)) : ''}>${esc(text)}</span>`;
+      const lang = r.lang ? ` lang="${esc(r.lang)}"` : '';
+      const proof = r.noProof ? ' spellcheck="false"' : '';
+      runs += `<span class="fd-r" style="${css}" data-s="${css}"${lang}${proof}${link}${runHasFx(r) ? fxAttr(fxSpec(r, tc.theme)) : ''}>${esc(text)}</span>`;
     }
     const tailCss = runCss(p.runs[0] ?? null, lvl, tc);
     const tail = !p.runs.some((r) => r.t && r.t !== '\n') ? `<span class="fd-r" style="${tailCss}" data-s="${tailCss}"><br></span>` : '';

@@ -163,6 +163,10 @@ def read_run_props(rpr, ctx) -> dict:
         props["caps"] = rpr.get("cap")
     if rpr.get("spc") is not None:
         props["spc"] = round(int_attr(rpr, "spc", 0) / 100, 2)
+    if rpr.get("lang"):
+        props["lang"] = rpr.get("lang")
+    if bool_attr(rpr, "noProof"):
+        props["noProof"] = True
     color = _run_color(rpr, ctx)
     if color is not None:
         props["color"] = color

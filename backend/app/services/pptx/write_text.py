@@ -125,6 +125,10 @@ def run_props(run: dict, ctx, tag: str, with_link: bool = True):
         attrs["cap"] = run["caps"]
     if run.get("spc") is not None:
         attrs["spc"] = _clamp(round(float(run["spc"]) * 100), -400000, 400000)
+    if isinstance(run.get("lang"), str) and run["lang"]:
+        attrs["lang"] = run["lang"]
+    if run.get("noProof"):
+        attrs["noProof"] = True
     if run.get("sup"):
         attrs["baseline"] = 30000
     elif run.get("sub"):

@@ -182,6 +182,8 @@ export const ICONS: Record<string, string> = {
   mergeSubtract: L('<path d="M3.5 4.5h10v5h-3v5h-7z"/><rect x="10.5" y="9.5" width="10" height="10" rx="0.5" stroke-dasharray="2 2"/>'),
   equation: L('<path d="M4 6.5h9M6.5 6.5v7.5M10.5 6.5V13a1.5 1.5 0 0 0 1.5 1.5"/><path d="M14.5 12h6M17.5 9v6M4 19h16.5"/>'),
   fileOdp: L(`${PAGE}<path d="M8.5 16.5l2.5-4 2 2.5 1.5-2 1.5 3.5z"/>`),
+  spelling: L('<path d="M3.5 14.5L7 5.5l3.5 9M4.8 11.5h4.4"/><path d="M13.5 18.5l3 3 5-6"/><path d="M13 5.5h4.5a2.2 2.2 0 0 1 0 4.4H13zM13 9.9h5a2.3 2.3 0 0 1 0 4.6h-5z"/>'),
+  language: L('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c-2.6 2.7-3.8 5.5-3.8 8.5s1.2 5.8 3.8 8.5c2.6-2.7 3.8-5.5 3.8-8.5S14.6 6.2 12 3.5z"/>'),
 };
 
 export function icon(name: string, size = 16): string {

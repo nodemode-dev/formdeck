@@ -172,6 +172,8 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'review-changes', label: 'Request Changes', icon: 'requestChanges', enabled: has, run: () => reviewStatus('changes') },
     { id: 'review-draft', label: 'Back to Draft', enabled: has, run: () => reviewStatus('draft') },
     { id: 'check-deck', label: 'Check Deck...', icon: 'success', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/check-dialog').then((m) => m.checkDeck(ed)); } },
+    { id: 'spelling', label: 'Spelling...', keys: ['F7'], icon: 'spelling', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-spelling').then((m) => m.openSpelling(ed)); } },
+    { id: 'language', label: 'Language...', icon: 'language', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-spelling').then((m) => m.openLanguage(ed)); } },
     { id: 'review-activity', label: 'Activity...', icon: 'history', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/review-dialogs').then((m) => m.activityDialog(ed)); } },
     { id: 'review-compare', label: 'Compare...', icon: 'compare', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/review-dialogs').then((m) => m.compareDialog(ed)); } },
     { id: 'add-comment', label: 'New Comment', keys: ['Alt+Mod+M'], icon: 'comment', enabled: has, run: () => h.comment() },

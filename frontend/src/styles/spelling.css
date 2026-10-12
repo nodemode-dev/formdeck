@@ -1,0 +1,21 @@
+.fd-spell-body, .fd-lang-body { display: grid; gap: var(--space-3); }
+.fd-spell-main { display: grid; gap: var(--space-2); }
+.fd-spell-label { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); color: var(--text-secondary); font-size: var(--fd-12); font-weight: 500; }
+.fd-spell-where { color: var(--text-muted); font-size: var(--fd-11); font-weight: 400; }
+.fd-spell-ctx { padding: 8px 10px; border: 1px solid var(--line-1); border-radius: var(--radius-md); background: var(--surface-1); color: var(--text-secondary); font-size: var(--fd-13); line-height: 1.5; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; }
+.fd-spell-ctx mark { padding: 0 2px; border-radius: 3px; background: color-mix(in srgb, var(--danger) 24%, transparent); color: var(--text-primary); font-weight: 600; text-decoration: underline wavy var(--danger); text-underline-offset: 3px; }
+.fd-spell-sugs { display: flex; flex-direction: column; max-height: 168px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-1); border-radius: var(--radius-md); background: var(--surface-1); }
+.fd-spell-sugs:empty { display: none; }
+.fd-spell-sug { display: block; width: 100%; padding: 6px 10px; border: 0; border-bottom: 1px solid var(--line-1); background: transparent; color: var(--text-primary); font: inherit; font-size: var(--fd-13); text-align: left; cursor: pointer; }
+.fd-spell-sug:last-child { border-bottom: 0; }
+.fd-spell-sug:hover { background: var(--accent-soft); }
+.fd-spell-sug.is-picked { background: var(--accent-wash); box-shadow: inset 2px 0 0 var(--accent-color); }
+.fd-spell-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.fd-spell-acts .fd-btn { height: 32px; border-radius: 9px; font-size: var(--fd-13); }
+.fd-spell-acts .fd-btn-ghost { border-color: var(--line-3); background: var(--surface-2); color: var(--text-primary); }
+.fd-spell-acts .fd-btn-ghost:hover:not(:disabled) { background: var(--surface-raised); }
+.fd-spell-acts .fd-btn:disabled { opacity: 0.45; cursor: default; }
+.fd-spell-add { grid-column: 1 / -1; }
+.fd-spell-count { margin: 0; }
+.fd-spell-done { padding: 20px 16px; }
+.fd-spell-body [hidden], .fd-lang-body [hidden] { display: none; }
