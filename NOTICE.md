@@ -30,6 +30,7 @@ The 67 built-in templates, their layouts, motifs and sample text are original wo
 | reportlab | BSD | engine, PDF export of decks |
 | latex2mathml | MIT | engine, LaTeX to MathML for equations written by agents or imported |
 | Temml | MIT | app, LaTeX to MathML in the equation editor (loaded only when it opens) |
+| three.js 0.180.0 | MIT | app, drawing 3D models (loaded only when a model is on screen) |
 | nspell 2.1.5 (with is-buffer) | MIT | app, spell checking (loaded only when Spelling opens) |
 | dictionary-en 4.0.0, dictionary-en-gb 3.0.0 (Hunspell data from SCOWL, packaged by Titus Wormer) | MIT AND BSD | app, English dictionaries, unmodified data files fetched on first use |
 | dictionary-es 4.0.0 (Hunspell data from the RLA-ES project) | GPL-3.0 OR LGPL-3.0 OR MPL-1.1, used under MPL-1.1 | app, Spanish dictionary, unmodified data files; source at https://github.com/wooorm/dictionaries |
