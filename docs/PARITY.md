@@ -6,9 +6,9 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.7.2
 
 - Every row is one capability a person would look for in a presentation editor, grouped by area. The product columns say whether PowerPoint, Keynote and Google Slides offer it. They come from each vendor's own documentation, not from a trace of their code: PowerPoint for Microsoft 365 on Windows, Mac and the web (Microsoft Support, read 8 October 2026), Keynote 15.4 for Mac (the Keynote User Guide for Mac) and Google Slides on the web (Google Docs Editors Help, read 8 October 2026).
 - Three marks changed on that check: PowerPoint no longer offers Compare, because Compare and Merge is retired from PowerPoint for Windows from version 2502; Google Slides edits offline but its files stay in Google Drive, so it does not offer local files; and Google Slides recordings save a video of the deck with narration, so it does offer video export (still no GIF).
-- The formsld column was decided only by finding the code that implements the row, from the interface through to rendering, export or the engine. The evidence column names the file and symbol where the trace ended. README and skill claims were not counted.
+- The FormDeck column was decided only by finding the code that implements the row, from the interface through to rendering, export or the engine. The evidence column names the file and symbol where the trace ended. README and skill claims were not counted.
 - **Full** (1 point): implemented and reachable by a person in the app. **Partial** (0.5): present but narrower than the products, or present in the model and engine but reachable only through an agent or an import. **None** (0): nothing was found in `frontend/src` or `backend/app`.
-- A comparison scores only the rows that product offers. formsld vs PowerPoint counts the PowerPoint rows, vs Keynote the Keynote rows, vs Google Slides the Slides rows. Rows none of the three offers are where formsld leads; they are shown and count only in the all-rows total.
+- A comparison scores only the rows that product offers. FormDeck vs PowerPoint counts the PowerPoint rows, vs Keynote the Keynote rows, vs Google Slides the Slides rows. Rows none of the three offers are where FormDeck leads; they are shown and count only in the all-rows total.
 - The Platform rows are shown but not scored. The script is `docs/parity.py` (`python3 docs/parity.py md` prints the tables below).
 
 ## Scores
@@ -37,31 +37,31 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.7.2
 | Platform | not scored | not scored | not scored |
 | **Overall** | **90.5 of 104 · 87.0%** | **80.5 of 88 · 91.5%** | **77 of 88 · 87.5%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where formsld leads), formsld has 93 full, 11 partial and 8 none: 98.5 of 112 points, 87.9%.
+Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 93 full, 11 partial and 8 none: 98.5 of 112 points, 87.9%.
 
-## Where formsld leads
+## Where FormDeck leads
 
-Rows formsld implements that the product does not offer:
+Rows FormDeck implements that the product does not offer:
 
 - **Over PowerPoint (8 rows):** per-slide review status, comparing a deck with a saved version or another file, and six agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, and a headless `build-deck` command.
 - **Over Keynote (20 rows):** the same 8, plus theme colours and fonts changed deck-wide, several masters in one deck, shrink-to-fit autofit, charts and animations that stay native in .pptx, diagram layouts from a script, live captions, the Check Deck accessibility checker and reading order, OpenDocument .odp, outline export as text, and raw ops for scripting.
 - **Over Google Slides (23 rows):** the same 8, plus sections, outline view, reset slide, text columns, WordArt and text effects, equations, edit points and merge shapes, an icon library, object lock, the selection pane with reading order, morph, motion paths, local files that work offline and the Check Deck accessibility checker.
-- **Drafting from material:** PowerPoint (Copilot), Keynote and Google Slides (Gemini) all draft decks, so this row scores against them, but formsld does it locally from md, pdf, docx, pptx, csv, xlsx, pictures and notes in one dialog (`backend/app/services/autodraft.py draft`), with no model and no account, and hands the same intake to an outside agent. A PDF opened or dropped in formsld lands in that dialog as material, and Insert > Slides from PDF Pages turns each page into a slide.
+- **Drafting from material:** PowerPoint (Copilot), Keynote and Google Slides (Gemini) all draft decks, so this row scores against them, but FormDeck does it locally from md, pdf, docx, pptx, csv, xlsx, pictures and notes in one dialog (`backend/app/services/autodraft.py draft`), with no model and no account, and hands the same intake to an outside agent. A PDF opened or dropped in FormDeck lands in that dialog as material, and Insert > Slides from PDF Pages turns each page into a slide.
 
-## Where formsld trails most
+## Where FormDeck trails most
 
 - **Collaboration and sharing, 1.5 of 4.** Windows and agents co-edit live on one computer; there are no share links, no publishing to the web and no co-editing across machines.
 - **Diagrams and SmartArt, 1 of 2.** The compiler draws timelines, processes, teams and stats from a script and Insert > Icons has 5,817 icons, but there is no SmartArt editor and no 3-D models.
 - **Accessibility, 2 of 4 against PowerPoint.** Check Deck and the reading order view work; the window's own screen reader labels are incomplete and exported PDFs are untagged.
 - **Pictures and the rest.** No stock photos or AI pictures, no bevel or 3-D text, no charts linked to a live workbook, no fonts embedded in .pptx, no tagged PDF, and captions need Chrome or Edge.
 
-Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slide Clean Up layout suggestions, PowerPoint Speaker Coach, a live camera on slides (PowerPoint Cameo, Keynote live video), nonlinear zoom and linked navigation (PowerPoint Zoom, Keynote linked objects), and Keynote's multipresenter and FaceTime presenting.
+Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Slide Clean Up layout suggestions, PowerPoint Speaker Coach, a live camera on slides (PowerPoint Cameo, Keynote live video), nonlinear zoom and linked navigation (PowerPoint Zoom, Keynote linked objects), and Keynote's multipresenter and FaceTime presenting.
 
 ## Line by line
 
 ### File and templates
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Start a deck from a template gallery | yes | yes | yes | Full | `frontend/src/ui/home.ts Home`, `backend/app/services/templates/catalog.py DESIGNS` (67 templates) |
 | Template categories and search | yes | yes | yes | Full | `frontend/src/ui/dialogs-file.ts TemplateGrid.filter` (9 categories plus Imported) |
@@ -74,7 +74,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Slides and layouts
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Add, duplicate, delete and reorder slides | yes | yes | yes | Full | `frontend/src/editor/commands.ts new-slide, duplicate-slide`, `filmstrip.ts moveSlidesOps` |
 | Layouts with placeholders | yes | yes | yes | Full | `backend/app/services/templates/generator.py` (21 semantic layouts), `commands.ts layoutCommands` |
@@ -89,7 +89,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Masters and themes
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Theme colours and fonts | yes | no | yes | Full | `inspector.ts themeColor` (click a theme colour to change it deck-wide) and the Headings and Body font selects; agents use `mcp.py set_theme` |
 | Edit slide masters and layouts | yes | yes | yes | Full | View > Slide Master (`editor/master-view.ts`, `engine/holders.ts`, `ops.ts setHolderResolver`): edit master and layout elements, placeholders, level styles, backgrounds; insert, duplicate, rename, delete and drag to reorder layouts (`filmstrip.ts dragLayout`); slides update live |
@@ -97,7 +97,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Text
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Character formatting: font, size, bold, italic, underline, strike, colour, highlight | yes | yes | yes | Full | `commands.ts bold..clear-format`, `toolbar.ts` font and size |
 | Bullets, numbering and list levels | yes | yes | yes | Full | `commands.ts bullets, numbering, indent, outdent` |
@@ -114,7 +114,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Shapes and drawing
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Preset shapes gallery | yes | yes | yes | Full | `frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop` |
 | Lines, arrows and connectors | yes | yes | yes | Full | Straight, elbow and curved connectors glued to connection sites and rerouted in the same step (`engine/geometry/connectors.ts routeConnector`, `editor/connectors.ts glueOps`); `p:cxnSp` with `a:stCxn`, `a:endCxn` (`pptx/write_elements.py _connector`, `read_elements.py read_connector`) |
@@ -126,7 +126,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Pictures and media
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Insert pictures by file, drop or paste | yes | yes | yes | Full | `editor/editor.ts pickImage, insertFiles`, `app.ts` paste and drop |
 | Crop and crop to shape | yes | yes | yes | Full | `inspector.ts` Crop (left, right, top, bottom), Fit (fill, fit, stretch) and Shape mask (square, round, circle); no drag crop handles |
@@ -139,7 +139,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Tables
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Insert a table with a style | yes | yes | yes | Full | `dialogs-insert.ts TableDlg` (size grid, six styles, header row, banded rows) |
 | Type in table cells | yes | yes | yes | Full | `editor/stage.ts beginCell, stepCell, commitCell`: double-click, Enter or F2, Tab between cells; rows grow to fit and shrink back (`table-edit.ts fitFrameOps`, `h` is a minimum) |
@@ -147,7 +147,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Charts
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Native charts: column, bar, line, area, pie, doughnut, scatter, radar, combo | yes | yes | yes | Full | `frontend/src/render/chart.ts chartSvg`, `dialogs-insert.ts ChartDlg` |
 | Edit chart data in a grid, paste from a spreadsheet | yes | yes | yes | Full | `ChartDlg` grid with row and series tools, paste |
@@ -157,14 +157,14 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Diagrams and SmartArt
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Diagram layouts (process, timeline, cycle, hierarchy) | yes | no | yes | Partial | timeline, process, team and stats drawn by `backend/app/services/compiler/compile.py` from a script; SmartArt imports as a group (`read_elements.py`); no diagram editor |
 | Icons and 3D models | yes | yes | no | Partial | `ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; no 3D models |
 
 ### Arrange and align
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Order: bring forward, send backward, to front, to back | yes | yes | yes | Full | `commands.ts bring-front..send-back`, `actions.ts zOrderOps` |
 | Align and distribute | yes | yes | yes | Full | `actions.ts alignOps, distributeOps` |
@@ -176,7 +176,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Transitions
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Slide transitions (fade, push, wipe, split, cover, uncover, zoom, reveal, flip, cube) | yes | yes | yes | Full | `frontend/src/present/effects.ts transitionPlan`, `inspector.ts` Transition, `pptx/write_slide.py insert_transition` |
 | Morph | yes | yes | no | Full | `present/effects.ts morph`, starting from where a motion path left an element (`present/steps.ts displaced`) |
@@ -184,7 +184,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Animations
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Entrance, emphasis and exit effects in the show | yes | yes | yes | Full | `present/show.ts buildSteps`, `effects.ts effectFx` play `slide.animations`; added in the Animate tab or by agents (`mcp.py animate`) |
 | Animation pane, order and triggers | yes | yes | yes | Full | `editor/animation-pane.ts AnimationPane`: add, reorder, edit start, duration, delay, direction, by paragraph; preview on the stage |
@@ -193,7 +193,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Slideshow and presenter
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Full-screen show, keyboard navigation, go to slide by number | yes | yes | yes | Full | `present/show.ts KEYS, onKey` |
 | Presenter view: notes, next slide, timer, audience window | yes | yes | yes | Full | `show.ts` presenter mode, `BroadcastChannel`, Tauri `open_presenter` |
@@ -207,16 +207,16 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Review and comments
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Comments: add, list, resolve | yes | yes | yes | Full | `inspector.ts` Review tab: add, reply, resolve, reopen, @mentions, assignees, filter (`editor/mentions.ts attachMentions`); `dialogs-insert.ts addComment`; agents through `mcp.py comments` (mentions, assignee, filter mine) |
 | Review status per slide (draft, review, changes, approved) | no | no | no | Full | `commands.ts reviewStatus`, `inspector.ts` Review tab, `mcp.py review` |
-| Compare two versions | no | no | no | Full | decks against a saved version or a .pptx/.fsld file with per-slide differences, word-level text changes and undoable accept or ignore (`editor/compare.ts compareDecks, acceptAll`, `ui/review-dialogs.ts CompareDialog`, `routers/decks.py version_deck, compare_file`) |
+| Compare two versions | no | no | no | Full | decks against a saved version or a .pptx/.fdec file (older .fsld too) with per-slide differences, word-level text changes and undoable accept or ignore (`editor/compare.ts compareDecks, acceptAll`, `ui/review-dialogs.ts CompareDialog`, `routers/decks.py version_deck, compare_file`) |
 | Activity: who changed what | yes | yes | yes | Full | every step logged per deck with who, origin, label and slides (`store.py Store._log, activity`, `Decks/[id]/activity.jsonl`, `GET /api/decks/{id}/activity`); Review > Activity grouped by day with a person filter (`ui/review-dialogs.ts ActivityDialog`); agents read it in `mcp.py t_get_context` |
 
 ### Collaboration and sharing
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Real-time co-editing | yes | yes | yes | Partial | several windows and agents edit one deck live with presence (`editor.ts setPeer`, `routers/live.py`); one computer only |
 | Share by link with permissions | yes | yes | yes | None | nothing found |
@@ -225,7 +225,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Accessibility
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Accessibility checker | yes | no | no | Full | `backend/app/services/lint.py` checks alt text, contrast, tiny text and overflow measured in the window; Review > Check Deck (`frontend/src/ui/check-dialog.ts`, `decks.py check`) and agents (`lint_deck`) |
 | Reading order | yes | no | no | Partial | `editor/selection-pane.ts` Reading order view (missing alt text flagged, drag reorders the shape tree); exported PDFs are untagged |
@@ -234,7 +234,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Import and export
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Open .pptx, .potx, .ppsx, .pptm | yes | yes | yes | Full | `backend/app/services/pptx/reader.py read_pptx` (warnings for what is dropped) |
 | Save .pptx and .potx | yes | yes | yes | Full | `backend/app/services/pptx/writer.py write_pptx` |
@@ -247,14 +247,14 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Print
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Print slides, notes pages, outline and handouts (2, 3, 4, 6, 9) | yes | yes | yes | Full | `frontend/src/ui/dialogs-file.ts PrintDialog, renderPrint` |
 | Grayscale, frame slides, include hidden slides, paper size | yes | yes | yes | Full | `PrintDialog` options |
 
 ### Automation and agents
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Built-in AI assistant | yes | yes | yes | Partial | no built-in model; `autodraft.py` drafts heuristically and outside agents do the rest |
 | MCP server for outside agents (HTTP and stdio) | no | no | no | Full | `backend/app/routers/mcp.py TOOLS` (24 tools), `setup/mcp_stdio.py` |
@@ -268,7 +268,7 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 ### Platform (shown, not scored)
 
-| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |
+| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Desktop app | yes | yes | no | Partial | Tauri shell in `src-tauri/`, bundles from `.github/workflows/desktop.yml`; signing optional |
 | Runs in a browser | yes | yes | yes | Partial | Vite app on 5197 against a local engine; no hosted service |
@@ -278,5 +278,5 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 
 1. Keep the row list. Add a row only for a capability one of the three products ships, put it in the right area and mark the three product columns from the vendor's documentation; remove none, so scores stay comparable between releases. The one exception so far is 0.6.0, which dropped the PDF areas when the workbench moved to formpdf.
 2. For each row whose code changed, trace it again: find the command in `frontend/src/editor/commands.ts` or the dialog in `frontend/src/ui`, follow it to the op builder in `frontend/src/editor/actions.ts`, the renderer in `frontend/src/render` or the show in `frontend/src/present`, and for exchange rows the engine in `backend/app/services`. Write the file and symbol where the trace ended into the Evidence column. If a person cannot reach it in the app, it is Partial at most; if nothing implements it, None.
-3. Count: Full 1, Partial 0.5, None 0. For each product, sum formsld's points over the rows that product offers, outside Platform, and divide by that row count, per area and overall. Rows no product offers count in no comparison and are listed under Where formsld leads.
+3. Count: Full 1, Partial 0.5, None 0. For each product, sum FormDeck's points over the rows that product offers, outside Platform, and divide by that row count, per area and overall. Rows no product offers count in no comparison and are listed under Where FormDeck leads.
 4. Update the Scores table, the counts under it and the version and date at the top. `docs/parity.py` holds the rows as data: edit a row there, run `python3 docs/parity.py md` to print the area tables and the Scores table, and `python3 docs/parity.py` for the counts as JSON, then carry the changes into this file.

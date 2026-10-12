@@ -1,6 +1,6 @@
 # frontend HASHOUT_LOG
 
-Living log for the formsld frontend, _v0.2.0. The code carries almost no comments; the reasons live here, anchored by file and symbol. Read the map and the TOC first.
+Living log for the FormDeck frontend (called formsld through 0.7.0; entries before 40 keep that name and the fs- prefix), _v0.2.0. The code carries almost no comments; the reasons live here, anchored by file and symbol. Read the map and the TOC first.
 
 ## Org navi map
 

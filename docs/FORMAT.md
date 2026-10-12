@@ -1,6 +1,6 @@
-# formsld formats
+# FormDeck formats
 
-The contracts every part of formsld reads and writes: the deck model (`deck.json`), the `.fsld` package, templates, the ops that change a deck, the deck spec and slide script that agents write, and the intake digest. The engine (`backend/app/services/model.py`) and the window (`frontend/src/engine/model.ts`) implement exactly this file; when they disagree with it, this file wins and the code is the bug.
+The contracts every part of FormDeck reads and writes: the deck model (`deck.json`), the `.fdec` package, templates, the ops that change a deck, the deck spec and slide script that agents write, and the intake digest. The engine (`backend/app/services/model.py`) and the window (`frontend/src/engine/model.ts`) implement exactly this file; when they disagree with it, this file wins and the code is the bug.
 
 ## Contents
 
@@ -13,7 +13,7 @@ The contracts every part of formsld reads and writes: the deck model (`deck.json
 - Placeholders and inheritance
 - Transitions and animations
 - Review, comments, history
-- The .fsld package
+- The .fdec package
 - Templates
 - Ops
 - Deck spec and slide script
@@ -29,7 +29,7 @@ The contracts every part of formsld reads and writes: the deck model (`deck.json
 
 ```json
 {
-  "format": "formsld/deck",
+  "format": "formdeck/deck",
   "formatVersion": 1,
   "id": "d_k2x9q0aa",
   "title": "Q3 Review",
@@ -41,7 +41,7 @@ The contracts every part of formsld reads and writes: the deck model (`deck.json
   "sections": [ { "id": "sec1", "name": "Introduction", "start": "s1" } ],
   "comments": [],
   "media": { "img_0a1b2c3d": { "name": "hero.jpg", "mime": "image/jpeg", "w": 2400, "h": 1600, "bytes": 482113 } },
-  "meta": { "created": "2026-10-07T12:00:00Z", "modified": "2026-10-07T12:30:00Z", "author": "", "template": "aurora", "app": "formsld 0.1.0" }
+  "meta": { "created": "2026-10-07T12:00:00Z", "modified": "2026-10-07T12:30:00Z", "author": "", "template": "aurora", "app": "FormDeck 0.1.0" }
 }
 ```
 
@@ -218,26 +218,28 @@ A layout's placeholders show in the editor as prompts ("Click to add title") on 
 
 `transition`: `{ "type": "fade", "duration": 0.6, "dir": "l", "advanceOnClick": true, "advanceAfter": null }`. Types: `none`, `fade`, `push`, `wipe`, `split`, `cover`, `uncover`, `zoom`, `reveal`, `flip`, `cube`, `morph`. `dir` is `l`, `r`, `u`, `d`.
 
-`animations[]`: `{ "id": "a1", "target": "e4", "effect": "fadeIn", "class": "entr", "trigger": "onClick", "duration": 0.5, "delay": 0, "byParagraph": false, "dir": "u" }`. `class` is `entr`, `emph`, `exit` or `path`. Entrance effects: `appear`, `fadeIn`, `flyIn`, `floatIn`, `riseUp`, `wipeIn`, `split`, `zoomIn`, `growTurn`, `swivel`, `wheel`, `bounce`. Emphasis: `pulse`, `colorPulse`, `teeter`, `spin`, `grow`, `transparency`. Exit: `disappear`, `fadeOut`, `flyOut`, `floatOut`, `wipeOut`, `splitOut`, `zoomOut`, `shrinkTurn`, `swivel`, `wheel`. Motion paths: `line`, `arc`, `turn`, `circle`, `custom`. `dir`: fly and wipe `l`, `r`, `u`, `d`; float `u` or `d`; split `l` (vertical) or `u` (horizontal); spin `r` or `l`; line is the direction of travel; arc `d` or `u` (travels right, bulging down or up), `l` or `r` (travels down, bulging left or right); turn `d` (right then down), `u` (right then up), `r` (down then right), `l` (up then right). A motion path stores `path`: SVG path data (`M`, `L`, `C`, `Q`, `Z` and the rest) in slide points relative to the element's centre where the motion starts, as PowerPoint's relative paths are; `"M 0 0 L 180 0"` moves the element 180 pt right. Presets get their shape from `effect` and `dir` when `path` is absent (a side of a third of the slide's shorter edge). Optional `rotate: true` turns the element to follow the path (formsld only; not kept in .pptx) and `reverse: true` travels from the path's end back to its start. The element holds its end position until the slide is left; several paths on one element chain, each starting where the previous one ended. Animations round-trip through .pptx as the main timing sequence with PowerPoint preset ids (motion paths as `p:animMotion` in slide-relative fractions with presets line 42, 35, 63, 64, arc 37, 44, 51, 58, turn 50, 43, 36, 57, circle 1, custom 0; any other preset path imports as `custom`); trigger sequences are dropped on import with a warning. `trigger` is `onClick`, `withPrevious` or `afterPrevious`.
+`animations[]`: `{ "id": "a1", "target": "e4", "effect": "fadeIn", "class": "entr", "trigger": "onClick", "duration": 0.5, "delay": 0, "byParagraph": false, "dir": "u" }`. `class` is `entr`, `emph`, `exit` or `path`. Entrance effects: `appear`, `fadeIn`, `flyIn`, `floatIn`, `riseUp`, `wipeIn`, `split`, `zoomIn`, `growTurn`, `swivel`, `wheel`, `bounce`. Emphasis: `pulse`, `colorPulse`, `teeter`, `spin`, `grow`, `transparency`. Exit: `disappear`, `fadeOut`, `flyOut`, `floatOut`, `wipeOut`, `splitOut`, `zoomOut`, `shrinkTurn`, `swivel`, `wheel`. Motion paths: `line`, `arc`, `turn`, `circle`, `custom`. `dir`: fly and wipe `l`, `r`, `u`, `d`; float `u` or `d`; split `l` (vertical) or `u` (horizontal); spin `r` or `l`; line is the direction of travel; arc `d` or `u` (travels right, bulging down or up), `l` or `r` (travels down, bulging left or right); turn `d` (right then down), `u` (right then up), `r` (down then right), `l` (up then right). A motion path stores `path`: SVG path data (`M`, `L`, `C`, `Q`, `Z` and the rest) in slide points relative to the element's centre where the motion starts, as PowerPoint's relative paths are; `"M 0 0 L 180 0"` moves the element 180 pt right. Presets get their shape from `effect` and `dir` when `path` is absent (a side of a third of the slide's shorter edge). Optional `rotate: true` turns the element to follow the path (FormDeck only; not kept in .pptx) and `reverse: true` travels from the path's end back to its start. The element holds its end position until the slide is left; several paths on one element chain, each starting where the previous one ended. Animations round-trip through .pptx as the main timing sequence with PowerPoint preset ids (motion paths as `p:animMotion` in slide-relative fractions with presets line 42, 35, 63, 64, arc 37, 44, 51, 58, turn 50, 43, 36, 57, circle 1, custom 0; any other preset path imports as `custom`); trigger sequences are dropped on import with a warning. `trigger` is `onClick`, `withPrevious` or `afterPrevious`.
 
 ## Review, comments, history
 
 `comments[]`: `{ "id": "c1", "slide": "s3", "element": "e4", "author": "Ana", "kind": "user", "text": "Use the Q3 number @claude-code", "at": "2026-10-07T12:31:00Z", "resolved": false, "mentions": ["claude-code"], "assignee": "claude-code", "replies": [ { "author": "agent", "kind": "agent", "text": "Done @Ana", "at": "...", "mentions": ["Ana"] } ] }`. `kind` is `user` or `agent`. `mentions` (optional, on a comment or a reply) lists the people named with `@Name` in the text; `assignee` (optional) is the one person the comment is assigned to and is always among the comment's mentions. The engine drops empty mentions and assignees and removes duplicates.
 
-History (undo) lives in the engine for each open deck and is not stored in deck.json. Named versions are saved snapshots in the library (`Decks/[id]/versions/[n].json`). The activity log is `Decks/[id]/activity.jsonl`, one JSON line per step: `{ "id": "k12", "at": "2026-10-08T09:14:03Z", "who": "Ana", "origin": "user", "label": "Delete slide", "slides": ["s4"] }`. `origin` is `user`, `agent` or `history` (undo and redo); `who` is the person's name from Preferences (or `You`) or the agent's client name; `slides` are the slide ids the step touched (empty for deck-wide steps). The log keeps the latest 2000 steps and is not part of deck.json, a .fsld package or a .pptx.
+History (undo) lives in the engine for each open deck and is not stored in deck.json. Named versions are saved snapshots in the library (`Decks/[id]/versions/[n].json`). The activity log is `Decks/[id]/activity.jsonl`, one JSON line per step: `{ "id": "k12", "at": "2026-10-08T09:14:03Z", "who": "Ana", "origin": "user", "label": "Delete slide", "slides": ["s4"] }`. `origin` is `user`, `agent` or `history` (undo and redo); `who` is the person's name from Preferences (or `You`) or the agent's client name; `slides` are the slide ids the step touched (empty for deck-wide steps). The log keeps the latest 2000 steps and is not part of deck.json, a .fdec package or a .pptx.
 
-## The .fsld package
+## The .fdec package
 
 A zip with:
 
 ```
-mimetype                  application/x-formsld (stored first, uncompressed)
+mimetype                  application/x-formdeck (stored first, uncompressed)
 deck.json                 the deck
 media/[media id].[ext]    every media file named in deck.media
 thumbs/[slide id].webp    optional thumbnails, 320 px wide
 ```
 
 Readers ignore files they do not know. Writers write `mimetype` first and store it uncompressed.
+
+Packages written before 0.7.2 by formsld (FormDeck's earlier name) have the extension `.fsld`, the mimetype `application/x-formsld` and the format id `formsld/deck`. Readers accept them unchanged: a package is recognised by its `deck.json`, and the old format id is upgraded on load.
 
 ## Templates
 

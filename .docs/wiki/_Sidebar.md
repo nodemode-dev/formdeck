@@ -1,4 +1,4 @@
-**formsld**
+**FormDeck**
 
 - [Home](Home)
 - [Getting Started](Getting-Started)
@@ -12,7 +12,7 @@
 
 **Documents**
 
-- [Manual](https://github.com/nodemode-ai/formsld/blob/main/docs/MANUAL.md)
-- [Format](https://github.com/nodemode-ai/formsld/blob/main/docs/FORMAT.md)
-- [Parity](https://github.com/nodemode-ai/formsld/blob/main/docs/PARITY.md)
-- [README](https://github.com/nodemode-ai/formsld/blob/main/README.md)
+- [Manual](https://github.com/nodemode-ai/formdeck/blob/main/docs/MANUAL.md)
+- [Format](https://github.com/nodemode-ai/formdeck/blob/main/docs/FORMAT.md)
+- [Parity](https://github.com/nodemode-ai/formdeck/blob/main/docs/PARITY.md)
+- [README](https://github.com/nodemode-ai/formdeck/blob/main/README.md)

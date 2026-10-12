@@ -1,16 +1,16 @@
 # Building Decks with Agents
 
-formsld's engine is an MCP server with 24 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formsld mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
+FormDeck's engine is an MCP server with 24 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formdeck mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
 
 ## Setup
 
 | Client | How |
 | --- | --- |
-| All at once | `./formsld agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` (here and in the folder you ran it from) and installs the skills |
-| Claude Code | `claude mcp add --transport http formsld http://127.0.0.1:8197/mcp` |
-| Codex | `[mcp_servers.formsld]` with `url = "http://127.0.0.1:8197/mcp"` in `~/.codex/config.toml` |
-| Cursor | `{"mcpServers": {"formsld": {"url": "http://127.0.0.1:8197/mcp"}}}` in `~/.cursor/mcp.json` |
-| Claude Desktop | `{"mcpServers": {"formsld": {"command": "/path/to/formsld/formsld", "args": ["mcp"]}}}` |
+| All at once | `./formdeck agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` (here and in the folder you ran it from) and installs the skills |
+| Claude Code | `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp` |
+| Codex | `[mcp_servers.formdeck]` with `url = "http://127.0.0.1:8197/mcp"` in `~/.codex/config.toml` |
+| Cursor | `{"mcpServers": {"formdeck": {"url": "http://127.0.0.1:8197/mcp"}}}` in `~/.cursor/mcp.json` |
+| Claude Desktop | `{"mcpServers": {"formdeck": {"command": "/path/to/formdeck/formdeck", "args": ["mcp"]}}}` |
 
 The Agents dialog in the app shows the same snippets with Copy buttons and copies a starter prompt.
 
@@ -30,8 +30,8 @@ The first agent edit asks the person once in the window: Allow agents to edit? T
 
 ## Skills
 
-`formsld-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff) and `formsld-skillset` (developing formsld). The MCP resource `formsld://guide` is the short version, and the server offers a `build-deck` prompt.
+`formdeck-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff) and `formdeck-skillset` (developing FormDeck). The MCP resource `formdeck://guide` is the short version, and the server offers a `build-deck` prompt.
 
 ## Without the window
 
-`./formsld build-deck notes.md q3.pdf shots/ --template aurora --brief "investor update" --out update.pptx`. Options are in the [manual](https://github.com/nodemode-ai/formsld/blob/main/docs/MANUAL.md#the-headless-cli).
+`./formdeck build-deck notes.md q3.pdf shots/ --template aurora --brief "investor update" --out update.pptx`. Options are in the [manual](https://github.com/nodemode-ai/formdeck/blob/main/docs/MANUAL.md#the-headless-cli).

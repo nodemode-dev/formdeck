@@ -8,7 +8,7 @@ src-tauri/ the desktop shell; the engine runs as a frozen sidecar
 
 ## The engine is authoritative
 
-Every deck lives in the engine (`backend/app/services/store.py STORE`). Every change is a step: a list of JSON ops (`set`, `ins`, `del`, `move`, with `{id}` path steps so paths survive reordering; see [FORMAT.md, Ops](https://github.com/nodemode-ai/formsld/blob/main/docs/FORMAT.md#ops)). `STORE.step` applies the ops, records their inverse, raises the deck's revision, broadcasts the step and schedules an autosave of `Decks/<id>/deck.json`. Undo applies the inverse; steps from one agent turn share a `turn` id, so Undo Agent Turn reverts them together. Continuous typing in one text box, or one drag, coalesces into a single step.
+Every deck lives in the engine (`backend/app/services/store.py STORE`). Every change is a step: a list of JSON ops (`set`, `ins`, `del`, `move`, with `{id}` path steps so paths survive reordering; see [FORMAT.md, Ops](https://github.com/nodemode-ai/formdeck/blob/main/docs/FORMAT.md#ops)). `STORE.step` applies the ops, records their inverse, raises the deck's revision, broadcasts the step and schedules an autosave of `Decks/<id>/deck.json`. Undo applies the inverse; steps from one agent turn share a `turn` id, so Undo Agent Turn reverts them together. Continuous typing in one text box, or one drag, coalesces into a single step.
 
 ## The live channel
 

@@ -1,6 +1,6 @@
 # Development
 
-Engine: `backend/` (FastAPI, Python 3.12, venv at `backend/venv`). App: `frontend/` (vanilla TypeScript and Vite on port 5197 with `host: false`, no framework). Desktop: `src-tauri/`. The `formsld-skillset` skill in `.claude/skills/` maps the codebase for agents working on it.
+Engine: `backend/` (FastAPI, Python 3.12, venv at `backend/venv`). App: `frontend/` (vanilla TypeScript and Vite on port 5197 with `host: false`, no framework). Desktop: `src-tauri/`. The `formdeck-skillset` skill in `.claude/skills/` maps the codebase for agents working on it.
 
 ## Repo rules
 

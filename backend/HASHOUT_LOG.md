@@ -1,6 +1,6 @@
 # backend HASHOUT_LOG
 
-Living log for the formsld engine, _v0.2.0. The code carries almost no comments; the reasons live here, anchored by file and symbol. Read the map and the TOC first.
+Living log for the FormDeck engine (called formsld through 0.7.0; entries before 35 keep that name), _v0.2.0. The code carries almost no comments; the reasons live here, anchored by file and symbol. Read the map and the TOC first.
 
 ## Org navi map
 
@@ -20,7 +20,7 @@ app/services/bridge.py       calls window tools over the live channel
 app/services/templates/      67 designs, generator, art, samples, remap
 app/services/pptx/           read_pptx and write_pptx
 app/services/pdf_pages.py    PDF pages to media pictures plus page text, for Insert > Slides from PDF Pages
-app/services/package.py      .fsld pack and unpack
+app/services/package.py      .fdec pack and unpack (older .fsld read too)
 ```
 
 ## TOC
