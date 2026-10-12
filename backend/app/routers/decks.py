@@ -322,7 +322,7 @@ async def template_download(tid: str, format: str = "pptx", samples: bool = True
     except KeyError:
         raise HTTPException(404, "There is no template with that id.")
     data, name, mime = await asyncio.to_thread(export_bytes, deck, "potx" if format == "potx" else "pptx")
-    return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="formsld-{tid}.{format}"'})
+    return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="formdeck-{tid}.{format}"'})
 
 
 @router.delete("/templates/{tid}")

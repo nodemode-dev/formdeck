@@ -5,7 +5,8 @@ from pathlib import Path
 
 from app import __version__
 
-APP_NAME = "formsld"
+APP_NAME = "formdeck"
+APP_TITLE = "FormDeck"
 VERSION = __version__
 FRONTEND_PORT = 5197
 PREVIEW_PORT = 5297
@@ -32,14 +33,32 @@ def _load_env_file() -> None:
 _load_env_file()
 
 
+def env(key: str, default: str | None = None) -> str | None:
+    value = os.environ.get(f"FORMDECK_{key}")
+    if value is None:
+        value = os.environ.get(f"FORMSLD_{key}")
+    return default if value is None else value
+
+
 def _ensure(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
+def _default_data_dir() -> Path:
+    home = Path.home()
+    current, legacy = home / "FormDeck", home / "Formsld"
+    if not current.exists() and legacy.is_dir():
+        try:
+            legacy.rename(current)
+        except OSError:
+            return legacy
+    return current
+
+
 def data_dir() -> Path:
-    raw = os.environ.get("FORMSLD_DATA_DIR")
-    return _ensure(Path(raw).expanduser() if raw else Path.home() / "Formsld")
+    raw = env("DATA_DIR")
+    return _ensure(Path(raw).expanduser() if raw else _default_data_dir())
 
 
 def decks_dir() -> Path:
@@ -80,18 +99,18 @@ def fonts_dir() -> Path:
 
 
 def is_desktop() -> bool:
-    return os.environ.get("FORMSLD_DESKTOP") == "1"
+    return env("DESKTOP") == "1"
 
 
 def cors_origins() -> list[str]:
-    raw = os.environ.get("FORMSLD_CORS_ORIGINS")
+    raw = env("CORS_ORIGINS")
     if raw:
         return [o.strip() for o in raw.split(",") if o.strip()]
     return [f"http://localhost:{FRONTEND_PORT}", f"http://127.0.0.1:{FRONTEND_PORT}", f"http://localhost:{PREVIEW_PORT}", "tauri://localhost", "http://tauri.localhost"]
 
 
 def dist_dir() -> Path | None:
-    raw = os.environ.get("FORMSLD_DIST")
+    raw = env("DIST")
     if raw and (Path(raw) / "index.html").is_file():
         return Path(raw)
     return None

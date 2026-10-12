@@ -28,9 +28,9 @@ def _title(deck_id: str) -> str:
 
 def _author(deck_id: str) -> str:
     try:
-        return (STORE.session(deck_id).deck.get("meta") or {}).get("author") or "formsld"
+        return (STORE.session(deck_id).deck.get("meta") or {}).get("author") or "FormDeck"
     except KeyError:
-        return "formsld"
+        return "FormDeck"
 
 
 def _notes_of(deck_id: str) -> dict:
@@ -54,7 +54,7 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
     c.setTitle(title)
     c.setAuthor(author)
     c.setSubject(f"{title} · {len(images)} slides")
-    c.setCreator(f"formsld {config.VERSION}")
+    c.setCreator(f"FormDeck {config.VERSION}")
     slides = meta.get("slides") or []
     for i, data in enumerate(images):
         info = slides[i] if i < len(slides) and isinstance(slides[i], dict) else {}
@@ -312,7 +312,7 @@ async def gif_from_window(deck: dict, picked: list[int] | None, width: int = 960
         payload = {"deck": deck["id"], "format": "png", "slides": [s["id"] for s in slides], "path": str(tmp), "scale": scale}
         res = await bridge.window_call("export_raster", payload, deck["id"], 300)
         if res is None or res.get("isError"):
-            raise ValueError(((res or {}).get("content") or [{}])[0].get("text") or "the formsld window closed before rendering")
+            raise ValueError(((res or {}).get("content") or [{}])[0].get("text") or "the FormDeck window closed before rendering")
         pngs: list[bytes] = []
         for f in sorted(tmp.iterdir()):
             if f.suffix.lower() == ".zip":

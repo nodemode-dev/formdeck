@@ -397,7 +397,7 @@ def build_template(d: Design, w: float = 960, h: float = 540) -> dict:
     master = _master(b)
     layouts = build_layouts(b)
     return {
-        "format": "formsld/deck", "formatVersion": 1, "id": "t_" + d.id, "title": d.name, "size": {"w": w, "h": h},
+        "format": "formdeck/deck", "formatVersion": 1, "id": "t_" + d.id, "title": d.name, "size": {"w": w, "h": h},
         "theme": {"name": d.name, "colors": copy.deepcopy(d.colors), "fonts": {"major": d.major, "minor": d.minor}},
         "masters": [master], "layouts": layouts, "slides": [], "sections": [], "comments": [], "media": {},
         "meta": {"template": d.id},

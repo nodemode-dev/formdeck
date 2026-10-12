@@ -1,4 +1,3 @@
-import os
 import platform
 import sys
 
@@ -38,7 +37,7 @@ def capabilities() -> dict:
         "pdfCompose": _available("reportlab"),
         "desktop": config.is_desktop(),
         "dataDir": str(config.data_dir()),
-        "port": int(os.environ.get("FORMSLD_PORT") or config.BACKEND_PORT),
+        "port": int(config.env("PORT") or config.BACKEND_PORT),
     }
 
 

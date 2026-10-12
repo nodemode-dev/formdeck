@@ -46,7 +46,8 @@ MARKERS = {
 P_NS = "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0"
 PH_CLASS = {"title": "title", "ctrTitle": "title", "subTitle": "subtitle", "body": "outline", "obj": "outline", "pic": "graphic", "chart": "chart", "tbl": "table",
             "dt": "date-time", "ftr": "footer", "sldNum": "page-number"}
-MATH_TAG = "formsld-math:"
+MATH_TAG = "formdeck-math:"
+MATH_TAGS = (MATH_TAG, "formsld-math:")
 
 
 def _el(tag: str, attrs: dict | None = None, parent=None, text: str | None = None):
@@ -1166,7 +1167,7 @@ class OdpWriter:
         self.font_decls(content, refresh=True)
         meta = _el("office:document-meta", {"office:version": "1.3"})
         m = _el("office:meta", {}, meta)
-        _el("meta:generator", {}, m, f"formsld/{config.VERSION}")
+        _el("meta:generator", {}, m, f"FormDeck/{config.VERSION}")
         _el("dc:title", {}, m, str(deck.get("title") or ""))
         info = deck.get("meta") or {}
         if info.get("author"):

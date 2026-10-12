@@ -54,7 +54,7 @@ DESIGNS: list[Design] = [
     _d("nordic", "Nordic", "Minimal", P("#2E3440", "#ECEFF4", "#3B4252", "#E5E9F0", ["#5E81AC", "#88C0D0", "#A3BE8C", "#EBCB8B", "#D08770", "#B48EAD"]),
        "Manrope", "Manrope", "minimal", hero="dark", tags=("cool", "muted"), description="Cool polar greys and frosted blues."),
     _d("studio", "Studio", "Minimal", P("#111111", "#FFFFFF", "#17151B", "#F4F3F1", ["#F97316", "#3B82F6", "#10B981", "#A855F7", "#EAB308", "#EF4444"]),
-       "Inter", "Inter", "minimal", hero="dark", tags=("default", "formsld"), description="formsld's own: Studio Dark covers, white pages, one orange."),
+       "Inter", "Inter", "minimal", hero="dark", tags=("default", "formdeck"), description="FormDeck's own: Studio Dark covers, white pages, one orange."),
     _d("ink", "Ink", "Minimal", P("#0A0A0A", "#FAFAFA", "#171717", "#1C1C1C", ["#FAFAFA", "#A3A3A3", "#F97316", "#38BDF8", "#A3E635", "#F472B6"]),
        "Space Grotesk", "Inter", "minimal", dark=True, hero="dark", number_color="accent3", tags=("dark", "minimal"), description="Dark pages, white type, one spark of orange."),
     _d("linen", "Linen", "Minimal", P("#2B2118", "#FFFFFF", "#4A3B2C", "#F7F1E8", ["#9A3412", "#365314", "#1E3A8A", "#86198F", "#B45309", "#0F766E"]),

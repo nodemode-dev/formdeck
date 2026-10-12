@@ -3,7 +3,7 @@ set -e
 cd "$(dirname "$0")"
 act=venv/bin/activate
 [ -f "$act" ] || act=venv/Scripts/activate
-[ -f "$act" ] || { echo "[formsld] backend venv missing, run ./formsld install" >&2; exit 1; }
+[ -f "$act" ] || { echo "[formdeck] backend venv missing, run ./formdeck install" >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$act"
-exec uvicorn app.main:app --reload --host "${FORMSLD_HOST:-127.0.0.1}" --port "${FORMSLD_PORT:-8197}"
+exec uvicorn app.main:app --reload --host "${FORMDECK_HOST:-${FORMSLD_HOST:-127.0.0.1}}" --port "${FORMDECK_PORT:-${FORMSLD_PORT:-8197}}"

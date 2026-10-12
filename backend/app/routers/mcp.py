@@ -25,22 +25,22 @@ router = APIRouter()
 VERSIONS = ["2026-07-28", "2025-11-25"]
 LEGACY = ["2025-06-18", "2025-03-26", "2024-11-05"]
 TURN_GAP = 90.0
-SERVER = {"name": "formsld", "title": "formsld", "version": config.VERSION}
+SERVER = {"name": "formdeck", "title": "FormDeck", "version": config.VERSION}
 CAPS = {"tools": {}, "resources": {}, "prompts": {}}
-INSTRUCTIONS = ("formsld builds and edits slide decks on this computer; the person watches and approves them in the formsld window. "
+INSTRUCTIONS = ("FormDeckbuilds and edits slide decks on this computer; the person watches and approves them in the FormDeckwindow. "
                 "Workflow: get_context; ingest the person's files (absolute paths) with their brief; draft_spec gives a markdown slide script, edit it; "
                 "build_deck {script, intake, template} opens the deck in the window; render_slides and lint_deck to check; fix with set_text, update_slide, "
                 "add_slides, slides, edit_elements; review {status: review} hands it over. undo reverts your last turn. Script syntax and token tips: "
-                "resource formsld://guide.")
+                "resource formdeck://guide.")
 WORKFLOW = [
     "1. ingest {paths, brief} -> intake id + digest (sources src1.., assets a1.., tables t1..)",
-    "2. draft_spec {intake, template, slides?} -> slide script; edit it (syntax: formsld://guide)",
+    "2. draft_spec {intake, template, slides?} -> slide script; edit it (syntax: formdeck://guide)",
     "3. build_deck {script, intake, template} -> deck opens in the window",
     "4. render_slides + lint_deck -> fix with set_text, update_slide, edit_elements, slides",
     "5. review {deck, status: review} -> the person approves or comments",
     "6. undo {deck} reverts your whole last turn",
 ]
-GUIDE = """# formsld authoring guide
+GUIDE = """# FormDeckauthoring guide
 
 ## Workflow
 1. get_context: is the window open, which deck and slide the person is looking at.
@@ -98,12 +98,12 @@ title (title, subtitle, kicker) · section (title, subtitle, number) · agenda (
 - The digest is enough to plan most decks; get_source only what you need.
 - One idea per slide, titles as claims, 3 to 6 bullets under 14 words each; detail goes to the notes.
 """
-PROMPTS = [{"name": "build-deck", "title": "Build a deck", "description": "Build a deck in formsld from an intake (or files) and a brief, in a chosen template.",
+PROMPTS = [{"name": "build-deck", "title": "Build a deck", "description": "Build a deck in FormDeckfrom an intake (or files) and a brief, in a chosen template.",
             "arguments": [{"name": "intake", "description": "An intake id from ingest, or absolute file paths separated by commas", "required": False},
                           {"name": "template", "description": "A template id from list_templates", "required": False},
                           {"name": "brief", "description": "What the deck is for: audience, goal, length", "required": False}]}]
-RESOURCES = [{"uri": "formsld://guide", "name": "guide", "title": "formsld authoring guide", "description": "Workflow, slide script syntax, layouts, ops and token tips.", "mimeType": "text/markdown"},
-             {"uri": "formsld://templates", "name": "templates", "title": "formsld templates", "description": "Every template: id, name, category, fonts, tags.", "mimeType": "text/plain"}]
+RESOURCES = [{"uri": "formdeck://guide", "name": "guide", "title": "FormDeckauthoring guide", "description": "Workflow, slide script syntax, layouts, ops and token tips.", "mimeType": "text/markdown"},
+             {"uri": "formdeck://templates", "name": "templates", "title": "FormDecktemplates", "description": "Every template: id, name, category, fonts, tags.", "mimeType": "text/plain"}]
 
 
 class ToolError(Exception):
@@ -145,7 +145,7 @@ TOOLS = [
     _tool("draft_spec", "A first-draft markdown slide script from an intake (not built yet): edit it, then build_deck.",
           {"intake": _S, "template": _S, "brief": _S, "slides": {"type": "integer", "description": "Target slide count"}, "title": _S}, ["intake"], read=True),
     _tool("build_deck", "Compiles a slide script (or JSON spec) into a new deck in a template, stores it and opens it in the window; returns the outline.",
-          {"script": {"type": "string", "description": "Markdown slide script (formsld://guide)"}, "spec": {"type": "object"}, "template": _S, "title": _S, "intake": _S,
+          {"script": {"type": "string", "description": "Markdown slide script (formdeck://guide)"}, "spec": {"type": "object"}, "template": _S, "title": _S, "intake": _S,
            "size": {"type": "string", "description": "16:9 (default), 4:3, 16:10, a4, letter, square, story, or WxH points"}, "open": {"type": "boolean", "default": True}}),
     _tool("add_slides", "Compiles script slides into an existing deck at a 1-based position (default the end).",
           {"deck": _DECK, "script": _S, "spec": {"type": "object"}, "at": _INT, "intake": _S}, ["deck"]),
@@ -159,7 +159,7 @@ TOOLS = [
     _tool("edit_elements", "Adds, updates (x, y, w, h, rot, fill, line, alt, text...; null removes a key; WordArt: warp (a prstTxWarp preset such as textArchUp, textWave1, or {preset, adj}) and textEffects ({fill, ln, fx, color} on every run)), deletes or restacks elements on one slide.",
           {"deck": _DECK, "slide": _SLIDE, "changes": {"type": "array", "items": {"type": "object", "description": "{op: add, element} | {op: update, id, set} | {op: delete, id} | {op: z, id, to: front|back|forward|backward}"}}},
           ["deck", "slide", "changes"]),
-    _tool("apply_ops", "Applies raw deck ops (set, ins, del, move; formsld://guide) as one undoable step.", {"deck": _DECK, "ops": {"type": "array", "items": {"type": "object"}}, "label": _S}, ["deck", "ops"]),
+    _tool("apply_ops", "Applies raw deck ops (set, ins, del, move; formdeck://guide) as one undoable step.", {"deck": _DECK, "ops": {"type": "array", "items": {"type": "object"}}, "label": _S}, ["deck", "ops"]),
     _tool("slides", "Moves (to a 1-based position), deletes, duplicates, hides or shows slides.",
           {"deck": _DECK, "action": {"type": "string", "enum": ["move", "delete", "duplicate", "hide", "show"]}, "slides": _SLIDES, "to": _INT}, ["deck", "action", "slides"], destructive=True),
     _tool("animate", "Lists, adds, updates, removes, reorders or clears one slide's animations (entrance, emphasis, exit, motion paths); they play in the show and export to PowerPoint.",
@@ -170,7 +170,7 @@ TOOLS = [
            "duration": {"type": "number", "description": "Seconds"}, "delay": {"type": "number", "description": "Seconds"},
            "dir": {"type": "string", "enum": ["l", "r", "u", "d"], "description": "fly, wipe: side; float: u or d; split: l (vertical) or u (horizontal); spin: r clockwise, l counter-clockwise; line: direction of travel; arc: d or u (travels right, bulges down or up), l or r (travels down, bulges left or right); turn: d (right then down), u (right then up), r (down then right), l (up then right)"},
            "path": {"type": "string", "description": "class path: SVG path data in points relative to the element's centre where the motion starts, e.g. 'M 0 0 L 120 -60 L 240 0'; required for custom, otherwise the preset shape"},
-           "rotate": {"type": "boolean", "description": "class path: turn the element to follow the path (plays in formsld only)"},
+           "rotate": {"type": "boolean", "description": "class path: turn the element to follow the path (plays in FormDeckonly)"},
            "reverse": {"type": "boolean", "description": "class path: travel from the path's end back to its start"},
            "byParagraph": {"type": "boolean"}, "id": {"type": "string", "description": "Animation id (update, remove, move)"}, "to": {"type": "integer", "description": "1-based position (move, or add)"}},
           ["deck", "slide", "action"]),
@@ -184,7 +184,7 @@ TOOLS = [
            "name": _S, "preserve": {"type": "boolean", "description": "preserve: true keeps the master when no slide uses it (default true)"}}, ["deck", "action"]),
     _tool("add_media", "Adds pictures or videos at absolute paths to the media library; returns media ids for scripts and elements.", {"paths": {"type": "array", "items": _S}}, ["paths"]),
     _tool("lint_deck", "Checks a deck (measured in the window when it is open): issues per slide with a fix each, and a score.", {"deck": _DECK, "slides": _SLIDES}, ["deck"], read=True),
-    _tool("render_slides", "Contact-sheet images of slides, rendered by the formsld window.", {"deck": _DECK, "slides": _SLIDES, "width": {"type": "integer", "description": "Cell width px (default 320)"}, "cols": _INT},
+    _tool("render_slides", "Contact-sheet images of slides, rendered by the FormDeckwindow.", {"deck": _DECK, "slides": _SLIDES, "width": {"type": "integer", "description": "Cell width px (default 320)"}, "cols": _INT},
           ["deck"], read=True),
     _tool("export_deck", "Writes a deck as pptx, potx, fsld, odp (OpenDocument for LibreOffice Impress), pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
           "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
@@ -255,7 +255,7 @@ async def _consent(a: Agent) -> str | None:
     if not bridge.window_connected():
         return None
     if time.monotonic() < _declined[0]:
-        return "The person did not allow agents to edit in formsld just now. Ask them to allow it (the question in the formsld window, or Preferences), then retry."
+        return "The person did not allow agents to edit in FormDeckjust now. Ask them to allow it (the question in the FormDeckwindow, or Preferences), then retry."
     if not _consent_lock:
         _consent_lock.append(asyncio.Lock())
     async with _consent_lock[0]:
@@ -268,7 +268,7 @@ async def _consent(a: Agent) -> str | None:
             config.write_settings({"agentsAllowed": True})
             return None
         _declined[0] = time.monotonic() + 120
-        return "The person did not allow agents to edit decks in formsld. Ask them to allow it in the formsld window, then retry."
+        return "The person did not allow agents to edit decks in FormDeck. Ask them to allow it in the FormDeckwindow, then retry."
 
 
 def _focus(deck_id: str, slide: str | None = None) -> None:
@@ -517,11 +517,11 @@ async def t_get_context(a: Agent, args: dict) -> dict:
     s = config.read_settings()
     wins = bridge.windows()
     allowed = bool(s.get("agentsAllowed")) or any(c.agents for c in wins)
-    lines = [f"formsld {config.VERSION} · engine at /mcp · client {a.name}"]
+    lines = [f"FormDeck{config.VERSION} · engine at /mcp · client {a.name}"]
     if wins:
         lines.append("Window: connected · agents " + ("allowed" if allowed else "not yet allowed (your first edit asks the person)"))
     else:
-        lines.append("Window: none open (headless: edits go to the library; render_slides, pdf/png export and measured lint need the window: ask the person to run ./formsld)")
+        lines.append("Window: none open (headless: edits go to the library; render_slides, pdf/png export and measured lint need the window: ask the person to run ./formdeck)")
     focus = next((getattr(c, "focus", None) for c in wins if getattr(c, "focus", None)), None)
     opened = []
     for c in wins:
@@ -644,7 +644,7 @@ async def t_draft_spec(a: Agent, args: dict) -> dict:
 
 async def t_build_deck(a: Agent, args: dict) -> dict:
     if not args.get("script") and not args.get("spec"):
-        raise ToolError("Give script (markdown slide script, see formsld://guide) or spec; draft_spec drafts one from an intake.")
+        raise ToolError("Give script (markdown slide script, see formdeck://guide) or spec; draft_spec drafts one from an intake.")
     spec = compiler.to_spec(args["script"]) if args.get("script") else compiler.to_spec(args["spec"])
     tid = args.get("template") or spec.get("template")
     if tid and tid not in _template_ids():
@@ -1395,7 +1395,7 @@ async def t_add_media(a: Agent, args: dict) -> dict:
 
 async def t_lint_deck(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
-    measured, how = None, "static checks only (open the formsld window for measured overflow)"
+    measured, how = None, "static checks only (open the FormDeckwindow for measured overflow)"
     if bridge.window_connected():
         res = await bridge.window_call("measure", {"deck": deck["id"], **({"slides": args["slides"]} if args.get("slides") else {})}, deck["id"], 45)
         if res and not res.get("isError"):
@@ -1423,13 +1423,13 @@ async def t_lint_deck(a: Agent, args: dict) -> dict:
 async def t_render_slides(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
     if not bridge.window_connected():
-        return _fail("render_slides needs the formsld window, which draws the slides. Ask the person to open it (./formsld in the formsld folder, or the formsld app), then retry. Meanwhile get_deck detail text and lint_deck work without it.")
+        return _fail("render_slides needs the FormDeckwindow, which draws the slides. Ask the person to open it (./formdeck in the FormDeckfolder, or the FormDeckapp), then retry. Meanwhile get_deck detail text and lint_deck work without it.")
     payload = {"deck": deck["id"]}
     for k in ("slides", "width", "cols"):
         if args.get(k) is not None:
             payload[k] = args[k]
     res = await bridge.window_call("render_slides", payload, deck["id"], 90)
-    return res if res is not None else _fail("The formsld window closed before rendering; ask the person to reopen it.")
+    return res if res is not None else _fail("The FormDeckwindow closed before rendering; ask the person to reopen it.")
 
 
 async def t_export_deck(a: Agent, args: dict) -> dict:
@@ -1450,19 +1450,19 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
         return _ok(f"Wrote {p} ({len(data) // 1024:,} KB, {len(deck['slides'])} slides).", {"path": str(p), "bytes": len(data)})
     if fmt in ("pdf", "png", "jpeg", "jpg"):
         if not bridge.window_connected():
-            return _fail(f"{fmt} export renders the slides in the formsld window, and none is open. Ask the person to open formsld (./formsld), then retry; pptx and fsld export work without it.")
+            return _fail(f"{fmt} export renders the slides in the FormDeckwindow, and none is open. Ask the person to open FormDeck(./formdeck), then retry; pptx and fsld export work without it.")
         payload = {"deck": deck["id"], "format": "jpeg" if fmt == "jpg" else fmt}
         if args.get("slides"):
             payload["slides"] = [deck["slides"][i]["id"] for i in _sel(deck, args["slides"])]
         if args.get("path"):
             payload["path"] = str(_abs(args["path"], must_exist=False))
         res = await bridge.window_call("export_raster", payload, deck["id"], 300)
-        return res if res is not None else _fail("The formsld window closed before the export finished.")
+        return res if res is not None else _fail("The FormDeckwindow closed before the export finished.")
     if fmt in ("txt", "rtf", "gif"):
         from app.routers import exports
         if fmt == "gif":
             if not bridge.window_connected():
-                return _fail("gif export renders the slides in the formsld window, and none is open. Ask the person to open formsld (./formsld), then retry.")
+                return _fail("gif export renders the slides in the FormDeckwindow, and none is open. Ask the person to open FormDeck(./formdeck), then retry.")
             data, name, n = await exports.gif_from_window(deck, _sel(deck, args["slides"]) if args.get("slides") else None, int(args.get("width") or 960))
         else:
             picked = {**deck, "slides": [deck["slides"][i] for i in _sel(deck, args["slides"])]} if args.get("slides") else deck
@@ -1641,13 +1641,13 @@ def prompt_text(args: dict) -> str:
     brief = str(args.get("brief") or "").strip()
     step1 = f"Use intake {intake}." if intake.startswith("in_") else (f"Ingest these files with the brief: {intake}." if intake else "Ask which files to use, then ingest them with the brief (absolute paths).")
     return "\n".join([
-        "Build a slide deck in formsld (MCP server formsld). Aim for a strong first draft the person can review and approve.",
+        "Build a slide deck in FormDeck(MCP server formdeck). Aim for a strong first draft the person can review and approve.",
         f"Brief: {brief or 'ask the person what the deck is for, who will see it and how long it should be'}",
         f"Template: {template or 'pick one with list_templates that fits the brief'}",
         "", "Steps:", "1. get_context.", f"2. {step1}",
         "3. draft_spec {intake, template, slides} and read the script. Rewrite it: a clear story, titles that state the point, 3 to 6 short bullets, numbers on stats or bigNumber slides, the right layout per slide. Keep asset ids (a1) for pictures.",
         "4. build_deck {script, intake, template}.", "5. render_slides and lint_deck; fix overflow, empty placeholders and weak slides with set_text and update_slide.",
-        "6. review {status: review} and tell the person what to look at. Read formsld://guide for the script syntax.",
+        "6. review {status: review} and tell the person what to look at. Read formdeck://guide for the script syntax.",
     ])
 
 
@@ -1700,9 +1700,10 @@ async def mcp(request: Request) -> Response:
         out = _res(req_id, {"resourceTemplates": []}, modern)
     elif method == "resources/read":
         uri = params.get("uri")
-        if uri == "formsld://guide":
+        uri = uri.replace("formsld://", "formdeck://", 1)
+        if uri == "formdeck://guide":
             out = _res(req_id, {"contents": [{"uri": uri, "mimeType": "text/markdown", "text": GUIDE}]}, modern)
-        elif uri == "formsld://templates":
+        elif uri == "formdeck://templates":
             out = _res(req_id, {"contents": [{"uri": uri, "mimeType": "text/plain", "text": templates_text()}]}, modern)
         else:
             out = _err(req_id, -32002, f"Resource not found: {uri}")

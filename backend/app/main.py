@@ -12,7 +12,7 @@ from app.routers import decks, exports, intake, live, mcp, media, system
 
 
 def _write_discovery() -> None:
-    port = int(os.environ.get("FORMSLD_PORT") or config.BACKEND_PORT)
+    port = int(config.env("PORT") or config.BACKEND_PORT)
     info = {"port": port, "pid": os.getpid(), "version": config.VERSION, "desktop": config.is_desktop(), "started": time.time()}
     try:
         config.discovery_path().write_text(json.dumps(info), encoding="utf-8")

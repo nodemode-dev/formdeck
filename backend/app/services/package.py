@@ -5,7 +5,7 @@ import zipfile
 from app.services import model
 from app.services.media import EXT_BY_MIME, MediaStore
 
-MIMETYPE = "application/x-formsld"
+MIMETYPE = "application/x-formdeck"
 
 
 def pack(deck: dict, media: MediaStore, thumbs: dict[str, bytes] | None = None) -> bytes:

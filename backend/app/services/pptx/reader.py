@@ -108,7 +108,7 @@ class _Importer:
         self._enter(None, "", None)
         self._deck_warnings(slide_entries)
         deck = {
-            "format": "formsld/deck",
+            "format": "formdeck/deck",
             "formatVersion": 1,
             "id": ids.deck_id(),
             "title": "",

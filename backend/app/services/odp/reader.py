@@ -15,7 +15,7 @@ from app.services.pptx.read_layouts import assign_semantics, assign_slots
 
 from . import geometry
 from .common import MIMETYPE, NS, TEMPLATE_MIMETYPE, pct, pt, q, seconds
-from .writer import MATH_TAG, ODF_TYPES
+from .writer import MATH_TAGS, ODF_TYPES
 
 CLASS_PH = {"title": ("title", 0), "outline": ("body", 1), "subtitle": ("subTitle", 1), "graphic": ("pic", 1), "object": ("obj", 1), "chart": ("chart", 1),
             "table": ("tbl", 1), "date-time": ("dt", 10), "footer": ("ftr", 11), "page-number": ("sldNum", 12), "text": ("body", 1)}
@@ -501,9 +501,10 @@ class OdpReader:
     def math_tag(self, scope: Scope, name: str | None) -> dict | None:
         node = scope.node("text", name)
         tag = _a(node, "style:display-name") or ""
-        if not tag.startswith(MATH_TAG):
+        prefix = next((p for p in MATH_TAGS if tag.startswith(p)), None)
+        if prefix is None:
             return None
-        raw = tag[len(MATH_TAG):]
+        raw = tag[len(prefix):]
         try:
             spec = json.loads(base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)).decode("utf-8"))
         except (ValueError, UnicodeDecodeError):

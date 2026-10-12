@@ -21,7 +21,7 @@ def selfcheck() -> int:
             missing = True
     from app import __version__
 
-    info["formsld"] = __version__
+    info["formdeck"] = __version__
     info["dist_bundled"] = os.path.isdir(os.path.join(resource_dir(), "frontend_dist"))
     print(json.dumps(info))
     return 1 if missing else 0
@@ -32,19 +32,19 @@ def main() -> int:
         return selfcheck()
     bundled = os.path.join(resource_dir(), "frontend_dist")
     if os.path.isdir(bundled):
-        os.environ.setdefault("FORMSLD_DIST", bundled)
-    os.environ.setdefault("FORMSLD_DESKTOP", "1")
+        os.environ.setdefault("FORMDECK_DIST", bundled)
+    os.environ.setdefault("FORMDECK_DESKTOP", "1")
     import uvicorn
 
     from app.main import app as fastapi_app
 
-    port = int(os.environ.get("FORMSLD_PORT", "0") or 0)
+    port = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 0)
     if port == 0:
         import socket
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
             probe.bind(("127.0.0.1", 0))
             port = probe.getsockname()[1]
-    os.environ["FORMSLD_PORT"] = str(port)
+    os.environ["FORMDECK_PORT"] = str(port)
     uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
     return 0
 

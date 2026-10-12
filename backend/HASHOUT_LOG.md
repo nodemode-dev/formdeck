@@ -42,6 +42,7 @@ app/services/package.py      .fsld pack and unpack
 15. Animations in PowerPoint files · services/pptx/write_anim.py, read_anim.py
 16. The animate MCP tool · routers/mcp.py
 17. Covered merged cells read as span 1 · services/pptx/read_table.py
+35. formsld becomes FormDeck, old installs keep working · core/config.py, formdeck_engine.py, services/model.py, services/odp, routers/mcp.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -190,3 +191,7 @@ The writer bakes the effective run and paragraph properties so any ODF reader re
 ## 34. Media settings in PowerPoint files · _v0.7.0 (services/pptx/write_media.py media_settings, clip_seconds; read_media.py; write_anim.py _media_nodes, _click_seq; services/av_probe.py)
 
 `p14:trim@end` is the time cut from the end of the file, not an end position (MS-PPTX 2.3.3.18), so writing needs the clip length: `media.duration`, or `av_probe.av_seconds` reading mp4 and mov `mvhd`, wav and mp3; if it stays unknown the end trim is dropped with a warning. Rewind after playing is `fill="remove"` and loop is `repeatCount="indefinite"` on the media node; volume is `vol` from 0 to 100000 with `mute`; When Clicked On is PowerPoint's interactive sequence with a togglePause media call. Every media element goes through `insert_timing` so these are always written, and interactive sequences that hold only media commands no longer raise an import warning.
+
+## 35. formsld becomes FormDeck, old installs keep working · _v0.7.1 (core/config.py env, _default_data_dir; formdeck_engine.py main; services/model.py normalize; services/odp/writer.py MATH_TAGS, reader.py math_tag; routers/mcp.py read_resource)
+
+Every engine setting is read through `config.env(key)`, which takes `FORMDECK_<key>` and falls back to `FORMSLD_<key>`, so an old `.env` or desktop shell still boots the engine; `formdeck_engine.py` reads both for the port and then publishes `FORMDECK_PORT`. With no data folder set, `~/Formsld` is renamed to `~/FormDeck` once, when the new folder does not exist yet; if the rename fails (a file is held open on Windows) the old folder is used as is. Decks keep their bytes: `normalize` upgrades the format id `formsld/deck` to `formdeck/deck`, and `.fsld` packages are recognised by `deck.json`, never by their mimetype entry, so packages written before the rename open unchanged. `.odp` files exported by formsld carry `formsld-math:` in an automatic style name; the reader accepts both prefixes. MCP clients holding the old resource URIs get `formsld://guide` and `formsld://templates` mapped to `formdeck://`. The compatibility reads are removed in 0.9.0.
