@@ -14,6 +14,7 @@ import { editorMaster, editorTheme, themeOps } from './master-view';
 import { TablePanel } from './table-panel';
 import { TextFxPanel } from './text-effects';
 import { MediaPanel } from './media-panel';
+import { ChatPanel } from '../ui/chat-panel';
 import { attachMentions, findMentions, isAgentName, loadMe, mentionsMe, myName, people, renderMentions } from './mentions';
 
 const SLOT_NAMES: Record<SchemeName, string> = {
@@ -34,6 +35,7 @@ const num = (name: string, label: string, unit = 'pt'): string => `<label class=
 
 export class Inspector {
   private ed: Editor | null = null;
+  private readonly chat: ChatPanel;
   private readonly format: HTMLElement;
   private readonly slidePage: HTMLElement;
   private readonly design: HTMLElement;
@@ -125,8 +127,10 @@ export class Inspector {
 <div class="fd-prop-row"><span class="fd-prop-label">Allow</span><div class="fd-prop-ctl"><label class="fd-check"><input type="checkbox" data-f="agents" aria-label="Allow outside agents"><span></span></label><span class="fd-note fd-mcp-status"></span></div></div>
 <div class="fd-note">Claude Code, Codex and Cursor build and edit decks here through FormDeck's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.</div>
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt for your agent</button></div></div></div>
+<div class="fd-prop-section fd-chat-host"><div class="fd-panel-head"><span class="fd-panel-title">Chat</span></div></div>
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Activity</span></div><div class="fd-activity"></div></div>
 </div>`);
+    this.chat = new ChatPanel(this.agent.querySelector('.fd-chat-host') as HTMLElement, () => this.ed?.doc.id ?? null, { copyPrompt: () => this.hooks?.copyPrompt() });
     const g1 = new PanelGroup(host, 'format', [{ id: 'format', label: 'Format', body: this.format }, { id: 'slide', label: 'Slide', body: this.slidePage }, { id: 'design', label: 'Design', body: this.design }, { id: 'animate', label: 'Animate', body: this.animate.el }], 'Format');
     const g2 = new PanelGroup(host, 'review', [{ id: 'review', label: 'Review', body: this.review }, { id: 'agent', label: 'Agent', body: this.agent }], 'Review');
     void g1; void g2;

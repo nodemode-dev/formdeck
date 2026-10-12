@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core import config
-from app.routers import decks, exports, intake, live, mcp, media, system
+from app.routers import chat, decks, exports, intake, live, mcp, media, system
 
 
 def _write_discovery() -> None:
@@ -43,6 +43,7 @@ app.include_router(decks.router, prefix="/api")
 app.include_router(media.router, prefix="/api")
 app.include_router(intake.router, prefix="/api")
 app.include_router(exports.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
 app.include_router(live.router)
 app.include_router(mcp.router)
 

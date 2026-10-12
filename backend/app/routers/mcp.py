@@ -14,6 +14,8 @@ from app.services import bridge, compiler, model, templates
 from app.services import equations
 from app.services import text_effects
 from app.services import intake as intake_mod
+from app.services.chat import convo as chat_convo
+from app.services.chat import engine as chat_engine
 from app.services import lint as lintmod
 from app.services import ops as opsmod
 from app.services.compiler import text as tx
@@ -30,7 +32,8 @@ CAPS = {"tools": {}, "resources": {}, "prompts": {}}
 INSTRUCTIONS = ("FormDeck builds and edits slide decks on this computer; the person watches and approves them in the FormDeck window. "
                 "Workflow: get_context; ingest the person's files (absolute paths) with their brief; draft_spec gives a markdown slide script, edit it; "
                 "build_deck {script, intake, template} opens the deck in the window; render_slides and lint_deck to check; fix with set_text, update_slide, "
-                "add_slides, slides, edit_elements; review {status: review} hands it over. undo reverts your last turn. Script syntax and token tips: "
+                "add_slides, slides, edit_elements; review {status: review} hands it over. undo reverts your last turn. The person can also type to you in the window's "
+                "chat panel (Agent tab): poll chat_inbox {wait: 30} and answer with chat_reply. Script syntax and token tips: "
                 "resource formdeck://guide.")
 WORKFLOW = [
     "1. ingest {paths, brief} -> intake id + digest (sources src1.., assets a1.., tables t1..)",
@@ -39,6 +42,7 @@ WORKFLOW = [
     "4. render_slides + lint_deck -> fix with set_text, update_slide, edit_elements, slides",
     "5. review {deck, status: review} -> the person approves or comments",
     "6. undo {deck} reverts your whole last turn",
+    "7. chat_inbox {wait: 30} reads what the person typed in the window's chat panel; chat_reply {text} answers there",
 ]
 GUIDE = """# FormDeck authoring guide
 
@@ -51,6 +55,9 @@ GUIDE = """# FormDeck authoring guide
 6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis, exit and motion path animations per slide), apply_template, set_theme, masters (several slide masters: list, add a template's design beside the current one, duplicate, rename, delete, preserve), apply_ops (raw ops).
 7. review {deck, status: review} hands slides to the person, who approves or asks for changes; comments {action: list} shows what they said.
 undo {deck} reverts your whole last turn (every change you made within 90 seconds of the previous one).
+
+## Chat panel
+The FormDeck window has a chat panel (Agent tab) where the person types to you. Messages wait until you read them: chat_inbox {wait: 30} returns new ones (holding the call open up to 30 seconds), and chat_reply {text, deck} answers there; final false streams a partial that later calls append to. Start every session with get_context (it shows unread chat), and when you have nothing else to do keep calling chat_inbox {wait: 30} so the person can reach you. Treat a chat message like the brief: act with the tools, then reply with one or two sentences saying what changed.
 
 ## Slide script
 ```
@@ -200,6 +207,12 @@ TOOLS = [
     _tool("review", "Sets slides' review status (draft, review, changes, approved); with no status, the counts.",
           {"deck": _DECK, "slides": _SLIDES, "status": {"type": "string", "enum": ["draft", "review", "changes", "approved"]}}, ["deck"]),
     _tool("undo", "Undoes your last turn (default) or last step on a deck.", {"deck": _DECK, "scope": {"type": "string", "enum": ["turn", "step"]}}, ["deck"], destructive=True),
+    _tool("chat_inbox", "Reads new messages the person typed in the FormDeck chat panel (Agent tab) that nobody has answered yet; with wait, holds the call open up to that many seconds for one to arrive. "
+          "Call it in a loop to stay available, and answer each message with chat_reply.",
+          {"deck": {"type": "string", "description": "Only messages from this deck's conversation (default all)"}, "wait": {"type": "integer", "minimum": 0, "maximum": 55, "description": "Seconds to wait for a message when none is waiting (default 0)"}}),
+    _tool("chat_reply", "Posts a reply in the FormDeck chat panel. final true (default) completes the reply; final false streams a partial: later calls append to the same reply until one is final.",
+          {"text": _S, "deck": {"type": "string", "description": "Deck id of the conversation (as chat_inbox returned; default the one you last read)"}, "final": {"type": "boolean", "default": True},
+           "to": {"type": "string", "description": "Message id being answered (m...)"}}, ["text"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
 MUTATING = {"build_deck", "add_slides", "update_slide", "set_text", "edit_elements", "apply_ops", "slides", "apply_template", "set_theme", "undo", "open_file"}
@@ -569,9 +582,11 @@ async def t_get_context(a: Agent, args: dict) -> dict:
                 lines.append(f"Recent activity on {d['id']}: " + " · ".join(f"{str(e.get('at', ''))[11:16]} {e.get('who')}: {_clip(re.sub(r'^Agent:\s*', '', e.get('label', '')), 50)}" + (f" (slide {', '.join(str(pos[x]) for x in e.get('slides', [])[:3] if x in pos)})" if any(x in pos for x in e.get("slides", [])) else "") for e in recent))
     cat = templates.catalog()
     lines.append(f"Templates: {len(cat['templates'])} · default {s.get('defaultTemplate') or cat['default']}" + (f" · last used {s['lastTemplate']}" if s.get("lastTemplate") else "") + " (list_templates)")
+    unread = chat_convo.unread_count()
+    lines.append(f"Chat panel: {unread} unread message{'s' if unread != 1 else ''} (chat_inbox {{wait: 30}} reads them, chat_reply answers; poll it so the person can reach you)")
     lines.append("Workflow:")
     lines.extend(WORKFLOW)
-    return _ok("\n".join(lines), {"version": config.VERSION, "window": bool(wins), "agentsAllowed": allowed, "focus": list(focus) if focus else None, "decks": decks, "activity": recent,
+    return _ok("\n".join(lines), {"chatUnread": unread, "version": config.VERSION, "window": bool(wins), "agentsAllowed": allowed, "focus": list(focus) if focus else None, "decks": decks, "activity": recent,
                                   "templates": len(cat["templates"]), "defaultTemplate": s.get("defaultTemplate") or cat["default"]})
 
 
@@ -1615,6 +1630,40 @@ async def t_undo(a: Agent, args: dict) -> dict:
         return _ok("Nothing to undo.")
     deck = _deck(deck["id"])
     return _ok(f"{res['label']} ({res['count']} step{'s' if res['count'] != 1 else ''}) · deck now {len(deck['slides'])} slides")
+
+
+async def t_chat_inbox(a: Agent, args: dict) -> dict:
+    deck = str(args.get("deck") or "").strip() or None
+    if deck and not chat_convo.valid(deck):
+        raise ToolError("deck must be a deck id (d_...).")
+    wait = max(0, min(55, int(args.get("wait") or 0)))
+    cfg = chat_engine.settings()
+    found = await chat_convo.wait_for_unread(deck, wait)
+    chat_convo.POLL["last"] = time.time()
+    chat_engine.mark_seen(found)
+    items = chat_engine.inbox_payload(found)
+    if found:
+        a.chat_deck = items[-1]["deck"]
+    note = "" if cfg["provider"] == "connected" else f"\nThe panel is set to {chat_engine.active_label(cfg)}, which answers new messages itself; you still may reply with chat_reply."
+    if not items:
+        return _ok("No new messages. Call chat_inbox {wait: 30} again to keep listening." + note, {"messages": []})
+    lines = [f"{len(items)} new message{'s' if len(items) != 1 else ''} from the FormDeck chat panel:"]
+    lines.extend(f"[{m['id']}] deck {m['deck'] or 'none open'}: {m['text']}" for m in items)
+    lines.append("Answer with chat_reply {deck, text}; edit decks with the usual tools; then call chat_inbox {wait: 30} again." + note)
+    return _ok("\n".join(lines), {"messages": items})
+
+
+async def t_chat_reply(a: Agent, args: dict) -> dict:
+    text = str(args.get("text") or "")
+    if not text.strip():
+        raise ToolError("Give text to post.")
+    deck = str(args.get("deck") or "").strip() or getattr(a, "chat_deck", None)
+    if deck and not chat_convo.valid(deck):
+        raise ToolError("deck must be a deck id (d_...).")
+    final = args.get("final") is not False
+    c = chat_convo.get(deck or chat_convo.GENERAL)
+    msg = chat_engine.agent_reply(c, a.name, text, final, str(args.get("to") or "") or None)
+    return _ok(("Posted." if final else "Partial posted; keep calling chat_reply with final true to finish.") + f" Reply id {msg['id']}.", {"id": msg["id"], "final": final})
 
 
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}
