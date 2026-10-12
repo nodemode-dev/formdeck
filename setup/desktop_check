@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+cd "$FORMDECK_ROOT"
+bad=0
+warn() { fd_say "warning: $*"; }
+fail() { fd_say "problem: $*"; bad=1; }
+
+if ! command -v cargo >/dev/null 2>&1 || ! command -v rustc >/dev/null 2>&1; then
+  fail "Rust is not installed. Install it from https://rustup.rs"
+  exit 1
+fi
+rv="$(rustc -V | awk '{print $2}')"
+cv="$(cargo -V | awk '{print $2}')"
+host="$(rustc -vV | awk '/^host:/ {print $2}')"
+fd_say "rustc $rv ($(command -v rustc)), cargo $cv, host $host"
+[ "$rv" = "$cv" ] || fail "rustc $rv and cargo $cv come from different Rust installs; use one rustup toolchain"
+n="$(type -ap rustc | awk '!seen[$0]++' | wc -l | tr -d ' ')"
+[ "$n" -le 1 ] || fail "more than one rustc on PATH: $(type -ap rustc | awk '!seen[$0]++' | tr '\n' ' ')- keep only rustup's (~/.cargo/bin) or put it first"
+case "$(command -v rustc)" in
+  */.cargo/bin/rustc) ;;
+  */homebrew/*|*/Cellar/*|/usr/local/bin/rustc) fail "rustc comes from Homebrew; Tauri expects rustup. Run: brew uninstall rust, then install from https://rustup.rs" ;;
+  *) warn "rustc is not from rustup (~/.cargo/bin); if the build fails, install Rust with rustup" ;;
+esac
+for v in RUSTFLAGS CARGO_BUILD_TARGET CARGO_TARGET_DIR CARGO_ENCODED_RUSTFLAGS RUSTC RUSTC_WRAPPER; do
+  [ -z "${!v}" ] || warn "$v is set to '${!v}'; unset it if the desktop build fails"
+done
+
+if [ "$(fd_os)" = macos ]; then
+  xcode-select -p >/dev/null 2>&1 || fail "Xcode Command Line Tools are missing. Run: xcode-select --install"
+  s="$(command -v strip || true)"
+  case "$s" in
+    /usr/bin/strip|/Library/Developer/*|/Applications/Xcode*|"") ;;
+    *) warn "strip on PATH is $s, not Apple's; ./formdeck desktop build puts /usr/bin first for the build" ;;
+  esac
+  arch="$(uname -m)"
+  case "$arch:$host" in
+    arm64:aarch64-apple-darwin|x86_64:x86_64-apple-darwin) ;;
+    arm64:x86_64-apple-darwin) fail "this Mac is Apple silicon but rustc is the Intel build (running under Rosetta). Reinstall Rust natively with rustup, or run: rustup default stable-aarch64-apple-darwin" ;;
+    *) warn "machine $arch with rustc host $host" ;;
+  esac
+fi
+
+if [ "$(fd_os)" = linux ] && ! pkg-config --exists webkit2gtk-4.1 2>/dev/null; then
+  fail "WebKitGTK 4.1 development files are missing (Debian and Ubuntu: sudo apt install libwebkit2gtk-4.1-dev)"
+fi
+
+cli="$(frontend/node_modules/.bin/tauri --version 2>/dev/null | awk '{print $2}')"
+crate="$(awk '/^name = "tauri"$/ {getline; gsub(/"/, "", $3); print $3; exit}' src-tauri/Cargo.lock)"
+if [ -n "$cli" ] && [ -n "$crate" ]; then
+  [ "${cli%.*}" = "${crate%.*}" ] || fail "Tauri CLI $cli and the tauri crate $crate differ; run ./formdeck install"
+else
+  warn "could not read the Tauri CLI or crate version; run ./formdeck install"
+fi
+
+if [ "$bad" -ne 0 ]; then
+  fd_say "fix the problems above, then run ./formdeck desktop build again"
+  exit 1
+fi
+fd_say "desktop toolchain looks right"

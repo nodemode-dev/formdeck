@@ -14,4 +14,4 @@ if [ "$(fd_os)" = linux ] && ! pkg-config --exists webkit2gtk-4.1 2>/dev/null; t
   exit 1
 fi
 [ -x "$FORMDECK_ROOT/frontend/node_modules/.bin/tauri" ] || ( cd "$FORMDECK_ROOT/frontend" && npm install )
-fd_say "desktop toolchain ready: rustc $(rustc --version | awk '{print $2}')"
+"$FORMDECK_ROOT/setup/desktop_check"

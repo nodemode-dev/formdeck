@@ -1,9 +1,38 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
+"$FORMDECK_ROOT/setup/desktop_check"
 "$FORMDECK_ROOT/setup/build_frontend"
 "$FORMDECK_ROOT/setup/freeze_backend"
 cd "$FORMDECK_ROOT"
 [ -f src-tauri/icons/icon.icns ] || frontend/node_modules/.bin/tauri icon assets/formdeck_icon.png
-frontend/node_modules/.bin/tauri build "$@"
+if [ "$(fd_os)" = macos ]; then
+  s="$(command -v strip || true)"
+  case "$s" in
+    /usr/bin/strip|/Library/Developer/*|/Applications/Xcode*) ;;
+    "") ;;
+    *) fd_say "using Apple's strip instead of $s for this build"; export PATH="/usr/bin:$PATH" ;;
+  esac
+fi
+log="$(mktemp)"
+set +e
+frontend/node_modules/.bin/tauri build "$@" 2>&1 | tee "$log"
+status=${PIPESTATUS[0]}
+set -e
+if [ "$status" -ne 0 ] && grep -q "E0463" "$log"; then
+  fd_say "Rust could not load a crate it had just built (E0463); clearing src-tauri/target and building once more"
+  ( cd src-tauri && cargo clean )
+  set +e
+  frontend/node_modules/.bin/tauri build "$@" 2>&1 | tee "$log"
+  status=${PIPESTATUS[0]}
+  set -e
+fi
+if [ "$status" -ne 0 ]; then
+  if grep -q "E0463" "$log"; then
+    fd_say "the build failed again with E0463. Run ./formdeck desktop check and fix what it reports (usually a second Rust install or a non-Apple strip), then rerun."
+  fi
+  rm -f "$log"
+  exit "$status"
+fi
+rm -f "$log"
 fd_say "bundles are in src-tauri/target/release/bundle"
