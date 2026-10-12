@@ -102,6 +102,8 @@ export const ICONS: Record<string, string> = {
   video: L('<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.2l4-2.5a.5.5 0 0 1 .8.4v7.8a.5.5 0 0 1-.8.4L16 13.8"/>'),
   audio: L('<path d="M4 10.5v3M8 7.5v9M12 4.5v15M16 8v8M20 10.5v3"/>'),
   iconLib: L('<circle cx="7.5" cy="7.5" r="3.5"/><rect x="13" y="4" width="7" height="7" rx="1"/><path d="M7.5 13.5l4 6.5h-8z"/><path d="M16.5 13.5l1.1 2.3 2.4.3-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.3z"/>'),
+  model3d: L('<path d="M12 3.5l7.5 4.2v8.6L12 20.5l-7.5-4.2V7.7z"/><path d="M12 12v8.5M12 12L4.5 7.7M12 12l7.5-4.3"/>'),
+  orbit: L('<path d="M12 7.5l4 2.2v4.6l-4 2.2-4-2.2V9.7z"/><path d="M12 12v4.5M12 12L8 9.7M12 12l4-2.3"/><path d="M4.5 12a7.5 7.5 0 0 1 2-5.1M19.5 12a7.5 7.5 0 0 1-2 5.1"/><path d="M6.6 3.9v3.4H3.2M17.4 20.1v-3.4h3.4"/>'),
   diagram: L('<rect x="9" y="3.5" width="6" height="5" rx="1"/><rect x="3.5" y="15.5" width="6" height="5" rx="1"/><rect x="14.5" y="15.5" width="6" height="5" rx="1"/><path d="M12 8.5V12M6.5 15.5V12h11v3.5"/>'),
   trim: L('<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.4L20 16.5M8.2 15.6L20 7.5"/>'),
   speaker: L('<path d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a7.6 7.6 0 0 1 0 11"/>'),
@@ -185,6 +187,19 @@ export const ICONS: Record<string, string> = {
   fileOdp: L(`${PAGE}<path d="M8.5 16.5l2.5-4 2 2.5 1.5-2 1.5 3.5z"/>`),
   spelling: L('<path d="M3.5 14.5L7 5.5l3.5 9M4.8 11.5h4.4"/><path d="M13.5 18.5l3 3 5-6"/><path d="M13 5.5h4.5a2.2 2.2 0 0 1 0 4.4H13zM13 9.9h5a2.3 2.3 0 0 1 0 4.6h-5z"/>'),
   language: L('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c-2.6 2.7-3.8 5.5-3.8 8.5s1.2 5.8 3.8 8.5c2.6-2.7 3.8-5.5 3.8-8.5S14.6 6.2 12 3.5z"/>'),
+  paste: L('<path d="M9 5.5H7A1.5 1.5 0 0 0 5.5 7v12A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V7A1.5 1.5 0 0 0 17 5.5h-2"/><rect x="9" y="3.5" width="6" height="4" rx="1.2"/><path d="M9 12h6M9 15.5h4"/>'),
+  cut: L('<circle cx="6.5" cy="17.5" r="2.7"/><circle cx="17.5" cy="17.5" r="2.7"/><path d="M8.2 15.4L17.5 3.5M15.8 15.4L6.5 3.5"/>'),
+  copy: L('<rect x="8.5" y="8.5" width="12" height="12" rx="1.8"/><path d="M15.5 8.5V5.3A1.8 1.8 0 0 0 13.7 3.5H5.3A1.8 1.8 0 0 0 3.5 5.3v8.4a1.8 1.8 0 0 0 1.8 1.8h3.2"/>'),
+  selectAll: L('<path d="M4 8.5V6a2 2 0 0 1 2-2h2.5M15.5 4H18a2 2 0 0 1 2 2v2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5M8.5 20H6a2 2 0 0 1-2-2v-2.5"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/>'),
+  arrange: L('<rect x="3.5" y="3.5" width="11" height="11" rx="1.5"/><rect x="9.5" y="9.5" width="11" height="11" rx="1.5"/>'),
+  sections: L('<path d="M4 6.5h16M4 12h16M4 17.5h10"/><path d="M17.5 15.5v4M15.5 17.5h4"/>'),
+  ribbon: L('<rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18M7 6.8h.01M10 6.8h.01M13 6.8h.01"/>'),
+  qat: L('<rect x="3" y="5" width="18" height="6" rx="1.5"/><path d="M6.5 8h.01M10 8h.01M13.5 8h.01"/><path d="M12 14v6M9 17l3 3 3-3"/>'),
+  tableStyle: L('<rect x="3.5" y="4.5" width="17" height="15" rx="1.8"/><path d="M3.5 9.5h17M9.2 9.5v10M14.8 9.5v10"/><path d="M3.5 9.5V6.3a1.8 1.8 0 0 1 1.8-1.8h13.4a1.8 1.8 0 0 1 1.8 1.8v3.2z" ' + F + ' opacity="0.3"/>'),
+  fontGrow: L('<path d="M3.5 19L8.5 6l5 13M5.2 14.5h6.6"/><path d="M17.5 11.5V4.5M15 7l2.5-2.5L20 7"/>'),
+  fontShrink: L('<path d="M3.5 19L8.5 6l5 13M5.2 14.5h6.6"/><path d="M17.5 4.5v7M15 9l2.5 2.5L20 9"/>'),
+  order: L('<path d="M12 4.5v15M7.5 9L12 4.5 16.5 9"/>'),
+  orderDown: L('<path d="M12 4.5v15M7.5 15l4.5 4.5 4.5-4.5"/>'),
 };
 
 export function icon(name: string, size = 16): string {
