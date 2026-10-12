@@ -27,7 +27,7 @@ LEGACY = ["2025-06-18", "2025-03-26", "2024-11-05"]
 TURN_GAP = 90.0
 SERVER = {"name": "formdeck", "title": "FormDeck", "version": config.VERSION}
 CAPS = {"tools": {}, "resources": {}, "prompts": {}}
-INSTRUCTIONS = ("FormDeckbuilds and edits slide decks on this computer; the person watches and approves them in the FormDeckwindow. "
+INSTRUCTIONS = ("FormDeck builds and edits slide decks on this computer; the person watches and approves them in the FormDeck window. "
                 "Workflow: get_context; ingest the person's files (absolute paths) with their brief; draft_spec gives a markdown slide script, edit it; "
                 "build_deck {script, intake, template} opens the deck in the window; render_slides and lint_deck to check; fix with set_text, update_slide, "
                 "add_slides, slides, edit_elements; review {status: review} hands it over. undo reverts your last turn. Script syntax and token tips: "
@@ -40,7 +40,7 @@ WORKFLOW = [
     "5. review {deck, status: review} -> the person approves or comments",
     "6. undo {deck} reverts your whole last turn",
 ]
-GUIDE = """# FormDeckauthoring guide
+GUIDE = """# FormDeck authoring guide
 
 ## Workflow
 1. get_context: is the window open, which deck and slide the person is looking at.
@@ -98,12 +98,12 @@ title (title, subtitle, kicker) · section (title, subtitle, number) · agenda (
 - The digest is enough to plan most decks; get_source only what you need.
 - One idea per slide, titles as claims, 3 to 6 bullets under 14 words each; detail goes to the notes.
 """
-PROMPTS = [{"name": "build-deck", "title": "Build a deck", "description": "Build a deck in FormDeckfrom an intake (or files) and a brief, in a chosen template.",
+PROMPTS = [{"name": "build-deck", "title": "Build a deck", "description": "Build a deck in FormDeck from an intake (or files) and a brief, in a chosen template.",
             "arguments": [{"name": "intake", "description": "An intake id from ingest, or absolute file paths separated by commas", "required": False},
                           {"name": "template", "description": "A template id from list_templates", "required": False},
                           {"name": "brief", "description": "What the deck is for: audience, goal, length", "required": False}]}]
-RESOURCES = [{"uri": "formdeck://guide", "name": "guide", "title": "FormDeckauthoring guide", "description": "Workflow, slide script syntax, layouts, ops and token tips.", "mimeType": "text/markdown"},
-             {"uri": "formdeck://templates", "name": "templates", "title": "FormDecktemplates", "description": "Every template: id, name, category, fonts, tags.", "mimeType": "text/plain"}]
+RESOURCES = [{"uri": "formdeck://guide", "name": "guide", "title": "FormDeck authoring guide", "description": "Workflow, slide script syntax, layouts, ops and token tips.", "mimeType": "text/markdown"},
+             {"uri": "formdeck://templates", "name": "templates", "title": "FormDeck templates", "description": "Every template: id, name, category, fonts, tags.", "mimeType": "text/plain"}]
 
 
 class ToolError(Exception):
@@ -170,7 +170,7 @@ TOOLS = [
            "duration": {"type": "number", "description": "Seconds"}, "delay": {"type": "number", "description": "Seconds"},
            "dir": {"type": "string", "enum": ["l", "r", "u", "d"], "description": "fly, wipe: side; float: u or d; split: l (vertical) or u (horizontal); spin: r clockwise, l counter-clockwise; line: direction of travel; arc: d or u (travels right, bulges down or up), l or r (travels down, bulges left or right); turn: d (right then down), u (right then up), r (down then right), l (up then right)"},
            "path": {"type": "string", "description": "class path: SVG path data in points relative to the element's centre where the motion starts, e.g. 'M 0 0 L 120 -60 L 240 0'; required for custom, otherwise the preset shape"},
-           "rotate": {"type": "boolean", "description": "class path: turn the element to follow the path (plays in FormDeckonly)"},
+           "rotate": {"type": "boolean", "description": "class path: turn the element to follow the path (plays in FormDeck only)"},
            "reverse": {"type": "boolean", "description": "class path: travel from the path's end back to its start"},
            "byParagraph": {"type": "boolean"}, "id": {"type": "string", "description": "Animation id (update, remove, move)"}, "to": {"type": "integer", "description": "1-based position (move, or add)"}},
           ["deck", "slide", "action"]),
@@ -184,7 +184,7 @@ TOOLS = [
            "name": _S, "preserve": {"type": "boolean", "description": "preserve: true keeps the master when no slide uses it (default true)"}}, ["deck", "action"]),
     _tool("add_media", "Adds pictures or videos at absolute paths to the media library; returns media ids for scripts and elements.", {"paths": {"type": "array", "items": _S}}, ["paths"]),
     _tool("lint_deck", "Checks a deck (measured in the window when it is open): issues per slide with a fix each, and a score.", {"deck": _DECK, "slides": _SLIDES}, ["deck"], read=True),
-    _tool("render_slides", "Contact-sheet images of slides, rendered by the FormDeckwindow.", {"deck": _DECK, "slides": _SLIDES, "width": {"type": "integer", "description": "Cell width px (default 320)"}, "cols": _INT},
+    _tool("render_slides", "Contact-sheet images of slides, rendered by the FormDeck window.", {"deck": _DECK, "slides": _SLIDES, "width": {"type": "integer", "description": "Cell width px (default 320)"}, "cols": _INT},
           ["deck"], read=True),
     _tool("export_deck", "Writes a deck as pptx, potx, fsld, odp (OpenDocument for LibreOffice Impress), pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
           "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
@@ -255,7 +255,7 @@ async def _consent(a: Agent) -> str | None:
     if not bridge.window_connected():
         return None
     if time.monotonic() < _declined[0]:
-        return "The person did not allow agents to edit in FormDeckjust now. Ask them to allow it (the question in the FormDeckwindow, or Preferences), then retry."
+        return "The person did not allow agents to edit in FormDeck just now. Ask them to allow it (the question in the FormDeck window, or Preferences), then retry."
     if not _consent_lock:
         _consent_lock.append(asyncio.Lock())
     async with _consent_lock[0]:
@@ -268,7 +268,7 @@ async def _consent(a: Agent) -> str | None:
             config.write_settings({"agentsAllowed": True})
             return None
         _declined[0] = time.monotonic() + 120
-        return "The person did not allow agents to edit decks in FormDeck. Ask them to allow it in the FormDeckwindow, then retry."
+        return "The person did not allow agents to edit decks in FormDeck. Ask them to allow it in the FormDeck window, then retry."
 
 
 def _focus(deck_id: str, slide: str | None = None) -> None:
@@ -517,7 +517,7 @@ async def t_get_context(a: Agent, args: dict) -> dict:
     s = config.read_settings()
     wins = bridge.windows()
     allowed = bool(s.get("agentsAllowed")) or any(c.agents for c in wins)
-    lines = [f"FormDeck{config.VERSION} · engine at /mcp · client {a.name}"]
+    lines = [f"FormDeck {config.VERSION} · engine at /mcp · client {a.name}"]
     if wins:
         lines.append("Window: connected · agents " + ("allowed" if allowed else "not yet allowed (your first edit asks the person)"))
     else:
@@ -1395,7 +1395,7 @@ async def t_add_media(a: Agent, args: dict) -> dict:
 
 async def t_lint_deck(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
-    measured, how = None, "static checks only (open the FormDeckwindow for measured overflow)"
+    measured, how = None, "static checks only (open the FormDeck window for measured overflow)"
     if bridge.window_connected():
         res = await bridge.window_call("measure", {"deck": deck["id"], **({"slides": args["slides"]} if args.get("slides") else {})}, deck["id"], 45)
         if res and not res.get("isError"):
@@ -1423,13 +1423,13 @@ async def t_lint_deck(a: Agent, args: dict) -> dict:
 async def t_render_slides(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
     if not bridge.window_connected():
-        return _fail("render_slides needs the FormDeckwindow, which draws the slides. Ask the person to open it (./formdeck in the FormDeckfolder, or the FormDeckapp), then retry. Meanwhile get_deck detail text and lint_deck work without it.")
+        return _fail("render_slides needs the FormDeck window, which draws the slides. Ask the person to open it (./formdeck in the FormDeck folder, or the FormDeck app), then retry. Meanwhile get_deck detail text and lint_deck work without it.")
     payload = {"deck": deck["id"]}
     for k in ("slides", "width", "cols"):
         if args.get(k) is not None:
             payload[k] = args[k]
     res = await bridge.window_call("render_slides", payload, deck["id"], 90)
-    return res if res is not None else _fail("The FormDeckwindow closed before rendering; ask the person to reopen it.")
+    return res if res is not None else _fail("The FormDeck window closed before rendering; ask the person to reopen it.")
 
 
 async def t_export_deck(a: Agent, args: dict) -> dict:
@@ -1450,19 +1450,19 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
         return _ok(f"Wrote {p} ({len(data) // 1024:,} KB, {len(deck['slides'])} slides).", {"path": str(p), "bytes": len(data)})
     if fmt in ("pdf", "png", "jpeg", "jpg"):
         if not bridge.window_connected():
-            return _fail(f"{fmt} export renders the slides in the FormDeckwindow, and none is open. Ask the person to open FormDeck(./formdeck), then retry; pptx and fsld export work without it.")
+            return _fail(f"{fmt} export renders the slides in the FormDeck window, and none is open. Ask the person to open FormDeck (./formdeck), then retry; pptx and fsld export work without it.")
         payload = {"deck": deck["id"], "format": "jpeg" if fmt == "jpg" else fmt}
         if args.get("slides"):
             payload["slides"] = [deck["slides"][i]["id"] for i in _sel(deck, args["slides"])]
         if args.get("path"):
             payload["path"] = str(_abs(args["path"], must_exist=False))
         res = await bridge.window_call("export_raster", payload, deck["id"], 300)
-        return res if res is not None else _fail("The FormDeckwindow closed before the export finished.")
+        return res if res is not None else _fail("The FormDeck window closed before the export finished.")
     if fmt in ("txt", "rtf", "gif"):
         from app.routers import exports
         if fmt == "gif":
             if not bridge.window_connected():
-                return _fail("gif export renders the slides in the FormDeckwindow, and none is open. Ask the person to open FormDeck(./formdeck), then retry.")
+                return _fail("gif export renders the slides in the FormDeck window, and none is open. Ask the person to open FormDeck (./formdeck), then retry.")
             data, name, n = await exports.gif_from_window(deck, _sel(deck, args["slides"]) if args.get("slides") else None, int(args.get("width") or 960))
         else:
             picked = {**deck, "slides": [deck["slides"][i] for i in _sel(deck, args["slides"])]} if args.get("slides") else deck
@@ -1641,7 +1641,7 @@ def prompt_text(args: dict) -> str:
     brief = str(args.get("brief") or "").strip()
     step1 = f"Use intake {intake}." if intake.startswith("in_") else (f"Ingest these files with the brief: {intake}." if intake else "Ask which files to use, then ingest them with the brief (absolute paths).")
     return "\n".join([
-        "Build a slide deck in FormDeck(MCP server formdeck). Aim for a strong first draft the person can review and approve.",
+        "Build a slide deck in FormDeck (MCP server formdeck). Aim for a strong first draft the person can review and approve.",
         f"Brief: {brief or 'ask the person what the deck is for, who will see it and how long it should be'}",
         f"Template: {template or 'pick one with list_templates that fits the brief'}",
         "", "Steps:", "1. get_context.", f"2. {step1}",
