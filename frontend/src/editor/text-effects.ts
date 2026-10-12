@@ -14,7 +14,7 @@ import { bodyPropOps, dirtyOp, resolvedFrame, runStyleOps } from './actions';
 import { editorTheme } from './master-view';
 
 type Patch = Partial<Run> | ((r: Run) => Partial<Run>);
-interface Snap { id: string; a: [number, number]; b: [number, number] }
+export interface Snap { id: string; a: [number, number]; b: [number, number] }
 
 const SHADOWS: Record<string, NonNullable<Effects['shadow']>> = {
   soft: { color: '#00000059', blur: 6, dist: 3, angle: 45 },
@@ -61,7 +61,7 @@ function textLen(n: Node): number {
   return Array.from(n.childNodes).reduce((s, c) => s + textLen(c), 0);
 }
 
-function snapOf(ed: Editor): Snap | null {
+export function snapOf(ed: Editor): Snap | null {
   const id = ed.stage.editing;
   if (!id || ed.stage.cells?.active) return null;
   const flow = flowOf(ed, id);
@@ -176,7 +176,7 @@ function setWarp(ed: Editor, warp: TextWarp | undefined, label: string, coalesce
 
 type Body3 = { sp3d?: Sp3d; scene3d?: Scene3d };
 
-function clean<T extends object>(o: T): T | undefined {
+export function clean<T extends object>(o: T): T | undefined {
   const out = { ...o } as Record<string, unknown>;
   for (const k of Object.keys(out)) if (out[k] === undefined || out[k] === null) delete out[k];
   return Object.keys(out).length ? out as T : undefined;
@@ -255,8 +255,8 @@ export function registerTextFxCommands(cmds: Commands, E: () => Editor | null): 
   cmds.add(...list);
 }
 
-const row = (label: string, ctl: string, attr = ''): string => `<div class="fd-prop-row"${attr}><span class="fd-prop-label">${label}</span><div class="fd-prop-ctl">${ctl}</div></div>`;
-const swatch = (a: string, title: string): string => `<button class="fd-btn fd-btn-sm" type="button" data-ta="${a}" title="${title}" aria-label="${title}"><span class="fd-tfx-swatch"></span></button>`;
+export const row = (label: string, ctl: string, attr = ''): string => `<div class="fd-prop-row"${attr}><span class="fd-prop-label">${label}</span><div class="fd-prop-ctl">${ctl}</div></div>`;
+export const swatch = (a: string, title: string): string => `<button class="fd-btn fd-btn-sm" type="button" data-ta="${a}" title="${title}" aria-label="${title}"><span class="fd-tfx-swatch"></span></button>`;
 
 export class TextFxPanel {
   readonly el: HTMLElement;

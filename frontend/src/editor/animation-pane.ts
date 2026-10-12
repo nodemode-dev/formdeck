@@ -47,8 +47,11 @@ const EFFECTS: Record<AnimClass, EffectDef[]> = {
     { id: 'custom', label: 'Custom path' },
   ],
 };
-const CLASSES: Array<[AnimClass, string]> = [['entr', 'Entrance'], ['emph', 'Emphasis'], ['exit', 'Exit'], ['path', 'Motion paths']];
-const TRIGGERS: Array<[Trigger, string]> = [['onClick', 'On click'], ['withPrevious', 'With previous'], ['afterPrevious', 'After previous']];
+export const ANIM_EFFECTS = EFFECTS;
+export const ANIM_CLASSES: Array<[AnimClass, string]> = [['entr', 'Entrance'], ['emph', 'Emphasis'], ['exit', 'Exit'], ['path', 'Motion paths']];
+const CLASSES = ANIM_CLASSES;
+export const ANIM_TRIGGERS: Array<[Trigger, string]> = [['onClick', 'On click'], ['withPrevious', 'With previous'], ['afterPrevious', 'After previous']];
+const TRIGGERS = ANIM_TRIGGERS;
 const PAIR: Record<string, string> = { fadeIn: 'fadeOut', flyIn: 'flyOut', floatIn: 'floatOut', riseUp: 'floatOut', wipeIn: 'wipeOut', split: 'splitOut', zoomIn: 'zoomOut', growTurn: 'shrinkTurn', appear: 'disappear' };
 const INSTANT = new Set(['appear', 'disappear']);
 const PH_LABEL: Record<string, string> = { title: 'Title', ctrTitle: 'Title', subTitle: 'Subtitle', body: 'Content', obj: 'Content', pic: 'Picture', chart: 'Chart', tbl: 'Table', dt: 'Date', ftr: 'Footer', sldNum: 'Slide number' };
@@ -221,6 +224,7 @@ export class AnimationPane {
   attach(ed: Editor): void {
     this.detach();
     this.ed = ed;
+    AnimationPane.active = this;
     this.picked = null;
     if (!this.sheet.isConnected) document.head.appendChild(this.sheet);
     this.ro.observe(this.el);
@@ -243,6 +247,7 @@ export class AnimationPane {
 
   dispose(): void {
     this.detach();
+    if (AnimationPane.active === this) AnimationPane.active = null;
     this.ro.disconnect();
     this.watched = null;
     this.sheet.remove();
@@ -264,6 +269,61 @@ export class AnimationPane {
 
   private values(): Fields {
     return this.current() ?? this.draft;
+  }
+
+  static active: AnimationPane | null = null;
+
+  forRibbon(): { anim: Anim | null; v: Fields; dirs: DirList | undefined; count: number; playing: boolean } {
+    const anim = this.current() ?? this.ofSelection();
+    const v = anim ?? this.draft;
+    return { anim, v, dirs: defOf(v.effect, v.class)?.dirs, count: this.ed?.slide?.animations?.length ?? 0, playing: !!this.playing };
+  }
+
+  private ofSelection(): Anim | null {
+    const ids = new Set(this.ed?.selection ?? []);
+    return (this.ed?.slide?.animations ?? []).find((a) => ids.has(a.target)) ?? null;
+  }
+
+  choose(cls: AnimClass, effect: string, addNew: boolean): void {
+    const ed = this.ed;
+    if (!ed) return;
+    const on = addNew ? null : this.current() ?? this.ofSelection();
+    const v = on ?? this.draft;
+    const dirs = defOf(effect, cls)?.dirs;
+    const dir = dirs?.some(([d]) => d === v.dir) ? v.dir : undefined;
+    const fields: Partial<Fields> = { class: cls, effect, dir, duration: defaultSeconds(effect, cls) };
+    if (cls === 'path') Object.assign(fields, this.pathFields(effect, dir));
+    else if (v.class === 'path') Object.assign(fields, { path: undefined, rotate: undefined, reverse: undefined });
+    if (on) { this.endDraw(); this.patch(fields, 'Animation effect', on); return; }
+    this.draft = tidy({ ...this.draft, ...fields, path: undefined });
+    if (ed.selection.length) this.add(); else this.sync();
+  }
+
+  setDir(dir: Dir): void {
+    const { anim, v } = this.forRibbon();
+    this.patch({ dir, ...(v.class === 'path' ? this.pathFields(v.effect, dir) : {}) }, 'Animation direction', anim);
+  }
+
+  setTiming(f: 'trigger' | 'duration' | 'delay' | 'byParagraph', value: string | number | boolean): void {
+    const { anim } = this.forRibbon();
+    if (f === 'trigger') this.patch({ trigger: value as Trigger }, 'Animation start', anim);
+    else if (f === 'byParagraph') this.patch({ byParagraph: !!value }, 'Animate by paragraph', anim);
+    else {
+      const n = Number(value);
+      if (Number.isFinite(n)) this.patch({ [f]: round2(Math.min(60, Math.max(0, n))) }, f === 'duration' ? 'Animation duration' : 'Animation delay', anim);
+    }
+  }
+
+  shift(by: number): void {
+    const { anim } = this.forRibbon();
+    if (anim) this.move(anim.id, by);
+  }
+
+  play(): void { void this.preview(); }
+
+  drop(): void {
+    const { anim } = this.forRibbon();
+    if (anim) this.remove(anim.id);
   }
 
   private wire(): void {
@@ -329,10 +389,10 @@ export class AnimationPane {
     return { dir: d, path: defaultPath(effect, d, size.w, size.h) };
   }
 
-  private patch(fields: Partial<Fields>, label: string): void {
+  private patch(fields: Partial<Fields>, label: string, on: Anim | null = this.current()): void {
     const ed = this.ed;
     const s = ed?.slide;
-    const a = this.current();
+    const a = on;
     if (!ed || !s || !a) {
       this.draft = tidy({ ...this.draft, ...fields, path: undefined });
       this.sync();

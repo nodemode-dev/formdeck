@@ -16,6 +16,11 @@ import { MASTER_PLACEHOLDER_IDS, editorTheme } from './master-view';
 import { MERGE_MENU } from './merge-shapes';
 import { TABLE_BORDER_MENU, tableRunProbe, tableTextFormat } from './table-edit';
 import { selectedMedia } from './media-preview';
+import { FormatPainter, registerFormatPainter } from './format-painter';
+import { registerHeaderFooter } from './header-footer';
+import { RibbonGalleries } from './ribbon-galleries';
+import { CROP_SHAPES, CropTool, registerCropCommands } from './crop-tool';
+import { PICTURE_EFFECTS_MENU, SHAPE_EFFECTS_MENU, registerEffectCommands } from './shape-effects';
 
 type Ctx = 'slide' | 'text' | 'shape' | 'image' | 'table' | 'chart' | 'multi' | 'none';
 
@@ -46,7 +51,7 @@ const alignText = (): Rows => R([I('text-align-l'), I('text-align-c'), I('text-a
 function ribbonTabs(): TabDef[] {
   return [
     { id: 'home', label: 'Home', groups: [
-      G('clipboard', 'Clipboard', L('paste', 'Paste'), R([T('cut', 'Cut')], [T('copy', 'Copy')], [T('duplicate', 'Duplicate')])),
+      G('clipboard', 'Clipboard', L('paste', 'Paste'), R([T('cut', 'Cut')], [T('copy', 'Copy')], [T('duplicate', 'Duplicate')]), L('format-painter', 'Format Painter')),
       G('slides', 'Slides', L('new-slide', 'New Slide'), R([S('layout')], [T('reset-slide', 'Reset'), T('add-section', 'Section')], [T('hide-slide', 'Hide'), T('delete-slide', 'Delete')])),
       G('font', 'Font', R([S('font'), S('size'), I('grow-font'), I('shrink-font'), I('clear-format')], [I('bold'), I('italic'), I('underline'), I('strike'), I('superscript'), I('subscript'), I('all-caps'), A('text-color', 'textColor', 'Font Colour', { swatch: true }), A('highlight', 'highlight', 'Highlight', { swatch: true })], [I('small-caps'), I('text-effects'), I('insert-link')])),
       G('paragraph', 'Paragraph', R([I('bullets'), I('numbering'), I('outdent'), I('indent')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('anchor-t'), I('anchor-m'), I('anchor-b')])),
@@ -60,7 +65,7 @@ function ribbonTabs(): TabDef[] {
       G('illustrations', 'Illustrations', A('shapes', 'shapes', 'Shapes'), L('insert-icons', 'Icons'), L('insert-model3d', '3D Models', { icon: 'model3d' }), L('insert-diagram', 'SmartArt'), L('insert-chart', 'Chart'), R([T('insert-line', 'Line')], [T('insert-arrow', 'Arrow')], [M('connector', 'line', 'Connector', CONNECTOR_ITEMS, { text: true })]), R([T('draw-freeform', 'Freeform')], [T('draw-scribble', 'Scribble')])),
       G('links', 'Links', L('insert-link', 'Link')),
       G('comments', 'Comments', L('add-comment', 'Comment')),
-      G('text', 'Text', L('insert-text', 'Text Box'), L('insert-wordart', 'WordArt')),
+      G('text', 'Text', L('insert-text', 'Text Box'), L('header-footer', 'Header & Footer'), L('insert-wordart', 'WordArt')),
       G('symbols', 'Symbols', L('insert-equation', 'Equation')),
       G('media', 'Media', L('insert-media', 'Video or Audio')),
     ] },
@@ -70,17 +75,21 @@ function ribbonTabs(): TabDef[] {
       G('master', 'Master', L('view-master', 'Slide Master')),
     ] },
     { id: 'transitions', label: 'Transitions', groups: [
-      G('transition', 'Transition to This Slide', L('toggle-props', 'Transition Options', { icon: 'transition', title: 'Show the Properties panel, where the slide transition and its duration are set' })),
-      G('timing', 'Timing', R([T('clear-timing-current', 'Clear Timing on Slide')], [T('clear-timing-all', 'Clear Timing on All')])),
+      G('transition', 'Transition to This Slide', S('tr-gallery'), M('tr-options', 'transition', 'Effect Options', ['transition-dir-0', 'transition-dir-1', 'transition-dir-2', 'transition-dir-3'])),
+      G('timing', 'Timing', R([S('tr-duration')], [T('clear-timing-current', 'Clear Timing on Slide')], [T('clear-timing-all', 'Clear Timing on All')]), L('transition-all', 'Apply To All')),
+      G('advance', 'Advance Slide', R([T('transition-on-click', 'On Mouse Click', { icon: 'check' })], [S('tr-after')])),
     ] },
     { id: 'animations', label: 'Animations', groups: [
-      G('animation', 'Animation', L('toggle-props', 'Animation Pane', { icon: 'animation', title: 'Show the Properties panel, where animations are added, ordered and timed' })),
-      G('advanced', 'Advanced Animation', L('selection-pane', 'Selection Pane')),
-      G('timing', 'Timing', R([T('clear-narration-current', 'Clear Narration on Slide')], [T('clear-narration-all', 'Clear Narration on All')])),
+      G('preview', 'Preview', L('anim-preview', 'Preview')),
+      G('animation', 'Animation', S('an-gallery'), M('an-options', 'animation', 'Effect Options', ['anim-dir-0', 'anim-dir-1', 'anim-dir-2', 'anim-dir-3', '-', 'anim-by-paragraph'])),
+      G('advanced', 'Advanced Animation', A('anim-add', 'plus', 'Add Animation'), L('anim-pane', 'Animation Pane'), L('selection-pane', 'Selection Pane')),
+      G('timing', 'Timing', M('an-start', 'play', 'Start', ['anim-start-onClick', 'anim-start-withPrevious', 'anim-start-afterPrevious']), R([S('an-duration')], [S('an-delay')]), R([T('anim-earlier', 'Move Earlier')], [T('anim-later', 'Move Later')])),
+      G('narration', 'Narration', R([T('clear-narration-current', 'Clear Narration on Slide')], [T('clear-narration-all', 'Clear Narration on All')])),
     ] },
     { id: 'slideshow', label: 'Slide Show', groups: [
       G('start', 'Start Slide Show', L('present-start', 'From Beginning'), L('present-current', 'From Current Slide'), L('presenter-view', 'Presenter View'), L('custom-shows', 'Custom Slide Show')),
-      G('setup', 'Set Up', L('show-setup', 'Set Up Slide Show'), L('hide-slide', 'Hide Slide')),
+      G('setup', 'Set Up', L('show-setup', 'Set Up Slide Show'), L('hide-slide', 'Hide Slide'), L('rehearse-timings', 'Rehearse Timings', { icon: 'record' })),
+      G('monitors', 'Monitors', R([T('use-presenter-view', 'Use Presenter View')])),
       G('record', 'Record', L('record-start', 'Record from Beginning', { icon: 'record' }), L('record-current', 'Record from Current', { icon: 'record' }), M('clear-rec', 'delete', 'Clear', ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'])),
     ] },
     { id: 'review', label: 'Review', groups: [
@@ -95,6 +104,7 @@ function ribbonTabs(): TabDef[] {
       G('views', 'Presentation Views', L('view-normal', 'Normal'), L('view-sorter', 'Slide Sorter'), L('view-outline', 'Outline'), L('view-master', 'Slide Master')),
       G('show', 'Show', R([T('view-ruler', 'Ruler')], [T('view-gridlines', 'Gridlines')], [T('view-guides', 'Guides')]), R([T('toggle-strip', 'Slides Panel')], [T('toggle-props', 'Properties Panel')], [T('toggle-notes', 'Speaker Notes')]), L('grid-guides', 'Grid and Guides', { icon: 'grid' })),
       G('zoom', 'Zoom', L('zoom-in', 'Zoom In'), L('zoom-out', 'Zoom Out'), L('zoom-fit', 'Fit to Window'), L('zoom-100', '100%', { icon: 'maximize' })),
+      G('macros', 'Macros', L('macro-dialog', 'Macros'), L('macro-editor', 'Macro Editor')),
       G('ribbon', 'Ribbon', L('ribbon-simplified', 'Simplified Ribbon'), L('ribbon-collapse', 'Collapse Ribbon'), L('ribbon-customize', 'Customize Ribbon'), L('qat-customize', 'Customize Quick Access'), L('qat-below', 'Quick Access Position')),
     ] },
     { id: 'master', label: 'Slide Master', ctx: true, groups: [
@@ -105,15 +115,16 @@ function ribbonTabs(): TabDef[] {
     ] },
     { id: 'shapefmt', label: 'Shape Format', ctx: true, groups: [
       G('shapes', 'Insert Shapes', A('shapes', 'shapes', 'Shapes'), R([T('edit-points', 'Edit Points')], [M('merge', 'mergeUnion', 'Merge Shapes', (MERGE_MENU as SubMenu).items, { text: true })])),
-      G('styles', 'Shape Styles', A('fill', 'fill', 'Shape Fill', { swatch: true }), A('line', 'pen', 'Shape Outline', { swatch: true })),
+      G('styles', 'Shape Styles', A('fill', 'fill', 'Shape Fill', { swatch: true }), A('line', 'pen', 'Shape Outline', { swatch: true }), M('shapefx', 'sparkle', 'Shape Effects', SHAPE_EFFECTS_MENU)),
       G('wordart', 'WordArt Styles', L('text-effects', 'Text Effects'), L('text-transform', 'Transform'), R([A('text-color', 'textColor', 'Text Fill', { text: true, swatch: true })], [A('highlight', 'highlight', 'Highlight', { text: true, swatch: true })], [T('clear-text-effects', 'Clear Effects')])),
       G('textbox', 'Text Box', R([I('anchor-t'), I('anchor-m'), I('anchor-b')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('bullets'), I('numbering')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       arrangeGroup(),
     ] },
     { id: 'picfmt', label: 'Picture Format', ctx: true, groups: [
-      G('adjust', 'Adjust', L('replace-image', 'Change Picture')),
-      G('styles', 'Picture Styles', A('line', 'pen', 'Picture Border', { swatch: true })),
+      G('adjust', 'Adjust', L('replace-image', 'Change Picture'), L('picture-reset', 'Reset Picture')),
+      G('styles', 'Picture Styles', A('line', 'pen', 'Picture Border', { swatch: true }), M('picfx', 'sparkle', 'Picture Effects', PICTURE_EFFECTS_MENU)),
+      G('size', 'Size', L('crop', 'Crop'), M('cropto', 'shapes', 'Crop to Shape', CROP_SHAPES.map(([g]) => `crop-shape-${g}`)), R([T('crop-fill', 'Fill')], [T('crop-fit', 'Fit')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       arrangeGroup(),
     ] },
@@ -168,6 +179,9 @@ export class Toolbar {
   private ctx: Ctx = 'none';
   private ribbon: Ribbon | null = null;
   readonly qat: Qat;
+  readonly painter: FormatPainter;
+  readonly crop: CropTool;
+  private readonly galleries: RibbonGalleries;
   fileItems: MenuItem[] = [];
 
   constructor(private readonly host: HTMLElement, private readonly commands: Commands) {
@@ -227,6 +241,16 @@ export class Toolbar {
     this.qat.onChange = () => this.ribbon?.syncMode();
     this.qat.onRun = () => this.sync();
     this.register();
+    const E = (): Editor | null => this.ed;
+    this.painter = new FormatPainter(E);
+    this.painter.onChange = () => this.sync();
+    this.crop = new CropTool(E);
+    this.crop.onChange = () => this.sync();
+    this.galleries = new RibbonGalleries(commands, E);
+    registerFormatPainter(commands, this.painter);
+    registerCropCommands(commands, E, this.crop);
+    registerEffectCommands(commands, E);
+    registerHeaderFooter(commands, E);
   }
 
   hooks: { color: (kind: 'text' | 'hl' | 'fill' | 'line', anchor: HTMLElement) => void; shapes: (anchor: HTMLElement) => void } | null = null;
@@ -253,7 +277,12 @@ export class Toolbar {
     this.ribbon ??= new Ribbon(this.host, this.commands, this.qat, {
       tabs: ribbonTabs(),
       simple: this.simple,
-      slots: { font: () => this.fontSlot(), size: () => this.sizeSlot(), layout: () => this.layoutSlot() },
+      slots: {
+        font: () => this.fontSlot(), size: () => this.sizeSlot(), layout: () => this.layoutSlot(),
+        'tr-gallery': () => this.galleries.gallery('tr'), 'an-gallery': () => this.galleries.gallery('an'),
+        'tr-duration': () => this.galleries.transitionDuration(), 'tr-after': () => this.galleries.transitionAfter(),
+        'an-duration': () => this.galleries.animationDuration(), 'an-delay': () => this.galleries.animationDelay(),
+      },
       act: (a, anchor) => this.act(a, anchor),
       after: () => this.sync(),
       fileItems: () => this.fileItems,
@@ -304,11 +333,14 @@ export class Toolbar {
     else if (a === 'highlight') this.hooks?.color('hl', anchor);
     else if (a === 'fill') this.hooks?.color('fill', anchor);
     else if (a === 'line') this.hooks?.color('line', anchor);
+    else if (a === 'anim-add') this.galleries.openAdd(anchor);
     else if (a === 'ribbon-full') this.ribbon?.setSimplified(false);
   }
 
   attach(ed: Editor | null): void {
     this.ed = ed;
+    this.painter.attach(ed);
+    this.crop.attach(ed);
     this.ensure();
     if (ed) {
       this.layoutOptions();
@@ -393,6 +425,7 @@ export class Toolbar {
     }
     if (!rb || rb.simplified) this.syncSimple(ctx, inMaster);
     this.syncFields(ctx);
+    this.galleries.sync();
   }
 
   private syncSimple(ctx: Ctx, inMaster: boolean): void {

@@ -1,4 +1,5 @@
 import type { Bullet, LevelStyle, Para, Run, TextBody, Theme } from '../engine/model';
+import { expandDates } from '../engine/datefmt';
 import { colorCss, fontStack, levelStyle, themeFont, type BodyProps, type Chain } from '../engine/resolve';
 import { mathHtml, mathOf } from './math';
 import { fxAttr, fxCss, fxSpec, runHasFx } from './text-fx';
@@ -115,7 +116,7 @@ export function textHtml(body: TextBody | undefined, tc: TextCtx): string {
         runs += mathHtml(math, runCss({ ...props, t: '' }, lvl, tc), ` data-mr="${esc(JSON.stringify(props))}"`);
         continue;
       }
-      const text = r.t.replace(/‹#›/g, String(tc.slideNumber));
+      const text = expandDates(r.t.replace(/‹#›/g, String(tc.slideNumber)));
       const link = r.link ? ` data-link="${esc('url' in r.link ? r.link.url : '#' + r.link.slide)}"` : '';
       const css = runCss(r, lvl, tc);
       const lang = r.lang ? ` lang="${esc(r.lang)}"` : '';

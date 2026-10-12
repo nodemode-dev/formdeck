@@ -205,7 +205,15 @@ def read_para(p, ctx, levels: list | None = None) -> dict:
         tag = local(child)
         if tag in ("r", "fld"):
             t = find(child, "a:t")
-            text = SLIDE_NUMBER if tag == "fld" and child.get("type") == "slidenum" else (t.text if t is not None else "") or ""
+            kind = child.get("type") or "" if tag == "fld" else ""
+            if kind == "slidenum":
+                text = SLIDE_NUMBER
+            elif kind.startswith("datetime") and kind[8:].isdigit() and 1 <= int(kind[8:]) <= 13:
+                text = f"‹date:{int(kind[8:])}›"
+            elif kind == "datetime":
+                text = "‹date:1›"
+            else:
+                text = (t.text if t is not None else "") or ""
             runs.append({"t": text, **read_run_props(find(child, "a:rPr"), ctx)})
         elif tag == "br":
             runs.append({"t": "\n", **read_run_props(find(child, "a:rPr"), ctx)})

@@ -1,3 +1,6 @@
+import re
+from datetime import datetime
+
 from .colors import color_element
 from .ooxml import clean_text, make, pt_emu, sub
 from .text_fx import append_3d, append_run_fx, warp_element
@@ -17,6 +20,12 @@ AUTONUM_SCHEMES = {
 MAX_EMU = 51206400
 SLIDE_NUMBER = "‹#›"
 SLIDE_NUMBER_FIELD_ID = "{B6F15528-21DE-4FAA-801E-634DDDAF4B2B}"
+DATE_FIELD_ID = "{3F2C8A10-6D1B-4C55-9B7A-2E41D7A0C9E3}"
+FIELD_RE = re.compile(r"(‹#›|‹date:(\d{1,2})›)")
+DATE_PATTERNS = {
+    1: "%m/%d/%Y", 2: "%A, %B %d, %Y", 3: "%d %B %Y", 4: "%B %d, %Y", 5: "%d-%b-%y", 6: "%B %y", 7: "%b-%y", 8: "%m/%d/%Y %I:%M %p",
+    9: "%m/%d/%Y %I:%M:%S %p", 10: "%H:%M", 11: "%H:%M:%S", 12: "%I:%M %p", 13: "%I:%M:%S %p",
+}
 
 
 def font_typeface(font: str) -> str:
@@ -100,15 +109,28 @@ def paragraph_element(para: dict, ctx):
 
 
 def _append_pieces(p, text: str, run: dict, ctx) -> None:
-    for index, piece in enumerate(text.split(SLIDE_NUMBER)):
-        if index > 0:
+    pos = 0
+    for m in FIELD_RE.finditer(text):
+        _append_piece(p, text[pos:m.start()], run, ctx)
+        pos = m.end()
+        if m.group(2) is None:
             fld = sub(p, "a:fld", {"id": SLIDE_NUMBER_FIELD_ID, "type": "slidenum"})
             fld.append(run_props(run, ctx, "a:rPr", with_link=False))
             sub(fld, "a:t").text = SLIDE_NUMBER
-        if piece:
-            r = sub(p, "a:r")
-            r.append(run_props(run, ctx, "a:rPr"))
-            sub(r, "a:t").text = piece
+        else:
+            n = int(m.group(2))
+            n = n if n in DATE_PATTERNS else 1
+            fld = sub(p, "a:fld", {"id": DATE_FIELD_ID, "type": f"datetime{n}"})
+            fld.append(run_props(run, ctx, "a:rPr", with_link=False))
+            sub(fld, "a:t").text = datetime.now().strftime(DATE_PATTERNS[n])
+    _append_piece(p, text[pos:], run, ctx)
+
+
+def _append_piece(p, piece: str, run: dict, ctx) -> None:
+    if piece:
+        r = sub(p, "a:r")
+        r.append(run_props(run, ctx, "a:rPr"))
+        sub(r, "a:t").text = piece
 
 
 def run_props(run: dict, ctx, tag: str, with_link: bool = True):

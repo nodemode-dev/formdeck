@@ -1,4 +1,4 @@
-import { SCHEME_SLOTS, type Comment, type Deck, type Effects, type SchemeName, type SlideElement } from '../engine/model';
+import { SCHEME_SLOTS, type Comment, type Deck, type SchemeName, type SlideElement } from '../engine/model';
 import { colorCss, colorHex, frameOf, chain, masterOf } from '../engine/resolve';
 import { slidePath, elPath, type Op } from '../engine/ops';
 import { BUNDLED_FONTS, ensureFont } from '../render/fonts';
@@ -13,6 +13,8 @@ import { AnimationPane } from './animation-pane';
 import { editorMaster, editorTheme, themeOps } from './master-view';
 import { TablePanel } from './table-panel';
 import { TextFxPanel } from './text-effects';
+import { Shape3dPanel } from './shape-3d';
+import { SHADOWS } from './shape-effects';
 import { MediaPanel } from './media-panel';
 import { ChatPanel } from '../ui/chat-panel';
 import { attachMentions, findMentions, isAgentName, loadMe, mentionsMe, myName, people, renderMentions } from './mentions';
@@ -23,13 +25,6 @@ const SLOT_NAMES: Record<SchemeName, string> = {
 };
 
 export interface ActivityItem { id: string; at: number; label: string; origin: string }
-
-const SHADOWS: Record<string, NonNullable<Effects['shadow']> | undefined> = {
-  soft: { color: '#00000040', blur: 18, dist: 6, angle: 90 },
-  below: { color: '#00000059', blur: 10, dist: 10, angle: 90 },
-  hard: { color: '#00000073', blur: 0, dist: 5, angle: 45 },
-  long: { color: '#00000033', blur: 28, dist: 18, angle: 90 },
-};
 
 const num = (name: string, label: string, unit = 'pt'): string => `<label class="fd-num" title="${label}"><span class="fd-num-label">${label}</span><input type="number" step="1" data-f="${name}" aria-label="${label}"><span class="fd-unit">${unit}</span></label>`;
 
@@ -48,6 +43,7 @@ export class Inspector {
   readonly animate = new AnimationPane();
   readonly table = new TablePanel();
   readonly textFx = new TextFxPanel();
+  readonly shape3d = new Shape3dPanel();
   readonly media = new MediaPanel();
   private docOff: (() => void) | null = null;
   private commentFilter: 'all' | 'open' | 'mine' | 'assigned' = 'open';
@@ -82,7 +78,7 @@ export class Inspector {
 <div class="fd-prop-row"><span class="fd-prop-label">Blur</span><div class="fd-prop-ctl"><input class="fd-slider" type="range" min="0" max="20" step="0.5" data-f="blur" aria-label="Blur"></div></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Crop</span><div class="fd-prop-ctl fd-pair">${num('crop-l', 'L', '%')}${num('crop-r', 'R', '%')}</div></div>
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl fd-pair">${num('crop-t', 'T', '%')}${num('crop-b', 'B', '%')}</div></div>
-<div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-a="reset-picture">Reset picture</button></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="crop-on-slide">${icon('crop', 14)}Crop on slide</button><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-a="reset-picture">Reset picture</button></div></div>
 <div class="fd-prop-row is-stack"><span class="fd-prop-label">Alt text</span><textarea class="fd-input" rows="2" data-f="alt" placeholder="Describe the picture for screen readers"></textarea></div></div>
 </div>`);
     this.slidePage = el(`<div class="fd-insp">
@@ -101,6 +97,7 @@ export class Inspector {
     this.layoutGrid = this.slidePage.querySelector('.fd-layout-grid') as HTMLElement;
     this.format.appendChild(this.table.el);
     this.format.querySelector('[data-s="effects"]')?.before(this.textFx.el);
+    this.format.querySelector('[data-s="effects"]')?.after(this.shape3d.el);
     this.format.appendChild(this.media.el);
     this.design = el(`<div class="fd-insp">
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Template</span></div>
@@ -142,6 +139,7 @@ export class Inspector {
     this.format.addEventListener('input', (e) => { const t = e.target as HTMLInputElement; if (t.type === 'range') this.formatChange(t, true); });
     this.format.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('[data-a="reset-picture"]')) this.resetPicture();
+      else if ((e.target as HTMLElement).closest('[data-a="crop-on-slide"]')) this.ed?.run('crop');
       else this.segClick(e);
     });
     this.slidePage.addEventListener('click', (e) => {
@@ -232,8 +230,8 @@ export class Inspector {
 
   attach(ed: Editor | null): void {
     this.ed = ed;
-    if (ed) { this.animate.attach(ed); this.table.attach(ed); this.media.attach(ed); this.textFx.attach(ed); }
-    else { this.animate.dispose(); this.table.dispose(); this.media.dispose(); this.textFx.dispose(); }
+    if (ed) { this.animate.attach(ed); this.table.attach(ed); this.media.attach(ed); this.textFx.attach(ed); this.shape3d.attach(ed); }
+    else { this.animate.dispose(); this.table.dispose(); this.media.dispose(); this.textFx.dispose(); this.shape3d.dispose(); }
     for (const v of this.layoutViews.values()) v.el.remove();
     this.layoutViews.clear();
     this.layoutHeads.clear();
