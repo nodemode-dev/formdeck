@@ -61,7 +61,7 @@ function ribbonTabs(): TabDef[] {
     { id: 'insert', label: 'Insert', groups: [
       G('slides', 'Slides', L('new-slide', 'New Slide'), L('insert-pdf-pages', 'From PDF')),
       G('tables', 'Tables', L('insert-table', 'Table')),
-      G('images', 'Images', L('insert-image', 'Pictures')),
+      G('images', 'Images', L('insert-image', 'Pictures'), L('insert-stock', 'Stock Images'), L('insert-ai-image', 'Generate with AI', { icon: 'sparkle' })),
       G('illustrations', 'Illustrations', A('shapes', 'shapes', 'Shapes'), L('insert-icons', 'Icons'), L('insert-model3d', '3D Models', { icon: 'model3d' }), L('insert-diagram', 'SmartArt'), L('insert-chart', 'Chart'), R([T('insert-line', 'Line')], [T('insert-arrow', 'Arrow')], [M('connector', 'line', 'Connector', CONNECTOR_ITEMS, { text: true })]), R([T('draw-freeform', 'Freeform')], [T('draw-scribble', 'Scribble')])),
       G('links', 'Links', L('insert-link', 'Link')),
       G('comments', 'Comments', L('add-comment', 'Comment')),
@@ -88,7 +88,7 @@ function ribbonTabs(): TabDef[] {
     ] },
     { id: 'slideshow', label: 'Slide Show', groups: [
       G('start', 'Start Slide Show', L('present-start', 'From Beginning'), L('present-current', 'From Current Slide'), L('presenter-view', 'Presenter View'), L('custom-shows', 'Custom Slide Show')),
-      G('setup', 'Set Up', L('show-setup', 'Set Up Slide Show'), L('hide-slide', 'Hide Slide'), L('rehearse-timings', 'Rehearse Timings', { icon: 'record' })),
+      G('setup', 'Set Up', L('show-setup', 'Set Up Slide Show'), L('hide-slide', 'Hide Slide'), L('rehearse-timings', 'Rehearse Timings', { icon: 'record' }), L('subtitle-settings', 'Subtitle Settings', { icon: 'captions' })),
       G('monitors', 'Monitors', R([T('use-presenter-view', 'Use Presenter View')])),
       G('record', 'Record', L('record-start', 'Record from Beginning', { icon: 'record' }), L('record-current', 'Record from Current', { icon: 'record' }), M('clear-rec', 'delete', 'Clear', ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'])),
     ] },
@@ -122,7 +122,7 @@ function ribbonTabs(): TabDef[] {
       arrangeGroup(),
     ] },
     { id: 'picfmt', label: 'Picture Format', ctx: true, groups: [
-      G('adjust', 'Adjust', L('replace-image', 'Change Picture'), L('picture-reset', 'Reset Picture')),
+      G('adjust', 'Adjust', L('replace-image', 'Change Picture'), L('edit-image-ai', 'Edit with AI', { icon: 'sparkle' }), L('picture-reset', 'Reset Picture')),
       G('styles', 'Picture Styles', A('line', 'pen', 'Picture Border', { swatch: true }), M('picfx', 'sparkle', 'Picture Effects', PICTURE_EFFECTS_MENU)),
       G('size', 'Size', L('crop', 'Crop'), M('cropto', 'shapes', 'Crop to Shape', CROP_SHAPES.map(([g]) => `crop-shape-${g}`)), R([T('crop-fill', 'Fill')], [T('crop-fit', 'Fit')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),

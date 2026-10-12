@@ -12,7 +12,16 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
     const m = sel.length === 1 && sel[0].type === 'media' ? sel[0] : undefined;
     return m && (!kind || m.kind === kind) ? m : undefined;
   };
+  const aiPicture = () => {
+    const ed = E();
+    if (!ed || ed.holderKind !== 'slide') return undefined;
+    const sel = ed.selected();
+    return sel.length === 1 && sel[0].type === 'image' && !sel[0].model ? sel[0] : undefined;
+  };
   const list: Command[] = [
+    { id: 'insert-stock', label: 'Stock Images...', icon: 'stockImage', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-stock').then((m) => m.stockDialog(ed)); } },
+    { id: 'insert-ai-image', label: 'Generate with AI...', icon: 'sparkle', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.generateImageDialog(ed)); } },
+    { id: 'edit-image-ai', label: 'Edit with AI...', icon: 'sparkle', enabled: () => !!aiPicture(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.editImageDialog(ed)); } },
     { id: 'insert-icons', label: 'Icons...', icon: 'iconLib', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-icons').then((m) => m.iconsDialog(ed)); } },
     { id: 'media-trim', label: () => (clip()?.kind === 'audio' ? 'Trim Audio...' : 'Trim Video...'), icon: 'trim', enabled: () => !!clip(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-media').then((m) => m.trimDialog(ed)); } },
     { id: 'media-poster-frame', label: 'Poster Frame from Video...', icon: 'film', enabled: () => !!clip('video'), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-media').then((m) => m.posterFrameDialog(ed)); } },

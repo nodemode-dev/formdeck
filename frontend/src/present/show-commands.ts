@@ -50,6 +50,7 @@ export function registerShowCommands(cmds: Commands, E: () => Editor | null, liv
     { id: 'export-txt', label: 'Export Outline as Text (.txt)', icon: 'fileText', enabled: () => !!E(), run: exporter('txt') },
     { id: 'export-rtf', label: 'Export Outline as Rich Text (.rtf)', icon: 'fileText', enabled: () => !!E(), run: exporter('rtf') },
     { id: 'use-presenter-view', label: 'Use Presenter View', enabled: () => true, checked: () => usePresenterView(), run: () => setUsePresenterView(!usePresenterView()) },
+    { id: 'subtitle-settings', label: 'Subtitle Settings...', icon: 'captions', enabled: () => true, run: () => { void import('../ui/dialogs-captions').then((m) => m.subtitleSettingsDialog()); } },
     { id: 'rehearse-timings', label: 'Rehearse Timings', icon: 'record', enabled: inSlides, run: () => start('start', { rehearse: true }) },
   );
 }
