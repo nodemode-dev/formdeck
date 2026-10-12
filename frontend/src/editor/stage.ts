@@ -69,17 +69,17 @@ export class Stage {
 
   constructor(private readonly ed: Editor, readonly root: HTMLElement) {
     this.viewport = document.createElement('div');
-    this.viewport.className = 'fs-viewport';
+    this.viewport.className = 'fd-viewport';
     this.canvas = document.createElement('div');
-    this.canvas.className = 'fs-canvas';
+    this.canvas.className = 'fd-canvas';
     this.overlay = document.createElement('div');
-    this.overlay.className = 'fs-overlay';
+    this.overlay.className = 'fd-overlay';
     this.hint = document.createElement('div');
-    this.hint.className = 'fs-ctx-hint';
+    this.hint.className = 'fd-ctx-hint';
     this.hint.hidden = true;
     this.viewport.append(this.canvas, this.overlay, this.hint);
     root.prepend(this.viewport);
-    this.banner = html(`<div class="fs-master-banner" hidden role="status"><span class="fs-master-banner-icon">${icon('layout', 14)}</span><span class="fs-master-banner-title">Slide Master</span><span class="fs-master-banner-name"></span><button class="fs-btn fs-btn-sm" type="button" data-cmd="close-master">${icon('close', 14)}<span>Close Master View</span></button></div>`);
+    this.banner = html(`<div class="fd-master-banner" hidden role="status"><span class="fd-master-banner-icon">${icon('layout', 14)}</span><span class="fd-master-banner-title">Slide Master</span><span class="fd-master-banner-name"></span><button class="fd-btn fd-btn-sm" type="button" data-cmd="close-master">${icon('close', 14)}<span>Close Master View</span></button></div>`);
     this.viewport.after(this.banner);
     new ResizeObserver(() => this.layout()).observe(root);
     this.viewport.addEventListener('pointerdown', (e) => this.down(e));
@@ -93,7 +93,7 @@ export class Stage {
     window.addEventListener('keydown', (e) => this.tableKey(e), true);
     const apply = ed.apply.bind(ed);
     ed.apply = (ops, label, coalesce) => apply(ed.holderKind === 'slide' ? glueOps(ed.doc.deck, ed.slide, ops) : ops, label, coalesce);
-    for (const n of Array.from(root.querySelectorAll(':scope > .fs-ruler, :scope > .fs-ruler-corner'))) n.remove();
+    for (const n of Array.from(root.querySelectorAll(':scope > .fd-ruler, :scope > .fd-ruler-corner'))) n.remove();
     this.aids = new StageAids(this, ed);
     this.draw = new DrawTool(this, ed);
     this.points = new PointsEdit(this, ed);
@@ -155,7 +155,7 @@ export class Stage {
     const h = holderOf(deck, kind, this.ed.current);
     const usage = layoutUsage(deck);
     const used = kind === 'layout' ? usage.get(this.ed.current) ?? 0 : deck.layouts.reduce((n, l) => n + (l.master === this.ed.current ? usage.get(l.id) ?? 0 : 0), 0);
-    setText(this.banner.querySelector('.fs-master-banner-name'), h ? `${h.name}${kind === 'layout' ? ' layout' : ''} · ${used ? `used by ${used} slide${used === 1 ? '' : 's'}` : 'not used'}` : '');
+    setText(this.banner.querySelector('.fd-master-banner-name'), h ? `${h.name}${kind === 'layout' ? ' layout' : ''} · ${used ? `used by ${used} slide${used === 1 ? '' : 's'}` : 'not used'}` : '');
   }
 
   update(t: Touched): void {
@@ -241,7 +241,7 @@ export class Stage {
         if (this.points?.id === el.id || (els.length === 1 && isLineLike(this.ed.doc.deck, slide, el))) continue;
         const f = this.frameOf(el);
         const rot = this.rotOf(el);
-        const cls = `fs-sel${els.length > 1 ? ' is-multi' : ''}${this.editing === el.id ? ' is-editing' : ''}`;
+        const cls = `fd-sel${els.length > 1 ? ' is-multi' : ''}${this.editing === el.id ? ' is-editing' : ''}`;
         parts.push(`<div class="${cls}" style="left:${this.ox + f.x * k}px;top:${this.oy + f.y * k}px;width:${f.w * k}px;height:${f.h * k}px;transform:rotate(${rot}deg)"></div>`);
         if (els.length === 1 && el.type === 'table') parts.push(...this.tableParts(el, f, rot));
       }
@@ -259,34 +259,34 @@ export class Stage {
         for (const h of HANDLES) {
           if (small && ['n', 's', 'e', 'w'].includes(h)) continue;
           const [x, y] = at(...pos[h]);
-          parts.push(`<div class="fs-handle" data-h="${h}" style="left:${x}px;top:${y}px"></div>`);
+          parts.push(`<div class="fd-handle" data-h="${h}" style="left:${x}px;top:${y}px"></div>`);
         }
         const [rx, ry] = at(0, -hh - 24);
         const [sx, sy] = at(0, -hh);
-        parts.push(`<div class="fs-rot-stem" style="left:${(rx + sx) / 2}px;top:${Math.min(ry, sy)}px;height:${Math.abs(ry - sy) || 24}px;transform:rotate(${rot}deg)"></div>`);
-        parts.push(`<div class="fs-handle is-rot" data-h="rot" style="left:${rx}px;top:${ry}px"></div>`);
+        parts.push(`<div class="fd-rot-stem" style="left:${(rx + sx) / 2}px;top:${Math.min(ry, sy)}px;height:${Math.abs(ry - sy) || 24}px;transform:rotate(${rot}deg)"></div>`);
+        parts.push(`<div class="fd-handle is-rot" data-h="rot" style="left:${rx}px;top:${ry}px"></div>`);
         if (el.type === 'shape' && !el.path) {
           const c = chain(this.ed.doc.deck, slide, el);
           const g = presetGeometry(geomOf(c), Math.max(1, f.w), Math.max(1, f.h), adjOf(c));
           for (const h of g.handles) {
             const [x, y] = at(h.x * k - hw, h.y * k - hh);
-            parts.push(`<div class="fs-handle is-adj" data-h="adj" data-i="${h.index}" style="left:${x}px;top:${y}px"></div>`);
+            parts.push(`<div class="fd-handle is-adj" data-h="adj" data-i="${h.index}" style="left:${x}px;top:${y}px"></div>`);
           }
         }
       }
-      if (this.guides.length) for (const g of this.guides) parts.push(g.axis === 'v' ? `<div class="fs-guide is-v" style="left:${this.ox + g.at * k}px;top:${this.oy + g.from * k}px;height:${(g.to - g.from) * k}px"></div>` : `<div class="fs-guide is-h" style="top:${this.oy + g.at * k}px;left:${this.ox + g.from * k}px;width:${(g.to - g.from) * k}px"></div>`);
-      if (this.marquee) parts.push(`<div class="fs-marquee" style="left:${this.ox + this.marquee.x * k}px;top:${this.oy + this.marquee.y * k}px;width:${this.marquee.w * k}px;height:${this.marquee.h * k}px"></div>`);
-      if (this.tip) parts.push(`<div class="fs-size-tip" style="left:${this.tip.x}px;top:${this.tip.y}px">${this.tip.text}</div>`);
+      if (this.guides.length) for (const g of this.guides) parts.push(g.axis === 'v' ? `<div class="fd-guide is-v" style="left:${this.ox + g.at * k}px;top:${this.oy + g.from * k}px;height:${(g.to - g.from) * k}px"></div>` : `<div class="fd-guide is-h" style="top:${this.oy + g.at * k}px;left:${this.ox + g.from * k}px;width:${(g.to - g.from) * k}px"></div>`);
+      if (this.marquee) parts.push(`<div class="fd-marquee" style="left:${this.ox + this.marquee.x * k}px;top:${this.oy + this.marquee.y * k}px;width:${this.marquee.w * k}px;height:${this.marquee.h * k}px"></div>`);
+      if (this.tip) parts.push(`<div class="fd-size-tip" style="left:${this.tip.x}px;top:${this.tip.y}px">${this.tip.text}</div>`);
       for (const p of this.ed.peers.values()) {
         if (p.slide !== this.ed.current) continue;
         for (const id of p.sel ?? []) {
           const el = slide.elements.find((e) => e.id === id);
           if (!el) continue;
           const f = this.frameOf(el);
-          parts.push(`<div class="fs-presence" style="--peer:${p.color};left:${this.ox + f.x * k - 2}px;top:${this.oy + f.y * k - 2}px;width:${f.w * k + 4}px;height:${f.h * k + 4}px"><span class="fs-presence-name">${p.name}</span></div>`);
+          parts.push(`<div class="fd-presence" style="--peer:${p.color};left:${this.ox + f.x * k - 2}px;top:${this.oy + f.y * k - 2}px;width:${f.w * k + 4}px;height:${f.h * k + 4}px"><span class="fd-presence-name">${p.name}</span></div>`);
         }
       }
-      if (this.sites) this.sites.forEach((s, i) => parts.push(`<div class="fs-site${i === this.siteHot ? ' is-hot' : ''}" style="left:${this.ox + s.x * k}px;top:${this.oy + s.y * k}px"></div>`));
+      if (this.sites) this.sites.forEach((s, i) => parts.push(`<div class="fd-site${i === this.siteHot ? ' is-hot' : ''}" style="left:${this.ox + s.x * k}px;top:${this.oy + s.y * k}px"></div>`));
     }
     const html = parts.join('');
     if (this.overlayHtml !== html) {
@@ -303,10 +303,10 @@ export class Stage {
     const out: string[] = [];
     lineEnds(xf).forEach(([x, y], i) => {
       const glued = !!(i === 0 ? el.conn?.start : el.conn?.end);
-      out.push(`<div class="fs-handle is-end${glued ? ' is-glued' : ''}" data-h="end${i}" style="left:${this.ox + x * k}px;top:${this.oy + y * k}px"></div>`);
+      out.push(`<div class="fd-handle is-end${glued ? ' is-glued' : ''}" data-h="end${i}" style="left:${this.ox + x * k}px;top:${this.oy + y * k}px"></div>`);
     });
     const mid = connectorMid(xf, el.geom ?? '', el.adj);
-    if (mid) out.push(`<div class="fs-handle is-adj" data-h="mid" style="left:${this.ox + mid[0] * k}px;top:${this.oy + mid[1] * k}px"></div>`);
+    if (mid) out.push(`<div class="fd-handle is-adj" data-h="mid" style="left:${this.ox + mid[0] * k}px;top:${this.oy + mid[1] * k}px"></div>`);
     return out;
   }
 
@@ -317,7 +317,7 @@ export class Stage {
 
   private hitElement(target: EventTarget | null): { id: string | null; ph: string | null; node: HTMLElement | null } {
     const t = target as HTMLElement | null;
-    const node = t?.closest?.('.fs-layer-content > .fs-el') as HTMLElement | null;
+    const node = t?.closest?.('.fd-layer-content > .fd-el') as HTMLElement | null;
     if (!node) return { id: null, ph: null, node: null };
     return { id: node.dataset.id || null, ph: node.dataset.ph || null, node };
   }
@@ -330,10 +330,10 @@ export class Stage {
     }
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    const handle = target.closest?.('.fs-handle') as HTMLElement | null;
+    const handle = target.closest?.('.fd-handle') as HTMLElement | null;
     const slide = this.slide();
     if (!slide) return;
-    if (target.closest?.('.fs-table-grip')) {
+    if (target.closest?.('.fd-table-grip')) {
       e.preventDefault();
       if (this.editing) this.endEdit();
       const frames = new Map<string, Frame>();
@@ -707,13 +707,13 @@ export class Stage {
     const node = this.view?.nodeFor(id);
     const el = this.ed.element(id);
     if (!node || !el || el.type !== 'shape') return;
-    const flow = node.querySelector<HTMLElement>('.fs-flow');
+    const flow = node.querySelector<HTMLElement>('.fd-flow');
     if (!flow) return;
     if (this.editing && this.editing !== id) this.endEdit();
     this.editing = id;
     this.editOriginal = structuredClone(el);
     if (this.view) this.view.editingId = id;
-    node.querySelector('.fs-prompt')?.classList.remove('fs-prompt');
+    node.querySelector('.fd-prompt')?.classList.remove('fd-prompt');
     flow.contentEditable = 'true';
     flow.spellcheck = true;
     document.execCommand('defaultParagraphSeparator', false, 'p');
@@ -754,7 +754,7 @@ export class Stage {
     if (!id || !slide) return;
     if (this.cell) { this.commitCell(slide, id, this.cell); return; }
     const node = this.view?.nodeFor(id);
-    const flow = node?.querySelector<HTMLElement>('.fs-flow');
+    const flow = node?.querySelector<HTMLElement>('.fd-flow');
     const el = this.ed.element(id);
     if (!flow || !el || el.type !== 'shape') return;
     const original = this.ed.displayParas(el);
@@ -812,7 +812,7 @@ export class Stage {
       this.ed.apply([{ op: 'set', path: [...elPath(slide.id, id), 'text', 'paras'], value: paras }, ...dirtyOp(slide)], ev.shiftKey ? 'Decrease indent' : 'Increase indent');
       this.endEdit(false);
       this.beginEdit(id);
-      const p2 = this.view?.nodeFor(id)?.querySelectorAll('.fs-flow > p')[index];
+      const p2 = this.view?.nodeFor(id)?.querySelectorAll('.fd-flow > p')[index];
       if (p2) { const r = document.createRange(); r.selectNodeContents(p2); r.collapse(false); window.getSelection()?.removeAllRanges(); window.getSelection()?.addRange(r); }
       return;
     }
@@ -844,7 +844,7 @@ export class Stage {
   private editFlow(): HTMLElement | null {
     const node = this.editing ? this.view?.nodeFor(this.editing) : null;
     if (!node) return null;
-    return this.cell ? node.querySelector<HTMLElement>(`td[data-r="${this.cell.r}"][data-c="${this.cell.c}"] > .fs-cell-flow`) : node.querySelector<HTMLElement>('.fs-flow');
+    return this.cell ? node.querySelector<HTMLElement>(`td[data-r="${this.cell.r}"][data-c="${this.cell.c}"] > .fd-cell-flow`) : node.querySelector<HTMLElement>('.fd-flow');
   }
 
   private cellOf(target: EventTarget | null, id: string): { r: number; c: number } | null {
@@ -880,7 +880,7 @@ export class Stage {
   }
 
   private growOps(slide: Slide, el: TableElement): Op[] {
-    return fitFrameOps(this.ed.doc.deck, slide, el, this.view?.nodeFor(el.id)?.querySelector<HTMLTableElement>(':scope > table.fs-table') ?? null);
+    return fitFrameOps(this.ed.doc.deck, slide, el, this.view?.nodeFor(el.id)?.querySelector<HTMLTableElement>(':scope > table.fd-table') ?? null);
   }
 
   private beginCell(id: string, r: number, c: number, caret: { x: number; y: number } | 'start' | 'end' | 'all'): void {
@@ -896,7 +896,7 @@ export class Stage {
       else if (this.editing) this.detachCell();
       if (!(this.ed.selection.length === 1 && this.ed.selection[0] === id)) this.ed.select([id]);
     }
-    const flow = this.view?.nodeFor(id)?.querySelector<HTMLElement>(`td[data-r="${r}"][data-c="${c}"] > .fs-cell-flow`);
+    const flow = this.view?.nodeFor(id)?.querySelector<HTMLElement>(`td[data-r="${r}"][data-c="${c}"] > .fd-cell-flow`);
     if (!flow) return;
     if (!same) {
       this.editing = id;
@@ -1019,7 +1019,7 @@ export class Stage {
       const r = document.createRange();
       if (dir === 'l') { r.setStart(flow, 0); r.setEnd(caret.startContainer, caret.startOffset); } else { r.setStart(caret.startContainer, caret.startOffset); r.setEnd(flow, flow.childNodes.length); }
       const frag = r.cloneContents();
-      for (const b of Array.from(frag.querySelectorAll('.fs-bu'))) b.remove();
+      for (const b of Array.from(frag.querySelectorAll('.fd-bu'))) b.remove();
       return !(frag.textContent ?? '') && frag.querySelectorAll('p').length <= 1 && (dir === 'r' || !frag.querySelector('br'));
     }
     let rect = caret.getBoundingClientRect();
@@ -1036,7 +1036,7 @@ export class Stage {
     const k = this.k;
     const W = f.w * k, H = f.h * k, gap = 7;
     const box = (cls: string, x: number, y: number, w: number, h: number): string => `<div class="${cls}" style="left:${this.ox + f.x * k + x}px;top:${this.oy + f.y * k + y}px;width:${w}px;height:${h}px;transform-origin:${W / 2 - x}px ${H / 2 - y}px;transform:rotate(${rot}deg)"></div>`;
-    const out = el.locked ? [] : [box('fs-table-grip', -gap, -gap, W + 2 * gap, gap), box('fs-table-grip', -gap, H, W + 2 * gap, gap), box('fs-table-grip', -gap, 0, gap, H), box('fs-table-grip', W, 0, gap, H)];
+    const out = el.locked ? [] : [box('fd-table-grip', -gap, -gap, W + 2 * gap, gap), box('fd-table-grip', -gap, H, W + 2 * gap, gap), box('fd-table-grip', -gap, 0, gap, H), box('fd-table-grip', W, 0, gap, H)];
     const c = this.cells;
     const editing = this.editing === el.id;
     if (!c || c.el !== el.id || !(c.active || editing)) return out;
@@ -1049,7 +1049,7 @@ export class Stage {
       x1 = Math.max(x1, td.offsetLeft + td.offsetWidth);
       y1 = Math.max(y1, td.offsetTop + td.offsetHeight);
     }
-    if (x1 > x0 && y1 > y0) out.push(box(`fs-cell-range${editing ? ' is-caret' : c.one ? ' is-one' : ''}`, x0 * k, y0 * k, (x1 - x0) * k, (y1 - y0) * k));
+    if (x1 > x0 && y1 > y0) out.push(box(`fd-cell-range${editing ? ' is-caret' : c.one ? ' is-one' : ''}`, x0 * k, y0 * k, (x1 - x0) * k, (y1 - y0) * k));
     return out;
   }
 

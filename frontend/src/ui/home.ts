@@ -60,40 +60,40 @@ export class Home {
   private readonly preview: TemplatePreviewDialog;
 
   constructor(private readonly hooks: HomeHooks) {
-    this.root = el(`<section class="fs-home" aria-label="Home" hidden>
-<nav class="fs-home-nav">
-<div class="fs-home-brand">${brandMark(26)}FormDeck <span>by NodeMode</span></div>
-<button class="fs-home-nav-item is-active" type="button" data-v="start">${icon('sparkle', 16)}<span>Start</span></button>
-<button class="fs-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fs-badge is-count fs-deck-count">0</span></button>
-<button class="fs-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fs-badge is-count fs-tpl-count">0</span></button>
-<div class="fs-home-nav-sep"></div>
-<div class="fs-home-nav-title">Agents</div>
-<button class="fs-home-nav-item" type="button" data-a="agents">${icon('agent', 16)}<span>Claude Code, Codex, Cursor</span></button>
-<div class="fs-home-nav-foot">
-<button class="fs-home-nav-item" type="button" data-a="local" title="Your decks stay on this computer">${icon('cloudOff', 16)}<span>Local only</span></button>
-<button class="fs-home-nav-item" type="button" data-a="prefs">${icon('settings', 16)}<span>Preferences</span></button>
+    this.root = el(`<section class="fd-home" aria-label="Home" hidden>
+<nav class="fd-home-nav">
+<div class="fd-home-brand">${brandMark(26)}FormDeck <span>by NodeMode</span></div>
+<button class="fd-home-nav-item is-active" type="button" data-v="start">${icon('sparkle', 16)}<span>Start</span></button>
+<button class="fd-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fd-badge is-count fd-deck-count">0</span></button>
+<button class="fd-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fd-badge is-count fd-tpl-count">0</span></button>
+<div class="fd-home-nav-sep"></div>
+<div class="fd-home-nav-title">Agents</div>
+<button class="fd-home-nav-item" type="button" data-a="agents">${icon('agent', 16)}<span>Claude Code, Codex, Cursor</span></button>
+<div class="fd-home-nav-foot">
+<button class="fd-home-nav-item" type="button" data-a="local" title="Your decks stay on this computer">${icon('cloudOff', 16)}<span>Local only</span></button>
+<button class="fd-home-nav-item" type="button" data-a="prefs">${icon('settings', 16)}<span>Preferences</span></button>
 </div></nav>
-<div class="fs-home-main">
+<div class="fd-home-main">
 <div data-page="start">
-<div class="fs-home-head"><div><h1 class="fs-home-title"></h1><p class="fs-home-sub">Turn notes, documents, pictures and data into a deck, or start from a template.</p></div><div class="fs-home-head-actions"><button class="fs-btn" type="button" data-a="open">${icon('load', 14)}Open file</button><button class="fs-btn" type="button" data-a="blank">${icon('slideAdd', 14)}Blank deck</button></div></div>
-<div class="fs-home-hero">
-<span class="fs-home-hero-icon">${icon('inbox', 26)}</span>
-<div class="fs-home-hero-text"><div class="fs-home-hero-title">Start from your material</div>
-<div class="fs-home-hero-sub">Drop meeting notes, a brief, a report, pictures or an old deck. FormDeck reads it, outlines a story and drafts the slides in your template for you to review. Your agent can take it from there.</div>
-<div class="fs-home-formats"><span class="fs-home-format">MD</span><span class="fs-home-format">PDF</span><span class="fs-home-format">DOCX</span><span class="fs-home-format">PPTX</span><span class="fs-home-format">TXT</span><span class="fs-home-format">CSV</span><span class="fs-home-format">XLSX</span><span class="fs-home-format">PNG</span><span class="fs-home-format">JPG</span><span class="fs-home-format">GIF</span></div></div>
-<div class="fs-home-hero-actions"><button class="fs-btn fs-btn-primary" type="button" data-a="choose">${icon('upload', 14)}Choose files</button><button class="fs-btn" type="button" data-a="paste">${icon('fileText', 14)}Paste text</button><button class="fs-btn fs-btn-ghost" type="button" data-a="agents">${icon('agent', 14)}Use your agent</button></div>
+<div class="fd-home-head"><div><h1 class="fd-home-title"></h1><p class="fd-home-sub">Turn notes, documents, pictures and data into a deck, or start from a template.</p></div><div class="fd-home-head-actions"><button class="fd-btn" type="button" data-a="open">${icon('load', 14)}Open file</button><button class="fd-btn" type="button" data-a="blank">${icon('slideAdd', 14)}Blank deck</button></div></div>
+<div class="fd-home-hero">
+<span class="fd-home-hero-icon">${icon('inbox', 26)}</span>
+<div class="fd-home-hero-text"><div class="fd-home-hero-title">Start from your material</div>
+<div class="fd-home-hero-sub">Drop meeting notes, a brief, a report, pictures or an old deck. FormDeck reads it, outlines a story and drafts the slides in your template for you to review. Your agent can take it from there.</div>
+<div class="fd-home-formats"><span class="fd-home-format">MD</span><span class="fd-home-format">PDF</span><span class="fd-home-format">DOCX</span><span class="fd-home-format">PPTX</span><span class="fd-home-format">TXT</span><span class="fd-home-format">CSV</span><span class="fd-home-format">XLSX</span><span class="fd-home-format">PNG</span><span class="fd-home-format">JPG</span><span class="fd-home-format">GIF</span></div></div>
+<div class="fd-home-hero-actions"><button class="fd-btn fd-btn-primary" type="button" data-a="choose">${icon('upload', 14)}Choose files</button><button class="fd-btn" type="button" data-a="paste">${icon('fileText', 14)}Paste text</button><button class="fd-btn fd-btn-ghost" type="button" data-a="agents">${icon('agent', 14)}Use your agent</button></div>
 </div>
-<section class="fs-home-section"><div class="fs-home-section-head"><h2 class="fs-home-section-title">Recent decks</h2><button class="fs-btn fs-btn-ghost fs-btn-sm" type="button" data-v="recent">See all</button></div><div class="fs-card-grid fs-recent-grid"><button class="fs-card is-skeleton" type="button" tabindex="-1" data-key="__skeleton" aria-hidden="true"><span class="fs-card-preview"></span><span class="fs-card-body"><span class="fs-card-name">&nbsp;</span><span class="fs-card-meta">&nbsp;</span></span></button><button class="fs-card is-empty" type="button" tabindex="-1" hidden><span class="fs-card-preview is-blank">${icon('slides', 28)}</span><span class="fs-card-body"><span class="fs-card-name">No decks yet</span><span class="fs-card-meta">Start from your material or a template</span></span></button></div></section>
-<section class="fs-home-section"><div class="fs-home-section-head"><h2 class="fs-home-section-title">Templates</h2><div class="fs-home-filters fs-cats"></div><label class="fs-search">${icon('search', 14)}<input type="search" placeholder="Search templates" class="fs-tpl-search"></label></div><div class="fs-card-grid fs-tpl-grid"></div></section>
+<section class="fd-home-section"><div class="fd-home-section-head"><h2 class="fd-home-section-title">Recent decks</h2><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-v="recent">See all</button></div><div class="fd-card-grid fd-recent-grid"><button class="fd-card is-skeleton" type="button" tabindex="-1" data-key="__skeleton" aria-hidden="true"><span class="fd-card-preview"></span><span class="fd-card-body"><span class="fd-card-name">&nbsp;</span><span class="fd-card-meta">&nbsp;</span></span></button><button class="fd-card is-empty" type="button" tabindex="-1" hidden><span class="fd-card-preview is-blank">${icon('slides', 28)}</span><span class="fd-card-body"><span class="fd-card-name">No decks yet</span><span class="fd-card-meta">Start from your material or a template</span></span></button></div></section>
+<section class="fd-home-section"><div class="fd-home-section-head"><h2 class="fd-home-section-title">Templates</h2><div class="fd-home-filters fd-cats"></div><label class="fd-search">${icon('search', 14)}<input type="search" placeholder="Search templates" class="fd-tpl-search"></label></div><div class="fd-card-grid fd-tpl-grid"></div></section>
 </div>
-<div data-page="recent" hidden><div class="fs-home-head"><div><h1 class="fs-home-title">Recent decks</h1><p class="fs-home-sub">Everything in your library, newest first. Decks save as you work.</p></div></div><div class="fs-card-grid fs-recent-full"></div></div>
-<div data-page="templates" hidden><div class="fs-home-head"><div><h1 class="fs-home-title">Templates</h1><p class="fs-home-sub">67 original templates, plus any PowerPoint or Google Slides template you import. Every one opens and exports as .pptx.</p></div><div class="fs-home-head-actions"><button class="fs-btn" type="button" data-a="import-template">${icon('upload', 14)}Import a template</button></div></div>
-<div class="fs-home-section-head"><div class="fs-home-filters fs-cats"></div><label class="fs-search">${icon('search', 14)}<input type="search" placeholder="Search templates" class="fs-tpl-search"></label></div><div class="fs-card-grid fs-tpl-full"></div></div>
+<div data-page="recent" hidden><div class="fd-home-head"><div><h1 class="fd-home-title">Recent decks</h1><p class="fd-home-sub">Everything in your library, newest first. Decks save as you work.</p></div></div><div class="fd-card-grid fd-recent-full"></div></div>
+<div data-page="templates" hidden><div class="fd-home-head"><div><h1 class="fd-home-title">Templates</h1><p class="fd-home-sub">67 original templates, plus any PowerPoint or Google Slides template you import. Every one opens and exports as .pptx.</p></div><div class="fd-home-head-actions"><button class="fd-btn" type="button" data-a="import-template">${icon('upload', 14)}Import a template</button></div></div>
+<div class="fd-home-section-head"><div class="fd-home-filters fd-cats"></div><label class="fd-search">${icon('search', 14)}<input type="search" placeholder="Search templates" class="fd-tpl-search"></label></div><div class="fd-card-grid fd-tpl-full"></div></div>
 </div></section>`);
-    this.tplGrid = this.root.querySelector('.fs-tpl-grid') as HTMLElement;
-    this.tplGridFull = this.root.querySelector('.fs-tpl-full') as HTMLElement;
-    this.recentGrid = this.root.querySelector('.fs-recent-grid') as HTMLElement;
-    this.recentGridFull = this.root.querySelector('.fs-recent-full') as HTMLElement;
+    this.tplGrid = this.root.querySelector('.fd-tpl-grid') as HTMLElement;
+    this.tplGridFull = this.root.querySelector('.fd-tpl-full') as HTMLElement;
+    this.recentGrid = this.root.querySelector('.fd-recent-grid') as HTMLElement;
+    this.recentGridFull = this.root.querySelector('.fd-recent-full') as HTMLElement;
     this.preview = new TemplatePreviewDialog(this.hooks);
     this.io = new IntersectionObserver((entries) => {
       for (const en of entries) {
@@ -101,7 +101,7 @@ export class Home {
         const host = en.target as HTMLElement;
         this.io.unobserve(host);
         const id = host.dataset.tpl;
-        if (id) void templatePreview(id).then((deck) => ensureFonts(fontsOfDeck(deck)).then(() => { if (!host.querySelector('.fs-slide')) mountDeckPreview(host, deck, 0, host.clientWidth); })).catch(() => undefined);
+        if (id) void templatePreview(id).then((deck) => ensureFonts(fontsOfDeck(deck)).then(() => { if (!host.querySelector('.fd-slide')) mountDeckPreview(host, deck, 0, host.clientWidth); })).catch(() => undefined);
       }
     }, { rootMargin: '200px' });
     document.getElementById('app')?.appendChild(this.root);
@@ -123,17 +123,17 @@ export class Home {
       else if (a === 'agents') this.hooks.agents();
       else if (a === 'local') toast('Your decks, templates and pictures stay in your FormDeck folder on this computer.');
       else if (a === 'import-template') this.importTemplate();
-      const card = t.closest('.fs-card') as HTMLElement | null;
+      const card = t.closest('.fd-card') as HTMLElement | null;
       if (card?.dataset.deck) this.hooks.openDeck(card.dataset.deck);
       if (card?.dataset.template) {
         const tpl = this.templates.find((x) => x.id === card.dataset.template);
         if (tpl) this.preview.show(tpl);
       }
-      const chip = t.closest('.fs-chip') as HTMLElement | null;
+      const chip = t.closest('.fd-chip') as HTMLElement | null;
       if (chip?.dataset.cat) { this.category = chip.dataset.cat; this.renderTemplates(); }
     });
-    for (const input of Array.from(this.root.querySelectorAll<HTMLInputElement>('.fs-tpl-search'))) input.addEventListener('input', () => { this.query = input.value.trim().toLowerCase(); this.renderTemplates(); });
-    const hero = this.root.querySelector('.fs-home-hero') as HTMLElement;
+    for (const input of Array.from(this.root.querySelectorAll<HTMLInputElement>('.fd-tpl-search'))) input.addEventListener('input', () => { this.query = input.value.trim().toLowerCase(); this.renderTemplates(); });
+    const hero = this.root.querySelector('.fd-home-hero') as HTMLElement;
     hero.addEventListener('dragover', (e) => { e.preventDefault(); setClass(hero, 'is-drag-over', true); });
     hero.addEventListener('dragleave', () => setClass(hero, 'is-drag-over', false));
     hero.addEventListener('drop', (e) => {
@@ -155,7 +155,7 @@ export class Home {
 
   private async pasteText(): Promise<void> {
     const d = new Dialog('Paste your material', 620);
-    const ta = el<HTMLTextAreaElement>('<textarea class="fs-input" rows="14" placeholder="Paste meeting notes, a brief, an outline or a slide script (markdown with --- between slides)"></textarea>');
+    const ta = el<HTMLTextAreaElement>('<textarea class="fd-input" rows="14" placeholder="Paste meeting notes, a brief, an outline or a slide script (markdown with --- between slides)"></textarea>');
     d.body.appendChild(ta);
     d.button('Cancel', 'ghost', () => d.close());
     d.button('Continue', 'primary', () => {
@@ -191,10 +191,10 @@ export class Home {
     this.templates = t.templates;
     this.categories = ['All', ...t.categories];
     this.decks = l.decks;
-    setText(this.root.querySelector('.fs-tpl-count'), String(this.templates.length));
-    setText(this.root.querySelector('.fs-deck-count'), String(this.decks.length));
+    setText(this.root.querySelector('.fd-tpl-count'), String(this.templates.length));
+    setText(this.root.querySelector('.fd-deck-count'), String(this.decks.length));
     const h = new Date().getHours();
-    setText(this.root.querySelector('[data-page="start"] .fs-home-title'), h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening');
+    setText(this.root.querySelector('[data-page="start"] .fd-home-title'), h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening');
     this.renderTemplates();
     this.renderDecks();
   }
@@ -202,7 +202,7 @@ export class Home {
   show(v: View = this.view): void {
     this.view = v;
     for (const page of Array.from(this.root.querySelectorAll<HTMLElement>('[data-page]'))) setHidden(page, page.dataset.page !== v);
-    for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('.fs-home-nav-item[data-v]'))) setClass(b, 'is-active', b.dataset.v === v);
+    for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('.fd-home-nav-item[data-v]'))) setClass(b, 'is-active', b.dataset.v === v);
   }
 
   open(): void {
@@ -222,19 +222,19 @@ export class Home {
   private renderTemplates(): void {
     const q = this.query;
     const list = this.templates.filter((t) => (this.category === 'All' || t.category === this.category) && (!q || `${t.name} ${t.category} ${t.tags.join(' ')} ${t.description}`.toLowerCase().includes(q)));
-    for (const host of Array.from(this.root.querySelectorAll<HTMLElement>('.fs-cats'))) {
-      const chip = (n: HTMLElement, c: string): void => { setClass(n, 'is-active', c === this.category); setText(n.querySelector('.fs-chip-count'), !this.templates.length ? '' : c === 'All' ? String(this.templates.length) : String(this.templates.filter((t) => t.category === c).length)); };
+    for (const host of Array.from(this.root.querySelectorAll<HTMLElement>('.fd-cats'))) {
+      const chip = (n: HTMLElement, c: string): void => { setClass(n, 'is-active', c === this.category); setText(n.querySelector('.fd-chip-count'), !this.templates.length ? '' : c === 'All' ? String(this.templates.length) : String(this.templates.filter((t) => t.category === c).length)); };
       patchList(host, this.categories, {
         key: (c) => c,
-        create: (c) => { const n = el(`<button class="fs-chip" type="button" data-cat="${escapeHtml(c)}">${escapeHtml(c)}<span class="fs-chip-count"></span></button>`); chip(n, c); return n; },
+        create: (c) => { const n = el(`<button class="fd-chip" type="button" data-cat="${escapeHtml(c)}">${escapeHtml(c)}<span class="fd-chip-count"></span></button>`); chip(n, c); return n; },
         update: chip,
       });
     }
     const card = (t: TemplateSummary): HTMLElement => {
-      const n = el(`<button class="fs-card" type="button" data-template="${escapeHtml(t.id)}"><span class="fs-card-preview" data-tpl="${escapeHtml(t.id)}"></span><span class="fs-card-body"><span class="fs-card-name"></span><span class="fs-card-meta"></span></span></button>`);
-      setText(n.querySelector('.fs-card-name'), t.name);
-      setText(n.querySelector('.fs-card-meta'), `${t.category} · ${t.fonts.major}${t.fonts.minor !== t.fonts.major ? ` + ${t.fonts.minor}` : ''}`);
-      const prev = n.querySelector('.fs-card-preview') as HTMLElement;
+      const n = el(`<button class="fd-card" type="button" data-template="${escapeHtml(t.id)}"><span class="fd-card-preview" data-tpl="${escapeHtml(t.id)}"></span><span class="fd-card-body"><span class="fd-card-name"></span><span class="fd-card-meta"></span></span></button>`);
+      setText(n.querySelector('.fd-card-name'), t.name);
+      setText(n.querySelector('.fd-card-meta'), `${t.category} · ${t.fonts.major}${t.fonts.minor !== t.fonts.major ? ` + ${t.fonts.minor}` : ''}`);
+      const prev = n.querySelector('.fd-card-preview') as HTMLElement;
       prev.style.background = t.colors.dk2 ?? '';
       this.io.observe(prev);
       return n;
@@ -245,25 +245,25 @@ export class Home {
 
   private renderDecks(): void {
     const card = (d: DeckSummary): HTMLElement => {
-      const n = el(`<button class="fs-card" type="button" data-deck="${d.id}"><span class="fs-card-preview"><img alt="" decoding="async" draggable="false"></span><span class="fs-card-body"><span class="fs-card-name"></span><span class="fs-card-meta"></span></span></button>`);
+      const n = el(`<button class="fd-card" type="button" data-deck="${d.id}"><span class="fd-card-preview"><img alt="" decoding="async" draggable="false"></span><span class="fd-card-body"><span class="fd-card-name"></span><span class="fd-card-meta"></span></span></button>`);
       const img = n.querySelector('img') as HTMLImageElement;
-      const blank = (): void => { img.remove(); (n.querySelector('.fs-card-preview') as HTMLElement).classList.add('is-blank'); (n.querySelector('.fs-card-preview') as HTMLElement).innerHTML = icon('slides', 28); };
+      const blank = (): void => { img.remove(); (n.querySelector('.fd-card-preview') as HTMLElement).classList.add('is-blank'); (n.querySelector('.fd-card-preview') as HTMLElement).innerHTML = icon('slides', 28); };
       if (d.thumb === false) { blank(); return n; }
       img.onerror = blank;
       img.src = `/api/decks/${d.id}/thumb?v=${encodeURIComponent(d.modified ?? '')}`;
       return n;
     };
     const update = (n: HTMLElement, d: DeckSummary): void => {
-      setText(n.querySelector('.fs-card-name'), d.title);
+      setText(n.querySelector('.fd-card-name'), d.title);
       const r = d.review ?? {};
       const total = d.slides;
       const status = total && r.approved === total ? 'Approved' : r.changes ? 'Changes' : r.review ? 'In review' : '';
-      setText(n.querySelector('.fs-card-meta'), `${d.slides} slide${d.slides === 1 ? '' : 's'} · ${ago(d.modified)}${status ? ` · ${status}` : ''}`);
+      setText(n.querySelector('.fd-card-meta'), `${d.slides} slide${d.slides === 1 ? '' : 's'} · ${ago(d.modified)}${status ? ` · ${status}` : ''}`);
     };
     const make = (d: DeckSummary): HTMLElement => { const n = card(d); update(n, d); return n; };
     patchList(this.recentGrid, this.decks.slice(0, 5), { key: (d) => d.id, create: make, update });
     patchList(this.recentGridFull, this.decks, { key: (d) => d.id, create: make, update });
-    const none = this.recentGrid.querySelector<HTMLElement>('.fs-card.is-empty');
+    const none = this.recentGrid.querySelector<HTMLElement>('.fd-card.is-empty');
     if (none) setHidden(none, this.decks.length > 0);
   }
 }
@@ -284,13 +284,13 @@ class TemplatePreviewDialog extends Dialog {
   private readonly title: HTMLInputElement;
   constructor(private readonly hooks: HomeHooks) {
     super('Template', 980);
-    this.note = el('<p class="fs-note"></p>');
-    this.title = el<HTMLInputElement>('<input class="fs-input" type="text" placeholder="Deck title" spellcheck="false">');
-    this.grid = el('<div class="fs-tpl-preview-grid"></div>');
+    this.note = el('<p class="fd-note"></p>');
+    this.title = el<HTMLInputElement>('<input class="fd-input" type="text" placeholder="Deck title" spellcheck="false">');
+    this.grid = el('<div class="fd-tpl-preview-grid"></div>');
     this.body.append(this.note, this.grid);
     this.field('Title', this.title);
     const dl = this.button('Download .pptx', 'ghost', () => { if (this.tpl) window.open(api.templateDownloadUrl(this.tpl.id, 'pptx'), '_blank'); });
-    dl.classList.add('fs-btn-apart');
+    dl.classList.add('fd-btn-apart');
     this.button('Download .potx', 'ghost', () => { if (this.tpl) window.open(api.templateDownloadUrl(this.tpl.id, 'potx'), '_blank'); });
     this.button('Use template', 'primary', () => { if (this.tpl) { const t = this.tpl; this.close(); void this.hooks.createDeck(t.id, this.title.value.trim() || undefined); } });
   }
@@ -306,7 +306,7 @@ class TemplatePreviewDialog extends Dialog {
       if (this.tpl !== t) return;
       void ensureFonts(fontsOfDeck(deck));
       deck.slides.forEach((_, i) => {
-        const cell = el('<div class="fs-tpl-preview-cell"></div>');
+        const cell = el('<div class="fd-tpl-preview-cell"></div>');
         this.grid.appendChild(cell);
         mountDeckPreview(cell, deck, i, 220);
       });

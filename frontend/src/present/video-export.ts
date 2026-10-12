@@ -91,13 +91,13 @@ export function plan(deck: Deck, o: Pick<MediaExportOpts, 'secs' | 'timings' | '
 }
 
 function nodeOf(view: SlideView, id: string): HTMLElement | null {
-  return view.nodeFor(id) ?? view.content.querySelector<HTMLElement>(`.fs-el[data-id="${CSS.escape(id)}"]`);
+  return view.nodeFor(id) ?? view.content.querySelector<HTMLElement>(`.fd-el[data-id="${CSS.escape(id)}"]`);
 }
 
 function unitNode(view: SlideView, u: Unit): HTMLElement | null {
   const node = nodeOf(view, u.id);
   if (u.para < 0 || !node) return node;
-  return Array.from(node.querySelectorAll<HTMLElement>('.fs-flow > p.fs-p')).filter((p) => (p.textContent ?? '').trim() !== '')[u.para] ?? null;
+  return Array.from(node.querySelectorAll<HTMLElement>('.fd-flow > p.fd-p')).filter((p) => (p.textContent ?? '').trim() !== '')[u.para] ?? null;
 }
 
 function prepare(view: SlideView, deck: Deck, steps: Step[], st: State): void {

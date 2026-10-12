@@ -51,14 +51,14 @@ class SetupShowDialog extends Dialog {
 
   constructor() {
     super('Set Up Show', 520);
-    const box = el(`<div class="fs-dlg-stack fs-ssd">
-<div class="fs-field"><span>Show type</span><div class="fs-seg is-quiet" data-seg="type"><button type="button" data-v="speaker">Presented by a speaker</button><button type="button" data-v="kiosk">Browsed at a kiosk</button></div></div>
-<div class="fs-field is-top"><span>Show options</span><div class="fs-ssd-checks"><label class="fs-check"><input type="checkbox" data-f="loop"><span>Loop continuously until Esc</span></label><label class="fs-check"><input type="checkbox" data-f="narration"><span>Show without narration</span></label><label class="fs-check"><input type="checkbox" data-f="animation"><span>Show without animation</span></label></div></div>
-<div class="fs-field"><span>Pen colour</span><div class="fs-ssd-pen"><button class="fs-btn fs-btn-sm fs-ssd-penbtn" type="button" aria-label="Pen colour"><span class="fs-ssd-swatch"></span><span>Choose</span></button></div></div>
-<div class="fs-field"><span>Show slides</span><div class="fs-seg is-quiet" data-seg="slides"><button type="button" data-v="all">All</button><button type="button" data-v="range">From</button><button type="button" data-v="custom">Custom show</button></div></div>
-<div class="fs-field"><span></span><div class="fs-ssd-slot"><div class="fs-ssd-inline fs-ssd-range"><label>From <input class="fs-input" type="number" min="1" step="1" data-f="from" aria-label="From slide"></label><label>to <input class="fs-input" type="number" min="1" step="1" data-f="to" aria-label="To slide"></label><span class="fs-note fs-ssd-count"></span></div><span class="fs-ssd-custom"><select class="fs-input" aria-label="Custom show"></select></span></div></div>
-<div class="fs-field"><span>Advance slides</span><div class="fs-seg is-quiet" data-seg="advance"><button type="button" data-v="manual">Manually</button><button type="button" data-v="timings">Using timings, if present</button></div></div>
-<p class="fs-note fs-ssd-note"></p>
+    const box = el(`<div class="fd-dlg-stack fd-ssd">
+<div class="fd-field"><span>Show type</span><div class="fd-seg is-quiet" data-seg="type"><button type="button" data-v="speaker">Presented by a speaker</button><button type="button" data-v="kiosk">Browsed at a kiosk</button></div></div>
+<div class="fd-field is-top"><span>Show options</span><div class="fd-ssd-checks"><label class="fd-check"><input type="checkbox" data-f="loop"><span>Loop continuously until Esc</span></label><label class="fd-check"><input type="checkbox" data-f="narration"><span>Show without narration</span></label><label class="fd-check"><input type="checkbox" data-f="animation"><span>Show without animation</span></label></div></div>
+<div class="fd-field"><span>Pen colour</span><div class="fd-ssd-pen"><button class="fd-btn fd-btn-sm fd-ssd-penbtn" type="button" aria-label="Pen colour"><span class="fd-ssd-swatch"></span><span>Choose</span></button></div></div>
+<div class="fd-field"><span>Show slides</span><div class="fd-seg is-quiet" data-seg="slides"><button type="button" data-v="all">All</button><button type="button" data-v="range">From</button><button type="button" data-v="custom">Custom show</button></div></div>
+<div class="fd-field"><span></span><div class="fd-ssd-slot"><div class="fd-ssd-inline fd-ssd-range"><label>From <input class="fd-input" type="number" min="1" step="1" data-f="from" aria-label="From slide"></label><label>to <input class="fd-input" type="number" min="1" step="1" data-f="to" aria-label="To slide"></label><span class="fd-note fd-ssd-count"></span></div><span class="fd-ssd-custom"><select class="fd-input" aria-label="Custom show"></select></span></div></div>
+<div class="fd-field"><span>Advance slides</span><div class="fd-seg is-quiet" data-seg="advance"><button type="button" data-v="manual">Manually</button><button type="button" data-v="timings">Using timings, if present</button></div></div>
+<p class="fd-note fd-ssd-note"></p>
 </div>`);
     this.body.appendChild(box);
     this.loop = q<HTMLInputElement>(box, '[data-f="loop"]');
@@ -66,11 +66,11 @@ class SetupShowDialog extends Dialog {
     this.noAnimation = q<HTMLInputElement>(box, '[data-f="animation"]');
     this.from = q<HTMLInputElement>(box, '[data-f="from"]');
     this.to = q<HTMLInputElement>(box, '[data-f="to"]');
-    this.custom = q<HTMLSelectElement>(box, '.fs-ssd-custom select');
-    this.rangeRow = q(box, '.fs-ssd-range');
-    this.customRow = q(box, '.fs-ssd-custom');
-    this.penBtn = q<HTMLButtonElement>(box, '.fs-ssd-penbtn');
-    this.note = q(box, '.fs-ssd-note');
+    this.custom = q<HTMLSelectElement>(box, '.fd-ssd-custom select');
+    this.rangeRow = q(box, '.fd-ssd-range');
+    this.customRow = q(box, '.fd-ssd-custom');
+    this.penBtn = q<HTMLButtonElement>(box, '.fd-ssd-penbtn');
+    this.note = q(box, '.fd-ssd-note');
     this.button('Cancel', 'ghost', () => this.close());
     this.ok = this.button('OK', 'primary', () => this.save());
     const seg = (name: string, fn: (v: string) => void): void => {
@@ -146,8 +146,8 @@ class SetupShowDialog extends Dialog {
     setDisabled(this.from, this.slides !== 'range');
     setDisabled(this.to, this.slides !== 'range');
     const r = this.range();
-    setText(q(this.rangeRow, '.fs-ssd-count'), this.slides !== 'range' ? '' : r ? `${r.to - r.from + 1} of ${this.ed?.doc.deck.slides.length ?? 0} slides` : 'Use slide numbers in this deck');
-    setStyleVar(q(this.penBtn, '.fs-ssd-swatch'), '--swatch', this.pen);
+    setText(q(this.rangeRow, '.fd-ssd-count'), this.slides !== 'range' ? '' : r ? `${r.to - r.from + 1} of ${this.ed?.doc.deck.slides.length ?? 0} slides` : 'Use slide numbers in this deck');
+    setStyleVar(q(this.penBtn, '.fd-ssd-swatch'), '--swatch', this.pen);
     setText(this.note, this.kiosk ? 'A kiosk show loops, and only timings, hyperlinks and media move it on. Esc ends it.' : 'Present > From Beginning uses these settings. From Current Slide plays the deck in order from there.');
     setDisabled(this.ok, this.slides === 'range' && !r);
   }
@@ -190,26 +190,26 @@ class CustomShowsDialog extends Dialog {
 
   constructor() {
     super('Custom Shows', 760);
-    q(this.scrim, '.fs-dialog').classList.add('fs-csd-dialog');
-    const box = el(`<div class="fs-csd">
-<div class="fs-csd-side"><div class="fs-csd-shows" role="listbox" aria-label="Custom shows"></div><div class="fs-csd-actions"><button class="fs-btn fs-btn-sm" type="button" data-a="new">${icon('plus', 14)}<span>New</span></button><button class="fs-btn fs-btn-sm" type="button" data-a="copy">${icon('duplicate', 14)}<span>Copy</span></button><button class="fs-btn fs-btn-sm" type="button" data-a="delete">${icon('delete', 14)}<span>Delete</span></button></div></div>
-<div class="fs-csd-main"><p class="fs-note fs-csd-empty">A custom show plays a chosen set of slides in your order, for example a short version of this deck. Hidden slides play when you add them.</p>
-<div class="fs-csd-edit"><label class="fs-field"><span>Name</span><input class="fs-input fs-csd-name" type="text" spellcheck="false" maxlength="120" aria-label="Custom show name"></label>
-<div class="fs-csd-cols"><div class="fs-csd-col"><div class="fs-csd-head">Slides in the deck</div><div class="fs-csd-deck" role="list"></div></div><div class="fs-csd-col"><div class="fs-csd-head">In this show <span class="fs-csd-count"></span></div><div class="fs-csd-picked" role="list"></div></div></div></div></div>
+    q(this.scrim, '.fd-dialog').classList.add('fd-csd-dialog');
+    const box = el(`<div class="fd-csd">
+<div class="fd-csd-side"><div class="fd-csd-shows" role="listbox" aria-label="Custom shows"></div><div class="fd-csd-actions"><button class="fd-btn fd-btn-sm" type="button" data-a="new">${icon('plus', 14)}<span>New</span></button><button class="fd-btn fd-btn-sm" type="button" data-a="copy">${icon('duplicate', 14)}<span>Copy</span></button><button class="fd-btn fd-btn-sm" type="button" data-a="delete">${icon('delete', 14)}<span>Delete</span></button></div></div>
+<div class="fd-csd-main"><p class="fd-note fd-csd-empty">A custom show plays a chosen set of slides in your order, for example a short version of this deck. Hidden slides play when you add them.</p>
+<div class="fd-csd-edit"><label class="fd-field"><span>Name</span><input class="fd-input fd-csd-name" type="text" spellcheck="false" maxlength="120" aria-label="Custom show name"></label>
+<div class="fd-csd-cols"><div class="fd-csd-col"><div class="fd-csd-head">Slides in the deck</div><div class="fd-csd-deck" role="list"></div></div><div class="fd-csd-col"><div class="fd-csd-head">In this show <span class="fd-csd-count"></span></div><div class="fd-csd-picked" role="list"></div></div></div></div></div>
 </div>`);
     this.body.appendChild(box);
-    this.list = q(box, '.fs-csd-shows');
-    this.empty = q(box, '.fs-csd-empty');
-    this.editor = q(box, '.fs-csd-edit');
-    this.name = q<HTMLInputElement>(box, '.fs-csd-name');
-    this.deckList = q(box, '.fs-csd-deck');
-    this.showList = q(box, '.fs-csd-picked');
-    this.count = q(box, '.fs-csd-count');
+    this.list = q(box, '.fd-csd-shows');
+    this.empty = q(box, '.fd-csd-empty');
+    this.editor = q(box, '.fd-csd-edit');
+    this.name = q<HTMLInputElement>(box, '.fd-csd-name');
+    this.deckList = q(box, '.fd-csd-deck');
+    this.showList = q(box, '.fd-csd-picked');
+    this.count = q(box, '.fd-csd-count');
     this.copyBtn = q<HTMLButtonElement>(box, '[data-a="copy"]');
     this.delBtn = q<HTMLButtonElement>(box, '[data-a="delete"]');
     this.button('Close', 'ghost', () => this.close());
     this.play = this.button('Show', 'primary', () => { const id = this.sel; const run = this.present; if (!id || !run) return; this.close(); run(id); });
-    q(box, '.fs-csd-actions').addEventListener('click', (e) => {
+    q(box, '.fd-csd-actions').addEventListener('click', (e) => {
       const a = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-a]')?.dataset.a;
       if (a === 'new') this.create();
       else if (a === 'copy') this.copy();
@@ -324,14 +324,14 @@ class CustomShowsDialog extends Dialog {
     const cur = shows.find((c) => c.id === this.sel);
     const showRow = (node: HTMLElement, c: CustomShow): void => {
       node.dataset.id = c.id;
-      setText(q(node, '.fs-csd-show-name'), c.name);
-      setText(q(node, '.fs-csd-show-n'), String(c.slides.filter((id) => ed.doc.slide(id)).length));
+      setText(q(node, '.fd-csd-show-name'), c.name);
+      setText(q(node, '.fd-csd-show-n'), String(c.slides.filter((id) => ed.doc.slide(id)).length));
       setClass(node, 'is-on', c.id === this.sel);
       node.setAttribute('aria-selected', String(c.id === this.sel));
     };
     patchList(this.list, shows, {
       key: (c) => c.id,
-      create: (c) => { const n = el('<button class="fs-csd-show" type="button" role="option"><span class="fs-csd-show-name"></span><span class="fs-csd-show-n"></span></button>'); showRow(n, c); return n; },
+      create: (c) => { const n = el('<button class="fd-csd-show" type="button" role="option"><span class="fd-csd-show-name"></span><span class="fd-csd-show-n"></span></button>'); showRow(n, c); return n; },
       update: showRow,
     });
     setHidden(this.empty, !!cur);
@@ -343,32 +343,32 @@ class CustomShowsDialog extends Dialog {
     setValue(this.name, cur.name);
     const deckRow = (node: HTMLElement, s: Slide): void => {
       node.dataset.slide = s.id;
-      setText(q(node, '.fs-csd-label'), `${slideLabel(ed, s.id)}${s.hidden ? ' (hidden)' : ''}`);
+      setText(q(node, '.fd-csd-label'), `${slideLabel(ed, s.id)}${s.hidden ? ' (hidden)' : ''}`);
       node.title = 'Add to this show';
       setClass(node, 'is-in', cur.slides.includes(s.id));
     };
     patchList(this.deckList, ed.doc.deck.slides, {
       key: (s) => s.id,
-      create: (s) => { const n = el(`<button class="fs-csd-row" type="button" role="listitem"><span class="fs-csd-label"></span><span class="fs-csd-add" aria-hidden="true">${icon('plus', 14)}</span></button>`); deckRow(n, s); return n; },
+      create: (s) => { const n = el(`<button class="fd-csd-row" type="button" role="listitem"><span class="fd-csd-label"></span><span class="fd-csd-add" aria-hidden="true">${icon('plus', 14)}</span></button>`); deckRow(n, s); return n; },
       update: deckRow,
     });
     const seen = new Map<string, number>();
     const rows = cur.slides.map((id, i) => { const k = seen.get(id) ?? 0; seen.set(id, k + 1); return { id, i, key: `${id}#${k}` }; });
     const pickRow = (node: HTMLElement, r: { id: string; i: number }): void => {
       node.dataset.i = String(r.i);
-      setText(q(node, '.fs-csd-label'), `${r.i + 1}. ${slideLabel(ed, r.id).replace(/^\d+\.\s*/, '')}`);
+      setText(q(node, '.fd-csd-label'), `${r.i + 1}. ${slideLabel(ed, r.id).replace(/^\d+\.\s*/, '')}`);
       setClass(node, 'is-missing', !ed.doc.slide(r.id));
       setDisabled(q<HTMLButtonElement>(node, '[data-m="up"]'), r.i === 0);
       setDisabled(q<HTMLButtonElement>(node, '[data-m="down"]'), r.i === rows.length - 1);
     };
     patchList(this.showList, rows, {
       key: (r) => r.key,
-      create: (r) => { const n = el(`<div class="fs-csd-row is-picked" role="listitem"><span class="fs-csd-label"></span><span class="fs-csd-tools"><button class="fs-icon-btn is-sm" type="button" data-m="up" title="Move up" aria-label="Move up">${icon('chevronUp', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-m="down" title="Move down" aria-label="Move down">${icon('chevronDown', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-m="remove" title="Remove from this show" aria-label="Remove from this show">${icon('close', 14)}</button></span></div>`); pickRow(n, r); return n; },
+      create: (r) => { const n = el(`<div class="fd-csd-row is-picked" role="listitem"><span class="fd-csd-label"></span><span class="fd-csd-tools"><button class="fd-icon-btn is-sm" type="button" data-m="up" title="Move up" aria-label="Move up">${icon('chevronUp', 14)}</button><button class="fd-icon-btn is-sm" type="button" data-m="down" title="Move down" aria-label="Move down">${icon('chevronDown', 14)}</button><button class="fd-icon-btn is-sm" type="button" data-m="remove" title="Remove from this show" aria-label="Remove from this show">${icon('close', 14)}</button></span></div>`); pickRow(n, r); return n; },
       update: pickRow,
     });
     setText(this.count, `${cur.slides.length} slide${cur.slides.length === 1 ? '' : 's'}`);
-    if (!cur.slides.length && !this.showList.querySelector('.fs-csd-hint')) this.showList.appendChild(el('<p class="fs-note fs-csd-hint">Click slides on the left to add them.</p>'));
-    else if (cur.slides.length) this.showList.querySelector('.fs-csd-hint')?.remove();
+    if (!cur.slides.length && !this.showList.querySelector('.fd-csd-hint')) this.showList.appendChild(el('<p class="fd-note fd-csd-hint">Click slides on the left to add them.</p>'));
+    else if (cur.slides.length) this.showList.querySelector('.fd-csd-hint')?.remove();
   }
 }
 

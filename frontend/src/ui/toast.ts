@@ -5,7 +5,7 @@ const timers = new WeakMap<Element, number>();
 export function toast(text: string, kind: 'info' | 'error' = 'info'): void {
   const root = document.getElementById('toast-root');
   if (!root) return;
-  const ms = kind === 'error' ? 6000 : 3600, cls = `fs-toast${kind === 'error' ? ' is-error' : ''}`;
+  const ms = kind === 'error' ? 6000 : 3600, cls = `fd-toast${kind === 'error' ? ' is-error' : ''}`;
   const same = Array.from(root.children).find((n) => n.textContent === text && n.className === cls);
   if (same) {
     window.clearTimeout(timers.get(same));

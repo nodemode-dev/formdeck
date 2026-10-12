@@ -26,8 +26,8 @@ function unitsBefore(p: HTMLElement, node: Node, offset: number): number {
       return;
     }
     if (!(x instanceof HTMLElement)) return;
-    if (x.classList.contains('fs-bu')) return;
-    if (x.classList.contains('fs-math')) { if (x === node || x.contains(node)) { done = true; return; } n += 1; return; }
+    if (x.classList.contains('fd-bu')) return;
+    if (x.classList.contains('fd-math')) { if (x === node || x.contains(node)) { done = true; return; } n += 1; return; }
     if (x.tagName === 'BR') { if (x.nextSibling || x.parentElement?.nextSibling) n += 1; return; }
     if (x === node) { for (let i = 0; i < offset && i < x.childNodes.length; i++) visit(x.childNodes[i]); done = true; return; }
     for (const c of Array.from(x.childNodes)) visit(c);
@@ -64,8 +64,8 @@ function mathIndex(para: Para, runIndex: number): number {
 }
 
 function placeCaretAfter(ed: Editor, id: string, pi: number, k: number): void {
-  const p = ed.stage.view?.nodeFor(id)?.querySelectorAll<HTMLElement>('.fs-flow > p.fs-p')[pi];
-  const span = p?.querySelectorAll<HTMLElement>('.fs-math')[k];
+  const p = ed.stage.view?.nodeFor(id)?.querySelectorAll<HTMLElement>('.fd-flow > p.fd-p')[pi];
+  const span = p?.querySelectorAll<HTMLElement>('.fd-math')[k];
   if (!p || !span) return;
   const r = document.createRange();
   r.setStartAfter(span);
@@ -76,13 +76,13 @@ function placeCaretAfter(ed: Editor, id: string, pi: number, k: number): void {
 }
 
 async function insertInline(ed: Editor, id: string): Promise<void> {
-  const flow = ed.stage.view?.nodeFor(id)?.querySelector<HTMLElement>('.fs-flow');
+  const flow = ed.stage.view?.nodeFor(id)?.querySelector<HTMLElement>('.fd-flow');
   const sel = window.getSelection();
   if (!flow || !sel || !sel.anchorNode || !flow.contains(sel.anchorNode)) return;
   const anchor = sel.anchorNode, offset = sel.anchorOffset;
-  const pEl = (anchor instanceof HTMLElement ? anchor : anchor.parentElement)?.closest<HTMLElement>('p.fs-p');
+  const pEl = (anchor instanceof HTMLElement ? anchor : anchor.parentElement)?.closest<HTMLElement>('p.fd-p');
   if (!pEl) return;
-  const pi = Array.from(flow.querySelectorAll(':scope > p.fs-p')).indexOf(pEl);
+  const pi = Array.from(flow.querySelectorAll(':scope > p.fd-p')).indexOf(pEl);
   const units = unitsBefore(pEl, anchor, offset);
   ed.stage.commit();
   const fn = await ask();
@@ -116,13 +116,13 @@ async function insertBox(ed: Editor): Promise<void> {
 }
 
 export async function editEquation(ed: Editor, span: HTMLElement): Promise<void> {
-  const node = span.closest<HTMLElement>('.fs-el[data-key]');
-  const flow = span.closest<HTMLElement>('.fs-flow');
-  const pEl = span.closest<HTMLElement>('p.fs-p');
+  const node = span.closest<HTMLElement>('.fd-el[data-key]');
+  const flow = span.closest<HTMLElement>('.fd-flow');
+  const pEl = span.closest<HTMLElement>('p.fd-p');
   const id = node?.dataset.key;
   if (!node || !flow || !pEl || !id) return;
-  const pi = Array.from(flow.querySelectorAll(':scope > p.fs-p')).indexOf(pEl);
-  const k = Array.from(pEl.querySelectorAll('.fs-math')).indexOf(span);
+  const pi = Array.from(flow.querySelectorAll(':scope > p.fd-p')).indexOf(pEl);
+  const k = Array.from(pEl.querySelectorAll('.fd-math')).indexOf(span);
   if (ed.stage.editing) ed.stage.endEdit();
   const el = ed.element(id);
   if (!el || el.type !== 'shape' || !el.text || pi < 0 || k < 0) return;
@@ -153,15 +153,15 @@ export function registerEquationCommands(cmds: Commands, getEditor: () => Editor
   cmds.add({ id: 'insert-equation', label: 'Equation...', keys: ['Alt+='], icon: 'equation', enabled: () => !!getEditor()?.slide, run });
   document.addEventListener('keydown', (e) => {
     const t = e.target as HTMLElement | null;
-    if (!t?.isContentEditable || !t.closest('.fs-viewport') || anyDialogOpen() || comboOf(e) !== (cmds.get('insert-equation')?.keys?.[0] ?? 'Alt+=')) return;
+    if (!t?.isContentEditable || !t.closest('.fd-viewport') || anyDialogOpen() || comboOf(e) !== (cmds.get('insert-equation')?.keys?.[0] ?? 'Alt+=')) return;
     e.preventDefault();
     e.stopPropagation();
     cmds.run('insert-equation');
   }, true);
   document.addEventListener('dblclick', (e) => {
     const t = e.target as Element | null;
-    if (!t?.closest?.('.fs-viewport')) return;
-    const span = t.closest<HTMLElement>('.fs-math') ?? Array.from(document.querySelectorAll<HTMLElement>('.fs-viewport .fs-canvas .fs-math')).find((s) => { const r = s.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; });
+    if (!t?.closest?.('.fd-viewport')) return;
+    const span = t.closest<HTMLElement>('.fd-math') ?? Array.from(document.querySelectorAll<HTMLElement>('.fd-viewport .fd-canvas .fd-math')).find((s) => { const r = s.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; });
     const ed = getEditor();
     if (!span || !ed || span.closest('td')) return;
     e.preventDefault();

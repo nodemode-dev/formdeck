@@ -59,12 +59,12 @@ export class StageAids {
   private gridKey = '';
 
   constructor(private readonly stage: Stage, private readonly ed: Editor) {
-    this.hRuler = el<HTMLCanvasElement>('<canvas class="fs-ruler is-h" hidden aria-hidden="true"></canvas>');
-    this.vRuler = el<HTMLCanvasElement>('<canvas class="fs-ruler is-v" hidden aria-hidden="true"></canvas>');
-    this.corner = el('<div class="fs-ruler-corner" hidden aria-hidden="true"></div>');
-    this.grid = el('<div class="fs-grid" hidden aria-hidden="true"></div>');
-    this.guideLayer = el('<div class="fs-guides" hidden></div>');
-    this.tip = el('<div class="fs-size-tip fs-guide-tip" hidden></div>');
+    this.hRuler = el<HTMLCanvasElement>('<canvas class="fd-ruler is-h" hidden aria-hidden="true"></canvas>');
+    this.vRuler = el<HTMLCanvasElement>('<canvas class="fd-ruler is-v" hidden aria-hidden="true"></canvas>');
+    this.corner = el('<div class="fd-ruler-corner" hidden aria-hidden="true"></div>');
+    this.grid = el('<div class="fd-grid" hidden aria-hidden="true"></div>');
+    this.guideLayer = el('<div class="fd-guides" hidden></div>');
+    this.tip = el('<div class="fd-size-tip fd-guide-tip" hidden></div>');
     stage.viewport.insertBefore(this.grid, stage.viewport.children[1] ?? null);
     stage.viewport.insertBefore(this.guideLayer, this.grid.nextSibling);
     this.guideLayer.appendChild(this.tip);
@@ -130,7 +130,7 @@ export class StageAids {
       seen.add(g.id);
       let n = this.nodes.get(g.id);
       if (!n) {
-        n = el(`<div class="fs-guide-line" data-guide="${g.id}"></div>`);
+        n = el(`<div class="fd-guide-line" data-guide="${g.id}"></div>`);
         this.nodes.set(g.id, n);
         this.guideLayer.insertBefore(n, this.tip);
       }
@@ -163,7 +163,7 @@ export class StageAids {
     if (e.button !== 0) return;
     e.preventDefault();
     if (!prefs.guides) setAidPrefs({ guides: true });
-    const n = el(`<div class="fs-guide-line is-new"></div>`);
+    const n = el(`<div class="fd-guide-line is-new"></div>`);
     this.guideLayer.insertBefore(n, this.tip);
     setHidden(this.guideLayer, false);
     const p = this.local(e);
@@ -340,17 +340,17 @@ class GridDialog extends Dialog {
 
   constructor() {
     super('Grid and Guides', 420);
-    const box = el(`<div class="fs-dlg-stack fs-grid-dlg">
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Snap to</div>
-<div class="fs-field"><span></span><label class="fs-check"><input type="checkbox" data-f="snap"><span>Snap objects to grid</span></label></div></section>
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Grid settings</div>
-<label class="fs-field"><span>Spacing</span><select class="fs-input" data-f="spacing" aria-label="Grid spacing"></select></label>
-<div class="fs-field"><span></span><label class="fs-check"><input type="checkbox" data-f="grid"><span>Display grid on screen</span></label></div></section>
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Guide settings</div>
-<div class="fs-field"><span></span><label class="fs-check"><input type="checkbox" data-f="guides"><span>Display drawing guides on screen</span></label></div>
-<div class="fs-field"><span></span><label class="fs-check"><input type="checkbox" data-f="smart"><span>Display smart guides when shapes are aligned</span></label></div>
-<div class="fs-field"><span></span><div><button class="fs-btn fs-btn-sm" type="button" data-a="clear">Remove all guides</button></div></div>
-<p class="fs-note">Drag from a ruler to add a guide. Drag a guide off the slide to remove it.</p></section>
+    const box = el(`<div class="fd-dlg-stack fd-grid-dlg">
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Snap to</div>
+<div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="snap"><span>Snap objects to grid</span></label></div></section>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Grid settings</div>
+<label class="fd-field"><span>Spacing</span><select class="fd-input" data-f="spacing" aria-label="Grid spacing"></select></label>
+<div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="grid"><span>Display grid on screen</span></label></div></section>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Guide settings</div>
+<div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="guides"><span>Display drawing guides on screen</span></label></div>
+<div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="smart"><span>Display smart guides when shapes are aligned</span></label></div>
+<div class="fd-field"><span></span><div><button class="fd-btn fd-btn-sm" type="button" data-a="clear">Remove all guides</button></div></div>
+<p class="fd-note">Drag from a ruler to add a guide. Drag a guide off the slide to remove it.</p></section>
 </div>`);
     this.body.appendChild(box);
     this.snap = q<HTMLInputElement>(box, '[data-f="snap"]');

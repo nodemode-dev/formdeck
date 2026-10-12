@@ -8,7 +8,7 @@ import { BORDER_PRESETS, BORDER_WIDTHS, cellFillOps, cellMarginOps, cellTarget, 
 import { resolvedFrame } from './actions';
 import { editorTheme } from './master-view';
 
-const num = (f: string, label: string, title: string): string => `<label class="fs-num" title="${title}"><span class="fs-num-label">${label}</span><input type="number" min="0" step="0.5" data-tf="${f}" aria-label="${title}"><span class="fs-unit">pt</span></label>`;
+const num = (f: string, label: string, title: string): string => `<label class="fd-num" title="${title}"><span class="fd-num-label">${label}</span><input type="number" min="0" step="0.5" data-tf="${f}" aria-label="${title}"><span class="fd-unit">pt</span></label>`;
 const seg = (cmd: string, ic: string, title: string): string => `<button type="button" data-cmd="${cmd}" title="${title}" aria-label="${title}">${icon(ic, 16)}</button>`;
 const MARGINS: Record<string, 0 | 1 | 2 | 3> = { ml: 0, mt: 1, mr: 2, mb: 3 };
 const same = (list: number[]): string => (list.length && list.every((v) => Math.abs(v - list[0]) < 0.01) ? String(Math.round(list[0] * 100) / 100) : '');
@@ -20,17 +20,17 @@ export class TablePanel {
   private offs: Array<() => void> = [];
 
   constructor() {
-    this.el = el(`<div class="fs-prop-section fs-tbl-panel" hidden>
-<div class="fs-panel-head"><span class="fs-panel-title">Table</span><span class="fs-tbl-scope"></span></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Align</span><div class="fs-prop-ctl"><div class="fs-seg is-quiet" role="group" aria-label="Horizontal alignment">${seg('text-align-l', 'alignLeft', 'Align left')}${seg('text-align-c', 'alignCenter', 'Centre')}${seg('text-align-r', 'alignRight', 'Align right')}${seg('text-align-j', 'alignJustify', 'Justify')}</div></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Vertical</span><div class="fs-prop-ctl"><div class="fs-seg is-quiet" role="group" aria-label="Vertical alignment">${seg('anchor-t', 'alignTop', 'Top')}${seg('anchor-m', 'alignMiddle', 'Middle')}${seg('anchor-b', 'alignBottom', 'Bottom')}</div></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Fill</span><div class="fs-prop-ctl"><button class="fs-btn fs-btn-sm fs-tbl-color" type="button" data-ta="fill" title="Cell fill"><span class="fs-swatch"></span><span class="fs-tbl-fill-name">Table style</span></button></div></div>
-<div class="fs-prop-row is-stack"><span class="fs-prop-label">Borders</span><div class="fs-tbl-borders" role="group" aria-label="Borders">${BORDER_PRESETS.map(([p, label, ic]) => `<button class="fs-icon-btn" type="button" data-cmd="table-border-${p}" title="${label}" aria-label="${label}">${icon(ic, 18)}</button>`).join('')}</div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Border pen</span><div class="fs-prop-ctl"><button class="fs-btn fs-btn-sm fs-tbl-color" type="button" data-ta="borders" title="Border colour"><span class="fs-swatch"></span><span>Colour</span></button><select data-tf="bw" aria-label="Border width">${BORDER_WIDTHS.map((w) => `<option value="${w}">${w} pt</option>`).join('')}</select></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Margins</span><div class="fs-prop-ctl fs-pair">${num('ml', 'L', 'Left margin')}${num('mr', 'R', 'Right margin')}</div></div>
-<div class="fs-prop-row"><span class="fs-prop-label"></span><div class="fs-prop-ctl fs-pair">${num('mt', 'T', 'Top margin')}${num('mb', 'B', 'Bottom margin')}</div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Row</span><div class="fs-prop-ctl">${num('rh', 'H', 'Minimum row height')}<button class="fs-icon-btn is-sm" type="button" data-cmd="table-distribute-rows" title="Distribute rows" aria-label="Distribute rows">${icon('tableDistRows', 16)}</button></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Column</span><div class="fs-prop-ctl">${num('cw', 'W', 'Column width')}<button class="fs-icon-btn is-sm" type="button" data-cmd="table-distribute-cols" title="Distribute columns" aria-label="Distribute columns">${icon('tableDistCols', 16)}</button></div></div>
+    this.el = el(`<div class="fd-prop-section fd-tbl-panel" hidden>
+<div class="fd-panel-head"><span class="fd-panel-title">Table</span><span class="fd-tbl-scope"></span></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Align</span><div class="fd-prop-ctl"><div class="fd-seg is-quiet" role="group" aria-label="Horizontal alignment">${seg('text-align-l', 'alignLeft', 'Align left')}${seg('text-align-c', 'alignCenter', 'Centre')}${seg('text-align-r', 'alignRight', 'Align right')}${seg('text-align-j', 'alignJustify', 'Justify')}</div></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Vertical</span><div class="fd-prop-ctl"><div class="fd-seg is-quiet" role="group" aria-label="Vertical alignment">${seg('anchor-t', 'alignTop', 'Top')}${seg('anchor-m', 'alignMiddle', 'Middle')}${seg('anchor-b', 'alignBottom', 'Bottom')}</div></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Fill</span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm fd-tbl-color" type="button" data-ta="fill" title="Cell fill"><span class="fd-swatch"></span><span class="fd-tbl-fill-name">Table style</span></button></div></div>
+<div class="fd-prop-row is-stack"><span class="fd-prop-label">Borders</span><div class="fd-tbl-borders" role="group" aria-label="Borders">${BORDER_PRESETS.map(([p, label, ic]) => `<button class="fd-icon-btn" type="button" data-cmd="table-border-${p}" title="${label}" aria-label="${label}">${icon(ic, 18)}</button>`).join('')}</div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Border pen</span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm fd-tbl-color" type="button" data-ta="borders" title="Border colour"><span class="fd-swatch"></span><span>Colour</span></button><select data-tf="bw" aria-label="Border width">${BORDER_WIDTHS.map((w) => `<option value="${w}">${w} pt</option>`).join('')}</select></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Margins</span><div class="fd-prop-ctl fd-pair">${num('ml', 'L', 'Left margin')}${num('mr', 'R', 'Right margin')}</div></div>
+<div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl fd-pair">${num('mt', 'T', 'Top margin')}${num('mb', 'B', 'Bottom margin')}</div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Row</span><div class="fd-prop-ctl">${num('rh', 'H', 'Minimum row height')}<button class="fd-icon-btn is-sm" type="button" data-cmd="table-distribute-rows" title="Distribute rows" aria-label="Distribute rows">${icon('tableDistRows', 16)}</button></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Column</span><div class="fd-prop-ctl">${num('cw', 'W', 'Column width')}<button class="fd-icon-btn is-sm" type="button" data-cmd="table-distribute-cols" title="Distribute columns" aria-label="Distribute columns">${icon('tableDistCols', 16)}</button></div></div>
 </div>`);
     this.el.addEventListener('mousedown', (e) => { if ((e.target as HTMLElement).closest('button')) e.preventDefault(); });
     this.el.addEventListener('click', (e) => { e.stopPropagation(); this.click(e); });
@@ -100,7 +100,7 @@ export class TablePanel {
     if (!ed || !t) return;
     const rows = t.rg.r1 - t.rg.r0 + 1, cols = t.rg.c1 - t.rg.c0 + 1;
     const cells = rangeCells(t);
-    setText(this.el.querySelector('.fs-tbl-scope'), t.whole ? 'Whole table' : cells.length === 1 ? 'Cell' : `${rows} × ${cols} cells`);
+    setText(this.el.querySelector('.fd-tbl-scope'), t.whole ? 'Whole table' : cells.length === 1 ? 'Cell' : `${rows} × ${cols} cells`);
     for (const b of Array.from(this.el.querySelectorAll<HTMLButtonElement>('button[data-cmd]'))) {
       const cmd = ed.commands.get(b.dataset.cmd as string);
       if (!cmd) continue;
@@ -111,13 +111,13 @@ export class TablePanel {
     const fill = firstCell(t)?.fill;
     const fb = this.el.querySelector<HTMLElement>('[data-ta="fill"]');
     if (fb) {
-      const sw = fb.querySelector<HTMLElement>('.fs-swatch') as HTMLElement;
+      const sw = fb.querySelector<HTMLElement>('.fd-swatch') as HTMLElement;
       setStyleVar(sw, '--swatch', fill && fill.type === 'solid' ? colorCss(fill.color, theme) : 'transparent');
       setClass(sw, 'is-none', !!fill && fill.type === 'none');
       setClass(sw, 'is-auto', !fill);
-      setText(fb.querySelector('.fs-tbl-fill-name'), !fill ? 'Table style' : fill.type === 'none' ? 'No fill' : 'Colour');
+      setText(fb.querySelector('.fd-tbl-fill-name'), !fill ? 'Table style' : fill.type === 'none' ? 'No fill' : 'Colour');
     }
-    const bb = this.el.querySelector<HTMLElement>('[data-ta="borders"] .fs-swatch');
+    const bb = this.el.querySelector<HTMLElement>('[data-ta="borders"] .fd-swatch');
     if (bb) setStyleVar(bb, '--swatch', colorCss(pen.color, theme));
     const bw = this.el.querySelector<HTMLSelectElement>('[data-tf="bw"]');
     if (bw) setValue(bw, String(pen.width));

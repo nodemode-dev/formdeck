@@ -90,20 +90,20 @@ export class Recorder {
   private saved = false;
 
   constructor(private readonly h: RecHooks) {
-    this.bar = el(`<div class="fs-show-rec" role="toolbar" aria-label="Recording">
-<button class="fs-btn fs-btn-sm fs-show-rec-main" type="button" data-act="rec-toggle"></button>
-<button class="fs-icon-btn" type="button" data-act="rec-stop" title="Stop and save" aria-label="Stop and save">${icon('stop', 16)}</button>
-<button class="fs-icon-btn" type="button" data-act="rec-retake" title="Retake this slide" aria-label="Retake this slide">${icon('refresh', 16)}</button>
-<span class="fs-sep"></span>
-<span class="fs-show-rec-mic" title="Microphone level">${icon('mic', 16)}<span class="fs-show-rec-meter"><span class="fs-show-rec-level"></span></span></span>
-<span class="fs-show-rec-times"><span class="fs-show-rec-label">Slide</span><span class="fs-show-rec-slide">0:00</span><span class="fs-show-rec-label">Total</span><span class="fs-show-rec-total">0:00</span></span>
-<span class="fs-show-rec-status" role="status"></span>
+    this.bar = el(`<div class="fd-show-rec" role="toolbar" aria-label="Recording">
+<button class="fd-btn fd-btn-sm fd-show-rec-main" type="button" data-act="rec-toggle"></button>
+<button class="fd-icon-btn" type="button" data-act="rec-stop" title="Stop and save" aria-label="Stop and save">${icon('stop', 16)}</button>
+<button class="fd-icon-btn" type="button" data-act="rec-retake" title="Retake this slide" aria-label="Retake this slide">${icon('refresh', 16)}</button>
+<span class="fd-sep"></span>
+<span class="fd-show-rec-mic" title="Microphone level">${icon('mic', 16)}<span class="fd-show-rec-meter"><span class="fd-show-rec-level"></span></span></span>
+<span class="fd-show-rec-times"><span class="fd-show-rec-label">Slide</span><span class="fd-show-rec-slide">0:00</span><span class="fd-show-rec-label">Total</span><span class="fd-show-rec-total">0:00</span></span>
+<span class="fd-show-rec-status" role="status"></span>
 </div>`);
-    this.mainBtn = q<HTMLButtonElement>(this.bar, '.fs-show-rec-main');
-    this.level = q(this.bar, '.fs-show-rec-level');
-    this.slideTime = q(this.bar, '.fs-show-rec-slide');
-    this.totalTime = q(this.bar, '.fs-show-rec-total');
-    this.status = q(this.bar, '.fs-show-rec-status');
+    this.mainBtn = q<HTMLButtonElement>(this.bar, '.fd-show-rec-main');
+    this.level = q(this.bar, '.fd-show-rec-level');
+    this.slideTime = q(this.bar, '.fd-show-rec-slide');
+    this.totalTime = q(this.bar, '.fd-show-rec-total');
+    this.status = q(this.bar, '.fd-show-rec-status');
     this.sync();
   }
 

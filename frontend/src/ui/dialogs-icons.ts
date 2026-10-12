@@ -83,22 +83,22 @@ class IconsDlg {
 
   constructor() {
     this.d = new Dialog('Insert Icons', 780);
-    const body = el(`<div class="fs-icons">
-<div class="fs-icons-bar"><label class="fs-search fs-icons-search">${icon('search', 14)}<input type="search" placeholder="Search icons, for example chart or rocket" aria-label="Search icons" spellcheck="false"></label>
-<div class="fs-seg is-quiet fs-icons-style" role="group" aria-label="Icon style"><button type="button" data-style="filled">Filled</button><button type="button" data-style="outline">Outline</button></div></div>
-<div class="fs-icons-main"><div class="fs-icons-cats" role="listbox" aria-label="Categories"></div>
-<div class="fs-icons-scroll" tabindex="-1"><div class="fs-icons-sizer" role="listbox" aria-multiselectable="true" aria-label="Icons"></div><div class="fs-icons-status fs-note" hidden>Loading icons</div><div class="fs-icons-empty fs-note" hidden>No icon matches that search.</div></div></div>
-<div class="fs-icons-foot"><span class="fs-icons-count fs-note"></span><span class="fs-icons-credit fs-note">Icons from Tabler Icons, MIT licence</span></div>
+    const body = el(`<div class="fd-icons">
+<div class="fd-icons-bar"><label class="fd-search fd-icons-search">${icon('search', 14)}<input type="search" placeholder="Search icons, for example chart or rocket" aria-label="Search icons" spellcheck="false"></label>
+<div class="fd-seg is-quiet fd-icons-style" role="group" aria-label="Icon style"><button type="button" data-style="filled">Filled</button><button type="button" data-style="outline">Outline</button></div></div>
+<div class="fd-icons-main"><div class="fd-icons-cats" role="listbox" aria-label="Categories"></div>
+<div class="fd-icons-scroll" tabindex="-1"><div class="fd-icons-sizer" role="listbox" aria-multiselectable="true" aria-label="Icons"></div><div class="fd-icons-status fd-note" hidden>Loading icons</div><div class="fd-icons-empty fd-note" hidden>No icon matches that search.</div></div></div>
+<div class="fd-icons-foot"><span class="fd-icons-count fd-note"></span><span class="fd-icons-credit fd-note">Icons from Tabler Icons, MIT licence</span></div>
 </div>`);
     this.d.body.appendChild(body);
     this.search = q<HTMLInputElement>(body, 'input[type="search"]');
-    this.cats = q(body, '.fs-icons-cats');
-    this.scroll = q(body, '.fs-icons-scroll');
-    this.sizer = q(body, '.fs-icons-sizer');
-    this.status = q(body, '.fs-icons-status');
-    this.empty = q(body, '.fs-icons-empty');
-    this.count = q(body, '.fs-icons-count');
-    this.styleSeg = q(body, '.fs-icons-style');
+    this.cats = q(body, '.fd-icons-cats');
+    this.scroll = q(body, '.fd-icons-scroll');
+    this.sizer = q(body, '.fd-icons-sizer');
+    this.status = q(body, '.fd-icons-status');
+    this.empty = q(body, '.fd-icons-empty');
+    this.count = q(body, '.fd-icons-count');
+    this.styleSeg = q(body, '.fd-icons-style');
     this.d.button('Cancel', 'ghost', () => this.d.close());
     this.insertBtn = this.d.button('Insert', 'primary', () => this.insert());
     this.d.onClose = () => { const f = this.done; this.done = null; f?.(); };
@@ -145,7 +145,7 @@ class IconsDlg {
     if (!lib) return;
     const counts = new Map<number, number>();
     for (const e of lib.icons) counts.set(e.cat, (counts.get(e.cat) ?? 0) + 1);
-    const row = (i: number, label: string): string => `<button class="fs-icons-cat" type="button" role="option" data-cat="${i}"><span class="fs-icons-cat-name">${escapeHtml(label)}</span></button>`;
+    const row = (i: number, label: string): string => `<button class="fd-icons-cat" type="button" role="option" data-cat="${i}"><span class="fd-icons-cat-name">${escapeHtml(label)}</span></button>`;
     this.cats.innerHTML = row(-2, 'Recently used') + row(-1, 'All icons') + lib.cats.map((c, i) => row(i, c)).join('');
     this.syncCats();
   }
@@ -166,7 +166,7 @@ class IconsDlg {
     this.pad = Math.max(0, Math.floor(((this.scroll.clientWidth || 560) - this.cols * CELL) / 2));
     const need = this.cols * (Math.ceil((this.scroll.clientHeight || 400) / CELL) + 2);
     while (this.pool.length < need) {
-      const b = el<HTMLButtonElement>('<button class="fs-icons-cell" type="button" role="option" hidden></button>');
+      const b = el<HTMLButtonElement>('<button class="fd-icons-cell" type="button" role="option" hidden></button>');
       this.sizer.appendChild(b);
       this.pool.push(b);
     }

@@ -54,12 +54,12 @@ export class PointsEdit {
 
   constructor(private readonly stage: Stage, private readonly ed: Editor) {
     this.layer = document.createElementNS(SVG, 'svg');
-    this.layer.setAttribute('class', 'fs-points-layer');
-    this.outline = this.mk('path', 'fs-pts-outline') as SVGPathElement;
-    this.hit = this.mk('path', 'fs-pts-hit') as SVGPathElement;
-    this.arms = this.mk('path', 'fs-pts-arm') as SVGPathElement;
-    this.nodes = this.mk('g', 'fs-pts-nodes') as SVGGElement;
-    this.cps = this.mk('g', 'fs-pts-cps') as SVGGElement;
+    this.layer.setAttribute('class', 'fd-points-layer');
+    this.outline = this.mk('path', 'fd-pts-outline') as SVGPathElement;
+    this.hit = this.mk('path', 'fd-pts-hit') as SVGPathElement;
+    this.arms = this.mk('path', 'fd-pts-arm') as SVGPathElement;
+    this.nodes = this.mk('g', 'fd-pts-nodes') as SVGGElement;
+    this.cps = this.mk('g', 'fd-pts-cps') as SVGGElement;
     this.layer.append(this.outline, this.hit, this.arms, this.nodes, this.cps);
     this.layer.style.display = 'none';
     stage.viewport.appendChild(this.layer);
@@ -106,7 +106,7 @@ export class PointsEdit {
     on<PointerEvent>(window, 'pointermove', (e) => this.move(e));
     on<PointerEvent>(window, 'pointerup', () => this.up());
     on<MouseEvent>(root, 'contextmenu', (e) => this.context(e));
-    on<MouseEvent>(root, 'dblclick', (e) => { if ((e.target as Element).closest?.('.fs-points-layer')) { e.preventDefault(); e.stopPropagation(); } });
+    on<MouseEvent>(root, 'dblclick', (e) => { if ((e.target as Element).closest?.('.fd-points-layer')) { e.preventDefault(); e.stopPropagation(); } });
     on<KeyboardEvent>(window, 'keydown', (e) => this.key(e));
     setClass(root, 'is-points', true);
     this.layer.style.display = '';
@@ -174,7 +174,7 @@ export class PointsEdit {
     this.patch(this.nodes, pts.length, 'rect', (r, i) => {
       const p = pts[i];
       const [si, ni] = p.key.split(':');
-      r.setAttribute('class', `fs-pt${p.on ? ' is-on' : ''}`);
+      r.setAttribute('class', `fd-pt${p.on ? ' is-on' : ''}`);
       r.setAttribute('x', String(p.x - 4.5));
       r.setAttribute('y', String(p.y - 4.5));
       r.setAttribute('width', '9');
@@ -198,7 +198,7 @@ export class PointsEdit {
     if (this.arms.getAttribute('d') !== arms) this.arms.setAttribute('d', arms);
     this.patch(this.cps, cps.length, 'circle', (c, i) => {
       const p = cps[i];
-      c.setAttribute('class', 'fs-cp');
+      c.setAttribute('class', 'fd-cp');
       c.setAttribute('cx', String(p.x));
       c.setAttribute('cy', String(p.y));
       c.setAttribute('r', '4.5');
@@ -218,7 +218,7 @@ export class PointsEdit {
   }
 
   private hitNode(t: EventTarget | null): { sub: number; node: number } | null {
-    const n = (t as Element | null)?.closest?.('.fs-pt') as SVGElement | null;
+    const n = (t as Element | null)?.closest?.('.fd-pt') as SVGElement | null;
     return n ? { sub: Number(n.dataset.s), node: Number(n.dataset.n) } : null;
   }
 
@@ -230,8 +230,8 @@ export class PointsEdit {
   private down(e: PointerEvent): void {
     if (!this.id || e.button !== 0) return;
     const t = e.target as Element;
-    if (t.closest?.('.fs-ruler, .fs-ruler-corner')) return;
-    const cp = t.closest?.('.fs-cp') as SVGElement | null;
+    if (t.closest?.('.fd-ruler, .fd-ruler-corner')) return;
+    const cp = t.closest?.('.fd-cp') as SVGElement | null;
     const node = this.hitNode(t);
     const stop = (): void => { e.preventDefault(); e.stopPropagation(); };
     if (cp && this.sel) {

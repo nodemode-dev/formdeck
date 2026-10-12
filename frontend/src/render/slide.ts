@@ -52,10 +52,10 @@ function shapeSvg(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
     body += `<path d="${p.d}" fill="${fillAttr}"${rule} ${p.stroke ? st.attrs : 'stroke="none"'}/>`;
     if (shade && !lineOnly) body += `<path d="${p.d}" fill="${shade}"${rule} stroke="none"/>`;
   }
-  if (ctx.mode === 'edit' && (lineOnly || openPath(el))) for (const p of paths) body += `<path class="fs-hit" d="${p.d}" stroke-width="${round(Math.max(8, st.width + 6))}"/>`;
+  if (ctx.mode === 'edit' && (lineOnly || openPath(el))) for (const p of paths) body += `<path class="fd-hit" d="${p.d}" stroke-width="${round(Math.max(8, st.width + 6))}"/>`;
   const filter = cssFilter(el.effects, theme);
   const bw = lineOnly ? Math.max(1, w) : w, bh = lineOnly ? Math.max(1, h) : h;
-  return `<svg class="fs-geom" viewBox="0 0 ${round(bw)} ${round(bh)}" width="${round(bw)}" height="${round(bh)}" preserveAspectRatio="none"${filter ? ` style="filter:${filter}"` : ''}>${fp.defs || st.defs ? `<defs>${fp.defs}${st.defs}</defs>` : ''}${body}</svg>`;
+  return `<svg class="fd-geom" viewBox="0 0 ${round(bw)} ${round(bh)}" width="${round(bw)}" height="${round(bh)}" preserveAspectRatio="none"${filter ? ` style="filter:${filter}"` : ''}>${fp.defs || st.defs ? `<defs>${fp.defs}${st.defs}</defs>` : ''}${body}</svg>`;
 }
 
 function customPath(el: ShapeElement, f: Frame): string {
@@ -89,7 +89,7 @@ function textBlock(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
   const cols = props.cols > 1 ? `column-count:${props.cols};column-gap:${round(18)}px;` : '';
   const wrap = props.wrap ? '' : 'white-space:pre;';
   const tfx = needsOverlay(el.text) ? ` has-tfx"${activeWarp(el.text) ? ` data-warp="${esc(JSON.stringify(activeWarp(el.text)))}"` : ''}` : '"';
-  return `<div class="fs-tx${tfx} data-autofit="${props.autofit}" style="left:${round(l)}px;top:${round(t)}px;right:${round(r)}px;bottom:${round(b)}px;justify-content:${justify};${vert}"><div class="fs-flow" style="${cols}${wrap}">${html}</div></div>`;
+  return `<div class="fd-tx${tfx} data-autofit="${props.autofit}" style="left:${round(l)}px;top:${round(t)}px;right:${round(r)}px;bottom:${round(b)}px;justify-content:${justify};${vert}"><div class="fd-flow" style="${cols}${wrap}">${html}</div></div>`;
 }
 
 function imageBlock(ctx: Ctx, el: ImageElement, f: Frame, c: Chain): string {
@@ -128,9 +128,9 @@ function imageBlock(ctx: Ctx, el: ImageElement, f: Frame, c: Chain): string {
   let outline = '';
   if (line) {
     const d = mask && mask !== 'rect' ? presetGeometry(mask, Math.max(1, f.w), Math.max(1, f.h), el.adj).paths.map((p) => p.d).join(' ') : `M0 0H${round(f.w)}V${round(f.h)}H0Z`;
-    outline = `<svg class="fs-geom" viewBox="0 0 ${round(f.w)} ${round(f.h)}" width="${round(f.w)}" height="${round(f.h)}">${line.defs ? `<defs>${line.defs}</defs>` : ''}<path d="${d}" fill="none" ${line.attrs}/></svg>`;
+    outline = `<svg class="fd-geom" viewBox="0 0 ${round(f.w)} ${round(f.h)}" width="${round(f.w)}" height="${round(f.h)}">${line.defs ? `<defs>${line.defs}</defs>` : ''}<path d="${d}" fill="none" ${line.attrs}/></svg>`;
   }
-  return `<div class="fs-imgbox" style="${clip}${eff ? `filter:${eff};` : ''}"><img class="fs-img" alt="${esc(el.alt ?? '')}" draggable="false" decoding="async" src="${mediaUrl(el.src)}" style="left:${round(left)}px;top:${round(top)}px;width:${round(dw)}px;height:${round(dh)}px;${filters.length ? `filter:${filters.join(' ')};` : ''}"></div>${outline}`;
+  return `<div class="fd-imgbox" style="${clip}${eff ? `filter:${eff};` : ''}"><img class="fd-img" alt="${esc(el.alt ?? '')}" draggable="false" decoding="async" src="${mediaUrl(el.src)}" style="left:${round(left)}px;top:${round(top)}px;width:${round(dw)}px;height:${round(dh)}px;${filters.length ? `filter:${filters.join(' ')};` : ''}"></div>${outline}`;
 }
 
 function chartBlock(ctx: Ctx, el: ChartElement, f: Frame, c: Chain): string {
@@ -138,7 +138,7 @@ function chartBlock(ctx: Ctx, el: ChartElement, f: Frame, c: Chain): string {
   const lvl = levelStyle({ ...c, kind: 'other' }, 0);
   const text = colorCss(el.chart.textColor ?? lvl.color ?? 'tx1', theme);
   const bg = ctx.slide ? backgroundOf(ctx.deck, ctx.slide) : null;
-  return `<div class="fs-chart">${chartSvg(el.chart, Math.max(1, f.w), Math.max(1, f.h), {
+  return `<div class="fd-chart">${chartSvg(el.chart, Math.max(1, f.w), Math.max(1, f.h), {
     color: (col, i) => colorCss(col ?? `accent${(i % 6) + 1}`, theme),
     font: fontStack(themeFont(el.chart.font ?? lvl.font, theme)),
     text,
@@ -159,10 +159,10 @@ function tableBlock(ctx: Ctx, el: TableElement, c: Chain): string {
 }
 
 function mediaBlock(ctx: Ctx, el: MediaElement): string {
-  if (el.kind === 'audio') return `<div class="fs-audio" title="${esc(ctx.deck.media[el.src]?.name ?? 'Audio')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg></div>`;
+  if (el.kind === 'audio') return `<div class="fd-audio" title="${esc(ctx.deck.media[el.src]?.name ?? 'Audio')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg></div>`;
   const poster = el.poster ? ` poster="${mediaUrl(el.poster)}"` : '';
   const live = ctx.mode === 'show';
-  return `<video class="fs-video" src="${mediaUrl(el.src)}${el.poster ? '' : `#t=${el.start ?? 0.1}`}"${poster} preload="metadata" playsinline${live ? ' controls' : ''}${el.loop ? ' loop' : ''}${live && el.autoplay ? ' autoplay' : ''} muted></video>`;
+  return `<video class="fd-video" src="${mediaUrl(el.src)}${el.poster ? '' : `#t=${el.start ?? 0.1}`}"${poster} preload="metadata" playsinline${live ? ' controls' : ''}${el.loop ? ' loop' : ''}${live && el.autoplay ? ' autoplay' : ''} muted></video>`;
 }
 
 export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: string; kind: string } {
@@ -180,7 +180,7 @@ export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: s
   else if (el.type === 'group') {
     for (const child of el.children) {
       const ch = elementHtml(ctx, child);
-      inner += `<div class="fs-el fs-${ch.kind}" data-id="${child.id}" style="${ch.box}">${ch.inner}</div>`;
+      inner += `<div class="fd-el fd-${ch.kind}" data-id="${child.id}" style="${ch.box}">${ch.inner}</div>`;
     }
     return { box: boxStyle({ x: 0, y: 0, w: ctx.deck.size.w, h: ctx.deck.size.h }, { ...el, rot: 0, flipH: false, flipV: false }), inner, kind: 'grp' };
   }
@@ -203,7 +203,7 @@ function decorations(ctx: Ctx, list: SlideElement[], holder: 'layout' | 'master'
   for (const el of list) {
     if (el.ph) continue;
     const h = elementHtml(local, el);
-    out += `<div class="fs-el fs-${h.kind} is-deco" style="${h.box}">${h.inner}</div>`;
+    out += `<div class="fd-el fd-${h.kind} is-deco" style="${h.box}">${h.inner}</div>`;
   }
   return out;
 }
@@ -226,17 +226,17 @@ export class SlideView {
   constructor(private readonly getDeck: () => Deck, slideId: string, readonly mode: RenderMode, readonly holder: HolderKind = 'slide') {
     this.slideId = slideId;
     this.el = document.createElement('div');
-    this.el.className = `fs-slide is-${mode}${holder === 'slide' ? '' : ' is-holder'}`;
+    this.el.className = `fd-slide is-${mode}${holder === 'slide' ? '' : ' is-holder'}`;
     this.inner = document.createElement('div');
-    this.inner.className = 'fs-slide-inner';
+    this.inner.className = 'fd-slide-inner';
     this.bg = document.createElement('div');
-    this.bg.className = 'fs-slide-bg';
+    this.bg.className = 'fd-slide-bg';
     this.master = document.createElement('div');
-    this.master.className = 'fs-layer fs-layer-master';
+    this.master.className = 'fd-layer fd-layer-master';
     this.layoutLayer = document.createElement('div');
-    this.layoutLayer.className = 'fs-layer fs-layer-layout';
+    this.layoutLayer.className = 'fd-layer fd-layer-layout';
     this.content = document.createElement('div');
-    this.content.className = 'fs-layer fs-layer-content';
+    this.content.className = 'fd-layer fd-layer-content';
     this.inner.append(this.bg, this.master, this.layoutLayer, this.content);
     this.el.appendChild(this.inner);
   }
@@ -370,7 +370,7 @@ export class SlideView {
 
   private paintHolder(node: HTMLElement, ctx: Ctx, item: Item): void {
     const h = elementHtml(ctx, item.el);
-    node.className = `fs-el fs-${h.kind}${item.el.ph ? ' is-ph' : ''}${item.prompt ? ' is-prompt is-virtual' : ''}${item.el.locked ? ' is-locked' : ''}`;
+    node.className = `fd-el fd-${h.kind}${item.el.ph ? ' is-ph' : ''}${item.prompt ? ' is-prompt is-virtual' : ''}${item.el.locked ? ' is-locked' : ''}`;
     node.dataset.id = item.prompt ? '' : item.el.id;
     if (item.prompt) node.dataset.ph = item.key;
     else delete node.dataset.ph;
@@ -391,7 +391,7 @@ export class SlideView {
   }
 
   fit(node: HTMLElement): void {
-    for (const tx of Array.from(node.querySelectorAll<HTMLElement>('.fs-tx'))) {
+    for (const tx of Array.from(node.querySelectorAll<HTMLElement>('.fd-tx'))) {
       const flow = tx.firstElementChild as HTMLElement | null;
       if (flow) fitText(tx, flow, (tx.dataset.autofit as 'none' | 'shrink' | 'grow') ?? 'none');
       if (flow && tx.classList.contains('has-tfx')) drawTextFx(tx);
@@ -401,7 +401,7 @@ export class SlideView {
   private paint(node: HTMLElement, ctx: Ctx, el: SlideElement, prompt: boolean, layout: Layout | undefined): void {
     const local: Ctx = prompt ? { ...ctx, holder: 'layout', layout } : ctx;
     const h = elementHtml(local, el);
-    node.className = `fs-el fs-${h.kind}${prompt ? ' is-prompt' : ''}${el.locked ? ' is-locked' : ''}`;
+    node.className = `fd-el fd-${h.kind}${prompt ? ' is-prompt' : ''}${el.locked ? ' is-locked' : ''}`;
     node.dataset.id = prompt ? '' : el.id;
     if (prompt) node.dataset.ph = el.id;
     else delete node.dataset.ph;
@@ -410,21 +410,21 @@ export class SlideView {
   }
 
   private patchImage(node: HTMLElement, ctx: Ctx, el: SlideElement): boolean {
-    const img = node.querySelector<HTMLImageElement>(':scope > .fs-imgbox > .fs-img');
+    const img = node.querySelector<HTMLImageElement>(':scope > .fd-imgbox > .fd-img');
     if (!img || el.type !== 'image' || !img.src.endsWith(mediaUrl(el.src))) return false;
     const h = elementHtml(ctx, el);
     const t = document.createElement('template');
     t.innerHTML = h.inner;
-    const nextBox = t.content.querySelector<HTMLElement>('.fs-imgbox');
-    const nextImg = t.content.querySelector<HTMLImageElement>('.fs-img');
-    const box = node.querySelector<HTMLElement>(':scope > .fs-imgbox');
+    const nextBox = t.content.querySelector<HTMLElement>('.fd-imgbox');
+    const nextImg = t.content.querySelector<HTMLImageElement>('.fd-img');
+    const box = node.querySelector<HTMLElement>(':scope > .fd-imgbox');
     if (!nextBox || !nextImg || !box) return false;
     node.setAttribute('style', h.box);
     box.setAttribute('style', nextBox.getAttribute('style') ?? '');
     img.setAttribute('style', nextImg.getAttribute('style') ?? '');
     img.alt = nextImg.alt;
-    node.querySelector(':scope > svg.fs-geom')?.remove();
-    const outline = t.content.querySelector('svg.fs-geom');
+    node.querySelector(':scope > svg.fd-geom')?.remove();
+    const outline = t.content.querySelector('svg.fd-geom');
     if (outline) node.appendChild(outline);
     return true;
   }
@@ -433,7 +433,7 @@ export class SlideView {
     if (el.ph?.type === 'pic' || el.ph?.type === 'chart' || el.ph?.type === 'tbl') {
       const label = el.ph.type === 'pic' ? 'Drop a picture or click to add' : el.ph.type === 'chart' ? 'Click to add a chart' : 'Click to add a table';
       void ctx;
-      return `${inner.replace(/<div class="fs-tx[\s\S]*$/, '')}<div class="fs-prompt-card"><span>${label}</span></div>`;
+      return `${inner.replace(/<div class="fd-tx[\s\S]*$/, '')}<div class="fd-prompt-card"><span>${label}</span></div>`;
     }
     return inner;
   }

@@ -121,7 +121,7 @@ export function cellRange(g: TableGrid, ar: number, ac: number, fr: number, fc: 
 export function tableHtml(t: TableData, theme: Theme, tc: TextCtx): string {
   const g = tableGrid(t);
   const st = t.style ?? { id: 'medium2' };
-  let html = `<table class="fs-table"><colgroup>${t.cols.map((w) => `<col style="width:${w}px">`).join('')}</colgroup><tbody>`;
+  let html = `<table class="fd-table"><colgroup>${t.cols.map((w) => `<col style="width:${w}px">`).join('')}</colgroup><tbody>`;
   t.rows.forEach((row, r) => {
     html += `<tr style="height:${row.h}px">`;
     for (let c = 0; c < g.cols; c++) {
@@ -139,7 +139,7 @@ export function tableHtml(t: TableData, theme: Theme, tc: TextCtx): string {
       const color = paint.color;
       const body = !(cell.text?.paras ?? []).length ? { ...cell.text, paras: [{ runs: [{ t: '' }] }] } : cell.text;
       const inner = textHtml(body, { ...tc, mode: 'edit', showPrompt: false });
-      const cls = `fs-cell-flow${color || paint.bold ? ' fs-cell-paint' : ''}${paint.bold ? ' is-bold' : ''}${color ? ' has-color' : ''}`;
+      const cls = `fd-cell-flow${color || paint.bold ? ' fd-cell-paint' : ''}${paint.bold ? ' is-bold' : ''}${color ? ' has-color' : ''}`;
       html += `<td${cs > 1 ? ` colspan="${cs}"` : ''}${rs > 1 ? ` rowspan="${rs}"` : ''} data-r="${r}" data-c="${c}" style="background:${fill};${borders};padding:${inset[1]}px ${inset[2]}px ${inset[3]}px ${inset[0]}px;vertical-align:${cell.anchor === 'm' ? 'middle' : cell.anchor === 'b' ? 'bottom' : 'top'}"><div class="${cls}"${color ? ` style="--cell-color:${color}"` : ''}>${inner}</div></td>`;
     }
     html += '</tr>';

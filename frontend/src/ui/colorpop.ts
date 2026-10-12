@@ -17,8 +17,8 @@ export class ColorPop {
   private readonly custom: HTMLInputElement;
 
   constructor() {
-    this.pop = el('<div class="fs-pop fs-colorpop" hidden role="dialog" aria-label="Colour"></div>');
-    this.custom = el<HTMLInputElement>('<input type="color" class="fs-colorpop-native" aria-label="Custom colour">');
+    this.pop = el('<div class="fd-pop fd-colorpop" hidden role="dialog" aria-label="Colour"></div>');
+    this.custom = el<HTMLInputElement>('<input type="color" class="fd-colorpop-native" aria-label="Custom colour">');
     document.getElementById('overlay-root')?.appendChild(this.pop);
     document.addEventListener('pointerdown', (e) => { if (!this.pop.hidden && !this.pop.contains(e.target as Node)) this.close(undefined); }, true);
     this.pop.addEventListener('keydown', (e) => { if (e.key === 'Escape') this.close(undefined); });
@@ -26,16 +26,16 @@ export class ColorPop {
 
   open(anchor: HTMLElement, theme: Theme, opts: { none?: string; current?: Color | null } = {}): Promise<Color | null | undefined> {
     this.close(undefined);
-    let html = `<div class="fs-pop-head">Theme colours</div><div class="fs-colorpop-grid">`;
+    let html = `<div class="fd-pop-head">Theme colours</div><div class="fd-colorpop-grid">`;
     for (const m of MODS) {
       for (const s of SLOTS) {
         const c: Color = m.mod ? { scheme: s, ...m.mod } : s;
-        html += `<button type="button" class="fs-swatch" data-c='${JSON.stringify(c)}' title="${NAMES[s]}${m.label ? `, ${m.label}` : ''}" style="--swatch:${colorCss(c, theme)};background:${colorCss(c, theme)}"></button>`;
+        html += `<button type="button" class="fd-swatch" data-c='${JSON.stringify(c)}' title="${NAMES[s]}${m.label ? `, ${m.label}` : ''}" style="--swatch:${colorCss(c, theme)};background:${colorCss(c, theme)}"></button>`;
       }
     }
-    html += `</div><div class="fs-pop-head">Standard</div><div class="fs-colorpop-grid">${STANDARD.map((h) => `<button type="button" class="fs-swatch" data-c='"${h}"' title="${h}" style="background:${h}"></button>`).join('')}</div><div class="fs-pop-sep"></div><div class="fs-colorpop-row">`;
-    if (opts.none) html += `<button type="button" class="fs-btn fs-btn-sm fs-btn-ghost" data-none>${icon('remove', 14)}${opts.none}</button>`;
-    html += `<label class="fs-btn fs-btn-sm fs-btn-ghost">${icon('palette', 14)}Custom</label></div>`;
+    html += `</div><div class="fd-pop-head">Standard</div><div class="fd-colorpop-grid">${STANDARD.map((h) => `<button type="button" class="fd-swatch" data-c='"${h}"' title="${h}" style="background:${h}"></button>`).join('')}</div><div class="fd-pop-sep"></div><div class="fd-colorpop-row">`;
+    if (opts.none) html += `<button type="button" class="fd-btn fd-btn-sm fd-btn-ghost" data-none>${icon('remove', 14)}${opts.none}</button>`;
+    html += `<label class="fd-btn fd-btn-sm fd-btn-ghost">${icon('palette', 14)}Custom</label></div>`;
     this.pop.innerHTML = html;
     this.pop.querySelector('label')?.appendChild(this.custom);
     this.pop.querySelectorAll<HTMLButtonElement>('[data-c]').forEach((b) => b.addEventListener('click', () => this.close(JSON.parse(b.dataset.c ?? 'null') as Color)));

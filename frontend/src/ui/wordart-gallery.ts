@@ -76,12 +76,12 @@ class WordArtPop {
   private readonly warps: HTMLElement;
 
   constructor() {
-    const warpHtml = WARP_GROUPS.map((g) => `<div class="fs-pop-head">${escapeHtml(g.label)}</div><div class="fs-wa-warps">${g.items.map(([p, label]) => `<button type="button" class="fs-wa-warp" data-warp="${p}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 40 28" aria-hidden="true">${warpPreview(p, 40, 28)}</svg></button>`).join('')}</div>`).join('');
-    this.pop = el(`<div class="fs-pop fs-wa-pop" hidden role="dialog" aria-label="WordArt">
-<div class="fs-wa-styles"><div class="fs-pop-head">WordArt styles</div><div class="fs-wa-grid">${WORDART_STYLES.map((s) => `<button type="button" class="fs-wa-style" data-style="${s.id}" title="${escapeHtml(s.label)}" aria-label="${escapeHtml(s.label)}"></button>`).join('')}</div></div>
-<div class="fs-wa-warpset">${warpHtml}</div></div>`);
-    this.styles = this.pop.querySelector('.fs-wa-styles') as HTMLElement;
-    this.warps = this.pop.querySelector('.fs-wa-warpset') as HTMLElement;
+    const warpHtml = WARP_GROUPS.map((g) => `<div class="fd-pop-head">${escapeHtml(g.label)}</div><div class="fd-wa-warps">${g.items.map(([p, label]) => `<button type="button" class="fd-wa-warp" data-warp="${p}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 40 28" aria-hidden="true">${warpPreview(p, 40, 28)}</svg></button>`).join('')}</div>`).join('');
+    this.pop = el(`<div class="fd-pop fd-wa-pop" hidden role="dialog" aria-label="WordArt">
+<div class="fd-wa-styles"><div class="fd-pop-head">WordArt styles</div><div class="fd-wa-grid">${WORDART_STYLES.map((s) => `<button type="button" class="fd-wa-style" data-style="${s.id}" title="${escapeHtml(s.label)}" aria-label="${escapeHtml(s.label)}"></button>`).join('')}</div></div>
+<div class="fd-wa-warpset">${warpHtml}</div></div>`);
+    this.styles = this.pop.querySelector('.fd-wa-styles') as HTMLElement;
+    this.warps = this.pop.querySelector('.fd-wa-warpset') as HTMLElement;
     document.getElementById('overlay-root')?.appendChild(this.pop);
     this.pop.addEventListener('mousedown', (e) => { if ((e.target as HTMLElement).closest('button')) e.preventDefault(); });
     this.pop.addEventListener('click', (e) => {

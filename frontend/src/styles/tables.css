@@ -1,34 +1,34 @@
-.fs-cell-flow { min-height: 0; outline: none; overflow-wrap: break-word; word-break: normal; caret-color: var(--accent-color); cursor: inherit; user-select: text; -webkit-user-select: text; }
-.fs-cell-flow[contenteditable="true"] { cursor: text; }
-.fs-slide.is-show .fs-cell-flow { user-select: none; -webkit-user-select: none; }
-.fs-slide.is-edit .fs-layer-content > .fs-el.fs-table:not(.is-locked) table.fs-table td { cursor: default; }
-.fs-viewport.is-cell-range table.fs-table, .fs-viewport.is-cell-range table.fs-table * { user-select: none; -webkit-user-select: none; }
+.fd-cell-flow { min-height: 0; outline: none; overflow-wrap: break-word; word-break: normal; caret-color: var(--accent-color); cursor: inherit; user-select: text; -webkit-user-select: text; }
+.fd-cell-flow[contenteditable="true"] { cursor: text; }
+.fd-slide.is-show .fd-cell-flow { user-select: none; -webkit-user-select: none; }
+.fd-slide.is-edit .fd-layer-content > .fd-el.fd-table:not(.is-locked) table.fd-table td { cursor: default; }
+.fd-viewport.is-cell-range table.fd-table, .fd-viewport.is-cell-range table.fd-table * { user-select: none; -webkit-user-select: none; }
 
-.fs-cell-range { position: absolute; box-sizing: border-box; border: 2px solid var(--fs-sel); background: color-mix(in srgb, var(--fs-sel) 16%, transparent); pointer-events: none; }
-.fs-cell-range.is-one { background: transparent; }
-.fs-cell-range.is-caret { border-width: 1px; border-color: color-mix(in srgb, var(--fs-sel) 70%, transparent); background: transparent; }
-.fs-table-grip { position: absolute; box-sizing: border-box; cursor: move; pointer-events: auto; touch-action: none; }
-.fs-table-grip:hover { background: color-mix(in srgb, var(--fs-sel) 14%, transparent); }
+.fd-cell-range { position: absolute; box-sizing: border-box; border: 2px solid var(--fd-sel); background: color-mix(in srgb, var(--fd-sel) 16%, transparent); pointer-events: none; }
+.fd-cell-range.is-one { background: transparent; }
+.fd-cell-range.is-caret { border-width: 1px; border-color: color-mix(in srgb, var(--fd-sel) 70%, transparent); background: transparent; }
+.fd-table-grip { position: absolute; box-sizing: border-box; cursor: move; pointer-events: auto; touch-action: none; }
+.fd-table-grip:hover { background: color-mix(in srgb, var(--fd-sel) 14%, transparent); }
 
-.fs-viewport.is-tb-col, .fs-viewport.is-tb-col * { cursor: col-resize !important; }
-.fs-viewport.is-tb-row, .fs-viewport.is-tb-row * { cursor: row-resize !important; }
-.fs-viewport.is-tb-drag .fs-overlay > :is(.fs-sel, .fs-handle, .fs-rot-stem, .fs-cell-range, .fs-table-grip, .fs-size-tip) { visibility: hidden; }
-.fs-viewport.is-tb-drag table.fs-table, .fs-viewport.is-tb-drag table.fs-table * { user-select: none; -webkit-user-select: none; }
-.fs-tb-layer { position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: visible; pointer-events: none; }
-.fs-tb-box { position: absolute; box-sizing: border-box; border: 1px solid var(--fs-sel); transform-origin: 50% 50%; }
-.fs-tb-box[hidden], .fs-tb-layer > .fs-size-tip[hidden] { display: none; }
-.fs-tb-guide { position: absolute; background: var(--fs-guide); }
-.fs-tb-guide.is-v { top: 0; bottom: 0; width: 1px; margin-left: -0.5px; }
-.fs-tb-guide.is-h { left: 0; right: 0; height: 1px; margin-top: -0.5px; }
+.fd-viewport.is-tb-col, .fd-viewport.is-tb-col * { cursor: col-resize !important; }
+.fd-viewport.is-tb-row, .fd-viewport.is-tb-row * { cursor: row-resize !important; }
+.fd-viewport.is-tb-drag .fd-overlay > :is(.fd-sel, .fd-handle, .fd-rot-stem, .fd-cell-range, .fd-table-grip, .fd-size-tip) { visibility: hidden; }
+.fd-viewport.is-tb-drag table.fd-table, .fd-viewport.is-tb-drag table.fd-table * { user-select: none; -webkit-user-select: none; }
+.fd-tb-layer { position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: visible; pointer-events: none; }
+.fd-tb-box { position: absolute; box-sizing: border-box; border: 1px solid var(--fd-sel); transform-origin: 50% 50%; }
+.fd-tb-box[hidden], .fd-tb-layer > .fd-size-tip[hidden] { display: none; }
+.fd-tb-guide { position: absolute; background: var(--fd-guide); }
+.fd-tb-guide.is-v { top: 0; bottom: 0; width: 1px; margin-left: -0.5px; }
+.fd-tb-guide.is-h { left: 0; right: 0; height: 1px; margin-top: -0.5px; }
 
-.fs-tbl-panel .fs-panel-head { gap: var(--space-2); }
-.fs-tbl-scope { margin-left: auto; overflow: hidden; color: var(--text-muted); font-size: var(--fs-11); text-overflow: ellipsis; white-space: nowrap; }
-.fs-tbl-borders { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; }
-.fs-tbl-borders > .fs-icon-btn { width: 100%; color: var(--text-secondary); }
-.fs-tbl-borders > .fs-icon-btn:disabled { opacity: 0.4; cursor: default; }
-.fs-tbl-color { flex: 1 1 0; justify-content: flex-start; min-width: 0; }
-.fs-tbl-color > span:last-child { overflow: hidden; text-overflow: ellipsis; }
-.fs-tbl-color > .fs-swatch { width: 14px; height: 14px; border-radius: var(--radius-xs); pointer-events: none; }
-.fs-tbl-color > .fs-swatch.is-auto { border-style: dashed; background: transparent; }
-.fs-tbl-color > .fs-swatch.is-none { background: linear-gradient(to top right, transparent calc(50% - 0.75px), var(--danger) calc(50% - 0.75px), var(--danger) calc(50% + 0.75px), transparent calc(50% + 0.75px)); }
-.fs-tbl-panel .fs-prop-ctl > .fs-icon-btn { flex: none; }
+.fd-tbl-panel .fd-panel-head { gap: var(--space-2); }
+.fd-tbl-scope { margin-left: auto; overflow: hidden; color: var(--text-muted); font-size: var(--fd-11); text-overflow: ellipsis; white-space: nowrap; }
+.fd-tbl-borders { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; }
+.fd-tbl-borders > .fd-icon-btn { width: 100%; color: var(--text-secondary); }
+.fd-tbl-borders > .fd-icon-btn:disabled { opacity: 0.4; cursor: default; }
+.fd-tbl-color { flex: 1 1 0; justify-content: flex-start; min-width: 0; }
+.fd-tbl-color > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.fd-tbl-color > .fd-swatch { width: 14px; height: 14px; border-radius: var(--radius-xs); pointer-events: none; }
+.fd-tbl-color > .fd-swatch.is-auto { border-style: dashed; background: transparent; }
+.fd-tbl-color > .fd-swatch.is-none { background: linear-gradient(to top right, transparent calc(50% - 0.75px), var(--danger) calc(50% - 0.75px), var(--danger) calc(50% + 0.75px), transparent calc(50% + 0.75px)); }
+.fd-tbl-panel .fd-prop-ctl > .fd-icon-btn { flex: none; }

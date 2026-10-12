@@ -223,7 +223,7 @@ function canvasFontOf(cs: CSSStyleDeclaration): string {
 }
 
 function specOf(node: Element | null, p: Element): FxSpec | null {
-  const host = node?.closest('[data-fx]') ?? (node?.closest('.fs-bu') ? p.querySelector('.fs-r[data-fx]') : null);
+  const host = node?.closest('[data-fx]') ?? (node?.closest('.fd-bu') ? p.querySelector('.fd-r[data-fx]') : null);
   const raw = (host as HTMLElement | null)?.dataset.fx;
   if (!raw) return null;
   try { return JSON.parse(raw) as FxSpec; } catch { return null; }
@@ -233,11 +233,11 @@ interface Raw { ch: string; skip: boolean; x: number; w: number; top: number; h:
 
 function decoOf(el: Element | null): { u: boolean; s: boolean } {
   const out = { u: false, s: false };
-  for (let n = el; n && !n.classList.contains('fs-flow'); n = n.parentElement) {
+  for (let n = el; n && !n.classList.contains('fd-flow'); n = n.parentElement) {
     const line = getComputedStyle(n).textDecorationLine;
     if (line.includes('underline')) out.u = true;
     if (line.includes('line-through')) out.s = true;
-    if (n.classList.contains('fs-p')) break;
+    if (n.classList.contains('fd-p')) break;
   }
   return out;
 }
@@ -245,7 +245,7 @@ function decoOf(el: Element | null): { u: boolean; s: boolean } {
 function gather(flow: HTMLElement, ox: number, oy: number, k: number): Raw[] {
   const out: Raw[] = [];
   const range = document.createRange();
-  Array.from(flow.querySelectorAll<HTMLElement>(':scope > p.fs-p')).forEach((p, para) => {
+  Array.from(flow.querySelectorAll<HTMLElement>(':scope > p.fd-p')).forEach((p, para) => {
     const align = getComputedStyle(p).textAlign;
     const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
     for (let t = walker.nextNode() as Text | null; t; t = walker.nextNode() as Text | null) {
@@ -402,10 +402,10 @@ function filterDef(id: string, sh: FxShadow[], W: number, H: number): string {
 }
 
 export function drawTextFx(tx: HTMLElement): void {
-  const flow = tx.querySelector<HTMLElement>(':scope > .fs-flow');
+  const flow = tx.querySelector<HTMLElement>(':scope > .fd-flow');
   if (!flow) return;
   const restore: Array<[HTMLElement, string]> = [];
-  for (let n: HTMLElement | null = tx; n && !n.classList.contains('fs-slide-inner'); n = n.parentElement) {
+  for (let n: HTMLElement | null = tx; n && !n.classList.contains('fd-slide-inner'); n = n.parentElement) {
     const t = n.style.transform;
     if (t && t !== 'none') { restore.push([n, t]); n.style.transform = 'none'; }
   }
@@ -419,10 +419,10 @@ export function drawTextFx(tx: HTMLElement): void {
   } finally {
     for (const [n, t] of restore) n.style.transform = t;
   }
-  let svg = tx.querySelector<SVGSVGElement>(':scope > svg.fs-tfx');
+  let svg = tx.querySelector<SVGSVGElement>(':scope > svg.fd-tfx');
   if (!svg) {
     svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'fs-tfx');
+    svg.setAttribute('class', 'fd-tfx');
     svg.setAttribute('aria-hidden', 'true');
     tx.appendChild(svg);
   }

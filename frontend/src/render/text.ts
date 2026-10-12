@@ -67,7 +67,7 @@ export function textHtml(body: TextBody | undefined, tc: TextCtx): string {
   if (empty && tc.showPrompt) {
     const lvl = levelStyle(tc.chain, 0);
     const prompt = tc.props.prompt || (tc.chain.kind === 'title' ? 'Click to add title' : 'Click to add text');
-    return `<p class="fs-p fs-prompt" style="text-align:${alignCss(lvl.align)};line-height:${lineHeight(lvl.lineSpacing)}"><span class="fs-r" style="${runCss(null, lvl, tc)}">${esc(prompt)}</span></p>`;
+    return `<p class="fd-p fd-prompt" style="text-align:${alignCss(lvl.align)};line-height:${lineHeight(lvl.lineSpacing)}"><span class="fd-r" style="${runCss(null, lvl, tc)}">${esc(prompt)}</span></p>`;
   }
   if (empty && !tc.showPrompt && tc.mode !== 'edit') return '';
   const counters: number[] = [];
@@ -100,7 +100,7 @@ export function textHtml(body: TextBody | undefined, tc: TextCtx): string {
       }
       const color = 'color' in bullet && bullet.color ? `;color:${colorCss(bullet.color, tc.theme)}` : '';
       const font = bullet.type === 'char' && bullet.font ? `;font-family:${esc(fontStack(bullet.font))}` : '';
-      bu = `<span class="fs-bu" contenteditable="false" style="${bstyle}${color}${font};width:${px(-indent)};text-indent:0">${esc(label)}</span>`;
+      bu = `<span class="fd-bu" contenteditable="false" style="${bstyle}${color}${font};width:${px(-indent)};text-indent:0">${esc(label)}</span>`;
     } else {
       counters[level] = 0;
     }
@@ -118,11 +118,11 @@ export function textHtml(body: TextBody | undefined, tc: TextCtx): string {
       const text = r.t.replace(/‹#›/g, String(tc.slideNumber));
       const link = r.link ? ` data-link="${esc('url' in r.link ? r.link.url : '#' + r.link.slide)}"` : '';
       const css = runCss(r, lvl, tc);
-      runs += `<span class="fs-r" style="${css}" data-s="${css}"${link}${runHasFx(r) ? fxAttr(fxSpec(r, tc.theme)) : ''}>${esc(text)}</span>`;
+      runs += `<span class="fd-r" style="${css}" data-s="${css}"${link}${runHasFx(r) ? fxAttr(fxSpec(r, tc.theme)) : ''}>${esc(text)}</span>`;
     }
     const tailCss = runCss(p.runs[0] ?? null, lvl, tc);
-    const tail = !p.runs.some((r) => r.t && r.t !== '\n') ? `<span class="fs-r" style="${tailCss}" data-s="${tailCss}"><br></span>` : '';
-    out += `<p class="fs-p" data-lvl="${level}" style="${styles.join(';')}">${bu}${runs}${tail}</p>`;
+    const tail = !p.runs.some((r) => r.t && r.t !== '\n') ? `<span class="fd-r" style="${tailCss}" data-s="${tailCss}"><br></span>` : '';
+    out += `<p class="fd-p" data-lvl="${level}" style="${styles.join(';')}">${bu}${runs}${tail}</p>`;
   });
   return out;
 }
@@ -179,7 +179,7 @@ function inlineDelta(node: HTMLElement, base: string | undefined): Partial<Run> 
 
 export function readParas(flow: HTMLElement, original: Para[]): Para[] {
   const out: Para[] = [];
-  const ps = Array.from(flow.querySelectorAll<HTMLElement>(':scope > p.fs-p'));
+  const ps = Array.from(flow.querySelectorAll<HTMLElement>(':scope > p.fd-p'));
   ps.forEach((pEl, i) => {
     const base = original[i] ?? original[original.length - 1] ?? { runs: [] };
     const runs: Run[] = [];
@@ -198,12 +198,12 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
         return;
       }
       if (!(node instanceof HTMLElement)) return;
-      if (node.classList.contains('fs-bu')) return;
+      if (node.classList.contains('fd-bu')) return;
       if (node.tagName === 'BR') {
         if (node.nextSibling || node.parentElement?.nextSibling) runs.push({ ...inherited, t: '\n' });
         return;
       }
-      if (node.classList.contains('fs-math')) {
+      if (node.classList.contains('fd-math')) {
         const m = mathOf(node);
         let props: Omit<Run, 't'> = {};
         try { props = JSON.parse(node.dataset.mr || '{}') as Omit<Run, 't'>; } catch { props = {}; }
@@ -211,7 +211,7 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
         return;
       }
       let style = inherited;
-      const isRun = node.classList.contains('fs-r');
+      const isRun = node.classList.contains('fd-r');
       if (isRun) {
         const src = base.runs.filter((r) => r.t !== '\n' && !r.math)[runIndex++] ?? proto;
         style = strip(src);

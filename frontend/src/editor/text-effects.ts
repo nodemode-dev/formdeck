@@ -28,11 +28,11 @@ const nearest = (list: number[], v: number): number => list.reduce((b, x) => (Ma
 const isTextShape = (e: SlideElement): e is ShapeElement => e.type === 'shape' && !isLineGeom(e.geom ?? 'rect') && !e.conn;
 
 function flowOf(ed: Editor, id: string): HTMLElement | null {
-  return ed.stage.view?.nodeFor(id)?.querySelector<HTMLElement>('.fs-flow') ?? null;
+  return ed.stage.view?.nodeFor(id)?.querySelector<HTMLElement>('.fd-flow') ?? null;
 }
 
 function paraNodes(flow: HTMLElement): HTMLElement[] {
-  return Array.from(flow.querySelectorAll<HTMLElement>(':scope > p.fs-p'));
+  return Array.from(flow.querySelectorAll<HTMLElement>(':scope > p.fd-p'));
 }
 
 function pointOffset(p: HTMLElement, node: Node, off: number): number {
@@ -44,7 +44,7 @@ function pointOffset(p: HTMLElement, node: Node, off: number): number {
       return true;
     }
     if (n.nodeType === Node.TEXT_NODE) { count += (n as Text).data.length; return false; }
-    if (n instanceof HTMLElement && n.classList.contains('fs-bu')) return false;
+    if (n instanceof HTMLElement && n.classList.contains('fd-bu')) return false;
     if (n instanceof HTMLElement && n.tagName === 'BR') { if (n.nextSibling || n.parentElement?.nextSibling) count += 1; return false; }
     for (const c of Array.from(n.childNodes)) if (walk(c)) return true;
     return false;
@@ -55,7 +55,7 @@ function pointOffset(p: HTMLElement, node: Node, off: number): number {
 
 function textLen(n: Node): number {
   if (n.nodeType === Node.TEXT_NODE) return (n as Text).data.length;
-  if (n instanceof HTMLElement && n.classList.contains('fs-bu')) return 0;
+  if (n instanceof HTMLElement && n.classList.contains('fd-bu')) return 0;
   if (n instanceof HTMLElement && n.tagName === 'BR') return n.nextSibling || n.parentElement?.nextSibling ? 1 : 0;
   return Array.from(n.childNodes).reduce((s, c) => s + textLen(c), 0);
 }
@@ -83,7 +83,7 @@ function restoreSnap(flow: HTMLElement, snap: Snap): void {
     const p = ps[pi];
     if (!p) return null;
     let left = off;
-    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.parentElement?.closest('.fs-bu') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.parentElement?.closest('.fd-bu') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
     let last: Text | null = null;
     for (let t = walker.nextNode() as Text | null; t; t = walker.nextNode() as Text | null) {
       last = t;
@@ -199,27 +199,27 @@ export function newWordArt(ed: Editor, st: WordArtStyle): void {
 function anchorFor(sel: string): HTMLElement {
   const b = document.querySelector<HTMLElement>(sel);
   if (b && b.offsetParent) return b;
-  return document.querySelector<HTMLElement>('.fs-options') ?? document.body;
+  return document.querySelector<HTMLElement>('.fd-options') ?? document.body;
 }
 
 export function registerTextFxCommands(cmds: Commands, E: () => Editor | null): void {
   const textSel = (): boolean => { const ed = E(); return !!ed && (!!ed.stage.editing || ed.selected().some(isTextShape)); };
   const list: Command[] = [
-    { id: 'insert-wordart', label: 'WordArt...', icon: 'wordArt', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) wordArtGallery(anchorFor('.fs-options [data-cmd="insert-wordart"]'), editorTheme(ed), { style: (st) => newWordArt(ed, st) }); } },
+    { id: 'insert-wordart', label: 'WordArt...', icon: 'wordArt', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) wordArtGallery(anchorFor('.fd-options [data-cmd="insert-wordart"]'), editorTheme(ed), { style: (st) => newWordArt(ed, st) }); } },
     { id: 'text-effects', label: 'Text Effects...', icon: 'textEffects', enabled: textSel, run: () => {
       const ed = E();
       if (!ed) return;
       const snap = snapOf(ed);
-      wordArtGallery(anchorFor('.fs-options [data-cmd="text-effects"]'), editorTheme(ed), { style: (st) => applyRunFx(ed, styleRun(st), 'WordArt style', snap), warp: (p) => setWarp(ed, p === 'textNoShape' ? undefined : { preset: p }, 'Transform text'), current: activeWarp(probe(ed)?.el.text)?.preset });
+      wordArtGallery(anchorFor('.fd-options [data-cmd="text-effects"]'), editorTheme(ed), { style: (st) => applyRunFx(ed, styleRun(st), 'WordArt style', snap), warp: (p) => setWarp(ed, p === 'textNoShape' ? undefined : { preset: p }, 'Transform text'), current: activeWarp(probe(ed)?.el.text)?.preset });
     } },
-    { id: 'text-transform', label: 'Transform Text...', icon: 'textWarp', enabled: textSel, run: () => { const ed = E(); if (ed) wordArtGallery(anchorFor('.fs-tfx-panel [data-ta="warp"]'), editorTheme(ed), { warp: (p) => setWarp(ed, p === 'textNoShape' ? undefined : { preset: p }, 'Transform text'), current: activeWarp(probe(ed)?.el.text)?.preset }); } },
+    { id: 'text-transform', label: 'Transform Text...', icon: 'textWarp', enabled: textSel, run: () => { const ed = E(); if (ed) wordArtGallery(anchorFor('.fd-tfx-panel [data-ta="warp"]'), editorTheme(ed), { warp: (p) => setWarp(ed, p === 'textNoShape' ? undefined : { preset: p }, 'Transform text'), current: activeWarp(probe(ed)?.el.text)?.preset }); } },
     { id: 'clear-text-effects', label: 'Clear Text Effects', enabled: textSel, run: () => { const ed = E(); if (!ed) return; applyRunFx(ed, { fill: undefined, ln: undefined, fx: undefined }, 'Clear text effects', snapOf(ed)); if (!ed.stage.editing) setWarp(ed, undefined, 'Clear text effects'); } },
   ];
   cmds.add(...list);
 }
 
-const row = (label: string, ctl: string, attr = ''): string => `<div class="fs-prop-row"${attr}><span class="fs-prop-label">${label}</span><div class="fs-prop-ctl">${ctl}</div></div>`;
-const swatch = (a: string, title: string): string => `<button class="fs-btn fs-btn-sm" type="button" data-ta="${a}" title="${title}" aria-label="${title}"><span class="fs-tfx-swatch"></span></button>`;
+const row = (label: string, ctl: string, attr = ''): string => `<div class="fd-prop-row"${attr}><span class="fd-prop-label">${label}</span><div class="fd-prop-ctl">${ctl}</div></div>`;
+const swatch = (a: string, title: string): string => `<button class="fd-btn fd-btn-sm" type="button" data-ta="${a}" title="${title}" aria-label="${title}"><span class="fd-tfx-swatch"></span></button>`;
 
 export class TextFxPanel {
   readonly el: HTMLElement;
@@ -230,19 +230,19 @@ export class TextFxPanel {
   private warpKey = '';
 
   constructor() {
-    this.el = el(`<div class="fs-prop-section fs-tfx-panel" hidden>
-<div class="fs-panel-head"><span class="fs-panel-title">Text effects</span></div>
-${row('Style', `<button class="fs-btn fs-btn-sm" type="button" data-ta="styles">${icon('wordArt', 14)}WordArt styles</button>`)}
+    this.el = el(`<div class="fd-prop-section fd-tfx-panel" hidden>
+<div class="fd-panel-head"><span class="fd-panel-title">Text effects</span></div>
+${row('Style', `<button class="fd-btn fd-btn-sm" type="button" data-ta="styles">${icon('wordArt', 14)}WordArt styles</button>`)}
 ${row('Text fill', `<select data-xf="fill" aria-label="Text fill"><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="none">No fill</option></select>${swatch('fill1', 'Fill colour')}${swatch('fill2', 'Gradient end colour')}`)}
 ${row('Direction', `<select data-xf="angle" aria-label="Gradient direction"><option value="0">Left to right</option><option value="180">Right to left</option><option value="90">Top to bottom</option><option value="270">Bottom to top</option><option value="45">Diagonal down</option><option value="315">Diagonal up</option><option value="radial">From centre</option></select>`, ' data-xr="grad"')}
-${row('Outline', `<select data-xf="ln" aria-label="Text outline"><option value="none">None</option><option value="solid">Solid</option><option value="dash">Dash</option><option value="dot">Dot</option><option value="dashDot">Dash dot</option><option value="longDash">Long dash</option></select>${swatch('lncolor', 'Outline colour')}<label class="fs-num" title="Outline width"><input type="number" min="0.25" max="20" step="0.25" data-xf="lnw" aria-label="Outline width"><span class="fs-unit">pt</span></label>`)}
+${row('Outline', `<select data-xf="ln" aria-label="Text outline"><option value="none">None</option><option value="solid">Solid</option><option value="dash">Dash</option><option value="dot">Dot</option><option value="dashDot">Dash dot</option><option value="longDash">Long dash</option></select>${swatch('lncolor', 'Outline colour')}<label class="fd-num" title="Outline width"><input type="number" min="0.25" max="20" step="0.25" data-xf="lnw" aria-label="Outline width"><span class="fd-unit">pt</span></label>`)}
 ${row('Shadow', `<select data-xf="shadow" aria-label="Text shadow"><option value="none">None</option><option value="soft">Soft</option><option value="below">Below</option><option value="hard">Hard</option><option value="long">Long</option></select>`)}
 ${row('Glow', `<select data-xf="glow" aria-label="Text glow"><option value="none">None</option><option value="5">Small</option><option value="10">Medium</option><option value="18">Large</option></select>${swatch('glowcolor', 'Glow colour')}`)}
 ${row('Reflection', `<select data-xf="refl" aria-label="Text reflection"><option value="none">None</option><option value="0.3">Tight</option><option value="0.5">Half</option><option value="0.9">Full</option></select>`)}
-${row('Transform', `<button class="fs-btn fs-btn-sm" type="button" data-ta="warp" title="Transform"><svg class="fs-tfx-warp-icon" viewBox="0 0 40 28" width="28" height="20" aria-hidden="true"></svg><span class="fs-tfx-warp-name">No transform</span></button>`)}
-${row('Amount', '<input class="fs-slider" type="range" min="0" max="1000" step="1" data-xf="adj0" aria-label="Transform amount">', ' data-xr="adj0"')}
-${row('Amount 2', '<input class="fs-slider" type="range" min="0" max="1000" step="1" data-xf="adj1" aria-label="Second transform amount">', ' data-xr="adj1"')}
-${row('', '<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-ta="clear">Clear text effects</button>')}
+${row('Transform', `<button class="fd-btn fd-btn-sm" type="button" data-ta="warp" title="Transform"><svg class="fd-tfx-warp-icon" viewBox="0 0 40 28" width="28" height="20" aria-hidden="true"></svg><span class="fd-tfx-warp-name">No transform</span></button>`)}
+${row('Amount', '<input class="fd-slider" type="range" min="0" max="1000" step="1" data-xf="adj0" aria-label="Transform amount">', ' data-xr="adj0"')}
+${row('Amount 2', '<input class="fd-slider" type="range" min="0" max="1000" step="1" data-xf="adj1" aria-label="Second transform amount">', ' data-xr="adj1"')}
+${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="clear">Clear text effects</button>')}
 </div>`);
     const keep = (): void => { const ed = this.ed; this.snap = ed ? snapOf(ed) ?? this.snap : null; };
     this.el.addEventListener('pointerdown', keep, true);
@@ -283,26 +283,26 @@ ${row('', '<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-ta="
     setValue(this.q('[data-xf="fill"]'), kind);
     const g = r.fill?.type === 'gradient' ? r.fill : null;
     const c1 = g ? g.stops[0]?.color : r.fill?.type === 'solid' ? r.fill.color : r.color ?? 'tx1';
-    setStyleVar(this.q('[data-ta="fill1"] .fs-tfx-swatch'), '--swatch', kind === 'none' ? 'transparent' : colorCss(c1 ?? 'tx1', theme));
-    setStyleVar(this.q('[data-ta="fill2"] .fs-tfx-swatch'), '--swatch', g ? colorCss(g.stops[g.stops.length - 1]?.color ?? 'tx1', theme) : 'transparent');
+    setStyleVar(this.q('[data-ta="fill1"] .fd-tfx-swatch'), '--swatch', kind === 'none' ? 'transparent' : colorCss(c1 ?? 'tx1', theme));
+    setStyleVar(this.q('[data-ta="fill2"] .fd-tfx-swatch'), '--swatch', g ? colorCss(g.stops[g.stops.length - 1]?.color ?? 'tx1', theme) : 'transparent');
     setHidden(this.q('[data-ta="fill1"]'), kind === 'none');
     setHidden(this.q('[data-ta="fill2"]'), kind !== 'gradient');
     setHidden(this.q('[data-xr="grad"]'), kind !== 'gradient');
     if (g) setValue(this.q('[data-xf="angle"]'), g.kind === 'radial' ? 'radial' : String(((Math.round(g.angle ?? 90) % 360) + 360) % 360));
     const ln = r.ln && r.ln.type !== 'none' ? r.ln : null;
     setValue(this.q('[data-xf="ln"]'), ln ? ln.dash ?? 'solid' : 'none');
-    setStyleVar(this.q('[data-ta="lncolor"] .fs-tfx-swatch'), '--swatch', ln ? colorCss(ln.color ?? 'tx1', theme) : 'transparent');
+    setStyleVar(this.q('[data-ta="lncolor"] .fd-tfx-swatch'), '--swatch', ln ? colorCss(ln.color ?? 'tx1', theme) : 'transparent');
     setValue(this.q('[data-xf="lnw"]'), String(ln?.width ?? 1));
     const fx = r.fx ?? {};
     setValue(this.q('[data-xf="shadow"]'), fx.shadow ? Object.entries(SHADOWS).find(([, v]) => v.dist === fx.shadow?.dist && v.blur === fx.shadow?.blur)?.[0] ?? 'soft' : 'none');
     setValue(this.q('[data-xf="glow"]'), fx.glow ? String(nearest(GLOWS, fx.glow.radius ?? 10)) : 'none');
-    setStyleVar(this.q('[data-ta="glowcolor"] .fs-tfx-swatch'), '--swatch', fx.glow ? colorCss(fx.glow.color ?? 'accent1', theme) : 'transparent');
+    setStyleVar(this.q('[data-ta="glowcolor"] .fd-tfx-swatch'), '--swatch', fx.glow ? colorCss(fx.glow.color ?? 'accent1', theme) : 'transparent');
     setHidden(this.q('[data-ta="glowcolor"]'), !fx.glow);
     setValue(this.q('[data-xf="refl"]'), fx.reflection ? String(nearest(REFLECTIONS, fx.reflection.size ?? 0.5)) : 'none');
     const warp = activeWarp(p.el.text);
     const preset = warp?.preset ?? 'textNoShape';
-    if (this.warpKey !== preset) { this.warpKey = preset; this.q('.fs-tfx-warp-icon').innerHTML = warpPreview(preset, 40, 28); }
-    setText(this.q('.fs-tfx-warp-name'), warpLabel(preset));
+    if (this.warpKey !== preset) { this.warpKey = preset; this.q('.fd-tfx-warp-icon').innerHTML = warpPreview(preset, 40, 28); }
+    setText(this.q('.fd-tfx-warp-name'), warpLabel(preset));
     const ranges = warp ? warpAdjRanges(warp.preset) : [];
     for (const i of [0, 1]) {
       const rg = ranges[i];
@@ -449,7 +449,7 @@ class WarpHandles {
         let n = this.nodes[i];
         if (!n) {
           n = document.createElement('div');
-          n.className = 'fs-warp-handle';
+          n.className = 'fd-warp-handle';
           n.title = 'Adjust the transform';
           n.dataset.i = String(i);
           n.addEventListener('pointerdown', (e) => this.down(e, Number((e.currentTarget as HTMLElement).dataset.i)));

@@ -195,45 +195,45 @@ class EquationDialog extends Dialog {
 
   constructor() {
     super('Equation', 680);
-    q(this.scrim, '.fs-dialog').classList.add('fs-eq-dialog');
-    const pal = el(`<div class="fs-eq-palette">
-<div class="fs-eq-label">Structures</div>
-<div class="fs-eq-cats" role="group" aria-label="Structures">${STRUCTURES.map((g) => `<button type="button" class="fs-eq-cat" data-v="${g.id}" title="${g.name}" aria-label="${g.name}">${g.label}</button>`).join('')}</div>
-<div class="fs-eq-variants"></div>
-<div class="fs-eq-label">Symbols</div>
-<div class="fs-seg is-quiet fs-eq-symseg" role="group" aria-label="Symbol group">${SYMBOLS.map((g) => `<button type="button" data-v="${g.name}">${g.name}</button>`).join('')}</div>
-<div class="fs-eq-symbols"></div>
+    q(this.scrim, '.fd-dialog').classList.add('fd-eq-dialog');
+    const pal = el(`<div class="fd-eq-palette">
+<div class="fd-eq-label">Structures</div>
+<div class="fd-eq-cats" role="group" aria-label="Structures">${STRUCTURES.map((g) => `<button type="button" class="fd-eq-cat" data-v="${g.id}" title="${g.name}" aria-label="${g.name}">${g.label}</button>`).join('')}</div>
+<div class="fd-eq-variants"></div>
+<div class="fd-eq-label">Symbols</div>
+<div class="fd-seg is-quiet fd-eq-symseg" role="group" aria-label="Symbol group">${SYMBOLS.map((g) => `<button type="button" data-v="${g.name}">${g.name}</button>`).join('')}</div>
+<div class="fd-eq-symbols"></div>
 </div>`);
-    const vhost = q(pal, '.fs-eq-variants');
+    const vhost = q(pal, '.fd-eq-variants');
     for (const g of STRUCTURES) {
-      const grid = el(`<div class="fs-eq-grid" data-g="${g.id}" hidden>${g.items.map((x, i) => `<button type="button" class="fs-eq-item" data-i="${i}" title="${x.title}" aria-label="${x.title}">${x.label}</button>`).join('')}</div>`);
+      const grid = el(`<div class="fd-eq-grid" data-g="${g.id}" hidden>${g.items.map((x, i) => `<button type="button" class="fd-eq-item" data-i="${i}" title="${x.title}" aria-label="${x.title}">${x.label}</button>`).join('')}</div>`);
       grid.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('[data-i]'); if (b) this.insert(g.items[Number(b.dataset.i)].tex); });
       this.variants.set(g.id, grid);
       vhost.appendChild(grid);
     }
-    const shost = q(pal, '.fs-eq-symbols');
+    const shost = q(pal, '.fd-eq-symbols');
     for (const g of SYMBOLS) {
-      const grid = el(`<div class="fs-eq-symgrid" data-g="${g.name}" hidden>${g.items.map((x, i) => `<button type="button" class="fs-eq-sym" data-i="${i}" title="${x.title}" aria-label="${x.title}">${x.label}</button>`).join('')}</div>`);
+      const grid = el(`<div class="fd-eq-symgrid" data-g="${g.name}" hidden>${g.items.map((x, i) => `<button type="button" class="fd-eq-sym" data-i="${i}" title="${x.title}" aria-label="${x.title}">${x.label}</button>`).join('')}</div>`);
       grid.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('[data-i]'); if (b) this.insert(g.items[Number(b.dataset.i)].tex); });
       this.symGrids.set(g.name, grid);
       shost.appendChild(grid);
     }
-    this.catSeg = q(pal, '.fs-eq-cats');
-    this.symSeg = q(pal, '.fs-eq-symseg');
+    this.catSeg = q(pal, '.fd-eq-cats');
+    this.symSeg = q(pal, '.fd-eq-symseg');
     this.catSeg.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('[data-v]'); if (b?.dataset.v) { this.cat = b.dataset.v; this.syncPalette(); } });
     this.symSeg.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('[data-v]'); if (b?.dataset.v) { this.symCat = b.dataset.v; this.syncPalette(); } });
-    const editor = el(`<div class="fs-eq-editor">
-<div class="fs-eq-bar"><div class="fs-seg is-quiet fs-eq-mode" role="group" aria-label="Input"><button type="button" data-v="tex">LaTeX</button><button type="button" data-v="linear">Linear</button></div><label class="fs-check"><input type="checkbox" data-f="display"><span>Display equation on its own line</span></label></div>
-<textarea class="fs-input fs-eq-input" rows="3" spellcheck="false" autocomplete="off" aria-label="Equation"></textarea>
-<div class="fs-eq-preview" aria-live="polite"><div class="fs-eq-render"></div><span class="fs-note fs-eq-loading" hidden>Loading the equation editor</span></div>
-<p class="fs-note fs-eq-error"></p>
+    const editor = el(`<div class="fd-eq-editor">
+<div class="fd-eq-bar"><div class="fd-seg is-quiet fd-eq-mode" role="group" aria-label="Input"><button type="button" data-v="tex">LaTeX</button><button type="button" data-v="linear">Linear</button></div><label class="fd-check"><input type="checkbox" data-f="display"><span>Display equation on its own line</span></label></div>
+<textarea class="fd-input fd-eq-input" rows="3" spellcheck="false" autocomplete="off" aria-label="Equation"></textarea>
+<div class="fd-eq-preview" aria-live="polite"><div class="fd-eq-render"></div><span class="fd-note fd-eq-loading" hidden>Loading the equation editor</span></div>
+<p class="fd-note fd-eq-error"></p>
 </div>`);
     this.input = q<HTMLTextAreaElement>(editor, 'textarea');
-    this.preview = q(editor, '.fs-eq-render');
-    this.loading = q(editor, '.fs-eq-loading');
-    this.error = q(editor, '.fs-eq-error');
+    this.preview = q(editor, '.fd-eq-render');
+    this.loading = q(editor, '.fd-eq-loading');
+    this.error = q(editor, '.fd-eq-error');
     this.display = q<HTMLInputElement>(editor, '[data-f="display"]');
-    this.modeSeg = q(editor, '.fs-eq-mode');
+    this.modeSeg = q(editor, '.fd-eq-mode');
     this.modeSeg.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('[data-v]'); if (b?.dataset.v) this.setMode(b.dataset.v === 'linear' ? 'linear' : 'tex'); });
     this.input.addEventListener('input', () => this.schedule());
     this.input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); this.finish(true); } });

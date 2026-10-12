@@ -17,7 +17,7 @@ export class PopupMenu {
   onClose: (() => void) | null = null;
 
   constructor(private readonly commands: Commands, private readonly parent: PopupMenu | null = null, standalone = false) {
-    this.panel = el('<div class="fs-menu" role="menu" hidden></div>');
+    this.panel = el('<div class="fd-menu" role="menu" hidden></div>');
     document.getElementById('overlay-root')?.appendChild(this.panel);
     this.panel.addEventListener('contextmenu', (e) => e.preventDefault());
     this.panel.addEventListener('scroll', () => { if (this.panel.scrollTop !== this.subTop) this.closeSub(); }, { passive: true });
@@ -40,10 +40,10 @@ export class PopupMenu {
     this.seps = [];
     this.panel.classList.toggle('has-checks', items.some((i) => typeof i === 'string' && i !== '-' && !!this.commands.get(i)?.checked));
     for (const item of items) {
-      if (item === '-') { const s = el('<div class="fs-menu-sep"></div>'); this.seps.push(s); this.panel.appendChild(s); continue; }
+      if (item === '-') { const s = el('<div class="fd-menu-sep"></div>'); this.seps.push(s); this.panel.appendChild(s); continue; }
       if (isSub(item)) {
-        const node = el<HTMLButtonElement>(`<button class="fs-menu-item fs-menu-sub" role="menuitem" aria-haspopup="menu" type="button"><span class="fs-menu-check"></span><span class="fs-menu-label"></span><span class="fs-menu-keys">${icon('chevronRight', 12)}</span></button>`);
-        setText(q(node, '.fs-menu-label'), item.label);
+        const node = el<HTMLButtonElement>(`<button class="fd-menu-item fd-menu-sub" role="menuitem" aria-haspopup="menu" type="button"><span class="fd-menu-check"></span><span class="fd-menu-label"></span><span class="fd-menu-keys">${icon('chevronRight', 12)}</span></button>`);
+        setText(q(node, '.fd-menu-label'), item.label);
         const menu = new PopupMenu(this.commands, this);
         menu.setItems(item.items);
         node.addEventListener('pointerenter', () => this.showSub(menu, node));
@@ -54,8 +54,8 @@ export class PopupMenu {
       }
       const cmd = this.commands.get(item);
       if (!cmd) continue;
-      const node = el<HTMLButtonElement>(`<button class="fs-menu-item" role="menuitem" type="button"><span class="fs-menu-check">${icon('check', 14)}</span><span class="fs-menu-label"></span><span class="fs-menu-keys"></span></button>`);
-      setText(q(node, '.fs-menu-keys'), this.commands.keyLabel(cmd));
+      const node = el<HTMLButtonElement>(`<button class="fd-menu-item" role="menuitem" type="button"><span class="fd-menu-check">${icon('check', 14)}</span><span class="fd-menu-label"></span><span class="fd-menu-keys"></span></button>`);
+      setText(q(node, '.fd-menu-keys'), this.commands.keyLabel(cmd));
       node.addEventListener('pointerenter', () => this.closeSub());
       node.addEventListener('click', () => { this.root().close(); this.commands.run(item); });
       this.rows.push({ id: item, node });
@@ -114,7 +114,7 @@ export class PopupMenu {
     for (const r of this.rows) {
       const cmd = this.commands.get(r.id);
       if (!cmd) continue;
-      setText(q(r.node, '.fs-menu-label'), this.commands.label(cmd));
+      setText(q(r.node, '.fd-menu-label'), this.commands.label(cmd));
       setDisabled(r.node, !this.commands.enabled(cmd));
       setClass(r.node, 'is-checked', !!cmd.checked?.());
     }
@@ -138,7 +138,7 @@ export class MenuBar {
 
   constructor(host: HTMLElement, commands: Commands, defs: MenuDef[]) {
     defs.forEach((def, i) => {
-      const btn = el<HTMLButtonElement>('<button class="fs-menu-btn" type="button" aria-haspopup="menu"></button>');
+      const btn = el<HTMLButtonElement>('<button class="fd-menu-btn" type="button" aria-haspopup="menu"></button>');
       btn.textContent = def.label;
       host.appendChild(btn);
       const menu = new PopupMenu(commands);

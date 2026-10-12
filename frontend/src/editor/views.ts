@@ -107,19 +107,19 @@ const WKEY = 'formdeck.sorter.w';
 const REVIEW: Record<string, string> = { review: 'Ready for review', changes: 'Changes requested', approved: 'Approved' };
 
 class Sorter extends Pane {
-  readonly root = el(`<div class="fs-av-pane fs-sort" hidden>
-<div class="fs-sort-head"><span class="fs-sort-count"></span><span class="fs-sort-sel"></span><label class="fs-sort-zoom" title="Thumbnail size">${icon('zoomOut', 14)}<input class="fs-slider" type="range" min="120" max="360" step="10" aria-label="Thumbnail size">${icon('zoomIn', 14)}</label></div>
-<div class="fs-sort-scroll" tabindex="0" role="listbox" aria-label="Slides" aria-multiselectable="true"><div class="fs-sort-body"><div class="fs-sort-grid"></div><div class="fs-sort-drop" hidden></div></div>
-<div class="fs-empty" hidden><span class="fs-empty-icon">${icon('sorter', 20)}</span><span class="fs-empty-title">No slides yet</span><button class="fs-btn" type="button" data-act="new">${icon('slideAdd', 14)}New slide</button></div></div>
+  readonly root = el(`<div class="fd-av-pane fd-sort" hidden>
+<div class="fd-sort-head"><span class="fd-sort-count"></span><span class="fd-sort-sel"></span><label class="fd-sort-zoom" title="Thumbnail size">${icon('zoomOut', 14)}<input class="fd-slider" type="range" min="120" max="360" step="10" aria-label="Thumbnail size">${icon('zoomIn', 14)}</label></div>
+<div class="fd-sort-scroll" tabindex="0" role="listbox" aria-label="Slides" aria-multiselectable="true"><div class="fd-sort-body"><div class="fd-sort-grid"></div><div class="fd-sort-drop" hidden></div></div>
+<div class="fd-empty" hidden><span class="fd-empty-icon">${icon('sorter', 20)}</span><span class="fd-empty-title">No slides yet</span><button class="fd-btn" type="button" data-act="new">${icon('slideAdd', 14)}New slide</button></div></div>
 </div>`);
-  private readonly count = q(this.root, '.fs-sort-count');
-  private readonly selText = q(this.root, '.fs-sort-sel');
-  private readonly zoom = q<HTMLInputElement>(this.root, '.fs-sort-zoom input');
-  private readonly scroll = q(this.root, '.fs-sort-scroll');
-  private readonly body = q(this.root, '.fs-sort-body');
-  private readonly grid = q(this.root, '.fs-sort-grid');
-  private readonly drop = q(this.root, '.fs-sort-drop');
-  private readonly empty = q(this.root, '.fs-empty');
+  private readonly count = q(this.root, '.fd-sort-count');
+  private readonly selText = q(this.root, '.fd-sort-sel');
+  private readonly zoom = q<HTMLInputElement>(this.root, '.fd-sort-zoom input');
+  private readonly scroll = q(this.root, '.fd-sort-scroll');
+  private readonly body = q(this.root, '.fd-sort-body');
+  private readonly grid = q(this.root, '.fd-sort-grid');
+  private readonly drop = q(this.root, '.fd-sort-drop');
+  private readonly empty = q(this.root, '.fd-empty');
   private readonly cards = new Map<string, Card>();
   private readonly sections = new Map<string, HTMLElement>();
   private readonly collapsed = new Set<string>();
@@ -194,9 +194,9 @@ class Sorter extends Pane {
   }
 
   private card(id: string): Card {
-    const node = el(`<div class="fs-sort-card" role="option" aria-selected="false"><div class="fs-sort-frame"></div><div class="fs-sort-meta"><span class="fs-sort-num"></span><span class="fs-sort-flags"></span></div></div>`);
+    const node = el(`<div class="fd-sort-card" role="option" aria-selected="false"><div class="fd-sort-frame"></div><div class="fd-sort-meta"><span class="fd-sort-num"></span><span class="fd-sort-flags"></span></div></div>`);
     node.dataset.key = id;
-    const c: Card = { node, frame: q(node, '.fs-sort-frame'), num: q(node, '.fs-sort-num'), flags: q(node, '.fs-sort-flags'), view: null };
+    const c: Card = { node, frame: q(node, '.fd-sort-frame'), num: q(node, '.fd-sort-num'), flags: q(node, '.fd-sort-flags'), view: null };
     this.cards.set(id, c);
     this.io.observe(node);
     return c;
@@ -219,11 +219,11 @@ class Sorter extends Pane {
   private section(sec: Section, count: number): HTMLElement {
     let head = this.sections.get(sec.id);
     if (!head) {
-      const h = el(`<div class="fs-sort-section"><button class="fs-sort-sec-toggle" type="button" aria-expanded="true" title="Collapse or expand">${icon('chevronDown', 14)}</button><span class="fs-sort-sec-name" title="Double-click to rename"></span><input class="fs-input fs-sort-sec-input" type="text" spellcheck="false" aria-label="Section name" hidden><span class="fs-sort-sec-count"></span></div>`);
+      const h = el(`<div class="fd-sort-section"><button class="fd-sort-sec-toggle" type="button" aria-expanded="true" title="Collapse or expand">${icon('chevronDown', 14)}</button><span class="fd-sort-sec-name" title="Double-click to rename"></span><input class="fd-input fd-sort-sec-input" type="text" spellcheck="false" aria-label="Section name" hidden><span class="fd-sort-sec-count"></span></div>`);
       h.dataset.section = sec.id;
-      const name = q(h, '.fs-sort-sec-name');
-      const input = q<HTMLInputElement>(h, '.fs-sort-sec-input');
-      q(h, '.fs-sort-sec-toggle').addEventListener('click', () => {
+      const name = q(h, '.fd-sort-sec-name');
+      const input = q<HTMLInputElement>(h, '.fd-sort-sec-input');
+      q(h, '.fd-sort-sec-toggle').addEventListener('click', () => {
         if (this.collapsed.has(sec.id)) this.collapsed.delete(sec.id); else this.collapsed.add(sec.id);
         this.refresh();
       });
@@ -263,11 +263,11 @@ class Sorter extends Pane {
       this.sections.set(sec.id, h);
       head = h;
     }
-    setText(q(head, '.fs-sort-sec-name'), sec.name);
-    setText(q(head, '.fs-sort-sec-count'), String(count));
+    setText(q(head, '.fd-sort-sec-name'), sec.name);
+    setText(q(head, '.fd-sort-sec-count'), String(count));
     const shut = this.collapsed.has(sec.id);
     setClass(head, 'is-collapsed', shut);
-    q(head, '.fs-sort-sec-toggle').setAttribute('aria-expanded', String(!shut));
+    q(head, '.fd-sort-sec-toggle').setAttribute('aria-expanded', String(!shut));
     return head;
   }
 
@@ -334,7 +334,7 @@ class Sorter extends Pane {
     const st = s.review?.status;
     const comments = (deck.comments ?? []).filter((c) => c.slide === s.id && !c.resolved).length;
     const tr = s.transition && s.transition.type !== 'none' ? s.transition.type : '';
-    return `${comments ? `<span class="fs-sort-flag" title="${comments} open comment${comments === 1 ? '' : 's'}">${icon('comment', 12)}${comments}</span>` : ''}${tr ? `<span class="fs-sort-flag" title="Transition: ${escapeHtml(tr)}">${icon('transition', 12)}</span>` : ''}${s.hidden ? `<span class="fs-sort-flag" title="Hidden in the show">${icon('eyeOff', 12)}</span>` : ''}${st && REVIEW[st] ? `<span class="fs-sort-dot is-${st}" title="${REVIEW[st]}"></span>` : ''}`;
+    return `${comments ? `<span class="fd-sort-flag" title="${comments} open comment${comments === 1 ? '' : 's'}">${icon('comment', 12)}${comments}</span>` : ''}${tr ? `<span class="fd-sort-flag" title="Transition: ${escapeHtml(tr)}">${icon('transition', 12)}</span>` : ''}${s.hidden ? `<span class="fd-sort-flag" title="Hidden in the show">${icon('eyeOff', 12)}</span>` : ''}${st && REVIEW[st] ? `<span class="fd-sort-dot is-${st}" title="${REVIEW[st]}"></span>` : ''}`;
   }
 
   onDoc(e: DocEvent): void {
@@ -356,7 +356,7 @@ class Sorter extends Pane {
   }
 
   private idAt(t: EventTarget | null): string | null {
-    return ((t as HTMLElement | null)?.closest?.('.fs-sort-card') as HTMLElement | null)?.dataset.key ?? null;
+    return ((t as HTMLElement | null)?.closest?.('.fd-sort-card') as HTMLElement | null)?.dataset.key ?? null;
   }
 
   private down(e: PointerEvent): void {
@@ -481,7 +481,7 @@ const isShape = (e: SlideElement): e is ShapeElement => e.type === 'shape';
 const findTitle = (list: SlideElement[]): ShapeElement | undefined => list.filter(isShape).find((e) => !!e.ph && TITLE_KINDS.has(e.ph.type));
 const findBody = (list: SlideElement[]): ShapeElement | undefined => list.filter(isShape).find((e) => e.ph?.type === 'body' || e.ph?.type === 'obj') ?? list.filter(isShape).find((e) => e.ph?.type === 'subTitle');
 const display = (p: Para): string => p.runs.map((r) => (r.t === '\n' ? ' ' : r.t)).join('');
-const linesOf = (text: HTMLElement): HTMLElement[] => Array.from(text.children).filter((c): c is HTMLElement => c instanceof HTMLElement && c.classList.contains('fs-outl-line'));
+const linesOf = (text: HTMLElement): HTMLElement[] => Array.from(text.children).filter((c): c is HTMLElement => c instanceof HTMLElement && c.classList.contains('fd-outl-line'));
 const lineText = (ln: HTMLElement): string => (ln.textContent ?? '').replace(/ /g, ' ').replace(/[​\r\n]/g, '');
 const lvlOf = (ln: HTMLElement): number => clamp(Number(ln.dataset.lvl) || 0, 0, 8);
 
@@ -513,7 +513,7 @@ function setLvl(ln: HTMLElement, v: number): void {
 
 function lineEl(t: string, lvl: number): HTMLElement {
   const ln = document.createElement('div');
-  ln.className = 'fs-outl-line';
+  ln.className = 'fd-outl-line';
   setLvl(ln, lvl);
   setLine(ln, t);
   return ln;
@@ -598,11 +598,11 @@ function cleanPaste(p: string): { t: string; d: number } {
 }
 
 class Outline extends Pane {
-  readonly root = el(`<div class="fs-av-pane fs-outl" hidden><div class="fs-outl-scroll"><div class="fs-outl-doc" role="list" aria-label="Outline"></div>
-<div class="fs-empty" hidden><span class="fs-empty-icon">${icon('outline', 20)}</span><span class="fs-empty-title">No slides yet</span><span class="fs-empty-note">Add a slide, then type its title and bullets here.</span><button class="fs-btn" type="button" data-act="new">${icon('slideAdd', 14)}New slide</button></div></div></div>`);
-  private readonly scroll = q(this.root, '.fs-outl-scroll');
-  private readonly list = q(this.root, '.fs-outl-doc');
-  private readonly empty = q(this.root, '.fs-empty');
+  readonly root = el(`<div class="fd-av-pane fd-outl" hidden><div class="fd-outl-scroll"><div class="fd-outl-doc" role="list" aria-label="Outline"></div>
+<div class="fd-empty" hidden><span class="fd-empty-icon">${icon('outline', 20)}</span><span class="fd-empty-title">No slides yet</span><span class="fd-empty-note">Add a slide, then type its title and bullets here.</span><button class="fd-btn" type="button" data-act="new">${icon('slideAdd', 14)}New slide</button></div></div></div>`);
+  private readonly scroll = q(this.root, '.fd-outl-scroll');
+  private readonly list = q(this.root, '.fd-outl-doc');
+  private readonly empty = q(this.root, '.fd-empty');
   private readonly rows = new Map<string, Row>();
   private readonly force = new Set<string>();
 
@@ -617,12 +617,12 @@ class Outline extends Pane {
     L.addEventListener('focusin', (e) => this.focusIn(e));
     L.addEventListener('focusout', (e) => this.focusOut(e));
     L.addEventListener('click', (e) => {
-      const g = (e.target as HTMLElement).closest('.fs-outl-gutter');
+      const g = (e.target as HTMLElement).closest('.fd-outl-gutter');
       const hit = g ? this.rowOf(g) : null;
       if (hit && this.ed) this.ed.setSlideSelection([hit.sid], hit.sid);
     });
     L.addEventListener('dblclick', (e) => {
-      const g = (e.target as HTMLElement).closest('.fs-outl-gutter');
+      const g = (e.target as HTMLElement).closest('.fd-outl-gutter');
       const hit = g ? this.rowOf(g) : null;
       const ed = this.ed;
       if (!hit || !ed) return;
@@ -689,9 +689,9 @@ class Outline extends Pane {
   }
 
   private row(sid: string): Row {
-    const node = el(`<div class="fs-outl-row" role="listitem"><div class="fs-outl-gutter" title="Select slide · double-click to open it"><span class="fs-outl-num"></span>${icon('slide', 14)}</div><div class="fs-outl-text" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true"></div></div>`);
+    const node = el(`<div class="fd-outl-row" role="listitem"><div class="fd-outl-gutter" title="Select slide · double-click to open it"><span class="fd-outl-num"></span>${icon('slide', 14)}</div><div class="fd-outl-text" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true"></div></div>`);
     node.dataset.key = sid;
-    const row: Row = { node, num: q(node, '.fs-outl-num'), text: q(node, '.fs-outl-text'), sig: '', timer: 0 };
+    const row: Row = { node, num: q(node, '.fd-outl-num'), text: q(node, '.fd-outl-text'), sig: '', timer: 0 };
     this.rows.set(sid, row);
     return row;
   }
@@ -706,7 +706,7 @@ class Outline extends Pane {
     if (!force && (sig === row.sig || focused)) return false;
     if (focused && row.timer) return false;
     row.sig = sig;
-    for (const c of Array.from(row.text.childNodes)) if (!(c instanceof HTMLElement && c.classList.contains('fs-outl-line'))) c.remove();
+    for (const c of Array.from(row.text.childNodes)) if (!(c instanceof HTMLElement && c.classList.contains('fd-outl-line'))) c.remove();
     const have = linesOf(row.text);
     const want: Line[] = [{ t: m.title, lvl: 0 }, ...m.lines];
     want.forEach((w, i) => {
@@ -732,7 +732,7 @@ class Outline extends Pane {
   }
 
   private rowOf(t: EventTarget | null): { sid: string; row: Row } | null {
-    const node = (t as HTMLElement | null)?.closest?.('.fs-outl-row') as HTMLElement | null;
+    const node = (t as HTMLElement | null)?.closest?.('.fd-outl-row') as HTMLElement | null;
     const sid = node?.dataset.key;
     const row = sid ? this.rows.get(sid) : undefined;
     return sid && row ? { sid, row } : null;
@@ -740,8 +740,8 @@ class Outline extends Pane {
 
   private activeCaret(): ({ sid: string } & Pos) | null {
     const a = document.activeElement;
-    if (!(a instanceof HTMLElement) || !a.classList.contains('fs-outl-text') || !this.list.contains(a)) return null;
-    const sid = (a.closest('.fs-outl-row') as HTMLElement | null)?.dataset.key;
+    if (!(a instanceof HTMLElement) || !a.classList.contains('fd-outl-text') || !this.list.contains(a)) return null;
+    const sid = (a.closest('.fd-outl-row') as HTMLElement | null)?.dataset.key;
     const c = caretOf(a);
     return sid ? { sid, ...(c ?? { line: 0, off: 0 }) } : null;
   }
@@ -879,7 +879,7 @@ class Outline extends Pane {
   private key(e: KeyboardEvent): void {
     const hit = this.rowOf(e.target);
     const ed = this.ed;
-    if (!hit || !ed || e.isComposing || !(e.target as HTMLElement).classList.contains('fs-outl-text')) return;
+    if (!hit || !ed || e.isComposing || !(e.target as HTMLElement).classList.contains('fd-outl-text')) return;
     const { sid, row } = hit;
     const combo = comboOf(e);
     const stop = (): void => { e.preventDefault(); e.stopPropagation(); };
@@ -1113,7 +1113,7 @@ class Outline extends Pane {
   private normalize(row: Row): void {
     const text = row.text;
     const kids = Array.from(text.childNodes);
-    const isLine = (n: Node): n is HTMLElement => n instanceof HTMLElement && n.classList.contains('fs-outl-line');
+    const isLine = (n: Node): n is HTMLElement => n instanceof HTMLElement && n.classList.contains('fd-outl-line');
     const fine = kids.length > 0 && kids.every(isLine) && (kids[0] as HTMLElement).classList.contains('is-title') && kids.slice(1).every((n) => !(n as HTMLElement).classList.contains('is-title'));
     if (fine) return;
     const sel = getSelection();

@@ -29,9 +29,9 @@ export class Filmstrip {
   private readonly ro = new ResizeObserver(() => this.resize());
 
   constructor(private readonly ed: Editor, private readonly scroll: HTMLElement, private readonly count: HTMLElement) {
-    this.list = el('<div class="fs-strip-list" role="listbox" aria-label="Slides" aria-multiselectable="true"></div>');
-    this.mlist = el('<div class="fs-strip-list fs-mstrip" role="listbox" aria-label="Slide master and layouts" hidden></div>');
-    setStyleVar(this.mlist, '--fs-mthumb-indent', `${LAYOUT_INDENT}px`);
+    this.list = el('<div class="fd-strip-list" role="listbox" aria-label="Slides" aria-multiselectable="true"></div>');
+    this.mlist = el('<div class="fd-strip-list fd-mstrip" role="listbox" aria-label="Slide master and layouts" hidden></div>');
+    setStyleVar(this.mlist, '--fd-mthumb-indent', `${LAYOUT_INDENT}px`);
     scroll.append(this.list, this.mlist);
     this.mlist.addEventListener('pointerdown', (e) => {
       const it = this.holderAt(e.target);
@@ -67,7 +67,7 @@ export class Filmstrip {
   }
 
   private idAt(t: EventTarget | null): string | null {
-    return ((t as HTMLElement | null)?.closest?.('.fs-thumb') as HTMLElement | null)?.dataset.key ?? null;
+    return ((t as HTMLElement | null)?.closest?.('.fd-thumb') as HTMLElement | null)?.dataset.key ?? null;
   }
 
   private thumbWidth(): number {
@@ -76,7 +76,7 @@ export class Filmstrip {
   }
 
   private holderAt(t: EventTarget | null): { kind: 'layout' | 'master'; id: string } | null {
-    const node = (t as HTMLElement | null)?.closest?.('.fs-mthumb') as HTMLElement | null;
+    const node = (t as HTMLElement | null)?.closest?.('.fd-mthumb') as HTMLElement | null;
     const id = node?.dataset.key;
     const kind = node?.dataset.holder;
     return id && (kind === 'layout' || kind === 'master') ? { kind, id } : null;
@@ -180,11 +180,11 @@ export class Filmstrip {
       if (!it) {
         const view = new SlideView(() => this.ed.doc.deck, h.id, 'thumb', h.kind);
         view.setScale(this.holderScale(h.kind));
-        const node = el(`<div class="fs-thumb fs-mthumb is-${h.kind}" role="option" draggable="false"><span class="fs-thumb-num"></span><div class="fs-mthumb-main"><div class="fs-thumb-frame"></div><span class="fs-mthumb-name"></span></div></div>`);
+        const node = el(`<div class="fd-thumb fd-mthumb is-${h.kind}" role="option" draggable="false"><span class="fd-thumb-num"></span><div class="fd-mthumb-main"><div class="fd-thumb-frame"></div><span class="fd-mthumb-name"></span></div></div>`);
         node.dataset.key = h.id;
         node.dataset.holder = h.kind;
-        node.querySelector('.fs-thumb-frame')?.appendChild(view.el);
-        it = { node, view, num: node.querySelector('.fs-thumb-num') as HTMLElement, name: node.querySelector('.fs-mthumb-name') as HTMLElement, kind: h.kind };
+        node.querySelector('.fd-thumb-frame')?.appendChild(view.el);
+        it = { node, view, num: node.querySelector('.fd-thumb-num') as HTMLElement, name: node.querySelector('.fd-mthumb-name') as HTMLElement, kind: h.kind };
         this.mitems.set(h.id, it);
         view.update();
       } else if (refresh) {
@@ -232,13 +232,13 @@ export class Filmstrip {
         currentSection = sec.id;
         let head = this.sections.get(sec.id);
         if (!head) {
-          head = el(`<div class="fs-strip-section" data-section="${sec.id}">${icon('chevronDown', 12)}<span class="fs-strip-section-name"></span><span class="fs-strip-section-count"></span></div>`);
+          head = el(`<div class="fd-strip-section" data-section="${sec.id}">${icon('chevronDown', 12)}<span class="fd-strip-section-name"></span><span class="fd-strip-section-count"></span></div>`);
           head.addEventListener('click', () => { if (this.collapsed.has(sec.id)) this.collapsed.delete(sec.id); else this.collapsed.add(sec.id); this.update(); });
           head.addEventListener('dblclick', () => this.ed.run('rename-section'));
           this.sections.set(sec.id, head);
         }
-        setText(head.querySelector('.fs-strip-section-name'), sec.name);
-        setText(head.querySelector('.fs-strip-section-count'), String(counts.get(sec.id) ?? 0));
+        setText(head.querySelector('.fd-strip-section-name'), sec.name);
+        setText(head.querySelector('.fd-strip-section-count'), String(counts.get(sec.id) ?? 0));
         setClass(head, 'is-collapsed', this.collapsed.has(sec.id));
         nodes.push(head);
       }
@@ -246,11 +246,11 @@ export class Filmstrip {
       if (!it) {
         const view = new SlideView(() => this.ed.doc.deck, s.id, 'thumb');
         view.setScale(k);
-        const node = el(`<div class="fs-thumb" role="option" draggable="false"><span class="fs-thumb-num"></span><div class="fs-thumb-frame"></div><span class="fs-thumb-badges"></span></div>`);
+        const node = el(`<div class="fd-thumb" role="option" draggable="false"><span class="fd-thumb-num"></span><div class="fd-thumb-frame"></div><span class="fd-thumb-badges"></span></div>`);
         node.dataset.key = s.id;
-        node.querySelector('.fs-thumb-frame')?.appendChild(view.el);
-        it = { node, view, num: node.querySelector('.fs-thumb-num') as HTMLElement, badges: node.querySelector('.fs-thumb-badges') as HTMLElement };
-        node.querySelector('.fs-thumb-frame')?.appendChild(it.badges);
+        node.querySelector('.fd-thumb-frame')?.appendChild(view.el);
+        it = { node, view, num: node.querySelector('.fd-thumb-num') as HTMLElement, badges: node.querySelector('.fd-thumb-badges') as HTMLElement };
+        node.querySelector('.fd-thumb-frame')?.appendChild(it.badges);
         this.items.set(s.id, it);
         view.update();
       } else if (!t || t.all || t.theme || t.layouts || t.masters || t.size || t.order || t.slides.has(s.id)) {
@@ -262,7 +262,7 @@ export class Filmstrip {
       it.node.hidden = !!currentSection && this.collapsed.has(currentSection) && !sec;
       const review = s.review?.status;
       const comments = (deck.comments ?? []).filter((c) => c.slide === s.id && !c.resolved).length;
-      const badge = `${review && review !== 'draft' ? `<span class="fs-thumb-badge is-${review}"><span class="fs-st-dot"></span>${review === 'review' ? 'Review' : review === 'changes' ? 'Changes' : 'Approved'}</span>` : ''}${comments ? `<span class="fs-thumb-badge">${icon('comment', 10)}${comments}</span>` : ''}${hasAnimations(s) ? `<span class="fs-thumb-badge" title="Animations">${icon('animation', 10)}</span>` : ''}${s.hidden ? `<span class="fs-thumb-badge">${icon('eyeOff', 10)}</span>` : ''}`;
+      const badge = `${review && review !== 'draft' ? `<span class="fd-thumb-badge is-${review}"><span class="fd-st-dot"></span>${review === 'review' ? 'Review' : review === 'changes' ? 'Changes' : 'Approved'}</span>` : ''}${comments ? `<span class="fd-thumb-badge">${icon('comment', 10)}${comments}</span>` : ''}${hasAnimations(s) ? `<span class="fd-thumb-badge" title="Animations">${icon('animation', 10)}</span>` : ''}${s.hidden ? `<span class="fd-thumb-badge">${icon('eyeOff', 10)}</span>` : ''}`;
       if (it.badges.dataset.html !== badge) { it.badges.dataset.html = badge; it.badges.innerHTML = badge; }
       nodes.push(it.node);
     });

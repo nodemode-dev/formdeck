@@ -32,8 +32,8 @@ export function startMode(m: MediaElement): 'auto' | 'sequence' | 'click' {
   return m.autoplay ? 'auto' : m.sequence ? 'sequence' : 'click';
 }
 
-const fade = (f: string, label: string): string => `<label class="fs-num" title="Fade ${label.toLowerCase()}"><span class="fs-num-label">${label}</span><input type="number" min="0" step="0.25" data-mf="${f}" aria-label="Fade ${label.toLowerCase()} in seconds"><span class="fs-unit">s</span></label>`;
-const check = (f: string, label: string): string => `<label class="fs-check" data-mrow="${f}"><input type="checkbox" data-mf="${f}"><span>${label}</span></label>`;
+const fade = (f: string, label: string): string => `<label class="fd-num" title="Fade ${label.toLowerCase()}"><span class="fd-num-label">${label}</span><input type="number" min="0" step="0.25" data-mf="${f}" aria-label="Fade ${label.toLowerCase()} in seconds"><span class="fd-unit">s</span></label>`;
+const check = (f: string, label: string): string => `<label class="fd-check" data-mrow="${f}"><input type="checkbox" data-mf="${f}"><span>${label}</span></label>`;
 
 export class MediaPanel {
   readonly el: HTMLElement;
@@ -42,17 +42,17 @@ export class MediaPanel {
   private readonly marks: HTMLElement;
 
   constructor() {
-    this.el = el(`<div class="fs-prop-section fs-media-panel" hidden>
-<div class="fs-panel-head"><span class="fs-panel-title">Playback</span></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Trim</span><div class="fs-prop-ctl"><span class="fs-media-trim"></span><button class="fs-btn fs-btn-sm" type="button" data-cmd="media-trim">${icon('trim', 14)}Trim...</button></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Fade</span><div class="fs-prop-ctl fs-pair">${fade('fadeIn', 'In')}${fade('fadeOut', 'Out')}</div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Volume</span><div class="fs-prop-ctl"><div class="fs-seg is-quiet" data-mseg="volume">${VOLUMES.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}<button type="button" data-v="mute">Mute</button></div></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Start</span><div class="fs-prop-ctl"><select data-mf="start" aria-label="Start"><option value="sequence">In click sequence</option><option value="auto">Automatically</option><option value="click">When clicked on</option></select></div></div>
-<div class="fs-prop-row is-stack"><span class="fs-prop-label">Options</span><div class="fs-media-checks">${check('fullScreen', 'Play full screen')}${check('hideInShow', 'Hide while not playing')}${check('loop', 'Loop until stopped')}${check('rewind', 'Rewind after playing')}</div></div>
-<div class="fs-prop-row is-stack" data-mrow="poster"><span class="fs-prop-label">Poster frame</span><div class="fs-media-actions"><button class="fs-btn fs-btn-sm" type="button" data-cmd="media-poster-frame" title="Choose a frame of the video">Current frame...</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-cmd="media-poster-picture" title="Use a picture file">Picture...</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-cmd="media-poster-reset" title="Show the first frame">Reset</button></div></div>
-<div class="fs-prop-row is-stack" data-mrow="marks"><span class="fs-prop-label">Bookmarks</span><div class="fs-media-marks"></div><div class="fs-note" data-mrow="nomarks">Add bookmarks in the Trim dialog. In the show, Alt+End and Alt+Home jump between them.</div></div>
+    this.el = el(`<div class="fd-prop-section fd-media-panel" hidden>
+<div class="fd-panel-head"><span class="fd-panel-title">Playback</span></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Trim</span><div class="fd-prop-ctl"><span class="fd-media-trim"></span><button class="fd-btn fd-btn-sm" type="button" data-cmd="media-trim">${icon('trim', 14)}Trim...</button></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Fade</span><div class="fd-prop-ctl fd-pair">${fade('fadeIn', 'In')}${fade('fadeOut', 'Out')}</div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Volume</span><div class="fd-prop-ctl"><div class="fd-seg is-quiet" data-mseg="volume">${VOLUMES.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}<button type="button" data-v="mute">Mute</button></div></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Start</span><div class="fd-prop-ctl"><select data-mf="start" aria-label="Start"><option value="sequence">In click sequence</option><option value="auto">Automatically</option><option value="click">When clicked on</option></select></div></div>
+<div class="fd-prop-row is-stack"><span class="fd-prop-label">Options</span><div class="fd-media-checks">${check('fullScreen', 'Play full screen')}${check('hideInShow', 'Hide while not playing')}${check('loop', 'Loop until stopped')}${check('rewind', 'Rewind after playing')}</div></div>
+<div class="fd-prop-row is-stack" data-mrow="poster"><span class="fd-prop-label">Poster frame</span><div class="fd-media-actions"><button class="fd-btn fd-btn-sm" type="button" data-cmd="media-poster-frame" title="Choose a frame of the video">Current frame...</button><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-cmd="media-poster-picture" title="Use a picture file">Picture...</button><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-cmd="media-poster-reset" title="Show the first frame">Reset</button></div></div>
+<div class="fd-prop-row is-stack" data-mrow="marks"><span class="fd-prop-label">Bookmarks</span><div class="fd-media-marks"></div><div class="fd-note" data-mrow="nomarks">Add bookmarks in the Trim dialog. In the show, Alt+End and Alt+Home jump between them.</div></div>
 </div>`);
-    this.marks = this.el.querySelector('.fs-media-marks') as HTMLElement;
+    this.marks = this.el.querySelector('.fd-media-marks') as HTMLElement;
     this.el.addEventListener('mousedown', (e) => { if ((e.target as HTMLElement).closest('button')) e.preventDefault(); });
     this.el.addEventListener('click', (e) => { e.stopPropagation(); this.click(e); });
     this.el.addEventListener('change', (e) => this.change(e.target as HTMLInputElement | HTMLSelectElement));
@@ -143,7 +143,7 @@ export class MediaPanel {
     const video = list.some((x) => x.kind === 'video');
     const dur = this.ed.doc.deck.media[m.src]?.duration;
     const end = m.end ?? dur;
-    setText(this.el.querySelector('.fs-media-trim'), m.start || m.end ? `${clock(m.start)} to ${end !== undefined ? clock(end) : 'end'}` : dur ? `Full clip, ${clock(dur)}` : 'Full clip');
+    setText(this.el.querySelector('.fd-media-trim'), m.start || m.end ? `${clock(m.start)} to ${end !== undefined ? clock(end) : 'end'}` : dur ? `Full clip, ${clock(dur)}` : 'Full clip');
     for (const f of ['fadeIn', 'fadeOut'] as const) {
       const n = this.el.querySelector<HTMLInputElement>(`[data-mf="${f}"]`);
       if (n) setValue(n, String(m[f] ?? 0));
@@ -165,7 +165,7 @@ export class MediaPanel {
     patchList(this.marks, marks, {
       key: (b) => `${b.i}`,
       create: (b) => {
-        const n = el(`<div class="fs-media-mark"><span class="fs-media-mark-name"></span><span class="fs-media-mark-t"></span><button class="fs-icon-btn is-sm" type="button" title="Remove bookmark" aria-label="Remove bookmark" data-unmark="${b.i}">${icon('close', 12)}</button></div>`);
+        const n = el(`<div class="fd-media-mark"><span class="fd-media-mark-name"></span><span class="fd-media-mark-t"></span><button class="fd-icon-btn is-sm" type="button" title="Remove bookmark" aria-label="Remove bookmark" data-unmark="${b.i}">${icon('close', 12)}</button></div>`);
         this.markRow(n, b);
         return n;
       },
@@ -174,7 +174,7 @@ export class MediaPanel {
   }
 
   private markRow(n: HTMLElement, b: MediaBookmark): void {
-    setText(n.querySelector('.fs-media-mark-name'), b.name);
-    setText(n.querySelector('.fs-media-mark-t'), clock(b.t));
+    setText(n.querySelector('.fd-media-mark-name'), b.name);
+    setText(n.querySelector('.fd-media-mark-t'), clock(b.t));
   }
 }

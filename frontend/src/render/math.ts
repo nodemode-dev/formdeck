@@ -74,11 +74,11 @@ export function mathInner(m: MathRun): string {
   const display = !!m.display;
   let mml = m.mml ? safeMathml(m.mml, display) : '';
   if (!mml && temml) { const r = texToMml(m.tex, display); if (r.mml) mml = safeMathml(r.mml, display); }
-  return mml || `<span class="fs-math-src">${esc(m.tex)}</span>`;
+  return mml || `<span class="fd-math-src">${esc(m.tex)}</span>`;
 }
 
 export function mathHtml(m: MathRun, css: string, extra = ''): string {
-  return `<span class="fs-r fs-math${m.display ? ' is-display' : ''}" contenteditable="false" style="${css}" data-s="${css}" data-math="${esc(JSON.stringify(m))}"${extra}>${mathInner(m)}</span>`;
+  return `<span class="fd-r fd-math${m.display ? ' is-display' : ''}" contenteditable="false" style="${css}" data-s="${css}" data-math="${esc(JSON.stringify(m))}"${extra}>${mathInner(m)}</span>`;
 }
 
 export function mathOf(node: HTMLElement): MathRun | null {

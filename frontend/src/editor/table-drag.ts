@@ -29,8 +29,8 @@ export class TableDrag {
   constructor(private readonly ed: Editor) {
     const st = ed.stage;
     this.layer = document.createElement('div');
-    this.layer.className = 'fs-tb-layer';
-    this.layer.innerHTML = '<div class="fs-tb-box" hidden><div class="fs-tb-guide"></div></div><div class="fs-size-tip" hidden></div>';
+    this.layer.className = 'fd-tb-layer';
+    this.layer.innerHTML = '<div class="fd-tb-box" hidden><div class="fd-tb-guide"></div></div><div class="fd-size-tip" hidden></div>';
     this.box = this.layer.firstElementChild as HTMLDivElement;
     this.guide = this.box.firstElementChild as HTMLDivElement;
     this.tip = this.layer.lastElementChild as HTMLDivElement;
@@ -65,7 +65,7 @@ export class TableDrag {
     const el = sel.length === 1 ? sel[0] : null;
     if (!el || el.type !== 'table' || el.locked || el.flipH || el.flipV) return null;
     const node = st.view.nodeFor(el.id);
-    const table = node?.querySelector<HTMLTableElement>(':scope > table.fs-table');
+    const table = node?.querySelector<HTMLTableElement>(':scope > table.fd-table');
     if (!node || !table) return null;
     const g = tableGrid(el.table);
     if (!g.rows || !g.cols) return null;
@@ -120,7 +120,7 @@ export class TableDrag {
   private hitFor(e: MouseEvent): Hit | null {
     const st = this.ed.stage;
     if (st.root.classList.contains('is-motion-draw') || (st as unknown as { draw?: { active?: boolean } }).draw?.active) return null;
-    if (!st.viewport.contains(e.target as Node) || (e.target as HTMLElement | null)?.closest?.('.fs-handle')) return null;
+    if (!st.viewport.contains(e.target as Node) || (e.target as HTMLElement | null)?.closest?.('.fd-handle')) return null;
     const geo = this.geo();
     return geo ? this.hit(geo, this.local(e, geo)) : null;
   }

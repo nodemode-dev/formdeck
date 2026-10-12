@@ -80,16 +80,16 @@ export function slideTitle(deck: Deck, s: Slide): string {
 }
 
 class Consent extends Dialog {
-  private readonly lead = el('<p class="fs-note"></p>');
+  private readonly lead = el('<p class="fd-note"></p>');
   private readonly allowBtn: HTMLButtonElement;
   private resolve: ((v: boolean) => void) | null = null;
   constructor() {
     super('Allow agents to edit?', 460);
     this.body.append(
       this.lead,
-      el('<p class="fs-note">Agents edit live: you see every change as it happens on the slides.</p>'),
-      el('<p class="fs-note">Every agent turn can be undone at once with Edit, Undo Agent Turn.</p>'),
-      el('<p class="fs-note">You can turn this off any time in Agents.</p>'),
+      el('<p class="fd-note">Agents edit live: you see every change as it happens on the slides.</p>'),
+      el('<p class="fd-note">Every agent turn can be undone at once with Edit, Undo Agent Turn.</p>'),
+      el('<p class="fd-note">You can turn this off any time in Agents.</p>'),
     );
     this.button('Not now', 'ghost', () => this.finish(false));
     this.allowBtn = this.button('Allow', 'primary', () => this.finish(true));
@@ -347,11 +347,11 @@ function measureSlide(deck: Deck, slide: Slide, n: number, view: SlideView): Iss
       const node = view.el.querySelector<HTMLElement>(`[data-id="${CSS.escape(e.id)}"]`);
       if (!node) continue;
       if (e.type === 'table') {
-        const t = node.querySelector<HTMLElement>('.fs-table');
+        const t = node.querySelector<HTMLElement>('.fd-table');
         const over = t ? t.offsetHeight - node.clientHeight : 0;
         if (over > 1.5) add(e.id, 'overflow', `the table is ${r1(over)}pt taller than its frame`);
       }
-      for (const tx of Array.from(node.querySelectorAll<HTMLElement>('.fs-tx'))) {
+      for (const tx of Array.from(node.querySelectorAll<HTMLElement>('.fd-tx'))) {
         const flow = tx.firstElementChild as HTMLElement | null;
         if (!flow || !(flow.textContent ?? '').trim()) continue;
         const k = parseFloat(flow.style.getPropertyValue('--k')) || 1;
@@ -360,14 +360,14 @@ function measureSlide(deck: Deck, slide: Slide, n: number, view: SlideView): Iss
         else if (overW > 1.5) add(e.id, 'overflow', `a line is ${r1(overW)}pt wider than its box`);
         if (k < 0.8) add(e.id, 'shrunk', `autofit shrank the text to ${Math.round(k * 100)}%`, k);
         let min = Infinity;
-        for (const r of Array.from(flow.querySelectorAll<HTMLElement>('.fs-r'))) if ((r.textContent ?? '').trim()) min = Math.min(min, parseFloat(getComputedStyle(r).fontSize) || Infinity);
+        for (const r of Array.from(flow.querySelectorAll<HTMLElement>('.fd-r'))) if ((r.textContent ?? '').trim()) min = Math.min(min, parseFloat(getComputedStyle(r).fontSize) || Infinity);
         if (min < 10) add(e.id, 'tiny', `the smallest text is ${r1(min)}pt after scaling`);
         const fr = flow.getBoundingClientRect();
         blocks.push({ id: e.id, r: { x: fr.left - o.left, y: fr.top - o.top, w: fr.width, h: fr.height } });
       }
       if (e.type === 'table') {
         let min = Infinity;
-        for (const r of Array.from(node.querySelectorAll<HTMLElement>('.fs-r'))) if ((r.textContent ?? '').trim()) min = Math.min(min, parseFloat(getComputedStyle(r).fontSize) || Infinity);
+        for (const r of Array.from(node.querySelectorAll<HTMLElement>('.fd-r'))) if ((r.textContent ?? '').trim()) min = Math.min(min, parseFloat(getComputedStyle(r).fontSize) || Infinity);
         if (min < 10) add(e.id, 'tiny', `the smallest table text is ${r1(min)}pt`);
       }
     }

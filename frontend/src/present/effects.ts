@@ -279,7 +279,7 @@ export function morph(from: SlideView, to: SlideView, deck: Deck, a: Slide, b: S
   const opt: KeyframeAnimationOptions = { duration: dur, easing: EASE_IN_OUT, fill: 'both' };
   const out: Animation[] = [];
   const fade = (n: Element | null, o: number, enter: boolean): void => { if (n) out.push(n.animate(enter ? [{ opacity: 0 }, { opacity: o }] : [{ opacity: o }, { opacity: 0 }], opt)); };
-  for (const n of Array.from(to.inner.querySelectorAll(':scope > .fs-slide-bg, :scope > .fs-layer-master, :scope > .fs-layer-layout'))) fade(n, 1, true);
+  for (const n of Array.from(to.inner.querySelectorAll(':scope > .fd-slide-bg, :scope > .fd-layer-master, :scope > .fd-layer-layout'))) fade(n, 1, true);
   const matched = new Set(pairs.map(([, n]) => n.id));
   for (const e of a.elements) if (!used.has(e.id)) fade(from.nodeFor(e.id), e.opacity ?? 1, false);
   for (const e of b.elements) if (!matched.has(e.id)) fade(to.nodeFor(e.id), e.opacity ?? 1, true);

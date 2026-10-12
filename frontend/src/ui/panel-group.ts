@@ -32,27 +32,27 @@ export class PanelGroup {
   onTab: ((id: string) => void) | null = null;
   static menuHost: ((anchor: HTMLElement, ids: string[]) => void) | null = null;
   private menu: (() => string[]) | null = null;
-  setMenu(items: () => string[]): void { this.menu = items; setHidden(this.root.querySelector('.fs-group-more') as HTMLElement, false); }
+  setMenu(items: () => string[]): void { this.menu = items; setHidden(this.root.querySelector('.fd-group-more') as HTMLElement, false); }
 
   constructor(host: HTMLElement, readonly id: string, list: readonly GroupTab[], label: string) {
-    this.root = el(`<section class="fs-${id} fs-group" aria-label="${label}"><div class="fs-panel-head fs-group-head"><span class="fs-group-grip" title="Drag to move the group" aria-hidden="true">${icon('grip', 14)}</span><div class="fs-group-tabs" role="tablist"></div><span></span><button class="fs-group-more" type="button" data-cmd="panel-menu" title="Panel menu" aria-label="Panel menu" hidden>${icon('more3', 16)}</button><button class="fs-group-min" type="button" data-cmd="minimise" title="Minimise" aria-label="Minimise">${icon('minus', 12)}</button></div><div class="fs-group-body"></div></section>`);
-    const strip = this.root.querySelector('.fs-group-tabs') as HTMLElement;
-    const more = this.root.querySelector('.fs-group-more') as HTMLElement;
+    this.root = el(`<section class="fd-${id} fd-group" aria-label="${label}"><div class="fd-panel-head fd-group-head"><span class="fd-group-grip" title="Drag to move the group" aria-hidden="true">${icon('grip', 14)}</span><div class="fd-group-tabs" role="tablist"></div><span></span><button class="fd-group-more" type="button" data-cmd="panel-menu" title="Panel menu" aria-label="Panel menu" hidden>${icon('more3', 16)}</button><button class="fd-group-min" type="button" data-cmd="minimise" title="Minimise" aria-label="Minimise">${icon('minus', 12)}</button></div><div class="fd-group-body"></div></section>`);
+    const strip = this.root.querySelector('.fd-group-tabs') as HTMLElement;
+    const more = this.root.querySelector('.fd-group-more') as HTMLElement;
     more.addEventListener('click', () => { const ids = this.menu?.() ?? []; if (ids.length) PanelGroup.menuHost?.(more, ids); });
     this.root.dataset.group = id;
     PanelGroup.all.set(id, this);
-    for (const t of list) { t.body.classList.add('fs-group-page'); this.attach(t.id, t.label, t.body); }
+    for (const t of list) { t.body.classList.add('fd-group-page'); this.attach(t.id, t.label, t.body); }
     const saved = loadState()[id] ?? {};
     if (list.length) this.show(saved.tab && this.tabs.has(saved.tab) ? saved.tab : list[0].id, false);
     else this.root.classList.add('is-empty');
     this.setMinimised(!!saved.min, false);
-    (this.root.querySelector('.fs-group-min') as HTMLElement).addEventListener('click', () => this.setMinimised(!this.root.classList.contains('is-min')));
+    (this.root.querySelector('.fd-group-min') as HTMLElement).addEventListener('click', () => this.setMinimised(!this.root.classList.contains('is-min')));
     host.appendChild(this.root);
     new ResizeObserver(() => this.fitTabs()).observe(strip);
   }
 
   fitTabs(): void {
-    const strip = this.root.querySelector('.fs-group-tabs') as HTMLElement;
+    const strip = this.root.querySelector('.fd-group-tabs') as HTMLElement;
     if (!strip.clientWidth) return;
     for (const step of ['', 'is-compact', 'is-tight']) {
       strip.classList.remove('is-compact', 'is-tight');
@@ -65,7 +65,7 @@ export class PanelGroup {
   get current(): string { return this.active; }
 
   addTab(tid: string, label: string, page: HTMLElement, before?: string): void {
-    page.classList.add('fs-group-page');
+    page.classList.add('fd-group-page');
     this.attach(tid, label, page);
     const b = before ? this.tabs.get(before)?.btn : null, t = this.tabs.get(tid);
     if (b && t) b.before(t.btn);
@@ -75,8 +75,8 @@ export class PanelGroup {
   has(tid: string): boolean { return this.tabs.has(tid); }
 
   private attach(tid: string, label: string, page: HTMLElement): void {
-    const strip = this.root.querySelector('.fs-group-tabs') as HTMLElement, body = this.root.querySelector('.fs-group-body') as HTMLElement;
-    const btn = el<HTMLButtonElement>('<button class="fs-group-tab" type="button" role="tab"></button>');
+    const strip = this.root.querySelector('.fd-group-tabs') as HTMLElement, body = this.root.querySelector('.fd-group-body') as HTMLElement;
+    const btn = el<HTMLButtonElement>('<button class="fd-group-tab" type="button" role="tab"></button>');
     setText(btn, label);
     btn.title = label;
     btn.dataset.tab = tid;
@@ -95,13 +95,13 @@ export class PanelGroup {
     const x0 = e.clientX, y0 = e.clientY;
     let ghost: HTMLElement | null = null, target: PanelGroup | null = null;
     const over = (ev: PointerEvent): PanelGroup | null => {
-      const head = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('.fs-group-head');
-      const g = head ? PanelGroup.all.get((head.closest('.fs-group') as HTMLElement | null)?.dataset.group ?? '') ?? null : null;
+      const head = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('.fd-group-head');
+      const g = head ? PanelGroup.all.get((head.closest('.fd-group') as HTMLElement | null)?.dataset.group ?? '') ?? null : null;
       return g && g !== this ? g : null;
     };
     const move = (ev: PointerEvent): void => {
       if (!ghost && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
-      if (!ghost) { ghost = el('<div class="fs-tab-ghost"></div>'); setText(ghost, btn.textContent ?? ''); document.body.appendChild(ghost); }
+      if (!ghost) { ghost = el('<div class="fd-tab-ghost"></div>'); setText(ghost, btn.textContent ?? ''); document.body.appendChild(ghost); }
       ghost.style.left = `${ev.clientX + 8}px`; ghost.style.top = `${ev.clientY + 8}px`;
       const t = over(ev);
       if (t !== target) { target?.root.classList.remove('is-tab-target', 'is-tab-full'); target = t; target?.root.classList.add(t?.full ? 'is-tab-full' : 'is-tab-target'); }
@@ -176,7 +176,7 @@ export class PanelGroup {
 
   setMinimised(min: boolean, remember = true): void {
     this.root.classList.toggle('is-min', min);
-    setHidden(this.root.querySelector('.fs-group-body') as HTMLElement, min);
+    setHidden(this.root.querySelector('.fd-group-body') as HTMLElement, min);
     if (remember) saveState(this.id, { min });
   }
 }

@@ -34,14 +34,14 @@ class ActivityDialog extends Dialog {
 
   constructor() {
     super('Activity', 420);
-    this.scrim.classList.add('fs-scrim-through', 'fs-ins-side');
-    const bar = el('<div class="fs-act-bar"><span class="fs-prop-label">Person</span><select data-f="who" aria-label="Person"><option value="">Everyone</option></select><span class="fs-note fs-act-count"></span></div>');
-    const box = el(`<div class="fs-act-box"><div class="fs-act-list"></div><div class="fs-empty" hidden><span class="fs-empty-icon">${icon('history', 20)}</span><div class="fs-empty-title">No activity yet</div><div class="fs-empty-note">Every change to this deck, by you or an agent, is listed here with who made it and when.</div></div></div>`);
+    this.scrim.classList.add('fd-scrim-through', 'fd-ins-side');
+    const bar = el('<div class="fd-act-bar"><span class="fd-prop-label">Person</span><select data-f="who" aria-label="Person"><option value="">Everyone</option></select><span class="fd-note fd-act-count"></span></div>');
+    const box = el(`<div class="fd-act-box"><div class="fd-act-list"></div><div class="fd-empty" hidden><span class="fd-empty-icon">${icon('history', 20)}</span><div class="fd-empty-title">No activity yet</div><div class="fd-empty-note">Every change to this deck, by you or an agent, is listed here with who made it and when.</div></div></div>`);
     this.body.append(bar, box);
     this.who = q<HTMLSelectElement>(bar, 'select');
-    this.count = q(bar, '.fs-act-count');
-    this.list = q(box, '.fs-act-list');
-    this.empty = q(box, '.fs-empty');
+    this.count = q(bar, '.fd-act-count');
+    this.list = q(box, '.fd-act-list');
+    this.empty = q(box, '.fd-empty');
     this.button('Close', 'ghost', () => this.close());
     this.who.addEventListener('change', () => void this.load());
     this.list.addEventListener('click', (e) => {
@@ -78,8 +78,8 @@ class ActivityDialog extends Dialog {
       patchList(this.list, items, {
         key: (i) => i.key,
         create: (i) => {
-          if (i.kind === 'day') { const n = el('<div class="fs-act-day"></div>'); setText(n, i.label); return n; }
-          const n = el('<button class="fs-act-row" type="button"><span class="fs-act-time"></span><span class="fs-act-avatar"></span><span class="fs-act-main"><span class="fs-act-name"></span><span class="fs-act-label"></span></span><span class="fs-act-where"></span></button>');
+          if (i.kind === 'day') { const n = el('<div class="fd-act-day"></div>'); setText(n, i.label); return n; }
+          const n = el('<button class="fd-act-row" type="button"><span class="fd-act-time"></span><span class="fd-act-avatar"></span><span class="fd-act-main"><span class="fd-act-name"></span><span class="fd-act-label"></span></span><span class="fd-act-where"></span></button>');
           this.fill(n, i.e, ed.doc.deck);
           return n;
         },
@@ -104,15 +104,15 @@ class ActivityDialog extends Dialog {
 
   private fill(n: HTMLElement, e: ActivityEntry, deck: Deck): void {
     const agent = e.origin === 'agent' || isAgentName(e.who);
-    setText(n.querySelector('.fs-act-time'), new Date(e.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    setHtml(n.querySelector('.fs-act-avatar') as HTMLElement, agent ? icon('agent', 12) : escapeHtml((e.who || '?').slice(0, 1).toUpperCase()), agent ? 'agent' : e.who);
-    setClass(n.querySelector('.fs-act-avatar'), 'is-agent', agent);
-    setText(n.querySelector('.fs-act-name'), e.who || 'Someone');
+    setText(n.querySelector('.fd-act-time'), new Date(e.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    setHtml(n.querySelector('.fd-act-avatar') as HTMLElement, agent ? icon('agent', 12) : escapeHtml((e.who || '?').slice(0, 1).toUpperCase()), agent ? 'agent' : e.who);
+    setClass(n.querySelector('.fd-act-avatar'), 'is-agent', agent);
+    setText(n.querySelector('.fd-act-name'), e.who || 'Someone');
     const lab = e.label.replace(/^Agent:\s*/, '');
-    setText(n.querySelector('.fs-act-label'), lab.charAt(0).toUpperCase() + lab.slice(1));
+    setText(n.querySelector('.fd-act-label'), lab.charAt(0).toUpperCase() + lab.slice(1));
     const pos = e.slides.map((id) => deck.slides.findIndex((s) => s.id === id)).filter((i) => i >= 0);
     const where = pos.length ? `Slide ${pos.slice(0, 3).map((i) => i + 1).join(', ')}${pos.length > 3 ? ' …' : ''}` : e.slides.length ? 'Removed slide' : 'Deck';
-    setText(n.querySelector('.fs-act-where'), where);
+    setText(n.querySelector('.fd-act-where'), where);
     const target = pos.length ? deck.slides[pos[0]].id : '';
     if (n.dataset.slide !== target) n.dataset.slide = target;
     setDisabled(n as HTMLButtonElement, !target);
@@ -131,7 +131,7 @@ function words(before: string, after: string): [string, string] {
   const toks = wordDiff(before.slice(0, 4000), after.slice(0, 4000));
   const b = toks.filter((t) => t.k !== '+').map((t) => (t.k === '-' ? `<del>${escapeHtml(t.t)}</del>` : escapeHtml(t.t))).join('');
   const a = toks.filter((t) => t.k !== '-').map((t) => (t.k === '+' ? `<ins>${escapeHtml(t.t)}</ins>` : escapeHtml(t.t))).join('');
-  return [b || '<span class="fs-cmp-none">(empty)</span>', a || '<span class="fs-cmp-none">(empty)</span>'];
+  return [b || '<span class="fd-cmp-none">(empty)</span>', a || '<span class="fd-cmp-none">(empty)</span>'];
 }
 
 class CompareDialog extends Dialog {
@@ -152,15 +152,15 @@ class CompareDialog extends Dialog {
 
   constructor() {
     super('Compare', 460);
-    this.scrim.classList.add('fs-scrim-through', 'fs-ins-side');
-    const src = el(`<div class="fs-cmp-src"><select data-f="version" aria-label="Saved version"><option value="">Saved version…</option></select><button class="fs-btn fs-btn-sm" type="button" data-a="file">${icon('folderOpen', 14)}<span>Choose a file…</span></button><input type="file" accept=".pptx,.fsld,.potx,.ppsx,.pptm" hidden></div>`);
-    this.summary = el('<div class="fs-note fs-cmp-summary">Compare this deck with a saved version or a .pptx or .fsld file. Nothing is added to your library.</div>');
-    const box = el(`<div class="fs-cmp-box"><div class="fs-cmp-list"></div><div class="fs-empty" hidden><span class="fs-empty-icon">${icon('compare', 20)}</span><div class="fs-empty-title">No differences</div><div class="fs-empty-note">This deck matches the other version.</div></div></div>`);
+    this.scrim.classList.add('fd-scrim-through', 'fd-ins-side');
+    const src = el(`<div class="fd-cmp-src"><select data-f="version" aria-label="Saved version"><option value="">Saved version…</option></select><button class="fd-btn fd-btn-sm" type="button" data-a="file">${icon('folderOpen', 14)}<span>Choose a file…</span></button><input type="file" accept=".pptx,.fsld,.potx,.ppsx,.pptm" hidden></div>`);
+    this.summary = el('<div class="fd-note fd-cmp-summary">Compare this deck with a saved version or a .pptx or .fsld file. Nothing is added to your library.</div>');
+    const box = el(`<div class="fd-cmp-box"><div class="fd-cmp-list"></div><div class="fd-empty" hidden><span class="fd-empty-icon">${icon('compare', 20)}</span><div class="fd-empty-title">No differences</div><div class="fd-empty-note">This deck matches the other version.</div></div></div>`);
     this.body.append(src, this.summary, box);
     this.version = q<HTMLSelectElement>(src, 'select');
     this.file = q<HTMLInputElement>(src, 'input');
-    this.list = q(box, '.fs-cmp-list');
-    this.empty = q(box, '.fs-empty');
+    this.list = q(box, '.fd-cmp-list');
+    this.empty = q(box, '.fd-empty');
     this.button('Close', 'ghost', () => this.close());
     this.allBtn = this.button('Accept all', 'primary', () => this.acceptAll());
     q(src, '[data-a="file"]').addEventListener('click', () => this.file.click());
@@ -174,7 +174,7 @@ class CompareDialog extends Dialog {
       const a = t.closest<HTMLElement>('[data-a]')?.dataset.a;
       if (a === 'accept') this.accept(d);
       else if (a === 'ignore') { if (this.ignored.has(d.key)) this.ignored.delete(d.key); else this.ignored.add(d.key); this.render(); }
-      else if (t.closest('.fs-cmp-go')) this.goTo(d);
+      else if (t.closest('.fd-cmp-go')) this.goTo(d);
     });
     this.onClose = () => { this.off?.(); this.off = null; window.clearTimeout(this.timer); };
   }
@@ -260,8 +260,8 @@ class CompareDialog extends Dialog {
     patchList(this.list, items, {
       key: (i) => i.key,
       create: (i) => {
-        if (i.head) { const n = el('<div class="fs-cmp-head"></div>'); setText(n, i.label); return n; }
-        const n = el(`<div class="fs-cmp-row"><button class="fs-cmp-go" type="button" title="Go to it"><span class="fs-cmp-icon"></span><span class="fs-cmp-main"><span class="fs-cmp-title"></span><span class="fs-cmp-detail"></span><span class="fs-cmp-words" hidden><span class="fs-cmp-before"></span><span class="fs-cmp-after"></span></span></span></button><div class="fs-cmp-acts"><button class="fs-btn fs-btn-sm" type="button" data-a="accept">Accept</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="ignore">Ignore</button></div></div>`);
+        if (i.head) { const n = el('<div class="fd-cmp-head"></div>'); setText(n, i.label); return n; }
+        const n = el(`<div class="fd-cmp-row"><button class="fd-cmp-go" type="button" title="Go to it"><span class="fd-cmp-icon"></span><span class="fd-cmp-main"><span class="fd-cmp-title"></span><span class="fd-cmp-detail"></span><span class="fd-cmp-words" hidden><span class="fd-cmp-before"></span><span class="fd-cmp-after"></span></span></span></button><div class="fd-cmp-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="accept">Accept</button><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-a="ignore">Ignore</button></div></div>`);
         this.fill(n, i.d);
         return n;
       },
@@ -274,15 +274,15 @@ class CompareDialog extends Dialog {
   }
 
   private fill(n: HTMLElement, d: Diff): void {
-    setHtml(q(n, '.fs-cmp-icon'), icon(KIND_ICON[d.kind], 14), d.kind);
-    setText(n.querySelector('.fs-cmp-title'), d.title);
-    setText(n.querySelector('.fs-cmp-detail'), d.detail ?? '');
-    setHidden(q(n, '.fs-cmp-detail'), !d.detail);
-    const w = q(n, '.fs-cmp-words');
+    setHtml(q(n, '.fd-cmp-icon'), icon(KIND_ICON[d.kind], 14), d.kind);
+    setText(n.querySelector('.fd-cmp-title'), d.title);
+    setText(n.querySelector('.fd-cmp-detail'), d.detail ?? '');
+    setHidden(q(n, '.fd-cmp-detail'), !d.detail);
+    const w = q(n, '.fd-cmp-words');
     if (d.before !== undefined && d.after !== undefined) {
       const [b, a] = words(d.before, d.after);
-      setHtml(q(w, '.fs-cmp-before'), b, b);
-      setHtml(q(w, '.fs-cmp-after'), a, a);
+      setHtml(q(w, '.fd-cmp-before'), b, b);
+      setHtml(q(w, '.fd-cmp-after'), a, a);
     }
     setHidden(w, d.before === undefined);
     const ign = this.ignored.has(d.key);

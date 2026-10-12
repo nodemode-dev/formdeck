@@ -103,29 +103,29 @@ class TableDlg extends Modal {
 
   constructor() {
     super('Insert Table', 400);
-    const body = el(`<div class="fs-ins-table">
-<div class="fs-ins-pick" role="grid" aria-label="Table size"></div>
-<div class="fs-ins-pick-label">Hover to pick a size</div>
-<div class="fs-pop-sep"></div>
-<div class="fs-ins-row"><label class="fs-num"><span class="fs-num-label">Columns</span><input type="number" min="1" max="30" step="1" data-f="cols" aria-label="Columns"></label><label class="fs-num"><span class="fs-num-label">Rows</span><input type="number" min="1" max="60" step="1" data-f="rows" aria-label="Rows"></label></div>
-<label class="fs-field"><span>Style</span><select data-f="style" aria-label="Table style">${TABLE_STYLES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('')}</select></label>
-<div class="fs-ins-checks"><label class="fs-check"><input type="checkbox" data-f="header" checked>Header row</label><label class="fs-check"><input type="checkbox" data-f="band" checked>Banded rows</label></div>
+    const body = el(`<div class="fd-ins-table">
+<div class="fd-ins-pick" role="grid" aria-label="Table size"></div>
+<div class="fd-ins-pick-label">Hover to pick a size</div>
+<div class="fd-pop-sep"></div>
+<div class="fd-ins-row"><label class="fd-num"><span class="fd-num-label">Columns</span><input type="number" min="1" max="30" step="1" data-f="cols" aria-label="Columns"></label><label class="fd-num"><span class="fd-num-label">Rows</span><input type="number" min="1" max="60" step="1" data-f="rows" aria-label="Rows"></label></div>
+<label class="fd-field"><span>Style</span><select data-f="style" aria-label="Table style">${TABLE_STYLES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('')}</select></label>
+<div class="fd-ins-checks"><label class="fd-check"><input type="checkbox" data-f="header" checked>Header row</label><label class="fd-check"><input type="checkbox" data-f="band" checked>Banded rows</label></div>
 </div>`);
     this.d.body.appendChild(body);
-    const pick = q(body, '.fs-ins-pick');
+    const pick = q(body, '.fd-ins-pick');
     for (let r = 0; r < PICK_R; r++) for (let c = 0; c < PICK_C; c++) {
-      const cell = el(`<span class="fs-ins-pick-cell" data-r="${r}" data-c="${c}"></span>`);
+      const cell = el(`<span class="fd-ins-pick-cell" data-r="${r}" data-c="${c}"></span>`);
       this.cells.push(cell);
       pick.appendChild(cell);
     }
-    this.label = q(body, '.fs-ins-pick-label');
+    this.label = q(body, '.fd-ins-pick-label');
     this.rows = q<HTMLInputElement>(body, '[data-f="rows"]');
     this.cols = q<HTMLInputElement>(body, '[data-f="cols"]');
     this.style = q<HTMLSelectElement>(body, '[data-f="style"]');
     this.header = q<HTMLInputElement>(body, '[data-f="header"]');
     this.band = q<HTMLInputElement>(body, '[data-f="band"]');
     const at = (e: Event): [number, number] | null => {
-      const t = (e.target as HTMLElement).closest<HTMLElement>('.fs-ins-pick-cell');
+      const t = (e.target as HTMLElement).closest<HTMLElement>('.fd-ins-pick-cell');
       return t ? [Number(t.dataset.r), Number(t.dataset.c)] : null;
     };
     pick.addEventListener('pointerover', (e) => { const p = at(e); if (p) this.hover(p[0], p[1]); });
@@ -259,33 +259,33 @@ class ChartDlg extends Modal {
 
   constructor() {
     super('Insert Chart', 880);
-    const sm = (act: string, ic: string, label: string, title: string): string => `<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-act="${act}" title="${title}">${ic ? icon(ic, 14) : ''}${label}</button>`;
-    const chk = (f: string, label: string): string => `<label class="fs-check"><input type="checkbox" data-f="${f}">${label}</label>`;
-    this.root = el(`<div class="fs-chartdlg">
-<div class="fs-seg fs-chartdlg-kinds" role="tablist" aria-label="Chart type">${CHART_KINDS.map(([k, l]) => `<button type="button" role="tab" data-kind="${k}">${l}</button>`).join('')}</div>
-<div class="fs-chartdlg-main">
-<section class="fs-chartdlg-data">
-<div class="fs-chartdlg-tools">${sm('row+', 'plus', 'Row', 'Add a category row')}${sm('row-', 'minus', 'Row', 'Remove the selected row')}${sm('col+', 'plus', 'Series', 'Add a series column')}${sm('col-', 'minus', 'Series', 'Remove the selected series')}<span class="fs-ins-grow"></span>${sm('paste', '', 'Paste table', 'Replace the data with a table from the clipboard')}</div>
-<div class="fs-chartdlg-gridwrap"><table class="fs-chartdlg-grid"><tbody></tbody></table></div>
-<p class="fs-note">First column: categories. First row: series names. Paste cells from a spreadsheet into any cell with ${isMac ? 'Cmd' : 'Ctrl'}+V.</p>
+    const sm = (act: string, ic: string, label: string, title: string): string => `<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="${act}" title="${title}">${ic ? icon(ic, 14) : ''}${label}</button>`;
+    const chk = (f: string, label: string): string => `<label class="fd-check"><input type="checkbox" data-f="${f}">${label}</label>`;
+    this.root = el(`<div class="fd-chartdlg">
+<div class="fd-seg fd-chartdlg-kinds" role="tablist" aria-label="Chart type">${CHART_KINDS.map(([k, l]) => `<button type="button" role="tab" data-kind="${k}">${l}</button>`).join('')}</div>
+<div class="fd-chartdlg-main">
+<section class="fd-chartdlg-data">
+<div class="fd-chartdlg-tools">${sm('row+', 'plus', 'Row', 'Add a category row')}${sm('row-', 'minus', 'Row', 'Remove the selected row')}${sm('col+', 'plus', 'Series', 'Add a series column')}${sm('col-', 'minus', 'Series', 'Remove the selected series')}<span class="fd-ins-grow"></span>${sm('paste', '', 'Paste table', 'Replace the data with a table from the clipboard')}</div>
+<div class="fd-chartdlg-gridwrap"><table class="fd-chartdlg-grid"><tbody></tbody></table></div>
+<p class="fd-note">First column: categories. First row: series names. Paste cells from a spreadsheet into any cell with ${isMac ? 'Cmd' : 'Ctrl'}+V.</p>
 </section>
-<section class="fs-chartdlg-side">
-<div class="fs-chartdlg-preview" aria-label="Preview"></div>
-<label class="fs-field"><span>Title</span><input class="fs-input" type="text" data-f="title" placeholder="No title"></label>
-<label class="fs-field"><span>Legend</span><select data-f="legend" aria-label="Legend"><option value="auto">Automatic</option><option value="none">None</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select></label>
-<label class="fs-field"><span>Number format</span><select data-f="format" aria-label="Number format">${FORMATS.map((f) => `<option value="${escapeHtml(f)}">${f ? escapeHtml(f) : 'General'}</option>`).join('')}</select></label>
-<div class="fs-ins-checks">${chk('labels', 'Data labels')}${chk('grid', 'Gridlines')}${chk('stacked', 'Stacked')}${chk('percent', '100% stacked')}</div>
+<section class="fd-chartdlg-side">
+<div class="fd-chartdlg-preview" aria-label="Preview"></div>
+<label class="fd-field"><span>Title</span><input class="fd-input" type="text" data-f="title" placeholder="No title"></label>
+<label class="fd-field"><span>Legend</span><select data-f="legend" aria-label="Legend"><option value="auto">Automatic</option><option value="none">None</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select></label>
+<label class="fd-field"><span>Number format</span><select data-f="format" aria-label="Number format">${FORMATS.map((f) => `<option value="${escapeHtml(f)}">${f ? escapeHtml(f) : 'General'}</option>`).join('')}</select></label>
+<div class="fd-ins-checks">${chk('labels', 'Data labels')}${chk('grid', 'Gridlines')}${chk('stacked', 'Stacked')}${chk('percent', '100% stacked')}</div>
 </section>
 </div>
 </div>`);
     this.d.body.appendChild(this.root);
     this.tbody = q<HTMLTableSectionElement>(this.root, 'tbody');
-    this.preview = q(this.root, '.fs-chartdlg-preview');
+    this.preview = q(this.root, '.fd-chartdlg-preview');
     this.title = q<HTMLInputElement>(this.root, '[data-f="title"]');
     this.legend = q<HTMLSelectElement>(this.root, '[data-f="legend"]');
     this.format = q<HTMLSelectElement>(this.root, '[data-f="format"]');
     this.checks = { labels: q<HTMLInputElement>(this.root, '[data-f="labels"]'), stacked: q<HTMLInputElement>(this.root, '[data-f="stacked"]'), percent: q<HTMLInputElement>(this.root, '[data-f="percent"]'), grid: q<HTMLInputElement>(this.root, '[data-f="grid"]') };
-    q(this.root, '.fs-chartdlg-kinds').addEventListener('click', (e) => {
+    q(this.root, '.fd-chartdlg-kinds').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-kind]');
       if (!b) return;
       this.kind = b.dataset.kind as ChartKind;
@@ -293,7 +293,7 @@ class ChartDlg extends Modal {
       this.sync();
       this.schedule();
     });
-    q(this.root, '.fs-chartdlg-tools').addEventListener('click', (e) => {
+    q(this.root, '.fd-chartdlg-tools').addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
       if (act === 'row+') this.addRow();
       else if (act === 'col+') this.addCol();
@@ -486,9 +486,9 @@ class ChartDlg extends Modal {
 
   private cell(r: number, c: number): HTMLTableCellElement {
     const td = document.createElement(r === 0 || c === 0 ? 'th' : 'td');
-    if (r === 0 && c === 0) { td.className = 'fs-chartdlg-corner'; return td; }
+    if (r === 0 && c === 0) { td.className = 'fd-chartdlg-corner'; return td; }
     const inp = document.createElement('input');
-    inp.className = 'fs-chartdlg-cell';
+    inp.className = 'fd-chartdlg-cell';
     inp.type = 'text';
     inp.spellcheck = false;
     inp.dataset.r = String(r);
@@ -561,7 +561,7 @@ class ChartDlg extends Modal {
     const key = `${this.ed.doc.id}|${JSON.stringify(editorTheme(this.ed))}|${this.size.w}x${this.size.h}|${JSON.stringify(c)}`;
     if (this.preview.dataset.htmlKey === key) return;
     const th = chartTheme(this.ed, c);
-    setStyleVar(this.preview, '--fs-chart-bg', th.background ?? '#ffffff');
+    setStyleVar(this.preview, '--fd-chart-bg', th.background ?? '#ffffff');
     setHtml(this.preview, chartSvg(c, this.size.w, this.size.h, th), key);
   }
 
@@ -633,12 +633,12 @@ class SizeDlg extends Modal {
 
   constructor() {
     super('Slide Size', 440);
-    const body = el(`<div class="fs-ins-size">
-<label class="fs-field"><span>Size</span><select data-f="preset" aria-label="Slide size">${Object.entries(SLIDE_SIZES).map(([k, v]) => `<option value="${k}">${escapeHtml(v.label)}</option>`).join('')}<option value="custom">Custom</option></select></label>
-<div class="fs-field"><span>Width x height</span><div class="fs-ins-row"><label class="fs-num"><span class="fs-num-label">W</span><input type="number" min="0" step="0.01" data-f="w" aria-label="Width"></label><button class="fs-icon-btn" type="button" data-f="swap" title="Swap width and height" aria-label="Swap width and height">${icon('rotate', 16)}</button><label class="fs-num"><span class="fs-num-label">H</span><input type="number" min="0" step="0.01" data-f="h" aria-label="Height"></label></div></div>
-<label class="fs-field"><span>Units</span><select data-f="unit" aria-label="Units"><option value="in">Inches</option><option value="cm">Centimetres</option><option value="pt">Points</option></select></label>
-<div class="fs-field"><span>Content</span><div class="fs-seg" data-f="mode"><button type="button" data-mode="scale">Scale content</button><button type="button" data-mode="keep">Keep size</button></div></div>
-<p class="fs-note" data-f="note"></p>
+    const body = el(`<div class="fd-ins-size">
+<label class="fd-field"><span>Size</span><select data-f="preset" aria-label="Slide size">${Object.entries(SLIDE_SIZES).map(([k, v]) => `<option value="${k}">${escapeHtml(v.label)}</option>`).join('')}<option value="custom">Custom</option></select></label>
+<div class="fd-field"><span>Width x height</span><div class="fd-ins-row"><label class="fd-num"><span class="fd-num-label">W</span><input type="number" min="0" step="0.01" data-f="w" aria-label="Width"></label><button class="fd-icon-btn" type="button" data-f="swap" title="Swap width and height" aria-label="Swap width and height">${icon('rotate', 16)}</button><label class="fd-num"><span class="fd-num-label">H</span><input type="number" min="0" step="0.01" data-f="h" aria-label="Height"></label></div></div>
+<label class="fd-field"><span>Units</span><select data-f="unit" aria-label="Units"><option value="in">Inches</option><option value="cm">Centimetres</option><option value="pt">Points</option></select></label>
+<div class="fd-field"><span>Content</span><div class="fd-seg" data-f="mode"><button type="button" data-mode="scale">Scale content</button><button type="button" data-mode="keep">Keep size</button></div></div>
+<p class="fd-note" data-f="note"></p>
 </div>`);
     this.d.body.appendChild(body);
     this.preset = q<HTMLSelectElement>(body, '[data-f="preset"]');
@@ -752,28 +752,28 @@ class BgDlg extends Modal {
 
   constructor() {
     super('Format Background', 380);
-    this.d.scrim.classList.add('fs-scrim-through', 'fs-ins-side');
-    const colorBtn = (k: string, label: string): string => `<div class="fs-field"><span>${label}</span><button class="fs-btn fs-ins-color" type="button" data-color="${k}"><span class="fs-swatch"></span><span class="fs-ins-color-name"></span>${icon('chevronDown', 12)}</button></div>`;
-    this.root = el(`<div class="fs-bgdlg">
-<div class="fs-seg" data-f="kind" role="tablist" aria-label="Fill"><button type="button" data-k="solid">Solid</button><button type="button" data-k="gradient">Gradient</button><button type="button" data-k="image">Picture</button><button type="button" data-k="pattern">Pattern</button></div>
-<div class="fs-bgdlg-pane" data-pane="solid">${colorBtn('solid', 'Colour')}</div>
-<div class="fs-bgdlg-pane" data-pane="gradient" hidden>
-<div class="fs-field"><span>Type</span><div class="fs-seg" data-f="gkind"><button type="button" data-g="linear">Linear</button><button type="button" data-g="radial">Radial</button></div></div>
+    this.d.scrim.classList.add('fd-scrim-through', 'fd-ins-side');
+    const colorBtn = (k: string, label: string): string => `<div class="fd-field"><span>${label}</span><button class="fd-btn fd-ins-color" type="button" data-color="${k}"><span class="fd-swatch"></span><span class="fd-ins-color-name"></span>${icon('chevronDown', 12)}</button></div>`;
+    this.root = el(`<div class="fd-bgdlg">
+<div class="fd-seg" data-f="kind" role="tablist" aria-label="Fill"><button type="button" data-k="solid">Solid</button><button type="button" data-k="gradient">Gradient</button><button type="button" data-k="image">Picture</button><button type="button" data-k="pattern">Pattern</button></div>
+<div class="fd-bgdlg-pane" data-pane="solid">${colorBtn('solid', 'Colour')}</div>
+<div class="fd-bgdlg-pane" data-pane="gradient" hidden>
+<div class="fd-field"><span>Type</span><div class="fd-seg" data-f="gkind"><button type="button" data-g="linear">Linear</button><button type="button" data-g="radial">Radial</button></div></div>
 ${colorBtn('c1', 'From')}${colorBtn('c2', 'To')}
-<div class="fs-field" data-f="anglerow"><span>Angle</span><div class="fs-ins-row"><input class="fs-slider" type="range" min="0" max="359" step="1" data-f="angle" aria-label="Angle"><span class="fs-ins-val" data-f="angleval"></span></div></div>
+<div class="fd-field" data-f="anglerow"><span>Angle</span><div class="fd-ins-row"><input class="fd-slider" type="range" min="0" max="359" step="1" data-f="angle" aria-label="Angle"><span class="fd-ins-val" data-f="angleval"></span></div></div>
 </div>
-<div class="fs-bgdlg-pane" data-pane="image" hidden>
-<div class="fs-field"><span>Picture</span><div class="fs-ins-row"><button class="fs-btn" type="button" data-f="choose">${icon('image', 14)}Choose...</button><span class="fs-ins-file" data-f="file"></span></div></div>
-<label class="fs-field"><span>Fit</span><select data-f="mode" aria-label="Fit"><option value="cover">Fill</option><option value="contain">Fit</option><option value="stretch">Stretch</option><option value="tile">Tile</option></select></label>
-<div class="fs-field"><span>Transparency</span><div class="fs-ins-row"><input class="fs-slider" type="range" min="0" max="100" step="1" data-f="alpha" aria-label="Transparency"><span class="fs-ins-val" data-f="alphaval"></span></div></div>
+<div class="fd-bgdlg-pane" data-pane="image" hidden>
+<div class="fd-field"><span>Picture</span><div class="fd-ins-row"><button class="fd-btn" type="button" data-f="choose">${icon('image', 14)}Choose...</button><span class="fd-ins-file" data-f="file"></span></div></div>
+<label class="fd-field"><span>Fit</span><select data-f="mode" aria-label="Fit"><option value="cover">Fill</option><option value="contain">Fit</option><option value="stretch">Stretch</option><option value="tile">Tile</option></select></label>
+<div class="fd-field"><span>Transparency</span><div class="fd-ins-row"><input class="fd-slider" type="range" min="0" max="100" step="1" data-f="alpha" aria-label="Transparency"><span class="fd-ins-val" data-f="alphaval"></span></div></div>
 </div>
-<div class="fs-bgdlg-pane" data-pane="pattern" hidden>
-<label class="fs-field"><span>Pattern</span><select data-f="pattern" aria-label="Pattern">${PATTERNS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+<div class="fd-bgdlg-pane" data-pane="pattern" hidden>
+<label class="fd-field"><span>Pattern</span><select data-f="pattern" aria-label="Pattern">${PATTERNS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
 ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
 </div>
-<div class="fs-pop-sep"></div>
-<label class="fs-check"><input type="checkbox" data-f="hide">Hide background graphics</label>
-<p class="fs-note" data-f="scope"></p>
+<div class="fd-pop-sep"></div>
+<label class="fd-check"><input type="checkbox" data-f="hide">Hide background graphics</label>
+<p class="fd-note" data-f="scope"></p>
 </div>`);
     this.d.body.appendChild(this.root);
     this.hide = q<HTMLInputElement>(this.root, '[data-f="hide"]');
@@ -806,7 +806,7 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
     pattern.addEventListener('change', () => { this.pat.pattern = pattern.value as PatternName; this.push(); });
     q(this.root, '[data-f="choose"]').addEventListener('click', () => this.choose());
     this.hide.addEventListener('change', () => this.pushHide(targetSlides(this.ed)));
-    this.d.button('Reset to Layout', 'ghost', () => this.reset()).classList.add('fs-btn-apart');
+    this.d.button('Reset to Layout', 'ghost', () => this.reset()).classList.add('fd-btn-apart');
     this.d.button('Apply to All', 'ghost', () => this.applyAll());
     this.applyBtn = this.d.button('Apply', 'primary', () => { if (this.dirty) this.push(); this.d.close(); });
   }
@@ -855,8 +855,8 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
     for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('[data-color]'))) {
       const c = colors[b.dataset.color ?? ''];
       if (c === undefined) continue;
-      setStyleVar(q(b, '.fs-swatch'), '--swatch', colorCss(c, theme));
-      setText(q(b, '.fs-ins-color-name'), colorName(c, theme));
+      setStyleVar(q(b, '.fd-swatch'), '--swatch', colorCss(c, theme));
+      setText(q(b, '.fd-ins-color-name'), colorName(c, theme));
     }
     setHidden(q(this.root, '[data-f="anglerow"]'), this.grad.kind === 'radial');
     setValue(q<HTMLInputElement>(this.root, '[data-f="angle"]'), String(this.grad.angle));
@@ -877,7 +877,7 @@ ${colorBtn('fg', 'Foreground')}${colorBtn('bg', 'Background')}
     const kind = this.ed.holderKind;
     setText(q(this.root, '[data-f="scope"]'), kind === 'master' ? 'Changes apply to the slide master and every layout that shows its background.' : kind === 'layout' ? 'Changes apply to this layout and its slides.' : n > 1 ? `Changes apply to the ${n} selected slides.` : 'Changes apply to this slide.');
     for (const b of Array.from(this.d.foot.querySelectorAll<HTMLButtonElement>('button'))) if (b.textContent === 'Apply to All') setHidden(b, kind !== 'slide');
-    const hideRow = this.hide.closest<HTMLElement>('label, .fs-field, .fs-ins-row');
+    const hideRow = this.hide.closest<HTMLElement>('label, .fd-field, .fd-ins-row');
     if (hideRow) setHidden(hideRow, kind === 'master');
   }
 
@@ -994,7 +994,7 @@ class CommentDlg extends Modal {
 
   constructor() {
     super('New Comment', 420);
-    const body = el(`<div class="fs-ins-comment"><p class="fs-note" data-f="target"></p><textarea class="fs-input" rows="4" data-f="text" placeholder="Add a comment" spellcheck="true"></textarea><p class="fs-note">${isMac ? 'Cmd' : 'Ctrl'}+Enter to post.</p></div>`);
+    const body = el(`<div class="fd-ins-comment"><p class="fd-note" data-f="target"></p><textarea class="fd-input" rows="4" data-f="text" placeholder="Add a comment" spellcheck="true"></textarea><p class="fd-note">${isMac ? 'Cmd' : 'Ctrl'}+Enter to post.</p></div>`);
     this.d.body.appendChild(body);
     this.target = q(body, '[data-f="target"]');
     this.text = q<HTMLTextAreaElement>(body, '[data-f="text"]');
@@ -1050,7 +1050,7 @@ class AltDlg extends Modal {
 
   constructor() {
     super('Alt Text', 420);
-    const body = el(`<div class="fs-ins-alt"><p class="fs-note" data-f="note"></p><textarea class="fs-input" rows="4" data-f="alt" placeholder="Describe what matters about this object" spellcheck="true"></textarea><label class="fs-check"><input type="checkbox" data-f="deco">Mark as decorative</label><p class="fs-note">Decorative objects add visual interest but carry no meaning, so screen readers skip them.</p></div>`);
+    const body = el(`<div class="fd-ins-alt"><p class="fd-note" data-f="note"></p><textarea class="fd-input" rows="4" data-f="alt" placeholder="Describe what matters about this object" spellcheck="true"></textarea><label class="fd-check"><input type="checkbox" data-f="deco">Mark as decorative</label><p class="fd-note">Decorative objects add visual interest but carry no meaning, so screen readers skip them.</p></div>`);
     this.d.body.appendChild(body);
     this.text = q<HTMLTextAreaElement>(body, '[data-f="alt"]');
     this.deco = q<HTMLInputElement>(body, '[data-f="deco"]');
@@ -1119,9 +1119,9 @@ class ShapesPop {
       const tools = g.id === 'lines' ? LINE_TOOLS.filter((t) => commands.get(t.id)) : [];
       const items = tools.length ? [] : g.items.filter((it) => commands.get(`shape:${it.geom}`));
       if (!items.length && !tools.length) continue;
-      html += `<div class="fs-pop-head">${escapeHtml(g.label)}</div><div class="fs-ins-shapes-grid">${tools.map((t) => `<button type="button" class="fs-ins-shape" data-tool="${escapeHtml(t.id)}" title="${escapeHtml(t.label)}" aria-label="${escapeHtml(t.label)}">${toolIcon(t)}</button>`).join('')}${items.map((it) => `<button type="button" class="fs-ins-shape" data-geom="${escapeHtml(it.geom)}" title="${escapeHtml(it.label)}" aria-label="${escapeHtml(it.label)}">${shapeIcon(it.geom)}</button>`).join('')}</div>`;
+      html += `<div class="fd-pop-head">${escapeHtml(g.label)}</div><div class="fd-ins-shapes-grid">${tools.map((t) => `<button type="button" class="fd-ins-shape" data-tool="${escapeHtml(t.id)}" title="${escapeHtml(t.label)}" aria-label="${escapeHtml(t.label)}">${toolIcon(t)}</button>`).join('')}${items.map((it) => `<button type="button" class="fd-ins-shape" data-geom="${escapeHtml(it.geom)}" title="${escapeHtml(it.label)}" aria-label="${escapeHtml(it.label)}">${shapeIcon(it.geom)}</button>`).join('')}</div>`;
     }
-    this.pop = el(`<div class="fs-pop fs-ins-shapes" hidden role="dialog" aria-label="Shapes">${html}</div>`);
+    this.pop = el(`<div class="fd-pop fd-ins-shapes" hidden role="dialog" aria-label="Shapes">${html}</div>`);
     document.getElementById('overlay-root')?.appendChild(this.pop);
     this.pop.addEventListener('click', (e) => {
       const tool = (e.target as HTMLElement).closest<HTMLElement>('[data-tool]');
@@ -1228,18 +1228,18 @@ class FindPanel {
   private readonly btns: HTMLButtonElement[];
 
   constructor() {
-    this.pop = el(`<div class="fs-pop fs-ins-find" hidden role="dialog" aria-label="Find and replace">
-<div class="fs-ins-find-head"><span class="fs-ins-find-title">${icon('find', 14)}Find and replace</span><button class="fs-icon-btn is-sm" type="button" data-act="close" title="Close" aria-label="Close">${icon('close', 14)}</button></div>
-<div class="fs-ins-find-row"><input class="fs-input" type="search" data-f="find" placeholder="Find" aria-label="Find" spellcheck="false"><span class="fs-ins-find-count" aria-live="polite"></span><button class="fs-icon-btn is-sm" type="button" data-act="prev" title="Previous (Shift+Enter)" aria-label="Previous">${icon('chevronUp', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-act="next" title="Next (Enter)" aria-label="Next">${icon('chevronDown', 14)}</button></div>
-<div class="fs-ins-find-row"><input class="fs-input" type="text" data-f="repl" placeholder="Replace with" aria-label="Replace with" spellcheck="false"></div>
-<div class="fs-ins-find-row is-foot"><label class="fs-check"><input type="checkbox" data-f="mc">Match case</label><label class="fs-check"><input type="checkbox" data-f="word">Whole words</label><span class="fs-ins-grow"></span><button class="fs-btn fs-btn-sm" type="button" data-act="replace">Replace</button><button class="fs-btn fs-btn-sm" type="button" data-act="all">Replace All</button></div>
+    this.pop = el(`<div class="fd-pop fd-ins-find" hidden role="dialog" aria-label="Find and replace">
+<div class="fd-ins-find-head"><span class="fd-ins-find-title">${icon('find', 14)}Find and replace</span><button class="fd-icon-btn is-sm" type="button" data-act="close" title="Close" aria-label="Close">${icon('close', 14)}</button></div>
+<div class="fd-ins-find-row"><input class="fd-input" type="search" data-f="find" placeholder="Find" aria-label="Find" spellcheck="false"><span class="fd-ins-find-count" aria-live="polite"></span><button class="fd-icon-btn is-sm" type="button" data-act="prev" title="Previous (Shift+Enter)" aria-label="Previous">${icon('chevronUp', 14)}</button><button class="fd-icon-btn is-sm" type="button" data-act="next" title="Next (Enter)" aria-label="Next">${icon('chevronDown', 14)}</button></div>
+<div class="fd-ins-find-row"><input class="fd-input" type="text" data-f="repl" placeholder="Replace with" aria-label="Replace with" spellcheck="false"></div>
+<div class="fd-ins-find-row is-foot"><label class="fd-check"><input type="checkbox" data-f="mc">Match case</label><label class="fd-check"><input type="checkbox" data-f="word">Whole words</label><span class="fd-ins-grow"></span><button class="fd-btn fd-btn-sm" type="button" data-act="replace">Replace</button><button class="fd-btn fd-btn-sm" type="button" data-act="all">Replace All</button></div>
 </div>`);
     document.getElementById('overlay-root')?.appendChild(this.pop);
     this.find = q<HTMLInputElement>(this.pop, '[data-f="find"]');
     this.repl = q<HTMLInputElement>(this.pop, '[data-f="repl"]');
     this.mc = q<HTMLInputElement>(this.pop, '[data-f="mc"]');
     this.word = q<HTMLInputElement>(this.pop, '[data-f="word"]');
-    this.count = q(this.pop, '.fs-ins-find-count');
+    this.count = q(this.pop, '.fd-ins-find-count');
     this.btns = Array.from(this.pop.querySelectorAll<HTMLButtonElement>('[data-act="prev"], [data-act="next"], [data-act="replace"], [data-act="all"]'));
     this.find.addEventListener('input', () => { this.cur = -1; this.schedule(); });
     this.mc.addEventListener('change', () => { this.cur = -1; this.search(); });

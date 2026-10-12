@@ -33,7 +33,7 @@ let host: HTMLDivElement | null = null;
 function hostFor(deck: Deck): HTMLDivElement {
   if (!host) {
     host = document.createElement('div');
-    host.className = 'fs-raster-host';
+    host.className = 'fd-raster-host';
     host.setAttribute('aria-hidden', 'true');
     host.style.cssText = 'position:fixed;left:-100000px;top:0;visibility:hidden;contain:strict;pointer-events:none;overflow:hidden;';
     document.body.appendChild(host);
@@ -199,13 +199,13 @@ function parseFx(filter: string): Fx {
 }
 
 function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean): void {
-  if (node.classList.contains('fs-slide-bg')) return;
+  if (node.classList.contains('fd-slide-bg')) return;
   const cs = getComputedStyle(node);
   if (cs.display === 'none') return;
   const style = (node as HTMLElement | SVGElement).style as CSSStyleDeclaration | undefined;
   if (style?.visibility === 'hidden') hidden = true;
   else if (style?.visibility === 'visible') hidden = false;
-  if (node.classList.contains('fs-flow') && node.parentElement?.classList.contains('has-tfx')) hidden = true;
+  if (node.classList.contains('fd-flow') && node.parentElement?.classList.contains('has-tfx')) hidden = true;
   const transform = cs.transform, origin = cs.transformOrigin, opacity = parseFloat(cs.opacity) || 0;
   const fx = parseFx(cs.filter);
   const clipPath = cs.clipPath;
@@ -223,7 +223,7 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
     const lm = matOf(local);
     const k = w.scale * Math.sqrt(Math.abs(lm.a * lm.d - lm.b * lm.c));
     const shadows = fx.shadows.map((s) => device(local, w.scale, s));
-    if (node instanceof SVGSVGElement && node.classList.contains('fs-tfx')) { if (!hidden) tfxNode(node, b, local, out, w, opacity); return; }
+    if (node instanceof SVGSVGElement && node.classList.contains('fd-tfx')) { if (!hidden) tfxNode(node, b, local, out, w, opacity); return; }
     if (node instanceof SVGSVGElement) { if (!hidden) svgNode(node, cs, b, local, out, w, opacity, shadows, scaleCss(fx.css, k)); return; }
     if (node instanceof HTMLImageElement) { if (!hidden) imageNode(node, cs, b, local, out, opacity, shadows, fx, k); return; }
     if (node instanceof HTMLVideoElement) { if (!hidden) videoNode(node, b, local, out, w, opacity); return; }
@@ -321,12 +321,12 @@ function firstFamily(cs: CSSStyleDeclaration): string {
 
 function decoOf(el: Element | null): { u: boolean; s: boolean; color: string } {
   const out = { u: false, s: false, color: '' };
-  for (let n = el; n && !n.classList.contains('fs-flow') && n.tagName !== 'TD'; n = n.parentElement) {
+  for (let n = el; n && !n.classList.contains('fd-flow') && n.tagName !== 'TD'; n = n.parentElement) {
     const cs = getComputedStyle(n);
     const line = cs.textDecorationLine;
     if (line.includes('underline') && !out.u) { out.u = true; out.color ||= cs.textDecorationColor; }
     if (line.includes('line-through') && !out.s) { out.s = true; out.color ||= cs.textDecorationColor; }
-    if (n.classList.contains('fs-p') || n.classList.contains('fs-bu')) break;
+    if (n.classList.contains('fd-p') || n.classList.contains('fd-bu')) break;
   }
   return out;
 }
@@ -420,7 +420,7 @@ interface Frag { s: string; x: number; y: number; w: number; h: number; gap: boo
 function textNode(t: Text, cs: CSSStyleDeclaration, steps: Step[], out: Op[], w: Walk): void {
   const data = t.data;
   const lead = w.space;
-  const bullet = !!t.parentElement?.classList.contains('fs-bu');
+  const bullet = !!t.parentElement?.classList.contains('fd-bu');
   if (data) w.space = bullet || /\s$/.test(data);
   if (!data.trim()) return;
   const size = parseFloat(cs.fontSize) || 16;

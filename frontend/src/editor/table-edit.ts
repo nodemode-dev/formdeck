@@ -440,7 +440,7 @@ export function colWidthOps(tg: Target, cols: number[]): Op[] {
 }
 
 export function tableNode(ed: Editor, id: string): HTMLTableElement | null {
-  return ed.stage.view?.nodeFor(id)?.querySelector<HTMLTableElement>(':scope > table.fs-table') ?? null;
+  return ed.stage.view?.nodeFor(id)?.querySelector<HTMLTableElement>(':scope > table.fd-table') ?? null;
 }
 
 export function rowEdges(table: HTMLTableElement): number[] {
@@ -509,9 +509,9 @@ export function patchLiveTable(ed: Editor, id: string): void {
   for (const td of Array.from(live.querySelectorAll<HTMLElement>('td[data-r]'))) {
     const ftd = fresh.querySelector(`td[data-r="${td.dataset.r}"][data-c="${td.dataset.c}"]`);
     copy(td, ftd, 'style');
-    copy(td.querySelector(':scope > .fs-cell-flow'), ftd?.querySelector(':scope > .fs-cell-flow'), 'class');
-    copy(td.querySelector(':scope > .fs-cell-flow'), ftd?.querySelector(':scope > .fs-cell-flow'), 'style');
-    const ps = td.querySelectorAll(':scope > .fs-cell-flow > p.fs-p'), fps = ftd?.querySelectorAll(':scope > .fs-cell-flow > p.fs-p');
+    copy(td.querySelector(':scope > .fd-cell-flow'), ftd?.querySelector(':scope > .fd-cell-flow'), 'class');
+    copy(td.querySelector(':scope > .fd-cell-flow'), ftd?.querySelector(':scope > .fd-cell-flow'), 'style');
+    const ps = td.querySelectorAll(':scope > .fd-cell-flow > p.fd-p'), fps = ftd?.querySelectorAll(':scope > .fd-cell-flow > p.fd-p');
     if (fps && ps.length === fps.length) ps.forEach((n, i) => copy(n, fps[i], 'style'));
   }
 }
@@ -823,7 +823,7 @@ function registerCellFormat(commands: Commands, getEditor: () => Editor | null):
     withCells(t, (x) => borderOps(x, x.rg, p, line), p === 'none' ? 'No border' : 'Borders');
   };
   const anchorEl = (): HTMLElement => {
-    const cands = Array.from(document.querySelectorAll<HTMLElement>('.fs-tb [data-cmd="table-borders"], [data-ta="borders"]'));
+    const cands = Array.from(document.querySelectorAll<HTMLElement>('.fd-tb [data-cmd="table-borders"], [data-ta="borders"]'));
     return cands.find((n) => n.offsetParent !== null) ?? document.body;
   };
   let menu: PopupMenu | null = null;

@@ -29,7 +29,7 @@ const settings = (): Promise<Settings> => api.settings().catch((): Settings => (
 const setAttr = (node: Element, name: string, value: string): void => { if (node.getAttribute(name) !== value) node.setAttribute(name, value); };
 const holdFocus = (d: Dialog): void => {
   const a = document.activeElement;
-  if (!d.scrim.contains(a) || a instanceof HTMLButtonElement) q<HTMLElement>(d.scrim, '.fs-dialog').focus();
+  if (!d.scrim.contains(a) || a instanceof HTMLButtonElement) q<HTMLElement>(d.scrim, '.fd-dialog').focus();
 };
 
 function bytes(n: number): string {
@@ -84,8 +84,8 @@ async function copyText(text: string): Promise<boolean> {
 function actionToast(text: string, label: string, run: () => void): void {
   const root = document.getElementById('toast-root');
   if (!root) { toast(text); return; }
-  const node = el('<div class="fs-toast fs-dlg-toast" role="status"><span class="fs-dlg-toast-text"></span><button class="fs-dlg-toast-btn" type="button"></button></div>');
-  setText(q(node, '.fs-dlg-toast-text'), text);
+  const node = el('<div class="fd-toast fd-dlg-toast" role="status"><span class="fd-dlg-toast-text"></span><button class="fd-dlg-toast-btn" type="button"></button></div>');
+  setText(q(node, '.fd-dlg-toast-text'), text);
   const b = q<HTMLButtonElement>(node, 'button');
   setText(b, label);
   b.addEventListener('click', () => { run(); dismissToast(node); });
@@ -133,7 +133,7 @@ function segOn(seg: HTMLElement, fn: (v: string) => void): void {
 }
 
 function flashCopied(btn: HTMLElement, ok: boolean): void {
-  const label = btn.querySelector('.fs-dlg-copy-label');
+  const label = btn.querySelector('.fd-dlg-copy-label');
   if (!ok) { toast('Could not copy. Select the text and copy it yourself.', 'error'); return; }
   setText(label, 'Copied');
   setClass(btn, 'is-done', true);
@@ -141,19 +141,19 @@ function flashCopied(btn: HTMLElement, ok: boolean): void {
   btn.dataset.timer = String(window.setTimeout(() => { setText(label, 'Copy'); setClass(btn, 'is-done', false); }, 1600));
 }
 
-const copyBtn = (cls = 'fs-btn-ghost'): string => `<button class="fs-btn fs-btn-sm ${cls} fs-dlg-copy" type="button" data-copy>${icon('duplicate', 14)}<span class="fs-dlg-copy-label">Copy</span></button>`;
+const copyBtn = (cls = 'fd-btn-ghost'): string => `<button class="fd-btn fd-btn-sm ${cls} fd-dlg-copy" type="button" data-copy>${icon('duplicate', 14)}<span class="fd-dlg-copy-label">Copy</span></button>`;
 
 function wireCopies(root: HTMLElement): void {
   root.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-copy]');
-    const pre = b?.closest('.fs-dlg-code')?.querySelector('.fs-dlg-code-text');
+    const pre = b?.closest('.fd-dlg-code')?.querySelector('.fd-dlg-code-text');
     if (b && pre) void copyText(pre.textContent ?? '').then((ok) => flashCopied(b, ok));
   });
 }
 
 class StatusLine {
-  readonly node = el(`<div class="fs-dlg-status" role="status" aria-live="polite"><span class="fs-dlg-spin">${icon('loading', 14)}</span><span class="fs-dlg-status-text"></span></div>`);
-  private readonly label = q(this.node, '.fs-dlg-status-text');
+  readonly node = el(`<div class="fd-dlg-status" role="status" aria-live="polite"><span class="fd-dlg-spin">${icon('loading', 14)}</span><span class="fd-dlg-status-text"></span></div>`);
+  private readonly label = q(this.node, '.fd-dlg-status-text');
   private gen = 0;
   private shown = false;
   private text = '';
@@ -196,11 +196,11 @@ class TemplateGrid {
   private readonly views = new WeakMap<Element, { view: SlideView; deckW: number; w: number }>();
 
   constructor(private readonly compact: boolean) {
-    this.root = el(`<div class="fs-tplg${compact ? ' is-compact' : ''}"><div class="fs-tplg-bar"><div class="fs-tplg-chips" role="group" aria-label="Template categories"></div><label class="fs-search fs-tplg-search">${icon('search', 14)}<input type="search" placeholder="Search" aria-label="Search templates" spellcheck="false"></label></div><div class="fs-tplg-scroll"><div class="fs-tplg-grid" role="listbox" aria-label="Templates"></div><div class="fs-tplg-empty fs-note" hidden>No template matches that search.</div></div></div>`);
-    this.scroll = q(this.root, '.fs-tplg-scroll');
-    this.chips = q(this.root, '.fs-tplg-chips');
-    this.grid = q(this.root, '.fs-tplg-grid');
-    this.empty = q(this.root, '.fs-tplg-empty');
+    this.root = el(`<div class="fd-tplg${compact ? ' is-compact' : ''}"><div class="fd-tplg-bar"><div class="fd-tplg-chips" role="group" aria-label="Template categories"></div><label class="fd-search fd-tplg-search">${icon('search', 14)}<input type="search" placeholder="Search" aria-label="Search templates" spellcheck="false"></label></div><div class="fd-tplg-scroll"><div class="fd-tplg-grid" role="listbox" aria-label="Templates"></div><div class="fd-tplg-empty fd-note" hidden>No template matches that search.</div></div></div>`);
+    this.scroll = q(this.root, '.fd-tplg-scroll');
+    this.chips = q(this.root, '.fd-tplg-chips');
+    this.grid = q(this.root, '.fd-tplg-grid');
+    this.empty = q(this.root, '.fd-tplg-empty');
     this.search = q<HTMLInputElement>(this.root, 'input');
     this.io = new IntersectionObserver((entries) => {
       for (const en of entries) if (en.isIntersecting) this.mount(en.target as HTMLElement);
@@ -236,7 +236,7 @@ class TemplateGrid {
     this.selected = [...prefer, c.default].find((id): id is string => !!id && this.items.some((t) => t.id === id)) ?? this.items[0]?.id ?? '';
     patchList(this.chips, this.cats, {
       key: (c2) => c2,
-      create: (c2) => { const n = el('<button class="fs-chip" type="button"></button>'); n.dataset.cat = c2; setText(n, c2); return n; },
+      create: (c2) => { const n = el('<button class="fd-chip" type="button"></button>'); n.dataset.cat = c2; setText(n, c2); return n; },
       update: () => undefined,
     });
     patchList(this.grid, this.items, { key: (t) => t.id, create: (t) => this.card(t), update: (n, t) => this.fill(n, t) });
@@ -272,9 +272,9 @@ class TemplateGrid {
   }
 
   private card(t: TemplateSummary): HTMLElement {
-    const n = el(`<button class="fs-tplg-card" type="button" role="option" aria-selected="false"><span class="fs-tplg-prev"></span><span class="fs-tplg-name"></span>${this.compact ? '' : '<span class="fs-tplg-meta"></span>'}</button>`);
+    const n = el(`<button class="fd-tplg-card" type="button" role="option" aria-selected="false"><span class="fd-tplg-prev"></span><span class="fd-tplg-name"></span>${this.compact ? '' : '<span class="fd-tplg-meta"></span>'}</button>`);
     n.dataset.tid = t.id;
-    const prev = q(n, '.fs-tplg-prev');
+    const prev = q(n, '.fd-tplg-prev');
     prev.dataset.tpl = t.id;
     this.fill(n, t);
     this.io.observe(prev);
@@ -282,8 +282,8 @@ class TemplateGrid {
   }
 
   private fill(n: HTMLElement, t: TemplateSummary): void {
-    setText(n.querySelector('.fs-tplg-name'), t.name);
-    setText(n.querySelector('.fs-tplg-meta'), `${t.category} · ${t.fonts.major}${t.fonts.minor !== t.fonts.major ? ` + ${t.fonts.minor}` : ''}`);
+    setText(n.querySelector('.fd-tplg-name'), t.name);
+    setText(n.querySelector('.fd-tplg-meta'), `${t.category} · ${t.fonts.major}${t.fonts.minor !== t.fonts.major ? ` + ${t.fonts.minor}` : ''}`);
     if (n.title !== t.description) n.title = t.description;
   }
 
@@ -292,7 +292,7 @@ class TemplateGrid {
     if (!id) return;
     this.io.unobserve(host);
     void templatePreview(id, 'title').then((deck) => {
-      if (host.querySelector('.fs-slide') || !host.isConnected) return;
+      if (host.querySelector('.fd-slide') || !host.isConnected) return;
       const w = host.clientWidth;
       if (!w) { this.io.observe(host); return; }
       const view = mountDeckPreview(host, deck, 0, w);
@@ -384,43 +384,43 @@ class IntakeDialog extends Dialog {
 
   constructor() {
     super('New deck from files', 860);
-    q(this.scrim, '.fs-dialog').classList.add('fs-intake-dialog');
+    q(this.scrim, '.fd-dialog').classList.add('fd-intake-dialog');
     const sizes = ['16:9', '4:3', 'gslides'].map((k) => `<option value="${k}">${escapeHtml(SLIDE_SIZES[k]?.label ?? k)}</option>`).join('');
-    this.form = el(`<div class="fs-intake">
-<div class="fs-intake-col">
-<div class="fs-intake-drop" role="button" tabindex="0" aria-label="Add files"><span class="fs-intake-drop-icon">${icon('upload', 20)}</span><span class="fs-intake-drop-text"><span class="fs-intake-drop-title">Drop files here or click to choose</span><span class="fs-intake-drop-sub">Markdown, PDF, Word, PowerPoint, text, CSV, Excel, pictures and GIFs</span></span></div>
-<div class="fs-intake-files" hidden></div>
-<label class="fs-field is-stack"><span>Notes or meeting transcript</span><textarea class="fs-input fs-intake-notes" rows="5" spellcheck="true" placeholder="Paste notes, a transcript or an outline. A slide script with --- between slides is used as written."></textarea></label>
-<label class="fs-field is-stack"><span>What should this deck do?</span><textarea class="fs-input fs-intake-brief" rows="3" spellcheck="true" placeholder="Audience, goal, tone and length. For example: a ten minute Q3 update for the leadership team, plain and confident."></textarea></label>
+    this.form = el(`<div class="fd-intake">
+<div class="fd-intake-col">
+<div class="fd-intake-drop" role="button" tabindex="0" aria-label="Add files"><span class="fd-intake-drop-icon">${icon('upload', 20)}</span><span class="fd-intake-drop-text"><span class="fd-intake-drop-title">Drop files here or click to choose</span><span class="fd-intake-drop-sub">Markdown, PDF, Word, PowerPoint, text, CSV, Excel, pictures and GIFs</span></span></div>
+<div class="fd-intake-files" hidden></div>
+<label class="fd-field is-stack"><span>Notes or meeting transcript</span><textarea class="fd-input fd-intake-notes" rows="5" spellcheck="true" placeholder="Paste notes, a transcript or an outline. A slide script with --- between slides is used as written."></textarea></label>
+<label class="fd-field is-stack"><span>What should this deck do?</span><textarea class="fd-input fd-intake-brief" rows="3" spellcheck="true" placeholder="Audience, goal, tone and length. For example: a ten minute Q3 update for the leadership team, plain and confident."></textarea></label>
 </div>
-<div class="fs-intake-col">
-<div class="fs-intake-label">Template</div>
-<div class="fs-intake-grid"></div>
-<div class="fs-intake-picked fs-note"></div>
-<div class="fs-intake-opts">
-<div class="fs-field is-stack"><span>Slides</span><select class="fs-intake-count" aria-label="Number of slides"><option value="auto">Auto</option><option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="16">16</option><option value="20">20</option></select></div>
-<div class="fs-field is-stack"><span>Size</span><select class="fs-intake-size" aria-label="Slide size">${sizes}</select></div>
+<div class="fd-intake-col">
+<div class="fd-intake-label">Template</div>
+<div class="fd-intake-grid"></div>
+<div class="fd-intake-picked fd-note"></div>
+<div class="fd-intake-opts">
+<div class="fd-field is-stack"><span>Slides</span><select class="fd-intake-count" aria-label="Number of slides"><option value="auto">Auto</option><option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="16">16</option><option value="20">20</option></select></div>
+<div class="fd-field is-stack"><span>Size</span><select class="fd-intake-size" aria-label="Slide size">${sizes}</select></div>
 </div>
 </div>
 </div>`);
-    this.handoff = el(`<div class="fs-intake-handoff" hidden>
-<div class="fs-intake-handoff-head"><span class="fs-intake-handoff-icon">${icon('agent', 20)}</span><div><div class="fs-intake-handoff-title">Your material is ready for an agent</div><div class="fs-note fs-intake-handoff-sub"></div></div></div>
-<div class="fs-dlg-code"><div class="fs-dlg-code-head"><span class="fs-dlg-code-title">Prompt</span>${copyBtn('')}</div><pre class="fs-dlg-code-text fs-intake-prompt"></pre></div>
-<ol class="fs-dlg-steps"><li>Open Claude Code, Codex or Cursor with the FormDeck MCP server connected.</li><li>Paste the prompt. The agent reads your material, writes a slide script and builds the deck in your template.</li><li>Watch the slides land here as it works. Edit &gt; Undo Agent Turn takes back a whole turn.</li></ol>
-<button class="fs-dlg-link" type="button" data-agents>${icon('link2', 14)}<span>Connect an agent to FormDeck</span></button>
+    this.handoff = el(`<div class="fd-intake-handoff" hidden>
+<div class="fd-intake-handoff-head"><span class="fd-intake-handoff-icon">${icon('agent', 20)}</span><div><div class="fd-intake-handoff-title">Your material is ready for an agent</div><div class="fd-note fd-intake-handoff-sub"></div></div></div>
+<div class="fd-dlg-code"><div class="fd-dlg-code-head"><span class="fd-dlg-code-title">Prompt</span>${copyBtn('')}</div><pre class="fd-dlg-code-text fd-intake-prompt"></pre></div>
+<ol class="fd-dlg-steps"><li>Open Claude Code, Codex or Cursor with the FormDeck MCP server connected.</li><li>Paste the prompt. The agent reads your material, writes a slide script and builds the deck in your template.</li><li>Watch the slides land here as it works. Edit &gt; Undo Agent Turn takes back a whole turn.</li></ol>
+<button class="fd-dlg-link" type="button" data-agents>${icon('link2', 14)}<span>Connect an agent to FormDeck</span></button>
 </div>`);
     this.body.append(this.form, this.handoff);
-    q(this.form, '.fs-intake-grid').appendChild(this.grid.root);
-    this.drop = q(this.form, '.fs-intake-drop');
-    this.dropTitle = q(this.form, '.fs-intake-drop-title');
-    this.list = q(this.form, '.fs-intake-files');
-    this.notes = q<HTMLTextAreaElement>(this.form, '.fs-intake-notes');
-    this.brief = q<HTMLTextAreaElement>(this.form, '.fs-intake-brief');
-    this.count = q<HTMLSelectElement>(this.form, '.fs-intake-count');
-    this.size = q<HTMLSelectElement>(this.form, '.fs-intake-size');
-    this.picked = q(this.form, '.fs-intake-picked');
-    this.prompt = q(this.handoff, '.fs-intake-prompt');
-    this.handoffSub = q(this.handoff, '.fs-intake-handoff-sub');
+    q(this.form, '.fd-intake-grid').appendChild(this.grid.root);
+    this.drop = q(this.form, '.fd-intake-drop');
+    this.dropTitle = q(this.form, '.fd-intake-drop-title');
+    this.list = q(this.form, '.fd-intake-files');
+    this.notes = q<HTMLTextAreaElement>(this.form, '.fd-intake-notes');
+    this.brief = q<HTMLTextAreaElement>(this.form, '.fd-intake-brief');
+    this.count = q<HTMLSelectElement>(this.form, '.fd-intake-count');
+    this.size = q<HTMLSelectElement>(this.form, '.fd-intake-size');
+    this.picked = q(this.form, '.fd-intake-picked');
+    this.prompt = q(this.handoff, '.fd-intake-prompt');
+    this.handoffSub = q(this.handoff, '.fd-intake-handoff-sub');
     this.picker = document.createElement('input');
     this.picker.type = 'file';
     this.picker.multiple = true;
@@ -496,9 +496,9 @@ class IntakeDialog extends Dialog {
     patchList(this.list, this.files, {
       key: fileKey,
       create: (f) => {
-        const n = el(`<div class="fs-intake-file"><span class="fs-intake-file-icon">${icon(fileIcon(f), 16)}</span><span class="fs-intake-file-name"></span><span class="fs-intake-file-size"></span><button class="fs-icon-btn is-sm" type="button" data-remove aria-label="Remove" title="Remove">${icon('close', 12)}</button></div>`);
-        setText(q(n, '.fs-intake-file-name'), f.name);
-        setText(q(n, '.fs-intake-file-size'), bytes(f.size));
+        const n = el(`<div class="fd-intake-file"><span class="fd-intake-file-icon">${icon(fileIcon(f), 16)}</span><span class="fd-intake-file-name"></span><span class="fd-intake-file-size"></span><button class="fd-icon-btn is-sm" type="button" data-remove aria-label="Remove" title="Remove">${icon('close', 12)}</button></div>`);
+        setText(q(n, '.fd-intake-file-name'), f.name);
+        setText(q(n, '.fd-intake-file-size'), bytes(f.size));
         n.title = f.name;
         return n;
       },
@@ -626,17 +626,17 @@ class SaveAsDialog extends Dialog {
 
   constructor() {
     super('Save a copy', 540);
-    this.choices = el(`<div class="fs-dlg-choices" role="radiogroup" aria-label="Where to save">
-<button class="fs-dlg-choice" type="button" role="radio" data-mode="file"><span class="fs-dlg-choice-icon">${icon('save', 18)}</span><span class="fs-dlg-choice-text"><span class="fs-dlg-choice-title">A file on this computer</span><span class="fs-dlg-choice-sub">.fsld keeps everything for FormDeck. .pptx opens in PowerPoint, Keynote and Google Slides.</span></span></button>
-<button class="fs-dlg-choice" type="button" role="radio" data-mode="library"><span class="fs-dlg-choice-icon">${icon('duplicate', 18)}</span><span class="fs-dlg-choice-text"><span class="fs-dlg-choice-title">A copy in your library</span><span class="fs-dlg-choice-sub">A separate deck you can change without touching this one.</span></span></button>
+    this.choices = el(`<div class="fd-dlg-choices" role="radiogroup" aria-label="Where to save">
+<button class="fd-dlg-choice" type="button" role="radio" data-mode="file"><span class="fd-dlg-choice-icon">${icon('save', 18)}</span><span class="fd-dlg-choice-text"><span class="fd-dlg-choice-title">A file on this computer</span><span class="fd-dlg-choice-sub">.fsld keeps everything for FormDeck. .pptx opens in PowerPoint, Keynote and Google Slides.</span></span></button>
+<button class="fd-dlg-choice" type="button" role="radio" data-mode="library"><span class="fd-dlg-choice-icon">${icon('duplicate', 18)}</span><span class="fd-dlg-choice-text"><span class="fd-dlg-choice-title">A copy in your library</span><span class="fd-dlg-choice-sub">A separate deck you can change without touching this one.</span></span></button>
 </div>`);
-    this.fileOpts = el(`<div class="fs-dlg-stack">
-<div class="fs-field"><span>Format</span><div class="fs-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fsld">FormDeck (.fsld)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
-<label class="fs-field fs-dlg-path"><span>Save to</span><input class="fs-input" type="text" spellcheck="false" aria-label="File path"></label>
-<p class="fs-note fs-dlg-browser-note">Your browser saves the file to its downloads folder.</p>
+    this.fileOpts = el(`<div class="fd-dlg-stack">
+<div class="fd-field"><span>Format</span><div class="fd-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fsld">FormDeck (.fsld)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
+<label class="fd-field fd-dlg-path"><span>Save to</span><input class="fd-input" type="text" spellcheck="false" aria-label="File path"></label>
+<p class="fd-note fd-dlg-browser-note">Your browser saves the file to its downloads folder.</p>
 </div>`);
     this.body.append(this.choices, this.fileOpts);
-    this.fmtSeg = q(this.fileOpts, '.fs-seg');
+    this.fmtSeg = q(this.fileOpts, '.fd-seg');
     this.path = q<HTMLInputElement>(this.fileOpts, 'input');
     this.foot.appendChild(this.status.node);
     this.button('Cancel', 'ghost', () => this.close());
@@ -653,8 +653,8 @@ class SaveAsDialog extends Dialog {
     this.path.addEventListener('input', () => { this.touched = true; });
     this.path.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
     const browser = !isTauri();
-    setHidden(q(this.fileOpts, '.fs-dlg-path'), browser);
-    setHidden(q(this.fileOpts, '.fs-dlg-browser-note'), !browser);
+    setHidden(q(this.fileOpts, '.fd-dlg-path'), browser);
+    setHidden(q(this.fileOpts, '.fd-dlg-browser-note'), !browser);
   }
 
   show(ed: Editor): void {
@@ -818,47 +818,47 @@ class ExportDialog extends Dialog {
 
   constructor() {
     super('Export', 560);
-    q(this.scrim, '.fs-dialog').classList.add('fs-dlg-export');
+    q(this.scrim, '.fd-dialog').classList.add('fd-dlg-export');
     const ids = Object.keys(EXPORTS) as ExportFormat[];
-    this.formats = el(`<div class="fs-seg fs-dlg-formats" role="group" aria-label="Format">${ids.map((f) => `<button type="button" data-v="${f}">${EXPORTS[f].label}</button>`).join('')}</div>`);
-    this.sub = el('<p class="fs-note fs-dlg-format-sub"></p>');
-    const office = el(`<div class="fs-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. Fonts are not embedded, so the computer that opens the file needs <span class="fs-dlg-fonts"></span> installed or it substitutes a similar font.</div></div>`);
-    const fsld = el(`<div class="fs-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in FormDeck. Agents can read it too.</div></div>`);
-    const pdf = el(`<div class="fs-dlg-stack">
-<div class="fs-field"><span>Slides</span><div class="fs-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
-<label class="fs-field fs-dlg-custom" hidden><span>Numbers</span><input class="fs-input" type="text" spellcheck="false" placeholder="For example 1-3, 5, 8-" aria-label="Slide numbers"></label>
-<div class="fs-field"><span>Quality</span><select class="fs-dlg-quality" aria-label="Quality"><option value="2">Standard</option><option value="3">High (larger file)</option></select></div>
-<div class="fs-field"><span></span><label class="fs-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label></div>
+    this.formats = el(`<div class="fd-seg fd-dlg-formats" role="group" aria-label="Format">${ids.map((f) => `<button type="button" data-v="${f}">${EXPORTS[f].label}</button>`).join('')}</div>`);
+    this.sub = el('<p class="fd-note fd-dlg-format-sub"></p>');
+    const office = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. Fonts are not embedded, so the computer that opens the file needs <span class="fd-dlg-fonts"></span> installed or it substitutes a similar font.</div></div>`);
+    const fsld = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in FormDeck. Agents can read it too.</div></div>`);
+    const pdf = el(`<div class="fd-dlg-stack">
+<div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
+<label class="fd-field fd-dlg-custom" hidden><span>Numbers</span><input class="fd-input" type="text" spellcheck="false" placeholder="For example 1-3, 5, 8-" aria-label="Slide numbers"></label>
+<div class="fd-field"><span>Quality</span><select class="fd-dlg-quality" aria-label="Quality"><option value="2">Standard</option><option value="3">High (larger file)</option></select></div>
+<div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label></div>
 </div>`);
-    const raster = el(`<div class="fs-dlg-stack">
-<div class="fs-field"><span>Slides</span><div class="fs-seg is-quiet" data-seg="which"><button type="button" data-v="current">Current slide</button><button type="button" data-v="all">All slides</button></div></div>
-<div class="fs-field"><span>Size</span><div class="fs-seg is-quiet" data-seg="scale"><button type="button" data-v="1">1x</button><button type="button" data-v="2">2x</button><button type="button" data-v="3">3x</button></div></div>
-<div class="fs-field"><span></span><span class="fs-note fs-dlg-px"></span></div>
+    const raster = el(`<div class="fd-dlg-stack">
+<div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="which"><button type="button" data-v="current">Current slide</button><button type="button" data-v="all">All slides</button></div></div>
+<div class="fd-field"><span>Size</span><div class="fd-seg is-quiet" data-seg="scale"><button type="button" data-v="1">1x</button><button type="button" data-v="2">2x</button><button type="button" data-v="3">3x</button></div></div>
+<div class="fd-field"><span></span><span class="fd-note fd-dlg-px"></span></div>
 </div>`);
-    const motion = el(`<div class="fs-dlg-stack">
-<div class="fs-field fs-dlg-res"><span>Resolution</span><div class="fs-seg is-quiet" data-seg="res"><button type="button" data-v="720">720p</button><button type="button" data-v="1080">1080p</button></div></div>
-<div class="fs-field fs-dlg-gifw"><span>Width</span><div class="fs-seg is-quiet" data-seg="gifw"><button type="button" data-v="480">480 px</button><button type="button" data-v="720">720 px</button><button type="button" data-v="960">960 px</button></div></div>
-<label class="fs-field"><span>Per slide</span><span class="fs-dlg-secs"><input class="fs-input" type="number" min="0.5" max="600" step="0.5" aria-label="Seconds per slide"><span class="fs-note">seconds, when a slide has no timing</span></span></label>
-<div class="fs-field is-top"><span></span><div class="fs-dlg-checks fs-dlg-col"><label class="fs-check"><input type="checkbox" data-f="timings" checked><span>Use recorded timings and narration</span></label><label class="fs-check"><input type="checkbox" data-f="builds" checked><span>Include animations as build steps</span></label><label class="fs-check"><input type="checkbox" data-f="fades" checked><span>Show transitions as fades</span></label></div></div>
-<div class="fs-field"><span></span><span class="fs-note fs-dlg-motion-note"></span></div>
-<div class="fs-field"><span></span><span class="fs-dlg-progress" aria-hidden="true"><span class="fs-dlg-progress-fill"></span></span></div>
+    const motion = el(`<div class="fd-dlg-stack">
+<div class="fd-field fd-dlg-res"><span>Resolution</span><div class="fd-seg is-quiet" data-seg="res"><button type="button" data-v="720">720p</button><button type="button" data-v="1080">1080p</button></div></div>
+<div class="fd-field fd-dlg-gifw"><span>Width</span><div class="fd-seg is-quiet" data-seg="gifw"><button type="button" data-v="480">480 px</button><button type="button" data-v="720">720 px</button><button type="button" data-v="960">960 px</button></div></div>
+<label class="fd-field"><span>Per slide</span><span class="fd-dlg-secs"><input class="fd-input" type="number" min="0.5" max="600" step="0.5" aria-label="Seconds per slide"><span class="fd-note">seconds, when a slide has no timing</span></span></label>
+<div class="fd-field is-top"><span></span><div class="fd-dlg-checks fd-dlg-col"><label class="fd-check"><input type="checkbox" data-f="timings" checked><span>Use recorded timings and narration</span></label><label class="fd-check"><input type="checkbox" data-f="builds" checked><span>Include animations as build steps</span></label><label class="fd-check"><input type="checkbox" data-f="fades" checked><span>Show transitions as fades</span></label></div></div>
+<div class="fd-field"><span></span><span class="fd-note fd-dlg-motion-note"></span></div>
+<div class="fd-field"><span></span><span class="fd-dlg-progress" aria-hidden="true"><span class="fd-dlg-progress-fill"></span></span></div>
 </div>`);
-    const outline = el(`<div class="fs-dlg-stack"><div class="fs-field is-top"><span></span><div class="fs-dlg-checks fs-dlg-col"><label class="fs-check"><input type="checkbox" data-f="notes"><span>Include speaker notes</span></label><label class="fs-check"><input type="checkbox" data-f="ohidden"><span>Include hidden slides</span></label></div></div></div>`);
-    this.secs = q<HTMLInputElement>(motion, '.fs-dlg-secs input');
-    this.motionNote = q(motion, '.fs-dlg-motion-note');
-    this.bar = q(motion, '.fs-dlg-progress');
+    const outline = el(`<div class="fd-dlg-stack"><div class="fd-field is-top"><span></span><div class="fd-dlg-checks fd-dlg-col"><label class="fd-check"><input type="checkbox" data-f="notes"><span>Include speaker notes</span></label><label class="fd-check"><input type="checkbox" data-f="ohidden"><span>Include hidden slides</span></label></div></div></div>`);
+    this.secs = q<HTMLInputElement>(motion, '.fd-dlg-secs input');
+    this.motionNote = q(motion, '.fd-dlg-motion-note');
+    this.bar = q(motion, '.fd-dlg-progress');
     segOn(q(motion, '[data-seg="res"]'), (v) => { this.res = Number(v) || 720; this.sync(); });
     segOn(q(motion, '[data-seg="gifw"]'), (v) => { this.gifW = Number(v) || 720; this.sync(); });
     this.secs.addEventListener('input', () => this.sync());
     for (const c of Array.from(motion.querySelectorAll('input[type="checkbox"]'))) c.addEventListener('change', () => this.sync());
-    this.pathRow = el('<label class="fs-field fs-dlg-path"><span>Save to</span><input class="fs-input" type="text" spellcheck="false" aria-label="File path"></label>');
+    this.pathRow = el('<label class="fd-field fd-dlg-path"><span>Save to</span><input class="fd-input" type="text" spellcheck="false" aria-label="File path"></label>');
     this.groups = { office, fsld, pdf, raster, motion, outline };
     this.body.append(this.formats, this.sub, office, fsld, pdf, raster, motion, outline, this.pathRow);
-    this.custom = q<HTMLInputElement>(pdf, '.fs-dlg-custom input');
-    this.quality = q<HTMLSelectElement>(pdf, '.fs-dlg-quality');
+    this.custom = q<HTMLInputElement>(pdf, '.fd-dlg-custom input');
+    this.quality = q<HTMLSelectElement>(pdf, '.fd-dlg-quality');
     this.hidden = q<HTMLInputElement>(pdf, '[data-f="hidden"]');
-    this.px = q(raster, '.fs-dlg-px');
-    this.fonts = q(office, '.fs-dlg-fonts');
+    this.px = q(raster, '.fd-dlg-px');
+    this.fonts = q(office, '.fd-dlg-fonts');
     this.path = q<HTMLInputElement>(this.pathRow, 'input');
     this.foot.appendChild(this.status.node);
     this.button('Cancel', 'ghost', () => { if (this.abort) this.abort.abort(); else this.close(); });
@@ -909,8 +909,8 @@ class ExportDialog extends Dialog {
     const f = this.fmt, deck = this.ed?.doc.deck;
     segSet(q(this.groups.motion, '[data-seg="res"]'), String(this.res));
     segSet(q(this.groups.motion, '[data-seg="gifw"]'), String(this.gifW));
-    setHidden(q(this.groups.motion, '.fs-dlg-res'), f !== 'video');
-    setHidden(q(this.groups.motion, '.fs-dlg-gifw'), f !== 'gif');
+    setHidden(q(this.groups.motion, '.fd-dlg-res'), f !== 'video');
+    setHidden(q(this.groups.motion, '.fd-dlg-gifw'), f !== 'gif');
     const canVideo = typeof MediaRecorder !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
     setDisabled(this.go, this.running || (f === 'video' && !canVideo));
     if (!deck || !isMotion(f)) return;
@@ -937,7 +937,7 @@ class ExportDialog extends Dialog {
     segSet(q(this.groups.pdf, '[data-seg="range"]'), this.range);
     segSet(q(this.groups.raster, '[data-seg="which"]'), this.which);
     segSet(q(this.groups.raster, '[data-seg="scale"]'), String(this.scale));
-    setHidden(q(this.groups.pdf, '.fs-dlg-custom'), this.range !== 'custom');
+    setHidden(q(this.groups.pdf, '.fd-dlg-custom'), this.range !== 'custom');
     const size = this.ed?.doc.deck.size ?? { w: 960, h: 540 };
     setText(this.px, `About ${Math.round(size.w * this.scale)} × ${Math.round(size.h * this.scale)} pixels per slide`);
     if (this.path.value) this.path.value = withExt(this.path.value, this.ext());
@@ -1080,10 +1080,10 @@ const PAPER = { a4: { w: 595, h: 842, label: 'A4' }, letter: { w: 612, h: 792, l
 const HANDOUT: Record<string, { cols: number; rows: number }> = { h2: { cols: 1, rows: 2 }, h3: { cols: 1, rows: 3 }, h4: { cols: 2, rows: 2 }, h6: { cols: 2, rows: 3 }, h9: { cols: 3, rows: 3 } };
 
 function printRoot(): HTMLElement {
-  let root = document.getElementById('fs-print-root');
+  let root = document.getElementById('fd-print-root');
   if (!root) {
     root = document.createElement('div');
-    root.id = 'fs-print-root';
+    root.id = 'fd-print-root';
     root.setAttribute('aria-hidden', 'true');
     document.body.appendChild(root);
   }
@@ -1091,8 +1091,8 @@ function printRoot(): HTMLElement {
 }
 
 function pageStyle(css: string): void {
-  let s = document.getElementById('fs-print-page') as HTMLStyleElement | null;
-  if (!s) { s = document.createElement('style'); s.id = 'fs-print-page'; document.head.appendChild(s); }
+  let s = document.getElementById('fd-print-page') as HTMLStyleElement | null;
+  if (!s) { s = document.createElement('style'); s.id = 'fd-print-page'; document.head.appendChild(s); }
   if (s.textContent !== css) s.textContent = css;
 }
 
@@ -1130,7 +1130,7 @@ async function renderPrint(ed: Editor, o: PrintOpts): Promise<number> {
   };
   const page = (w: number, h: number, cls: string): HTMLElement => {
     const p = document.createElement('div');
-    p.className = `fs-print-page ${cls}`;
+    p.className = `fd-print-page ${cls}`;
     p.style.width = `${w}pt`;
     p.style.height = `${h}pt`;
     root.appendChild(p);
@@ -1150,28 +1150,28 @@ async function renderPrint(ed: Editor, o: PrintOpts): Promise<number> {
     slides.forEach((s) => {
       const p = page(paper.w, paper.h, 'is-notes');
       p.style.padding = `${pad}pt`;
-      const box = div('fs-print-shot');
+      const box = div('fd-print-shot');
       box.appendChild(shot(s, Math.min(cw, (paper.h * 0.42) * aspect)));
       const notes = (s.notes ?? '').trim();
-      const n = div('fs-print-notes', notes);
+      const n = div('fd-print-notes', notes);
       if (notes.length > 1600) n.classList.add('is-long');
-      const foot = div('fs-print-foot');
+      const foot = div('fd-print-foot');
       foot.append(div('', deck.title), div('', String(deck.slides.indexOf(s) + 1)));
       p.append(box, n, foot);
     });
     pages = slides.length;
   } else if (o.kind === 'outline') {
     pageStyle(`@page { size: ${paper.w}pt ${paper.h}pt; margin: 54pt 60pt }`);
-    const doc = div('fs-print-outline');
-    doc.appendChild(div('fs-print-ol-title', deck.title));
+    const doc = div('fd-print-outline');
+    doc.appendChild(div('fd-print-ol-title', deck.title));
     for (const s of slides) {
-      const row = div('fs-print-ol-slide');
-      const main = div('fs-print-ol-main');
+      const row = div('fd-print-ol-slide');
+      const main = div('fd-print-ol-main');
       const lines: Array<{ t: string; lvl: number }> = [];
       textLines(s.elements, lines, (e) => !isTitle(e));
-      main.appendChild(div('fs-print-ol-head', slideTitle(s) || lines.shift()?.t || 'Untitled slide'));
-      for (const l of lines) { const li = div('fs-print-ol-line', l.t); li.style.marginLeft = `${l.lvl * 14}pt`; main.appendChild(li); }
-      row.append(div('fs-print-ol-num', String(deck.slides.indexOf(s) + 1)), main);
+      main.appendChild(div('fd-print-ol-head', slideTitle(s) || lines.shift()?.t || 'Untitled slide'));
+      for (const l of lines) { const li = div('fd-print-ol-line', l.t); li.style.marginLeft = `${l.lvl * 14}pt`; main.appendChild(li); }
+      row.append(div('fd-print-ol-num', String(deck.slides.indexOf(s) + 1)), main);
       doc.appendChild(row);
     }
     root.appendChild(doc);
@@ -1188,16 +1188,16 @@ async function renderPrint(ed: Editor, o: PrintOpts): Promise<number> {
     for (let i = 0; i < pages; i++) {
       const p = page(paper.w, paper.h, 'is-handout');
       p.style.padding = `${pad}pt`;
-      const top = div('fs-print-head');
+      const top = div('fd-print-head');
       top.append(div('', deck.title), div('', `${i + 1} / ${pages}`));
-      const grid = div('fs-print-grid');
+      const grid = div('fd-print-grid');
       grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
       grid.style.gridAutoRows = `${cellH}pt`;
       grid.style.gap = `${gap}pt`;
       for (const s of slides.slice(i * per, i * per + per)) {
-        const cell = div(`fs-print-cell${lined ? ' is-lined' : ''}`);
+        const cell = div(`fd-print-cell${lined ? ' is-lined' : ''}`);
         cell.appendChild(shot(s, sw));
-        if (lined) { const l = div('fs-print-lines'); l.style.height = `${sw / aspect}pt`; cell.appendChild(l); }
+        if (lined) { const l = div('fd-print-lines'); l.style.height = `${sw / aspect}pt`; cell.appendChild(l); }
         grid.appendChild(cell);
       }
       p.append(top, grid);
@@ -1210,7 +1210,7 @@ async function renderPrint(ed: Editor, o: PrintOpts): Promise<number> {
 }
 
 function clearPrint(): void {
-  document.getElementById('fs-print-root')?.replaceChildren();
+  document.getElementById('fd-print-root')?.replaceChildren();
   pageStyle('');
 }
 
@@ -1240,19 +1240,19 @@ class PrintDialog extends Dialog {
 
   constructor() {
     super('Print', 480);
-    const box = el(`<div class="fs-dlg-stack">
-<div class="fs-field"><span>Print</span><select class="fs-dlg-print-kind" aria-label="What to print"><option value="slides">Full page slides</option><option value="notes">Notes pages</option><option value="outline">Outline</option><optgroup label="Handouts"><option value="h2">Handouts, 2 slides per page</option><option value="h3">Handouts, 3 slides with lines for notes</option><option value="h4">Handouts, 4 slides per page</option><option value="h6">Handouts, 6 slides per page</option><option value="h9">Handouts, 9 slides per page</option></optgroup></select></div>
-<div class="fs-field fs-dlg-paper"><span>Paper</span><div class="fs-seg is-quiet" data-seg="paper"><button type="button" data-v="a4">A4</button><button type="button" data-v="letter">Letter</button></div></div>
-<div class="fs-field"><span>Colour</span><div class="fs-seg is-quiet" data-seg="color"><button type="button" data-v="color">Colour</button><button type="button" data-v="gray">Grayscale</button></div></div>
-<div class="fs-field"><span></span><div class="fs-dlg-checks"><label class="fs-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label><label class="fs-check"><input type="checkbox" data-f="frame"><span>Frame slides</span></label></div></div>
-<div class="fs-field"><span></span><span class="fs-note fs-dlg-print-sum"></span></div>
+    const box = el(`<div class="fd-dlg-stack">
+<div class="fd-field"><span>Print</span><select class="fd-dlg-print-kind" aria-label="What to print"><option value="slides">Full page slides</option><option value="notes">Notes pages</option><option value="outline">Outline</option><optgroup label="Handouts"><option value="h2">Handouts, 2 slides per page</option><option value="h3">Handouts, 3 slides with lines for notes</option><option value="h4">Handouts, 4 slides per page</option><option value="h6">Handouts, 6 slides per page</option><option value="h9">Handouts, 9 slides per page</option></optgroup></select></div>
+<div class="fd-field fd-dlg-paper"><span>Paper</span><div class="fd-seg is-quiet" data-seg="paper"><button type="button" data-v="a4">A4</button><button type="button" data-v="letter">Letter</button></div></div>
+<div class="fd-field"><span>Colour</span><div class="fd-seg is-quiet" data-seg="color"><button type="button" data-v="color">Colour</button><button type="button" data-v="gray">Grayscale</button></div></div>
+<div class="fd-field"><span></span><div class="fd-dlg-checks"><label class="fd-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label><label class="fd-check"><input type="checkbox" data-f="frame"><span>Frame slides</span></label></div></div>
+<div class="fd-field"><span></span><span class="fd-note fd-dlg-print-sum"></span></div>
 </div>`);
-    this.body.append(box, el('<p class="fs-note">Choose Save as PDF in the print window for a quick PDF. File &gt; Export &gt; PDF gives searchable text and a slide outline.</p>'));
-    this.kind = q<HTMLSelectElement>(box, '.fs-dlg-print-kind');
+    this.body.append(box, el('<p class="fd-note">Choose Save as PDF in the print window for a quick PDF. File &gt; Export &gt; PDF gives searchable text and a slide outline.</p>'));
+    this.kind = q<HTMLSelectElement>(box, '.fd-dlg-print-kind');
     this.hidden = q<HTMLInputElement>(box, '[data-f="hidden"]');
     this.frame = q<HTMLInputElement>(box, '[data-f="frame"]');
-    this.paperRow = q(box, '.fs-dlg-paper');
-    this.summary = q(box, '.fs-dlg-print-sum');
+    this.paperRow = q(box, '.fd-dlg-paper');
+    this.summary = q(box, '.fd-dlg-print-sum');
     this.foot.appendChild(this.status.node);
     this.button('Cancel', 'ghost', () => this.close());
     this.go = this.button('Print', 'primary', () => void this.run());
@@ -1335,14 +1335,14 @@ class TemplatePickerDialog extends Dialog {
 
   constructor() {
     super('Change template', 920);
-    q(this.scrim, '.fs-dialog').classList.add('fs-dlg-picker');
-    const infoRow = el(`<div class="fs-dlg-tpl-info"><span class="fs-note fs-dlg-tpl-desc"></span><button class="fs-dlg-link" type="button">${icon('download', 14)}<span>Download as .pptx</span></button></div>`);
-    const masterRow = el('<div class="fs-dlg-tpl-master"><label class="fs-check"><input type="checkbox" data-f="as-master"><span>Add as another slide master and keep the current design</span></label></div>');
+    q(this.scrim, '.fd-dialog').classList.add('fd-dlg-picker');
+    const infoRow = el(`<div class="fd-dlg-tpl-info"><span class="fd-note fd-dlg-tpl-desc"></span><button class="fd-dlg-link" type="button">${icon('download', 14)}<span>Download as .pptx</span></button></div>`);
+    const masterRow = el('<div class="fd-dlg-tpl-master"><label class="fd-check"><input type="checkbox" data-f="as-master"><span>Add as another slide master and keep the current design</span></label></div>');
     this.asMaster = q<HTMLInputElement>(masterRow, 'input');
     this.asMaster.addEventListener('change', () => this.sync());
-    this.note = el('<p class="fs-note"></p>');
+    this.note = el('<p class="fd-note"></p>');
     this.body.append(this.note, this.grid.root, infoRow, masterRow);
-    this.info = q(infoRow, '.fs-dlg-tpl-desc');
+    this.info = q(infoRow, '.fd-dlg-tpl-desc');
     this.dl = q<HTMLButtonElement>(infoRow, 'button');
     this.picker = document.createElement('input');
     this.picker.type = 'file';
@@ -1455,12 +1455,12 @@ class VersionsDialog extends Dialog {
 
   constructor() {
     super('Version history', 540);
-    const row = el(`<div class="fs-dlg-inline"><input class="fs-input" type="text" spellcheck="false" placeholder="Name this version, for example Before the board review" aria-label="Version name"><button class="fs-btn" type="button">${icon('save', 14)}<span>Save a version</span></button></div>`);
-    this.list = el('<div class="fs-list fs-dlg-versions"></div>');
-    this.empty = el(`<div class="fs-empty" hidden><span class="fs-empty-icon">${icon('history', 20)}</span><div class="fs-empty-title">No saved versions yet</div><div class="fs-empty-note">FormDeck saves every change as you work. Save a named version before big edits so you can come back to it.</div></div>`);
-    const box = el('<div class="fs-dlg-versions-box"></div>');
+    const row = el(`<div class="fd-dlg-inline"><input class="fd-input" type="text" spellcheck="false" placeholder="Name this version, for example Before the board review" aria-label="Version name"><button class="fd-btn" type="button">${icon('save', 14)}<span>Save a version</span></button></div>`);
+    this.list = el('<div class="fd-list fd-dlg-versions"></div>');
+    this.empty = el(`<div class="fd-empty" hidden><span class="fd-empty-icon">${icon('history', 20)}</span><div class="fd-empty-title">No saved versions yet</div><div class="fd-empty-note">FormDeck saves every change as you work. Save a named version before big edits so you can come back to it.</div></div>`);
+    const box = el('<div class="fd-dlg-versions-box"></div>');
     box.append(this.list, this.empty);
-    this.body.append(row, el('<p class="fs-note">Restoring brings back the slides, template and comments of that version as one step you can undo.</p>'), box);
+    this.body.append(row, el('<p class="fd-note">Restoring brings back the slides, template and comments of that version as one step you can undo.</p>'), box);
     this.name = q<HTMLInputElement>(row, 'input');
     this.saveBtn = q<HTMLButtonElement>(row, 'button');
     this.foot.appendChild(this.status.node);
@@ -1505,7 +1505,7 @@ class VersionsDialog extends Dialog {
     patchList(this.list, this.versions, {
       key: (v) => `${id}:${v.n}`,
       create: (v) => {
-        const n = el(`<div class="fs-row"><span class="fs-row-icon">${icon('history', 16)}</span><span class="fs-row-main"><span class="fs-row-title"></span><span class="fs-row-sub"></span></span><button class="fs-btn fs-btn-sm fs-dlg-restore" type="button" data-restore>Restore</button></div>`);
+        const n = el(`<div class="fd-row"><span class="fd-row-icon">${icon('history', 16)}</span><span class="fd-row-main"><span class="fd-row-title"></span><span class="fd-row-sub"></span></span><button class="fd-btn fd-btn-sm fd-dlg-restore" type="button" data-restore>Restore</button></div>`);
         this.fillRow(n, v);
         return n;
       },
@@ -1516,8 +1516,8 @@ class VersionsDialog extends Dialog {
   }
 
   private fillRow(n: HTMLElement, v: VersionInfo): void {
-    setText(n.querySelector('.fs-row-title'), v.name || `Version ${v.n}`);
-    setText(n.querySelector('.fs-row-sub'), `${ago(v.at)} · ${plural(v.slides, 'slide')}`);
+    setText(n.querySelector('.fd-row-title'), v.name || `Version ${v.n}`);
+    setText(n.querySelector('.fd-row-sub'), `${ago(v.at)} · ${plural(v.slides, 'slide')}`);
     const t = Date.parse(v.at);
     if (!Number.isNaN(t)) n.title = new Date(t).toLocaleString();
   }
@@ -1588,14 +1588,14 @@ export async function versionsDialog(ed: Editor): Promise<void> {
 class SaveTemplateDialog extends Dialog {
   private ed: Editor | null = null;
   private running = false;
-  private readonly name = el<HTMLInputElement>('<input class="fs-input" type="text" spellcheck="false" aria-label="Template name">');
+  private readonly name = el<HTMLInputElement>('<input class="fd-input" type="text" spellcheck="false" aria-label="Template name">');
   private readonly status = new StatusLine();
   private readonly go: HTMLButtonElement;
 
   constructor() {
     super('Save as template', 460);
     this.field('Name', this.name);
-    this.body.appendChild(el('<p class="fs-note">Saves this deck’s masters, layouts, colours and fonts as a template. Slides are not included. It appears under Imported when you change templates or start a deck.</p>'));
+    this.body.appendChild(el('<p class="fd-note">Saves this deck’s masters, layouts, colours and fonts as a template. Slides are not included. It appears under Imported when you change templates or start a deck.</p>'));
     this.foot.appendChild(this.status.node);
     this.button('Cancel', 'ghost', () => this.close());
     this.go = this.button('Save template', 'primary', () => void this.run());
@@ -1658,30 +1658,30 @@ class PreferencesDialog extends Dialog {
   constructor() {
     super('Preferences', 560);
     const c = readChoice();
-    const box = el(`<div class="fs-dlg-stack">
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Appearance</div>
-<div class="fs-field is-top"><span>Theme</span><div><div class="nm-theme-grid fs-dlg-themes">${themeSwatchesHtml(c.theme, c.accentColor)}</div><div class="fs-note fs-dlg-theme-name"></div></div></div>
-<div class="fs-field"><span>Accent</span><div class="fs-dlg-accents">${ACCENTS.map((a) => `<button class="fs-swatch" type="button" data-accent="${a}" style="--swatch:${a}" aria-label="Accent ${a}" title="${a}"></button>`).join('')}<label class="fs-dlg-color" title="Custom accent">${icon('palette', 14)}<input type="color" aria-label="Custom accent colour"></label></div></div>
+    const box = el(`<div class="fd-dlg-stack">
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Appearance</div>
+<div class="fd-field is-top"><span>Theme</span><div><div class="nm-theme-grid fd-dlg-themes">${themeSwatchesHtml(c.theme, c.accentColor)}</div><div class="fd-note fd-dlg-theme-name"></div></div></div>
+<div class="fd-field"><span>Accent</span><div class="fd-dlg-accents">${ACCENTS.map((a) => `<button class="fd-swatch" type="button" data-accent="${a}" style="--swatch:${a}" aria-label="Accent ${a}" title="${a}"></button>`).join('')}<label class="fd-dlg-color" title="Custom accent">${icon('palette', 14)}<input type="color" aria-label="Custom accent colour"></label></div></div>
 </section>
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">New decks</div>
-<div class="fs-field"><span>Template</span><select class="fs-dlg-pref-tpl" aria-label="Default template"></select></div>
-<label class="fs-field"><span>Author</span><input class="fs-input fs-dlg-pref-author" type="text" spellcheck="false" placeholder="Your name, written into exported files"></label>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">New decks</div>
+<div class="fd-field"><span>Template</span><select class="fd-dlg-pref-tpl" aria-label="Default template"></select></div>
+<label class="fd-field"><span>Author</span><input class="fd-input fd-dlg-pref-author" type="text" spellcheck="false" placeholder="Your name, written into exported files"></label>
 </section>
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Editing</div>
-<div class="fs-field"><span>Units</span><div class="fs-seg is-quiet" data-seg="units"><button type="button" data-v="pt">Points</button><button type="button" data-v="in">Inches</button><button type="button" data-v="cm">Centimetres</button><button type="button" data-v="px">Pixels</button></div></div>
-<div class="fs-field"><span>Saving</span><label class="fs-check"><input type="checkbox" data-f="autosave"><span>Save to the library as you work</span></label></div>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Editing</div>
+<div class="fd-field"><span>Units</span><div class="fd-seg is-quiet" data-seg="units"><button type="button" data-v="pt">Points</button><button type="button" data-v="in">Inches</button><button type="button" data-v="cm">Centimetres</button><button type="button" data-v="px">Pixels</button></div></div>
+<div class="fd-field"><span>Saving</span><label class="fd-check"><input type="checkbox" data-f="autosave"><span>Save to the library as you work</span></label></div>
 </section>
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Agents</div>
-<div class="fs-field"><span>Access</span><label class="fs-check"><input type="checkbox" data-f="agents"><span>Let Claude Code, Codex and Cursor read and edit decks</span></label></div>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Agents</div>
+<div class="fd-field"><span>Access</span><label class="fd-check"><input type="checkbox" data-f="agents"><span>Let Claude Code, Codex and Cursor read and edit decks</span></label></div>
 </section>
 </div>`);
     this.body.appendChild(box);
-    this.themes = q(box, '.fs-dlg-themes');
-    this.themeName = q(box, '.fs-dlg-theme-name');
-    this.accents = q(box, '.fs-dlg-accents');
+    this.themes = q(box, '.fd-dlg-themes');
+    this.themeName = q(box, '.fd-dlg-theme-name');
+    this.accents = q(box, '.fd-dlg-accents');
     this.color = q<HTMLInputElement>(box, 'input[type="color"]');
-    this.tpl = q<HTMLSelectElement>(box, '.fs-dlg-pref-tpl');
-    this.author = q<HTMLInputElement>(box, '.fs-dlg-pref-author');
+    this.tpl = q<HTMLSelectElement>(box, '.fd-dlg-pref-tpl');
+    this.author = q<HTMLInputElement>(box, '.fd-dlg-pref-author');
     this.units = q(box, '[data-seg="units"]');
     this.autosave = q<HTMLInputElement>(box, '[data-f="autosave"]');
     this.agents = q<HTMLInputElement>(box, '[data-f="agents"]');
@@ -1769,21 +1769,21 @@ class AgentsDialog extends Dialog {
 
   constructor() {
     super('Agents', 640);
-    const card = el(`<div class="fs-dlg-card">
-<div class="fs-dlg-card-row"><label class="fs-check"><input type="checkbox" data-f="allow"><span>Let agents read and edit decks</span></label><span class="fs-badge fs-dlg-agent-badge"></span></div>
-<dl class="fs-kv"><dt>MCP server</dt><dd class="fs-dlg-mcp-url"></dd><dt>Engine</dt><dd class="fs-dlg-engine"></dd></dl>
+    const card = el(`<div class="fd-dlg-card">
+<div class="fd-dlg-card-row"><label class="fd-check"><input type="checkbox" data-f="allow"><span>Let agents read and edit decks</span></label><span class="fd-badge fd-dlg-agent-badge"></span></div>
+<dl class="fd-kv"><dt>MCP server</dt><dd class="fd-dlg-mcp-url"></dd><dt>Engine</dt><dd class="fd-dlg-engine"></dd></dl>
 </div>`);
-    this.tabs = el(`<div class="fs-seg is-quiet fs-dlg-tabs" role="group" aria-label="Set up">${SETUP.map((s) => `<button type="button" data-v="${s.id}">${s.tab}</button>`).join('')}</div>`);
+    this.tabs = el(`<div class="fd-seg is-quiet fd-dlg-tabs" role="group" aria-label="Set up">${SETUP.map((s) => `<button type="button" data-v="${s.id}">${s.tab}</button>`).join('')}</div>`);
     const blocks = SETUP.map((s) => {
-      const b = el(`<div class="fs-dlg-code" hidden><div class="fs-dlg-code-head"><span class="fs-dlg-code-title"></span>${copyBtn()}</div><pre class="fs-dlg-code-text"></pre><p class="fs-note"></p></div>`);
+      const b = el(`<div class="fd-dlg-code" hidden><div class="fd-dlg-code-head"><span class="fd-dlg-code-title"></span>${copyBtn()}</div><pre class="fd-dlg-code-text"></pre><p class="fd-note"></p></div>`);
       b.dataset.tab = s.id;
-      setText(q(b, '.fs-dlg-code-title'), s.title);
-      setText(q(b, '.fs-note'), s.note);
+      setText(q(b, '.fd-dlg-code-title'), s.title);
+      setText(q(b, '.fd-note'), s.note);
       this.blocks.push(b);
       return b;
     });
-    const promptBtn = el<HTMLButtonElement>(`<button class="fs-btn fs-dlg-prompt-btn" type="button">${icon('agent', 14)}<span></span></button>`);
-    const how = el(`<div class="fs-dlg-section"><div class="fs-dlg-section-title">How agents work here</div><ul class="fs-dlg-steps is-bullets">
+    const promptBtn = el<HTMLButtonElement>(`<button class="fd-btn fd-dlg-prompt-btn" type="button">${icon('agent', 14)}<span></span></button>`);
+    const how = el(`<div class="fd-dlg-section"><div class="fd-dlg-section-title">How agents work here</div><ul class="fd-dlg-steps is-bullets">
 <li>Agents see the same deck you do, live. Their edits land on your slides as they work, and you can keep editing.</li>
 <li>Every agent turn undoes as one step: Edit &gt; Undo Agent Turn.</li>
 <li>Review status and comments live in the Review panel. Agents read and set them too.</li>
@@ -1791,9 +1791,9 @@ class AgentsDialog extends Dialog {
 </ul></div>`);
     this.body.append(card, this.tabs, ...blocks, promptBtn, how);
     this.allow = q<HTMLInputElement>(card, '[data-f="allow"]');
-    this.badge = q(card, '.fs-dlg-agent-badge');
-    this.url = q(card, '.fs-dlg-mcp-url');
-    this.engine = q(card, '.fs-dlg-engine');
+    this.badge = q(card, '.fd-dlg-agent-badge');
+    this.url = q(card, '.fd-dlg-mcp-url');
+    this.engine = q(card, '.fd-dlg-engine');
     this.promptLabel = q(promptBtn, 'span:not(.icon)');
     this.button('Done', 'primary', () => this.close());
     wireCopies(this.body);
@@ -1830,7 +1830,7 @@ class AgentsDialog extends Dialog {
     const url = `http://127.0.0.1:${this.port}/mcp`;
     setText(this.url, url);
     setText(this.engine, `FormDeck ${VERSION} on port ${this.port}`);
-    SETUP.forEach((s, i) => setText(q(this.blocks[i], '.fs-dlg-code-text'), s.text(url)));
+    SETUP.forEach((s, i) => setText(q(this.blocks[i], '.fd-dlg-code-text'), s.text(url)));
   }
 
   private syncTabs(): void {
@@ -1866,19 +1866,19 @@ export function copyAgentPrompt(deck: Deck | null): void {
 class HelpDialog extends Dialog {
   constructor() {
     super('FormDeck Help', 560);
-    this.body.appendChild(el(`<div class="fs-dlg-stack">
-<div class="fs-dlg-about">${brandMark(36)}<div><div class="fs-dlg-about-name">FormDeck</div><div class="fs-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div></div></div>
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Quick start</div><ol class="fs-dlg-steps">
+    this.body.appendChild(el(`<div class="fd-dlg-stack">
+<div class="fd-dlg-about">${brandMark(36)}<div><div class="fd-dlg-about-name">FormDeck</div><div class="fd-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div></div></div>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Quick start</div><ol class="fd-dlg-steps">
 <li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck (.pptx or .odp) on Home and FormDeck drafts the slides in your template.</li>
 <li><strong>Pick a template.</strong> Change it any time with Slide &gt; Apply Template. Your content follows.</li>
 <li><strong>Edit on the slide.</strong> Double-click to type, drop pictures anywhere, and use the panel on the right for layout, colours and review status.</li>
 <li><strong>Bring in your agent.</strong> Connect Claude Code, Codex or Cursor from Review &gt; Agents. It edits the same deck live and every turn undoes as one step.</li>
 <li><strong>Present and share.</strong> Present from the title bar, export .pptx for PowerPoint, Keynote and Google Slides, .odp for LibreOffice Impress, or PDF and pictures.</li>
 </ol></section>
-<section class="fs-dlg-section"><div class="fs-dlg-section-title">Learn more</div>
-<p class="fs-dlg-text">The full manual is docs/MANUAL.md in your FormDeck folder. The deck format agents and tools read is described in docs/FORMAT.md.</p>
-<p class="fs-dlg-text">Your decks, templates and pictures stay on this computer, in the FormDeck folder in your home folder.</p>
-<p class="fs-dlg-text">Press <kbd class="fs-key">${escapeHtml(formatKeys('Mod+/'))}</kbd> to see every keyboard shortcut, or open Help &gt; Keyboard Shortcuts.</p>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Learn more</div>
+<p class="fd-dlg-text">The full manual is docs/MANUAL.md in your FormDeck folder. The deck format agents and tools read is described in docs/FORMAT.md.</p>
+<p class="fd-dlg-text">Your decks, templates and pictures stay on this computer, in the FormDeck folder in your home folder.</p>
+<p class="fd-dlg-text">Press <kbd class="fd-key">${escapeHtml(formatKeys('Mod+/'))}</kbd> to see every keyboard shortcut, or open Help &gt; Keyboard Shortcuts.</p>
 </section>
 </div>`));
     this.button('Close', 'primary', () => this.close());
@@ -1915,10 +1915,10 @@ class ShortcutsDialog extends Dialog {
 
   constructor() {
     super('Keyboard shortcuts', 620);
-    q(this.scrim, '.fs-dialog').classList.add('fs-dlg-keys-dialog');
-    const bar = el(`<label class="fs-search">${icon('search', 14)}<input type="search" placeholder="Search commands and keys" aria-label="Search shortcuts" spellcheck="false"></label>`);
-    this.table = el('<div class="fs-dlg-keys" role="table" aria-label="Keyboard shortcuts"></div>');
-    this.empty = el('<p class="fs-note fs-dlg-keys-empty" hidden>No command matches that search.</p>');
+    q(this.scrim, '.fd-dialog').classList.add('fd-dlg-keys-dialog');
+    const bar = el(`<label class="fd-search">${icon('search', 14)}<input type="search" placeholder="Search commands and keys" aria-label="Search shortcuts" spellcheck="false"></label>`);
+    this.table = el('<div class="fd-dlg-keys" role="table" aria-label="Keyboard shortcuts"></div>');
+    this.empty = el('<p class="fd-note fd-dlg-keys-empty" hidden>No command matches that search.</p>');
     this.body.append(bar, this.table, this.empty);
     this.search = q<HTMLInputElement>(bar, 'input');
     this.search.addEventListener('input', () => this.filter());
@@ -1939,7 +1939,7 @@ class ShortcutsDialog extends Dialog {
     patchList(this.table, items, {
       key: (i) => i.key,
       create: (i) => {
-        const n = i.cmd ? el('<div class="fs-dlg-key-row" role="row"><span class="fs-dlg-key-icon" role="cell"></span><span class="fs-dlg-key-label" role="cell"></span><span class="fs-dlg-key-combos" role="cell"></span></div>') : el('<div class="fs-dlg-key-head" role="row"></div>');
+        const n = i.cmd ? el('<div class="fd-dlg-key-row" role="row"><span class="fd-dlg-key-icon" role="cell"></span><span class="fd-dlg-key-label" role="cell"></span><span class="fd-dlg-key-combos" role="cell"></span></div>') : el('<div class="fd-dlg-key-head" role="row"></div>');
         this.fillRow(n, i);
         return n;
       },
@@ -1955,10 +1955,10 @@ class ShortcutsDialog extends Dialog {
     if (!i.cmd) { setText(n, i.group); return; }
     const label = this.commands?.label(i.cmd) ?? i.cmd.id;
     const keys = i.cmd.keys ?? [];
-    setHtml(q(n, '.fs-dlg-key-icon'), i.cmd.icon ? icon(i.cmd.icon, 14) : '', i.cmd.icon ?? '');
-    setText(q(n, '.fs-dlg-key-label'), label.replace(/\.\.\.$/, ''));
+    setHtml(q(n, '.fd-dlg-key-icon'), i.cmd.icon ? icon(i.cmd.icon, 14) : '', i.cmd.icon ?? '');
+    setText(q(n, '.fd-dlg-key-label'), label.replace(/\.\.\.$/, ''));
     const shown = keys.map(formatKeys);
-    setHtml(q(n, '.fs-dlg-key-combos'), shown.map((k) => `<kbd class="fs-key">${escapeHtml(k)}</kbd>`).join(''), shown.join('|'));
+    setHtml(q(n, '.fd-dlg-key-combos'), shown.map((k) => `<kbd class="fd-key">${escapeHtml(k)}</kbd>`).join(''), shown.join('|'));
     setClass(n, 'is-unbound', !keys.length);
     n.dataset.search = `${label} ${i.cmd.id} ${i.group} ${shown.join(' ')} ${keys.join(' ')}`.toLowerCase();
   }
@@ -1967,12 +1967,12 @@ class ShortcutsDialog extends Dialog {
     const qy = this.search.value.trim().toLowerCase();
     const visible = new Map<string, number>();
     for (const n of Array.from(this.table.children) as HTMLElement[]) {
-      if (!n.classList.contains('fs-dlg-key-row')) continue;
+      if (!n.classList.contains('fd-dlg-key-row')) continue;
       const ok = !qy || (n.dataset.search ?? '').includes(qy);
       setHidden(n, !ok);
       if (ok) visible.set(n.dataset.group ?? '', (visible.get(n.dataset.group ?? '') ?? 0) + 1);
     }
-    for (const n of Array.from(this.table.children) as HTMLElement[]) if (n.classList.contains('fs-dlg-key-head')) setHidden(n, !visible.get(n.dataset.group ?? ''));
+    for (const n of Array.from(this.table.children) as HTMLElement[]) if (n.classList.contains('fd-dlg-key-head')) setHidden(n, !visible.get(n.dataset.group ?? ''));
     setHidden(this.empty, visible.size > 0);
   }
 }

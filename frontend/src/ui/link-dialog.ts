@@ -9,10 +9,10 @@ class LinkDialog extends Dialog {
   private ed: Editor | null = null;
   private range: Range | null = null;
   private kind: 'url' | 'slide' = 'url';
-  private readonly seg = el('<div class="fs-seg" role="tablist"><button type="button" data-k="url">Web address</button><button type="button" data-k="slide">Slide in this deck</button></div>');
-  private readonly url = el<HTMLInputElement>('<input class="fs-input" type="url" placeholder="https://example.com" spellcheck="false" aria-label="Web address">');
-  private readonly slide = el<HTMLSelectElement>('<select class="fs-input" aria-label="Slide"></select>');
-  private readonly note = el('<p class="fs-note fs-link-note"></p>');
+  private readonly seg = el('<div class="fd-seg" role="tablist"><button type="button" data-k="url">Web address</button><button type="button" data-k="slide">Slide in this deck</button></div>');
+  private readonly url = el<HTMLInputElement>('<input class="fd-input" type="url" placeholder="https://example.com" spellcheck="false" aria-label="Web address">');
+  private readonly slide = el<HTMLSelectElement>('<select class="fd-input" aria-label="Slide"></select>');
+  private readonly note = el('<p class="fd-note fd-link-note"></p>');
   private readonly urlRow: HTMLElement;
   private readonly slideRow: HTMLElement;
   private readonly remove: HTMLButtonElement;
@@ -24,7 +24,7 @@ class LinkDialog extends Dialog {
     this.slideRow = this.field('Slide', this.slide);
     this.body.append(this.note);
     this.remove = this.button('Remove link', 'ghost', () => this.applyLink(null));
-    this.remove.classList.add('fs-btn-apart');
+    this.remove.classList.add('fd-btn-apart');
     this.button('Cancel', 'ghost', () => this.close());
     this.button('Apply', 'primary', () => this.apply());
     this.seg.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (b) this.setKind(b.dataset.k as 'url' | 'slide'); });
@@ -52,7 +52,7 @@ class LinkDialog extends Dialog {
     let current: Link | null = null;
     if (this.range) {
       const node = this.range.startContainer instanceof HTMLElement ? this.range.startContainer : this.range.startContainer.parentElement;
-      const a = node?.closest('a[href], .fs-r[data-link]') as HTMLElement | null;
+      const a = node?.closest('a[href], .fd-r[data-link]') as HTMLElement | null;
       const v = a?.getAttribute('href') ?? a?.dataset.link ?? '';
       if (v) current = v.startsWith('#') ? { slide: v.slice(1) } : { url: v };
       setText(this.note, this.range.collapsed ? 'Select some text first to link it; with nothing selected the whole box is linked.' : 'The selected text becomes the link.');
@@ -87,7 +87,7 @@ class LinkDialog extends Dialog {
       host?.focus({ preventScroll: true });
       if (sel) { sel.removeAllRanges(); sel.addRange(this.range); }
       if (link === null) {
-        for (const n of Array.from(host?.querySelectorAll<HTMLElement>('.fs-r[data-link]') ?? [])) if (this.range.intersectsNode(n)) n.removeAttribute('data-link');
+        for (const n of Array.from(host?.querySelectorAll<HTMLElement>('.fd-r[data-link]') ?? [])) if (this.range.intersectsNode(n)) n.removeAttribute('data-link');
         ed.stage.editFormat('unlink');
       } else ed.stage.editFormat('createLink', 'url' in link ? link.url : `#${link.slide}`);
       return;

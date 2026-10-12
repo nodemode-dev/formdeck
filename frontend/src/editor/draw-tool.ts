@@ -57,14 +57,14 @@ export class DrawTool {
 
   constructor(private readonly stage: Stage, private readonly ed: Editor) {
     this.layer = document.createElementNS(SVG, 'svg');
-    this.layer.setAttribute('class', 'fs-draw-layer');
+    this.layer.setAttribute('class', 'fd-draw-layer');
     this.layer.setAttribute('aria-hidden', 'true');
     this.shape = document.createElementNS(SVG, 'path');
-    this.shape.setAttribute('class', 'fs-draw-path');
+    this.shape.setAttribute('class', 'fd-draw-path');
     this.rubber = document.createElementNS(SVG, 'path');
-    this.rubber.setAttribute('class', 'fs-draw-rubber');
+    this.rubber.setAttribute('class', 'fd-draw-rubber');
     this.start = document.createElementNS(SVG, 'circle');
-    this.start.setAttribute('class', 'fs-draw-start');
+    this.start.setAttribute('class', 'fd-draw-start');
     this.start.setAttribute('r', '5');
     this.layer.append(this.shape, this.rubber, this.start);
     this.layer.style.display = 'none';
@@ -133,7 +133,7 @@ export class DrawTool {
   private down(e: PointerEvent): void {
     const m = this.mode;
     if (!m || e.button !== 0) return;
-    if ((e.target as HTMLElement).closest?.('.fs-ruler, .fs-ruler-corner')) return;
+    if ((e.target as HTMLElement).closest?.('.fd-ruler, .fd-ruler-corner')) return;
     e.preventDefault();
     e.stopPropagation();
     const p = this.pt(e);

@@ -13,11 +13,11 @@ export class Dialog {
   onClose: (() => void) | null = null;
 
   constructor(title: string, width = 440) {
-    this.scrim = el(`<div class="fs-scrim" hidden><div class="fs-dialog" role="dialog" aria-modal="true" tabindex="-1"><div class="fs-dialog-head"><span class="fs-dialog-title"></span><button class="fs-icon-btn" type="button" data-close title="Close" aria-label="Close">${icon('close', 16)}</button></div><div class="fs-dialog-body"></div><div class="fs-dialog-foot"></div></div></div>`);
-    q<HTMLElement>(this.scrim, '.fs-dialog').style.setProperty('--fs-dialog-w', `${width}px`);
-    this.titleEl = q(this.scrim, '.fs-dialog-title');
-    this.body = q(this.scrim, '.fs-dialog-body');
-    this.foot = q(this.scrim, '.fs-dialog-foot');
+    this.scrim = el(`<div class="fd-scrim" hidden><div class="fd-dialog" role="dialog" aria-modal="true" tabindex="-1"><div class="fd-dialog-head"><span class="fd-dialog-title"></span><button class="fd-icon-btn" type="button" data-close title="Close" aria-label="Close">${icon('close', 16)}</button></div><div class="fd-dialog-body"></div><div class="fd-dialog-foot"></div></div></div>`);
+    q<HTMLElement>(this.scrim, '.fd-dialog').style.setProperty('--fd-dialog-w', `${width}px`);
+    this.titleEl = q(this.scrim, '.fd-dialog-title');
+    this.body = q(this.scrim, '.fd-dialog-body');
+    this.foot = q(this.scrim, '.fd-dialog-foot');
     setText(this.titleEl, title);
     q(this.scrim, '[data-close]').addEventListener('click', () => this.close());
     this.scrim.addEventListener('pointerdown', (e) => { if (e.target === this.scrim) this.close(); });
@@ -37,9 +37,9 @@ export class Dialog {
     document.getElementById('overlay-root')?.appendChild(this.scrim);
     this.scrim.hidden = false;
     openCount += 1;
-    const preferred = focus ?? this.scrim.querySelector<HTMLElement>('input, select, .fs-btn-primary:not(:disabled)');
+    const preferred = focus ?? this.scrim.querySelector<HTMLElement>('input, select, .fd-btn-primary:not(:disabled)');
     preferred?.focus();
-    if (!this.scrim.contains(document.activeElement)) q<HTMLElement>(this.scrim, '.fs-dialog').focus();
+    if (!this.scrim.contains(document.activeElement)) q<HTMLElement>(this.scrim, '.fd-dialog').focus();
   }
 
   close(): void {
@@ -52,7 +52,7 @@ export class Dialog {
   }
 
   button(label: string, kind: '' | 'primary' | 'ghost' | 'danger', run: () => void): HTMLButtonElement {
-    const b = el<HTMLButtonElement>(`<button class="fs-btn${kind ? ` fs-btn-${kind}` : ''}" type="button"></button>`);
+    const b = el<HTMLButtonElement>(`<button class="fd-btn${kind ? ` fd-btn-${kind}` : ''}" type="button"></button>`);
     b.textContent = label;
     b.addEventListener('click', run);
     this.foot.appendChild(b);
@@ -60,7 +60,7 @@ export class Dialog {
   }
 
   field(label: string, control: HTMLElement): HTMLElement {
-    const row = el('<label class="fs-field"><span></span></label>');
+    const row = el('<label class="fd-field"><span></span></label>');
     setText(q(row, 'span'), label);
     row.appendChild(control);
     this.body.appendChild(row);
@@ -69,14 +69,14 @@ export class Dialog {
 }
 
 class SaveChanges extends Dialog {
-  private readonly question = el('<p class="fs-save-q">Save changes to <strong></strong>?</p>');
+  private readonly question = el('<p class="fd-save-q">Save changes to <strong></strong>?</p>');
   private readonly saveBtn: HTMLButtonElement;
   private resolve: ((v: 'save' | 'discard' | 'cancel') => void) | null = null;
   constructor() {
     super('Unsaved Changes', 460);
-    q<HTMLElement>(this.scrim, '.fs-dialog').classList.add('fs-savechanges');
-    this.body.append(this.question, el('<p class="fs-note">Your changes will be lost if you don’t save them.</p>'));
-    this.button('Don’t Save', 'ghost', () => this.finish('discard')).classList.add('fs-btn-apart');
+    q<HTMLElement>(this.scrim, '.fd-dialog').classList.add('fd-savechanges');
+    this.body.append(this.question, el('<p class="fd-note">Your changes will be lost if you don’t save them.</p>'));
+    this.button('Don’t Save', 'ghost', () => this.finish('discard')).classList.add('fd-btn-apart');
     this.button('Cancel', 'ghost', () => this.finish('cancel'));
     this.saveBtn = this.button('Save', 'primary', () => this.finish('save'));
     this.onClose = () => this.finish('cancel');
@@ -101,7 +101,7 @@ export function askSaveChanges(name: string): Promise<'save' | 'discard' | 'canc
 }
 
 class Confirm extends Dialog {
-  private readonly text = el('<p class="fs-note"></p>');
+  private readonly text = el('<p class="fd-note"></p>');
   private readonly ok: HTMLButtonElement;
   private resolve: ((v: boolean) => void) | null = null;
   constructor() {
@@ -115,7 +115,7 @@ class Confirm extends Dialog {
     this.setTitle(title);
     setText(this.text, text);
     setText(this.ok, okLabel);
-    this.ok.className = danger ? 'fs-btn fs-btn-danger' : 'fs-btn fs-btn-primary';
+    this.ok.className = danger ? 'fd-btn fd-btn-danger' : 'fd-btn fd-btn-primary';
     this.open(this.ok);
     return new Promise((r) => { this.resolve = r; });
   }
@@ -128,7 +128,7 @@ class Confirm extends Dialog {
 }
 
 class Prompt extends Dialog {
-  private readonly input = el<HTMLInputElement>('<input class="fs-input" type="text" spellcheck="false">');
+  private readonly input = el<HTMLInputElement>('<input class="fd-input" type="text" spellcheck="false">');
   private readonly ok: HTMLButtonElement;
   private resolve: ((v: string | null) => void) | null = null;
   constructor() {

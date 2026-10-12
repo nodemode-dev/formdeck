@@ -44,25 +44,25 @@ class MediaDlg {
 
   constructor() {
     this.d = new Dialog('Trim Video', 640);
-    const body = el(`<div class="fs-trim">
-<div class="fs-trim-stage"><video preload="auto" playsinline></video><div class="fs-trim-audio">${icon('audio', 40)}<span class="fs-trim-name"></span></div></div>
-<div class="fs-trim-bar" role="group" aria-label="Timeline"><div class="fs-trim-track"></div><div class="fs-trim-keep"></div><div class="fs-trim-marks"></div><div class="fs-trim-head"></div><button class="fs-trim-handle" type="button" data-h="start" title="Start time" aria-label="Start time"></button><button class="fs-trim-handle is-end" type="button" data-h="end" title="End time" aria-label="End time"></button></div>
-<div class="fs-trim-row"><label class="fs-trim-time"><span>Start time</span><input class="fs-input" type="text" data-t="start" spellcheck="false" aria-label="Start time"></label><span class="fs-ins-grow"></span>
-<button class="fs-icon-btn" type="button" data-a="prev" title="Previous frame" aria-label="Previous frame">${icon('chevronLeft', 16)}</button><button class="fs-icon-btn" type="button" data-a="play" title="Play" aria-label="Play">${icon('play', 16)}</button><button class="fs-icon-btn" type="button" data-a="next" title="Next frame" aria-label="Next frame">${icon('chevronRight', 16)}</button>
-<span class="fs-trim-now">0:00.00</span><span class="fs-ins-grow"></span><label class="fs-trim-time"><span>End time</span><input class="fs-input" type="text" data-t="end" spellcheck="false" aria-label="End time"></label></div>
-<div class="fs-trim-row"><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="to-start">Go to start</button><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="to-end">Go to end</button><span class="fs-ins-grow"></span><button class="fs-btn fs-btn-sm" type="button" data-a="mark">Add bookmark</button></div>
-<p class="fs-note fs-trim-note">Drag the green and red handles, or type times. Arrow keys step one frame; Shift steps one second.</p>
+    const body = el(`<div class="fd-trim">
+<div class="fd-trim-stage"><video preload="auto" playsinline></video><div class="fd-trim-audio">${icon('audio', 40)}<span class="fd-trim-name"></span></div></div>
+<div class="fd-trim-bar" role="group" aria-label="Timeline"><div class="fd-trim-track"></div><div class="fd-trim-keep"></div><div class="fd-trim-marks"></div><div class="fd-trim-head"></div><button class="fd-trim-handle" type="button" data-h="start" title="Start time" aria-label="Start time"></button><button class="fd-trim-handle is-end" type="button" data-h="end" title="End time" aria-label="End time"></button></div>
+<div class="fd-trim-row"><label class="fd-trim-time"><span>Start time</span><input class="fd-input" type="text" data-t="start" spellcheck="false" aria-label="Start time"></label><span class="fd-ins-grow"></span>
+<button class="fd-icon-btn" type="button" data-a="prev" title="Previous frame" aria-label="Previous frame">${icon('chevronLeft', 16)}</button><button class="fd-icon-btn" type="button" data-a="play" title="Play" aria-label="Play">${icon('play', 16)}</button><button class="fd-icon-btn" type="button" data-a="next" title="Next frame" aria-label="Next frame">${icon('chevronRight', 16)}</button>
+<span class="fd-trim-now">0:00.00</span><span class="fd-ins-grow"></span><label class="fd-trim-time"><span>End time</span><input class="fd-input" type="text" data-t="end" spellcheck="false" aria-label="End time"></label></div>
+<div class="fd-trim-row"><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-a="to-start">Go to start</button><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-a="to-end">Go to end</button><span class="fd-ins-grow"></span><button class="fd-btn fd-btn-sm" type="button" data-a="mark">Add bookmark</button></div>
+<p class="fd-note fd-trim-note">Drag the green and red handles, or type times. Arrow keys step one frame; Shift steps one second.</p>
 </div>`);
     this.d.body.appendChild(body);
-    this.stage = q(body, '.fs-trim-stage');
+    this.stage = q(body, '.fd-trim-stage');
     this.video = q<HTMLVideoElement>(body, 'video');
-    this.bar = q(body, '.fs-trim-bar');
-    this.keep = q(body, '.fs-trim-keep');
+    this.bar = q(body, '.fd-trim-bar');
+    this.keep = q(body, '.fd-trim-keep');
     this.hs = q<HTMLButtonElement>(body, '[data-h="start"]');
     this.he = q<HTMLButtonElement>(body, '[data-h="end"]');
-    this.head = q(body, '.fs-trim-head');
-    this.marksEl = q(body, '.fs-trim-marks');
-    this.now = q(body, '.fs-trim-now');
+    this.head = q(body, '.fd-trim-head');
+    this.marksEl = q(body, '.fd-trim-marks');
+    this.now = q(body, '.fd-trim-now');
     this.inStart = q<HTMLInputElement>(body, '[data-t="start"]');
     this.inEnd = q<HTMLInputElement>(body, '[data-t="end"]');
     this.playBtn = q<HTMLButtonElement>(body, '[data-a="play"]');
@@ -100,13 +100,13 @@ class MediaDlg {
     this.d.setTitle(mode === 'poster' ? 'Poster Frame' : m.kind === 'audio' ? 'Trim Audio' : 'Trim Video');
     setText(this.ok, mode === 'poster' ? 'Use this frame' : 'OK');
     setClass(this.stage, 'is-audio', m.kind === 'audio');
-    setText(q(this.stage, '.fs-trim-name'), ed.doc.deck.media[m.src]?.name ?? 'Audio');
+    setText(q(this.stage, '.fd-trim-name'), ed.doc.deck.media[m.src]?.name ?? 'Audio');
     setHidden(this.markBtn, mode === 'poster');
     setHidden(this.hs, mode === 'poster');
     setHidden(this.he, mode === 'poster');
     setHidden(this.keep, mode === 'poster');
     for (const n of [this.inStart, this.inEnd]) setHidden(n.parentElement as HTMLElement, mode === 'poster');
-    setText(q(this.d.body, '.fs-trim-note'), mode === 'poster' ? 'Find the frame to show before the video plays, then choose Use this frame. Arrow keys step one frame.' : 'Drag the start and end handles, or type times. Arrow keys step one frame; Shift steps one second.');
+    setText(q(this.d.body, '.fd-trim-note'), mode === 'poster' ? 'Find the frame to show before the video plays, then choose Use this frame. Arrow keys step one frame.' : 'Drag the start and end handles, or type times. Arrow keys step one frame; Shift steps one second.');
     setClass(this.bar, 'is-pending', !(this.dur > 0));
     this.video.src = mediaUrl(m.src);
     this.video.currentTime = this.a;
@@ -143,7 +143,7 @@ class MediaDlg {
     if (this.marksEl.dataset.k !== keys || this.marksEl.dataset.d !== String(this.dur)) {
       this.marksEl.dataset.k = keys;
       this.marksEl.dataset.d = String(this.dur);
-      this.marksEl.replaceChildren(...this.marks.map((m) => { const n = document.createElement('span'); n.className = 'fs-trim-mark'; n.style.left = this.pct(m.t); n.title = `${m.name}, ${clock(m.t)}`; return n; }));
+      this.marksEl.replaceChildren(...this.marks.map((m) => { const n = document.createElement('span'); n.className = 'fd-trim-mark'; n.style.left = this.pct(m.t); n.title = `${m.name}, ${clock(m.t)}`; return n; }));
     }
   }
 

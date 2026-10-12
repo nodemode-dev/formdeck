@@ -54,13 +54,13 @@ const INSTANT = new Set(['appear', 'disappear']);
 const PH_LABEL: Record<string, string> = { title: 'Title', ctrTitle: 'Title', subTitle: 'Subtitle', body: 'Content', obj: 'Content', pic: 'Picture', chart: 'Chart', tbl: 'Table', dt: 'Date', ftr: 'Footer', sldNum: 'Slide number' };
 
 const optionHtml = (v: string, label: string): string => `<option value="${escapeHtml(v)}">${escapeHtml(label)}</option>`;
-const ROW = `<div class="fs-row fs-anim-row" role="option" aria-selected="false"><span class="fs-anim-num"></span><div class="fs-row-main"><div class="fs-row-title"></div><div class="fs-row-sub"></div></div><div class="fs-anim-tools"><button class="fs-icon-btn is-sm" type="button" data-a="up" title="Move earlier" aria-label="Move earlier">${icon('chevronUp', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-a="down" title="Move later" aria-label="Move later">${icon('chevronDown', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-a="remove" title="Remove animation" aria-label="Remove animation">${icon('delete', 14)}</button></div></div>`;
-const num = (f: string, label: string): string => `<label class="fs-num" title="${label}"><input type="number" min="0" max="60" step="0.1" data-f="${f}" aria-label="${label}"><span class="fs-unit">s</span></label>`;
+const ROW = `<div class="fd-row fd-anim-row" role="option" aria-selected="false"><span class="fd-anim-num"></span><div class="fd-row-main"><div class="fd-row-title"></div><div class="fd-row-sub"></div></div><div class="fd-anim-tools"><button class="fd-icon-btn is-sm" type="button" data-a="up" title="Move earlier" aria-label="Move earlier">${icon('chevronUp', 14)}</button><button class="fd-icon-btn is-sm" type="button" data-a="down" title="Move later" aria-label="Move later">${icon('chevronDown', 14)}</button><button class="fd-icon-btn is-sm" type="button" data-a="remove" title="Remove animation" aria-label="Remove animation">${icon('delete', 14)}</button></div></div>`;
+const num = (f: string, label: string): string => `<label class="fd-num" title="${label}"><input type="number" min="0" max="60" step="0.1" data-f="${f}" aria-label="${label}"><span class="fd-unit">s</span></label>`;
 
 const defOf = (effect: string, cls: AnimClass): EffectDef | undefined => EFFECTS[cls].find((d) => d.id === effect);
 const defaultSeconds = (effect: string, cls: AnimClass): number => effectSeconds(effectName(effect, cls), undefined);
 const round2 = (n: number): number => Math.round(n * 100) / 100;
-const nodeOf = (view: SlideView, id: string): HTMLElement | null => view.nodeFor(id) ?? view.content.querySelector<HTMLElement>(`.fs-el[data-id="${CSS.escape(id)}"]`);
+const nodeOf = (view: SlideView, id: string): HTMLElement | null => view.nodeFor(id) ?? view.content.querySelector<HTMLElement>(`.fd-el[data-id="${CSS.escape(id)}"]`);
 const natural = (n: HTMLElement): number => (n.style.opacity === '' ? 1 : Number(n.style.opacity));
 const pause = (ms: number): Promise<void> => new Promise((r) => window.setTimeout(r, ms));
 
@@ -127,7 +127,7 @@ function buildSteps(slide: Slide, paras: (id: string) => number, size: { w: numb
 
 function parasOf(view: SlideView, id: string): HTMLElement[] {
   const node = nodeOf(view, id);
-  return node ? Array.from(node.querySelectorAll<HTMLElement>('.fs-flow > p.fs-p')).filter((p) => (p.textContent ?? '').trim() !== '') : [];
+  return node ? Array.from(node.querySelectorAll<HTMLElement>('.fd-flow > p.fd-p')).filter((p) => (p.textContent ?? '').trim() !== '') : [];
 }
 
 function unitNode(view: SlideView, u: Unit): HTMLElement | null {
@@ -186,25 +186,25 @@ export class AnimationPane {
   private readonly groups = new Map<string, SVGGElement>();
 
   constructor() {
-    this.el = el(`<div class="fs-insp fs-anim">
-<div class="fs-prop-section fs-anim-edit"><div class="fs-panel-head"><span class="fs-panel-title" data-r="mode">Add animation</span></div>
-<div class="fs-note fs-anim-target" data-r="target"></div>
-<div class="fs-seg" data-seg="class" role="group" aria-label="Animation type">${CLASSES.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}</div>
-<div class="fs-prop-row"><span class="fs-prop-label">Effect</span><div class="fs-prop-ctl"><select data-f="effect" aria-label="Effect"></select></div></div>
-<div class="fs-prop-row" data-row="dir"><span class="fs-prop-label">Direction</span><div class="fs-prop-ctl"><select data-f="dir" aria-label="Direction"></select></div></div>
-<div class="fs-prop-row" data-row="draw"><span class="fs-prop-label">Path</span><div class="fs-prop-ctl"><button class="fs-btn fs-btn-sm" type="button" data-a="draw" aria-pressed="false">${icon('pen', 14)}<span data-r="draw-text">Draw path</span></button></div></div>
-<div class="fs-note fs-anim-hint" data-r="draw-hint" hidden>${DRAW_HINT}</div>
-<div class="fs-prop-row"><span class="fs-prop-label">Start</span><div class="fs-prop-ctl"><select data-f="trigger" aria-label="Start">${TRIGGERS.map(([v, l]) => optionHtml(v, l)).join('')}</select></div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Duration</span><div class="fs-prop-ctl">${num('duration', 'Duration in seconds')}</div></div>
-<div class="fs-prop-row"><span class="fs-prop-label">Delay</span><div class="fs-prop-ctl">${num('delay', 'Delay in seconds')}</div></div>
-<div class="fs-prop-row" data-row="para"><span class="fs-prop-label">Text</span><div class="fs-prop-ctl"><label class="fs-check"><input type="checkbox" data-f="byParagraph"><span>By paragraph</span></label></div></div>
-<div class="fs-prop-row" data-row="motion"><span class="fs-prop-label">Motion</span><div class="fs-prop-ctl fs-anim-checks"><label class="fs-check"><input type="checkbox" data-f="rotate"><span>Orient along path</span></label><label class="fs-check"><input type="checkbox" data-f="reverse"><span>Reverse direction</span></label></div></div>
-<div class="fs-anim-actions"><button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-a="done" hidden>Done</button><button class="fs-btn fs-btn-sm fs-btn-primary" type="button" data-a="add">${icon('plus', 14)}Add animation</button></div></div>
-<div class="fs-prop-section fs-anim-order"><div class="fs-panel-head"><span class="fs-panel-title">On this slide</span><span class="fs-badge is-count" data-r="count">0</span><button class="fs-btn fs-btn-sm fs-anim-play" type="button" data-a="preview" aria-pressed="false" title="Play this slide's animations on the stage"><span data-r="play">${icon('play', 14)}</span><span data-r="stop" hidden>${icon('close', 14)}</span><span data-r="play-text">Preview</span></button></div>
-<div class="fs-list fs-anim-list" role="listbox" aria-label="Animations on this slide"></div>
-<div class="fs-note fs-anim-empty">No animations on this slide. Select an object, choose an effect and add it.</div></div>
+    this.el = el(`<div class="fd-insp fd-anim">
+<div class="fd-prop-section fd-anim-edit"><div class="fd-panel-head"><span class="fd-panel-title" data-r="mode">Add animation</span></div>
+<div class="fd-note fd-anim-target" data-r="target"></div>
+<div class="fd-seg" data-seg="class" role="group" aria-label="Animation type">${CLASSES.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}</div>
+<div class="fd-prop-row"><span class="fd-prop-label">Effect</span><div class="fd-prop-ctl"><select data-f="effect" aria-label="Effect"></select></div></div>
+<div class="fd-prop-row" data-row="dir"><span class="fd-prop-label">Direction</span><div class="fd-prop-ctl"><select data-f="dir" aria-label="Direction"></select></div></div>
+<div class="fd-prop-row" data-row="draw"><span class="fd-prop-label">Path</span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="draw" aria-pressed="false">${icon('pen', 14)}<span data-r="draw-text">Draw path</span></button></div></div>
+<div class="fd-note fd-anim-hint" data-r="draw-hint" hidden>${DRAW_HINT}</div>
+<div class="fd-prop-row"><span class="fd-prop-label">Start</span><div class="fd-prop-ctl"><select data-f="trigger" aria-label="Start">${TRIGGERS.map(([v, l]) => optionHtml(v, l)).join('')}</select></div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Duration</span><div class="fd-prop-ctl">${num('duration', 'Duration in seconds')}</div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Delay</span><div class="fd-prop-ctl">${num('delay', 'Delay in seconds')}</div></div>
+<div class="fd-prop-row" data-row="para"><span class="fd-prop-label">Text</span><div class="fd-prop-ctl"><label class="fd-check"><input type="checkbox" data-f="byParagraph"><span>By paragraph</span></label></div></div>
+<div class="fd-prop-row" data-row="motion"><span class="fd-prop-label">Motion</span><div class="fd-prop-ctl fd-anim-checks"><label class="fd-check"><input type="checkbox" data-f="rotate"><span>Orient along path</span></label><label class="fd-check"><input type="checkbox" data-f="reverse"><span>Reverse direction</span></label></div></div>
+<div class="fd-anim-actions"><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-a="done" hidden>Done</button><button class="fd-btn fd-btn-sm fd-btn-primary" type="button" data-a="add">${icon('plus', 14)}Add animation</button></div></div>
+<div class="fd-prop-section fd-anim-order"><div class="fd-panel-head"><span class="fd-panel-title">On this slide</span><span class="fd-badge is-count" data-r="count">0</span><button class="fd-btn fd-btn-sm fd-anim-play" type="button" data-a="preview" aria-pressed="false" title="Play this slide's animations on the stage"><span data-r="play">${icon('play', 14)}</span><span data-r="stop" hidden>${icon('close', 14)}</span><span data-r="play-text">Preview</span></button></div>
+<div class="fd-list fd-anim-list" role="listbox" aria-label="Animations on this slide"></div>
+<div class="fd-note fd-anim-empty">No animations on this slide. Select an object, choose an effect and add it.</div></div>
 </div>`);
-    this.list = q(this.el, '.fs-anim-list');
+    this.list = q(this.el, '.fd-anim-list');
     this.sheet = document.createElement('style');
     this.sheet.dataset.fs = 'anim-marks';
     this.ro = new ResizeObserver(() => {
@@ -212,7 +212,7 @@ export class AnimationPane {
       this.syncMarks();
       this.syncPaths();
     });
-    this.layer = svgNode<SVGSVGElement>('svg', 'fs-motion-layer');
+    this.layer = svgNode<SVGSVGElement>('svg', 'fd-motion-layer');
     this.layer.setAttribute('aria-hidden', 'true');
     this.layer.style.display = 'none';
     this.wire();
@@ -272,7 +272,7 @@ export class AnimationPane {
       const seg = t.closest<HTMLButtonElement>('[data-seg="class"] button');
       if (seg) { this.setClassOf(seg.dataset.v as AnimClass); return; }
       const act = t.closest<HTMLElement>('[data-a]');
-      const row = t.closest<HTMLElement>('.fs-anim-row');
+      const row = t.closest<HTMLElement>('.fd-anim-row');
       if (act && row) {
         const id = row.dataset.key ?? '';
         if (act.dataset.a === 'up') this.move(id, -1);
@@ -459,7 +459,7 @@ export class AnimationPane {
     const nums = s ? numbering(s) : [];
     const sel = new Set(ed.selection);
     const fill = (n: HTMLElement, { a, i }: { a: Anim; i: number }): void => {
-      const numEl = q(n, '.fs-anim-num');
+      const numEl = q(n, '.fd-anim-num');
       setText(numEl, nums[i] ?? '');
       setClass(numEl, 'is-follow', a.trigger !== 'onClick');
       for (const [c] of CLASSES) setClass(numEl, `is-${c}`, a.class === c);
@@ -467,8 +467,8 @@ export class AnimationPane {
       const kind = CLASSES.find(([c]) => c === a.class)?.[1] ?? a.class;
       const start = TRIGGERS.find(([t]) => t === a.trigger)?.[1] ?? a.trigger;
       const secs = round2(effectSeconds(effectName(a.effect, a.class), a.duration));
-      setText(q(n, '.fs-row-title'), s ? elementLabel(s, a.target) : a.target);
-      setText(q(n, '.fs-row-sub'), `${kind}: ${effect} · ${start}`);
+      setText(q(n, '.fd-row-title'), s ? elementLabel(s, a.target) : a.target);
+      setText(q(n, '.fd-row-sub'), `${kind}: ${effect} · ${start}`);
       setTitle(n, `${kind}: ${effect} · ${start} · ${secs}s${a.delay ? ` after ${round2(a.delay)}s` : ''}${a.byParagraph ? ' · by paragraph' : ''}`);
       const on = a.id === this.picked;
       setClass(n, 'is-selected', on);
@@ -483,7 +483,7 @@ export class AnimationPane {
       update: fill,
     });
     setText(q(this.el, '[data-r="count"]'), String(anims.length));
-    setHidden(q(this.el, '.fs-anim-empty'), anims.length > 0);
+    setHidden(q(this.el, '.fd-anim-empty'), anims.length > 0);
   }
 
   private syncPlay(any: boolean): void {
@@ -517,7 +517,7 @@ export class AnimationPane {
         if (!l.includes(nums[i])) l.push(nums[i]);
         by.set(a.target, l);
       });
-      const sel = (id: string): string => `.fs-stage .fs-slide.is-edit .fs-el[data-id="${CSS.escape(id)}"]::after`;
+      const sel = (id: string): string => `.fd-stage .fd-slide.is-edit .fd-el[data-id="${CSS.escape(id)}"]::after`;
       const ids = [...by.keys()];
       const picked = this.current()?.target;
       const deck = ed.doc.deck;
@@ -571,8 +571,8 @@ export class AnimationPane {
   private paintPath(id: string, at: Pt, k: number, d: string, start: Pt, end: Pt, on: boolean): void {
     let g = this.groups.get(id);
     if (!g) {
-      g = svgNode<SVGGElement>('g', id === 'draft' ? 'fs-motion is-draft' : 'fs-motion');
-      g.append(svgNode('path', 'fs-motion-halo'), svgNode('path', 'fs-motion-line'), svgNode('circle', 'fs-motion-start'), svgNode('circle', 'fs-motion-end'));
+      g = svgNode<SVGGElement>('g', id === 'draft' ? 'fd-motion is-draft' : 'fd-motion');
+      g.append(svgNode('path', 'fd-motion-halo'), svgNode('path', 'fd-motion-line'), svgNode('circle', 'fd-motion-start'), svgNode('circle', 'fd-motion-end'));
       this.layer.appendChild(g);
       this.groups.set(id, g);
     }

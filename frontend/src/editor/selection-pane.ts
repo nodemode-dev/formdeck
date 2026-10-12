@@ -64,14 +64,14 @@ export class SelectionPane {
   private editingName: string | null = null;
 
   constructor(private readonly host: HTMLElement) {
-    this.el = el(`<div class="fs-selpane">
-<div class="fs-selpane-head"><div class="fs-seg is-quiet" data-seg="selmode"><button type="button" data-v="layers" class="is-on">Layers</button><button type="button" data-v="reading">Reading order</button></div>
-<button class="fs-icon-btn is-sm" type="button" data-a="show-all" title="Show all" aria-label="Show all">${icon('eye', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-a="hide-all" title="Hide all" aria-label="Hide all">${icon('eyeOff', 14)}</button></div>
-<p class="fs-note fs-selpane-note">The top of the list is in front. Drag to reorder, double-click a name to rename.</p>
-<div class="fs-selpane-list" role="listbox" aria-multiselectable="true" aria-label="Objects on this slide" data-empty="No objects on this slide."></div>
+    this.el = el(`<div class="fd-selpane">
+<div class="fd-selpane-head"><div class="fd-seg is-quiet" data-seg="selmode"><button type="button" data-v="layers" class="is-on">Layers</button><button type="button" data-v="reading">Reading order</button></div>
+<button class="fd-icon-btn is-sm" type="button" data-a="show-all" title="Show all" aria-label="Show all">${icon('eye', 14)}</button><button class="fd-icon-btn is-sm" type="button" data-a="hide-all" title="Hide all" aria-label="Hide all">${icon('eyeOff', 14)}</button></div>
+<p class="fd-note fd-selpane-note">The top of the list is in front. Drag to reorder, double-click a name to rename.</p>
+<div class="fd-selpane-list" role="listbox" aria-multiselectable="true" aria-label="Objects on this slide" data-empty="No objects on this slide."></div>
 </div>`);
-    this.list = q(this.el, '.fs-selpane-list');
-    this.note = q(this.el, '.fs-selpane-note');
+    this.list = q(this.el, '.fd-selpane-list');
+    this.note = q(this.el, '.fd-selpane-note');
     this.group = new PanelGroup(host, 'objects', [{ id: 'selection', label: 'Selection', body: this.el }], 'Selection');
     host.prepend(this.group.root);
     try { this.open = localStorage.getItem(KEY) === '1'; } catch { this.open = false; }
@@ -97,7 +97,7 @@ export class SelectionPane {
     this.open = !this.open;
     setHidden(this.group.root, !this.open);
     if (this.open) {
-      const app = this.host.closest('.fs-app');
+      const app = this.host.closest('.fd-app');
       if (app?.classList.contains('is-props-hidden')) { app.classList.remove('is-props-hidden'); const ed = this.ed; if (ed) requestAnimationFrame(() => ed.stage.layout()); }
       this.group.setMinimised(false);
       this.sync();
@@ -146,7 +146,7 @@ export class SelectionPane {
     patchList(this.list, this.rows, {
       key: (r) => r.key,
       create: (r) => {
-        const n = el(`<div class="fs-selrow" role="option"><span class="fs-selrow-icon"></span><span class="fs-selrow-name" spellcheck="false"></span><button class="fs-badge fs-selrow-alt" type="button" data-a="alt" title="Add alt text" hidden>No alt text</button><button class="fs-row-toggle" type="button" data-a="eye"></button><button class="fs-row-toggle" type="button" data-a="lock"></button></div>`);
+        const n = el(`<div class="fd-selrow" role="option"><span class="fd-selrow-icon"></span><span class="fd-selrow-name" spellcheck="false"></span><button class="fd-badge fd-selrow-alt" type="button" data-a="alt" title="Add alt text" hidden>No alt text</button><button class="fd-row-toggle" type="button" data-a="eye"></button><button class="fd-row-toggle" type="button" data-a="lock"></button></div>`);
         this.paint(n, r, sel);
         return n;
       },
@@ -165,9 +165,9 @@ export class SelectionPane {
     setClass(n, 'is-locked', !!e.locked);
     n.setAttribute('aria-selected', String(sel.has(e.id)));
     const ic = iconOf(e);
-    setHtml(q(n, '.fs-selrow-icon'), icon(ic, 14), ic);
-    if (this.editingName !== e.id) setText(q(n, '.fs-selrow-name'), e.name || defaultName(e));
-    setHidden(q(n, '.fs-selrow-alt'), !(this.mode === 'reading' && needsAlt(e)));
+    setHtml(q(n, '.fd-selrow-icon'), icon(ic, 14), ic);
+    if (this.editingName !== e.id) setText(q(n, '.fd-selrow-name'), e.name || defaultName(e));
+    setHidden(q(n, '.fd-selrow-alt'), !(this.mode === 'reading' && needsAlt(e)));
     const eye = q<HTMLButtonElement>(n, '[data-a="eye"]'), lock = q<HTMLButtonElement>(n, '[data-a="lock"]');
     setHtml(eye, icon(e.hidden ? 'eyeOff' : 'eye', 14), e.hidden ? 'off' : 'on');
     setHtml(lock, icon(e.locked ? 'lock' : 'unlock', 14), e.locked ? 'on' : 'off');
@@ -201,7 +201,7 @@ export class SelectionPane {
   }
 
   private rowOf(t: EventTarget | null): Row | null {
-    const n = (t as HTMLElement | null)?.closest?.('.fs-selrow') as HTMLElement | null;
+    const n = (t as HTMLElement | null)?.closest?.('.fd-selrow') as HTMLElement | null;
     return n ? this.rows.find((r) => r.key === n.dataset.key) ?? null : null;
   }
 
@@ -251,7 +251,7 @@ export class SelectionPane {
     if (!p) return;
     if (!p.moved && Math.abs(e.clientY - p.y0) < 5) return;
     if (!p.moved) { p.moved = true; this.list.classList.add('is-dragging'); this.rowNode(p.row.key)?.classList.add('is-drag'); }
-    const over = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest?.('.fs-selrow') as HTMLElement | null;
+    const over = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest?.('.fd-selrow') as HTMLElement | null;
     const target = over ? this.rows.find((r) => r.key === over.dataset.key) : null;
     this.clearDrop();
     if (!over || !target || target.parent !== p.row.parent || target.key === p.row.key) return;
@@ -302,7 +302,7 @@ export class SelectionPane {
   }
 
   private rename(e: MouseEvent): void {
-    const name = (e.target as HTMLElement).closest<HTMLElement>('.fs-selrow-name');
+    const name = (e.target as HTMLElement).closest<HTMLElement>('.fd-selrow-name');
     const r = this.rowOf(e.target);
     if (!name || !r) return;
     e.preventDefault();

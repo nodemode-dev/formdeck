@@ -66,7 +66,7 @@ export function renderMentions(node: Element | null, text: string, names: string
   let html = '', at = 0;
   for (const m of text.matchAll(re)) {
     const start = (m.index ?? 0) + m[1].length;
-    html += escapeHtml(text.slice(at, start)) + `<span class="fs-mention">@${escapeHtml(m[2])}</span>`;
+    html += escapeHtml(text.slice(at, start)) + `<span class="fd-mention">@${escapeHtml(m[2])}</span>`;
     at = start + 1 + m[2].length;
   }
   host.innerHTML = html + escapeHtml(text.slice(at));
@@ -75,7 +75,7 @@ export function renderMentions(node: Element | null, text: string, names: string
 type Field = HTMLInputElement | HTMLTextAreaElement;
 
 class MentionPop {
-  readonly pop = el('<div class="fs-dd-pop fs-mention-pop" role="listbox" hidden><div class="fs-dd-list"></div></div>');
+  readonly pop = el('<div class="fd-dd-pop fd-mention-pop" role="listbox" hidden><div class="fd-dd-list"></div></div>');
   private readonly list = this.pop.firstElementChild as HTMLElement;
   private field: Field | null = null;
   private names: string[] = [];
@@ -109,9 +109,9 @@ class MentionPop {
     patchList(this.list, names, {
       key: (n) => n,
       create: (n) => {
-        const b = el(`<button class="fs-dd-item fs-mention-item" type="button" role="option"><span class="fs-mention-avatar">${agents.has(n) ? icon('agent', 12) : escapeHtml(n.slice(0, 1).toUpperCase())}</span><span class="fs-mention-name"></span><span class="fs-mention-tag">${agents.has(n) ? 'Agent' : ''}</span></button>`);
+        const b = el(`<button class="fd-dd-item fd-mention-item" type="button" role="option"><span class="fd-mention-avatar">${agents.has(n) ? icon('agent', 12) : escapeHtml(n.slice(0, 1).toUpperCase())}</span><span class="fd-mention-name"></span><span class="fd-mention-tag">${agents.has(n) ? 'Agent' : ''}</span></button>`);
         b.dataset.name = n;
-        setText(b.querySelector('.fs-mention-name'), n);
+        setText(b.querySelector('.fd-mention-name'), n);
         return b;
       },
       update: () => undefined,

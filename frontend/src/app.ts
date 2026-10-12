@@ -30,47 +30,47 @@ import * as dialogs from './ui/app-dialogs';
 import { AgentBridge } from './automation/agent-bridge';
 import { VERSION } from './version';
 
-const SHELL = `<div class="fs-app">
-<header class="fs-titlebar">
-<div class="fs-brand" role="button" tabindex="0" title="Home" data-cmd="home">${brandMark(20)}<span class="fs-brand-name">FormDeck</span></div>
-<nav class="fs-menubar" aria-label="Main menu"></nav>
-<input class="fs-doc-title" value="" aria-label="Deck title" spellcheck="false" placeholder="Untitled deck">
-<div class="fs-title-tools">
-<button class="fs-icon-btn" type="button" data-cmd="undo" title="Undo">${icon('undo', 16)}</button>
-<button class="fs-icon-btn" type="button" data-cmd="redo" title="Redo">${icon('redo', 16)}</button>
-<span class="fs-sep"></span>
-<button class="fs-tt-btn fs-sheet-btn" type="button" data-cmd="toggle-strip" title="Slides">${icon('slides', 16)}</button>
-<button class="fs-tt-btn fs-sheet-btn" type="button" data-cmd="toggle-props" title="Properties">${icon('panelProps', 16)}</button>
-<button class="fs-tt-btn fs-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
-<button class="fs-tt-btn" type="button" data-cmd="add-comment" title="Comment">${icon('comment', 16)}</button>
-<button class="fs-share-btn" type="button" data-act="share">${icon('download', 14)}<span>Export</span></button>
-<div class="fs-present-btn"><button class="fs-present-main" type="button" data-cmd="present-current">${icon('play', 14)}<span>Present</span></button><button class="fs-present-more" type="button" aria-expanded="false" aria-label="Present options" data-act="present-menu">${icon('chevronDown', 14)}</button></div>
+const SHELL = `<div class="fd-app">
+<header class="fd-titlebar">
+<div class="fd-brand" role="button" tabindex="0" title="Home" data-cmd="home">${brandMark(20)}<span class="fd-brand-name">FormDeck</span></div>
+<nav class="fd-menubar" aria-label="Main menu"></nav>
+<input class="fd-doc-title" value="" aria-label="Deck title" spellcheck="false" placeholder="Untitled deck">
+<div class="fd-title-tools">
+<button class="fd-icon-btn" type="button" data-cmd="undo" title="Undo">${icon('undo', 16)}</button>
+<button class="fd-icon-btn" type="button" data-cmd="redo" title="Redo">${icon('redo', 16)}</button>
+<span class="fd-sep"></span>
+<button class="fd-tt-btn fd-sheet-btn" type="button" data-cmd="toggle-strip" title="Slides">${icon('slides', 16)}</button>
+<button class="fd-tt-btn fd-sheet-btn" type="button" data-cmd="toggle-props" title="Properties">${icon('panelProps', 16)}</button>
+<button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
+<button class="fd-tt-btn" type="button" data-cmd="add-comment" title="Comment">${icon('comment', 16)}</button>
+<button class="fd-share-btn" type="button" data-act="share">${icon('download', 14)}<span>Export</span></button>
+<div class="fd-present-btn"><button class="fd-present-main" type="button" data-cmd="present-current">${icon('play', 14)}<span>Present</span></button><button class="fd-present-more" type="button" aria-expanded="false" aria-label="Present options" data-act="present-menu">${icon('chevronDown', 14)}</button></div>
 </div>
 </header>
-<div class="fs-options"></div>
-<div class="fs-main">
-<aside class="fs-strip-col" aria-label="Slides">
-<div class="fs-strip-head"><span class="fs-strip-title">Slides</span><span class="fs-strip-count">0</span><div class="fs-strip-tools"><button class="fs-icon-btn is-sm" type="button" data-cmd="view-sorter" title="Slide sorter">${icon('sorter', 14)}</button><button class="fs-icon-btn is-sm" type="button" data-cmd="new-slide" title="New slide">${icon('slideAdd', 16)}</button></div></div>
-<div class="fs-strip-scroll"></div>
+<div class="fd-options"></div>
+<div class="fd-main">
+<aside class="fd-strip-col" aria-label="Slides">
+<div class="fd-strip-head"><span class="fd-strip-title">Slides</span><span class="fd-strip-count">0</span><div class="fd-strip-tools"><button class="fd-icon-btn is-sm" type="button" data-cmd="view-sorter" title="Slide sorter">${icon('sorter', 14)}</button><button class="fd-icon-btn is-sm" type="button" data-cmd="new-slide" title="New slide">${icon('slideAdd', 16)}</button></div></div>
+<div class="fd-strip-scroll"></div>
 </aside>
-<div class="fs-resizer" data-edge="strip" role="separator" aria-orientation="vertical"></div>
-<div class="fs-stage-col">
-<main class="fs-stage"><div class="fs-drop" hidden></div><div class="fs-altview" hidden></div></main>
-<div class="fs-row-resizer" role="separator" aria-orientation="horizontal"></div>
-<section class="fs-notes" aria-label="Speaker notes"><div class="fs-notes-head">${icon('notes', 14)}Speaker notes<button class="fs-icon-btn is-sm" type="button" data-cmd="toggle-notes" title="Hide notes">${icon('chevronDown', 14)}</button></div><textarea class="fs-notes-text" placeholder="Click to add speaker notes" spellcheck="true"></textarea></section>
+<div class="fd-resizer" data-edge="strip" role="separator" aria-orientation="vertical"></div>
+<div class="fd-stage-col">
+<main class="fd-stage"><div class="fd-drop" hidden></div><div class="fd-altview" hidden></div></main>
+<div class="fd-row-resizer" role="separator" aria-orientation="horizontal"></div>
+<section class="fd-notes" aria-label="Speaker notes"><div class="fd-notes-head">${icon('notes', 14)}Speaker notes<button class="fd-icon-btn is-sm" type="button" data-cmd="toggle-notes" title="Hide notes">${icon('chevronDown', 14)}</button></div><textarea class="fd-notes-text" placeholder="Click to add speaker notes" spellcheck="true"></textarea></section>
 </div>
-<div class="fs-resizer" data-edge="props" role="separator" aria-orientation="vertical"></div>
-<aside class="fs-props-col" aria-label="Properties"></aside>
+<div class="fd-resizer" data-edge="props" role="separator" aria-orientation="vertical"></div>
+<aside class="fd-props-col" aria-label="Properties"></aside>
 </div>
-<footer class="fs-status">
-<div class="fs-status-left"><span class="fs-st fs-st-slide"></span><span class="fs-st fs-st-save"><span class="fs-st-dot"></span><span class="fs-st-save-text"></span></span><span class="fs-st-hint"></span><span class="fs-st fs-st-agent" hidden>${icon('agent', 12)}<span></span></span></div>
-<div class="fs-status-right">
-<div class="fs-seg is-quiet" role="tablist"><button type="button" data-cmd="view-normal" title="Normal">${icon('slide', 14)}</button><button type="button" data-cmd="view-sorter" title="Slide sorter">${icon('sorter', 14)}</button><button type="button" data-cmd="view-outline" title="Outline">${icon('outline', 14)}</button><button type="button" data-cmd="present-current" title="Present">${icon('present', 14)}</button></div>
-<button class="fs-icon-btn" type="button" data-cmd="zoom-out" title="Zoom out">${icon('zoomOut', 14)}</button>
-<input class="fs-slider fs-zoom" type="range" min="10" max="400" value="100" aria-label="Zoom" style="width:96px">
-<button class="fs-icon-btn" type="button" data-cmd="zoom-in" title="Zoom in">${icon('zoomIn', 14)}</button>
-<span class="fs-st-zoom">100%</span>
-<button class="fs-icon-btn" type="button" data-cmd="zoom-fit" title="Fit">${icon('zoomFit', 14)}</button>
+<footer class="fd-status">
+<div class="fd-status-left"><span class="fd-st fd-st-slide"></span><span class="fd-st fd-st-save"><span class="fd-st-dot"></span><span class="fd-st-save-text"></span></span><span class="fd-st-hint"></span><span class="fd-st fd-st-agent" hidden>${icon('agent', 12)}<span></span></span></div>
+<div class="fd-status-right">
+<div class="fd-seg is-quiet" role="tablist"><button type="button" data-cmd="view-normal" title="Normal">${icon('slide', 14)}</button><button type="button" data-cmd="view-sorter" title="Slide sorter">${icon('sorter', 14)}</button><button type="button" data-cmd="view-outline" title="Outline">${icon('outline', 14)}</button><button type="button" data-cmd="present-current" title="Present">${icon('present', 14)}</button></div>
+<button class="fd-icon-btn" type="button" data-cmd="zoom-out" title="Zoom out">${icon('zoomOut', 14)}</button>
+<input class="fd-slider fd-zoom" type="range" min="10" max="400" value="100" aria-label="Zoom" style="width:96px">
+<button class="fd-icon-btn" type="button" data-cmd="zoom-in" title="Zoom in">${icon('zoomIn', 14)}</button>
+<span class="fd-st-zoom">100%</span>
+<button class="fd-icon-btn" type="button" data-cmd="zoom-fit" title="Fit">${icon('zoomFit', 14)}</button>
 </div>
 </footer>
 </div>`;
@@ -79,17 +79,17 @@ export async function startApp(): Promise<void> {
   applyTheme();
   const host = document.getElementById('app') as HTMLElement;
   mountOnce(host, SHELL);
-  const root = q(host, '.fs-app');
+  const root = q(host, '.fd-app');
   const commands = new Commands();
   const live = new LiveClient(navigator.platform || 'window');
   const contextMenu = new PopupMenu(commands, null, true);
   const presentMenu = new PopupMenu(commands, null, true);
-  const toolbar = new Toolbar(q(root, '.fs-options'), commands);
-  const inspector = new Inspector(q(root, '.fs-props-col'));
-  const stageEl = q(root, '.fs-stage');
-  const altView = q(root, '.fs-altview');
-  const status = { slide: q(root, '.fs-st-slide'), save: q(root, '.fs-st-save-text'), dot: q(root, '.fs-st-save .fs-st-dot'), agent: q(root, '.fs-st-agent'), hint: q(root, '.fs-st-hint'), zoom: q(root, '.fs-st-zoom') };
-  const zoomSlider = q<HTMLInputElement>(root, '.fs-zoom');
+  const toolbar = new Toolbar(q(root, '.fd-options'), commands);
+  const inspector = new Inspector(q(root, '.fd-props-col'));
+  const stageEl = q(root, '.fd-stage');
+  const altView = q(root, '.fd-altview');
+  const status = { slide: q(root, '.fd-st-slide'), save: q(root, '.fd-st-save-text'), dot: q(root, '.fd-st-save .fd-st-dot'), agent: q(root, '.fd-st-agent'), hint: q(root, '.fd-st-hint'), zoom: q(root, '.fd-st-zoom') };
+  const zoomSlider = q<HTMLInputElement>(root, '.fd-zoom');
   let editor: Editor | null = null;
   let editorOff: Array<() => void> = [];
   let agentsAllowed = false;
@@ -137,7 +137,7 @@ export async function startApp(): Promise<void> {
     for (const off of editorOff) off();
     editorOff = [];
     if (editor && editor.doc !== doc) { live.close(editor.doc.id); editor.dispose(); }
-    const ed = new Editor(doc, { stage: stageEl, stripScroll: q(root, '.fs-strip-scroll'), stripCount: q(root, '.fs-strip-count'), notes: q<HTMLTextAreaElement>(root, '.fs-notes-text'), title: q<HTMLInputElement>(root, '.fs-doc-title') }, commands, contextMenu, live);
+    const ed = new Editor(doc, { stage: stageEl, stripScroll: q(root, '.fd-strip-scroll'), stripCount: q(root, '.fd-strip-count'), notes: q<HTMLTextAreaElement>(root, '.fd-notes-text'), title: q<HTMLInputElement>(root, '.fd-doc-title') }, commands, contextMenu, live);
     editor = ed;
     layoutCommands(commands, ed);
     toolbar.attach(ed);
@@ -173,7 +173,7 @@ export async function startApp(): Promise<void> {
 
   function syncChrome(): void {
     const ed = editor;
-    for (const b of Array.from(root.querySelectorAll<HTMLButtonElement>('.fs-titlebar [data-cmd], .fs-status [data-cmd], .fs-strip-head [data-cmd]'))) {
+    for (const b of Array.from(root.querySelectorAll<HTMLButtonElement>('.fd-titlebar [data-cmd], .fd-status [data-cmd], .fd-strip-head [data-cmd]'))) {
       const cmd = commands.get(b.dataset.cmd as string);
       if (!cmd) continue;
       setDisabled(b, !commands.enabled(cmd));
@@ -183,8 +183,8 @@ export async function startApp(): Promise<void> {
     const i = ed.doc.slideIndex(ed.current);
     const inMaster = ed.holderKind !== 'slide';
     setText(status.slide, inMaster ? `Slide Master · ${ed.holder?.name ?? ''}` : ed.doc.deck.slides.length ? `Slide ${i + 1} of ${ed.doc.deck.slides.length}` : 'No slides');
-    setText(q(root, '.fs-strip-title'), inMaster ? 'Master' : 'Slides');
-    const stripNew = q<HTMLButtonElement>(root, '.fs-strip-head [data-cmd="new-slide"], .fs-strip-head [data-cmd="master-insert-layout"]');
+    setText(q(root, '.fd-strip-title'), inMaster ? 'Master' : 'Slides');
+    const stripNew = q<HTMLButtonElement>(root, '.fd-strip-head [data-cmd="new-slide"], .fd-strip-head [data-cmd="master-insert-layout"]');
     const wantCmd = inMaster ? 'master-insert-layout' : 'new-slide';
     if (stripNew.dataset.cmd !== wantCmd) { stripNew.dataset.cmd = wantCmd; stripNew.title = inMaster ? 'New layout' : 'New slide'; }
     setText(status.save, ed.doc.hasPending ? 'Saving…' : live.connected ? 'Saved' : 'Offline, reconnecting');
@@ -251,14 +251,14 @@ export async function startApp(): Promise<void> {
     fillColor: (a) => void colorFor('fill', a),
     lineColor: (a) => void colorFor('line', a),
     highlight: (a) => void colorFor('hl', a),
-    shapes: (a) => { const ed = editor; if (ed) dialogs.shapesGallery(a ?? q(root, '.fs-options'), commands); },
+    shapes: (a) => { const ed = editor; if (ed) dialogs.shapesGallery(a ?? q(root, '.fd-options'), commands); },
     findReplace: () => { const ed = editor; if (ed) dialogs.findReplace(ed); },
   };
 
   async function colorFor(kind: 'text' | 'fill' | 'line' | 'hl', anchor?: HTMLElement): Promise<void> {
     const ed = editor;
     if (!ed) return;
-    const a = anchor ?? q(root, '.fs-options');
+    const a = anchor ?? q(root, '.fd-options');
     const c = await pickColor(a, editorTheme(ed), { none: kind === 'fill' ? 'No fill' : kind === 'line' ? 'No outline' : kind === 'hl' ? 'No highlight' : undefined });
     if (c === undefined) return;
     if (kind === 'hl' && c && ed.stage.editing && ed.stage.editFormat('hiliteColor', cssOf(ed, c))) return;
@@ -282,7 +282,7 @@ export async function startApp(): Promise<void> {
   registerShowCommands(commands, () => editor, live, bridge);
   registerMediaCommands(commands, () => editor);
   gateSlideCommands(commands, () => editor);
-  const drawTools = registerDrawCommands(commands, () => editor, q(root, '.fs-props-col'));
+  const drawTools = registerDrawCommands(commands, () => editor, q(root, '.fd-props-col'));
   registerEquationCommands(commands, () => editor);
 
   const menus: MenuDef[] = [
@@ -297,12 +297,12 @@ export async function startApp(): Promise<void> {
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view', '-', 'custom-shows', 'show-setup', '-', 'record-start', 'record-current', { label: 'Clear', items: ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'] }] },
     { label: 'Help', items: ['help', 'shortcuts', 'preferences'] },
   ];
-  new MenuBar(q(root, '.fs-menubar'), commands, menus);
+  new MenuBar(q(root, '.fd-menubar'), commands, menus);
 
   root.addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
     const b = t.closest('[data-cmd]') as HTMLElement | null;
-    if (b && !(b as HTMLButtonElement).disabled && !t.closest('.fs-options') && !t.closest('.fs-props-col') && !t.closest('.fs-menu')) { commands.run(b.dataset.cmd as string); syncChrome(); return; }
+    if (b && !(b as HTMLButtonElement).disabled && !t.closest('.fd-options') && !t.closest('.fd-props-col') && !t.closest('.fd-menu')) { commands.run(b.dataset.cmd as string); syncChrome(); return; }
     const a = t.closest('[data-act]') as HTMLElement | null;
     if (a?.dataset.act === 'present-menu') { presentMenu.setItems(['present-start', 'present-current', 'presenter-view']); const r = a.getBoundingClientRect(); presentMenu.openAt(r.right - 220, r.bottom + 6); }
     if (a?.dataset.act === 'share') { contextMenu.setItems(['export-pptx', 'export-pdf', 'export-png', 'export-potx', 'export-fsld', '-', 'print']); const r = a.getBoundingClientRect(); contextMenu.openAt(r.left, r.bottom + 6); }
@@ -310,11 +310,11 @@ export async function startApp(): Promise<void> {
   zoomSlider.addEventListener('input', () => editor?.stage.setZoom(Number(zoomSlider.value) / 100));
 
   const resizer = (edge: 'strip' | 'props'): void => {
-    const node = q(root, `.fs-resizer[data-edge="${edge}"]`);
+    const node = q(root, `.fd-resizer[data-edge="${edge}"]`);
     node.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       const x0 = e.clientX;
-      const prop = edge === 'strip' ? '--fs-strip-w' : '--fs-props-w';
+      const prop = edge === 'strip' ? '--fd-strip-w' : '--fd-props-w';
       const start = parseFloat(getComputedStyle(root).getPropertyValue(prop)) || (edge === 'strip' ? 232 : 308);
       node.classList.add('is-dragging');
       const mv = (ev: PointerEvent): void => {
@@ -325,16 +325,16 @@ export async function startApp(): Promise<void> {
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', up);
     });
-    try { const saved = localStorage.getItem(`formdeck.${edge}`); if (saved) setStyleVar(root, edge === 'strip' ? '--fs-strip-w' : '--fs-props-w', saved.trim()); } catch { return; }
+    try { const saved = localStorage.getItem(`formdeck.${edge}`); if (saved) setStyleVar(root, edge === 'strip' ? '--fd-strip-w' : '--fd-props-w', saved.trim()); } catch { return; }
   };
   resizer('strip');
   resizer('props');
-  const rowResizer = q(root, '.fs-row-resizer');
+  const rowResizer = q(root, '.fd-row-resizer');
   rowResizer.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     const y0 = e.clientY;
-    const start = parseFloat(getComputedStyle(root).getPropertyValue('--fs-notes-h')) || 132;
-    const mv = (ev: PointerEvent): void => setStyleVar(root, '--fs-notes-h', `${Math.max(60, Math.min(420, start + y0 - ev.clientY))}px`);
+    const start = parseFloat(getComputedStyle(root).getPropertyValue('--fd-notes-h')) || 132;
+    const mv = (ev: PointerEvent): void => setStyleVar(root, '--fd-notes-h', `${Math.max(60, Math.min(420, start + y0 - ev.clientY))}px`);
     const up = (): void => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
     window.addEventListener('pointermove', mv);
     window.addEventListener('pointerup', up);
@@ -382,7 +382,7 @@ export async function startApp(): Promise<void> {
     }
   });
 
-  const drop = q(root, '.fs-drop');
+  const drop = q(root, '.fd-drop');
   root.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) { e.preventDefault(); setHidden(drop, false); } });
   root.addEventListener('dragleave', (e) => { if (e.relatedTarget === null || !root.contains(e.relatedTarget as Node)) setHidden(drop, true); });
   root.addEventListener('drop', (e) => {
@@ -396,7 +396,7 @@ export async function startApp(): Promise<void> {
     if (ed && media.length && !docs.length) {
       const r = ed.stage.root.getBoundingClientRect();
       const at = { x: (e.clientX - r.left - ed.stage.ox) / ed.stage.k, y: (e.clientY - r.top - ed.stage.oy) / ed.stage.k };
-      const phNode = (e.target as HTMLElement).closest('.fs-el.is-prompt') as HTMLElement | null;
+      const phNode = (e.target as HTMLElement).closest('.fd-el.is-prompt') as HTMLElement | null;
       void ed.insertFiles(media, at, phNode?.dataset.ph);
     } else if (docs.length) void openFiles(files);
   });

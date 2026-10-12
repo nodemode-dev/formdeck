@@ -44,44 +44,44 @@ const NAV = new Set(['next', 'prev', 'first', 'last', 'grid', 'auto']);
 const svg = (body: string, size: number): string => `<span class="icon" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${body}</svg></span>`;
 const BLANK_ICON = '<rect x="3.5" y="5" width="17" height="12" rx="1.5" fill="currentColor"/><path d="M9 20h6"/>';
 const PAUSE_ICON = '<path d="M9 6v12M15 6v12"/>';
-const btn = (act: string, title: string, ic: string): string => `<button class="fs-icon-btn" type="button" data-act="${act}" title="${title}" aria-label="${title}">${ic}</button>`;
-const item = (act: string, label: string, keys = ''): string => `<button class="fs-menu-item" type="button" data-act="${act}"><span class="fs-menu-label">${label}</span><span class="fs-menu-keys">${keys}</span></button>`;
+const btn = (act: string, title: string, ic: string): string => `<button class="fd-icon-btn" type="button" data-act="${act}" title="${title}" aria-label="${title}">${ic}</button>`;
+const item = (act: string, label: string, keys = ''): string => `<button class="fd-menu-item" type="button" data-act="${act}"><span class="fd-menu-label">${label}</span><span class="fd-menu-keys">${keys}</span></button>`;
 const TOOLS = btn('pen', 'Pen (Ctrl+P)', icon('pen', 16)) + btn('laser', 'Laser pointer (L)', icon('laser', 16)) + btn('black', 'Black screen (B)', svg(BLANK_ICON, 16)) + btn('grid', 'All slides (G)', icon('grid', 16)) + btn('captions', 'Captions (J)', icon('captions', 16));
-const seg = (key: string, opts: Array<[string, string]>): string => `<div class="fs-seg is-quiet" data-cc="${key}">${opts.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}</div>`;
-const CC_SET = `<div class="fs-show-ccset"><div class="fs-show-ccrow"><span>Caption position</span>${seg('pos', [['bottom', 'Bottom'], ['top', 'Top']])}</div><div class="fs-show-ccrow"><span>Caption size</span>${seg('size', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']])}</div><label class="fs-show-ccrow"><span>Spoken language</span><select class="fs-input fs-show-cclang" aria-label="Spoken language" data-native>${CAPTION_LANGS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label></div>`;
+const seg = (key: string, opts: Array<[string, string]>): string => `<div class="fd-seg is-quiet" data-cc="${key}">${opts.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}</div>`;
+const CC_SET = `<div class="fd-show-ccset"><div class="fd-show-ccrow"><span>Caption position</span>${seg('pos', [['bottom', 'Bottom'], ['top', 'Top']])}</div><div class="fd-show-ccrow"><span>Caption size</span>${seg('size', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']])}</div><label class="fd-show-ccrow"><span>Spoken language</span><select class="fd-input fd-show-cclang" aria-label="Spoken language" data-native>${CAPTION_LANGS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label></div>`;
 
-const ROOT = `<div class="fs-show" tabindex="-1" role="application" aria-roledescription="slide show" aria-label="Slide show">
-<div class="fs-show-stage">
-<div class="fs-show-frame"><div class="fs-show-layer"></div><div class="fs-show-layer"></div><canvas class="fs-show-ink"></canvas><div class="fs-show-laser" hidden></div><div class="fs-show-cc" aria-live="polite" hidden><span class="fs-show-cc-text"></span></div></div>
-<div class="fs-show-stash" aria-hidden="true"></div>
-<div class="fs-show-blank" hidden></div>
-<div class="fs-show-end" hidden><span>End of slide show. Click to exit.</span></div>
-<div class="fs-show-chip" role="status" hidden></div>
+const ROOT = `<div class="fd-show" tabindex="-1" role="application" aria-roledescription="slide show" aria-label="Slide show">
+<div class="fd-show-stage">
+<div class="fd-show-frame"><div class="fd-show-layer"></div><div class="fd-show-layer"></div><canvas class="fd-show-ink"></canvas><div class="fd-show-laser" hidden></div><div class="fd-show-cc" aria-live="polite" hidden><span class="fd-show-cc-text"></span></div></div>
+<div class="fd-show-stash" aria-hidden="true"></div>
+<div class="fd-show-blank" hidden></div>
+<div class="fd-show-end" hidden><span>End of slide show. Click to exit.</span></div>
+<div class="fd-show-chip" role="status" hidden></div>
 </div>
-<div class="fs-show-bar" role="toolbar" aria-label="Slide show controls">
-${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fs-show-count"></span>${btn('next', 'Next (Right)', icon('chevronRight', 16))}<span class="fs-sep"></span>${TOOLS}${btn('more', 'More', icon('more3', 16))}
+<div class="fd-show-bar" role="toolbar" aria-label="Slide show controls">
+${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-count"></span>${btn('next', 'Next (Right)', icon('chevronRight', 16))}<span class="fd-sep"></span>${TOOLS}${btn('more', 'More', icon('more3', 16))}
 </div>
-<div class="fs-show-console" hidden>
-<header class="fs-show-ptop">
-<span class="fs-show-timer">0:00</span><button class="fs-icon-btn is-sm" type="button" data-act="timer-pause" title="Pause timer"></button><button class="fs-icon-btn is-sm" type="button" data-act="timer-reset" title="Reset timer">${icon('refresh', 14)}</button>
-<span class="fs-sep"></span><span class="fs-show-clock"></span><span class="fs-show-status"></span><span class="fs-show-flex"></span>
-<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-act="rehearse" title="Record how long each slide takes">Rehearse</button>
-<button class="fs-btn fs-btn-sm fs-btn-ghost" type="button" data-act="swap" title="Bring the audience window forward">${icon('presenter', 14)}Swap displays</button>
-<button class="fs-btn fs-btn-sm" type="button" data-act="end">End show</button>
+<div class="fd-show-console" hidden>
+<header class="fd-show-ptop">
+<span class="fd-show-timer">0:00</span><button class="fd-icon-btn is-sm" type="button" data-act="timer-pause" title="Pause timer"></button><button class="fd-icon-btn is-sm" type="button" data-act="timer-reset" title="Reset timer">${icon('refresh', 14)}</button>
+<span class="fd-sep"></span><span class="fd-show-clock"></span><span class="fd-show-status"></span><span class="fd-show-flex"></span>
+<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="rehearse" title="Record how long each slide takes">Rehearse</button>
+<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="swap" title="Bring the audience window forward">${icon('presenter', 14)}Swap displays</button>
+<button class="fd-btn fd-btn-sm" type="button" data-act="end">End show</button>
 </header>
-<div class="fs-show-pnav">${btn('prev', 'Previous (Left)', icon('chevronLeft', 18))}<span class="fs-show-pcount"></span>${btn('next', 'Next (Right)', icon('chevronRight', 18))}<span class="fs-sep"></span>${TOOLS}</div>
-<aside class="fs-show-side">
-<div class="fs-show-label">Next</div>
-<div class="fs-show-next"><div class="fs-show-next-slot"></div><div class="fs-show-next-end" hidden>End of show</div></div>
-<div class="fs-show-notes-head"><span class="fs-show-label">Notes</span><span class="fs-show-flex"></span>${btn('notes-minus', 'Smaller notes text', icon('minus', 14))}${btn('notes-plus', 'Larger notes text', icon('plus', 14))}</div>
-<div class="fs-show-notes"></div>
+<div class="fd-show-pnav">${btn('prev', 'Previous (Left)', icon('chevronLeft', 18))}<span class="fd-show-pcount"></span>${btn('next', 'Next (Right)', icon('chevronRight', 18))}<span class="fd-sep"></span>${TOOLS}</div>
+<aside class="fd-show-side">
+<div class="fd-show-label">Next</div>
+<div class="fd-show-next"><div class="fd-show-next-slot"></div><div class="fd-show-next-end" hidden>End of show</div></div>
+<div class="fd-show-notes-head"><span class="fd-show-label">Notes</span><span class="fd-show-flex"></span>${btn('notes-minus', 'Smaller notes text', icon('minus', 14))}${btn('notes-plus', 'Larger notes text', icon('plus', 14))}</div>
+<div class="fd-show-notes"></div>
 </aside>
-<div class="fs-show-strip" aria-label="Slides"></div>
+<div class="fd-show-strip" aria-label="Slides"></div>
 </div>
-<div class="fs-show-pop fs-show-pens" hidden><div class="fs-show-swatches">${INKS.map(([c, n]) => `<button class="fs-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
-<div class="fs-show-pop fs-show-more" hidden>${item('white', 'White screen', 'W')}${item('auto', 'Pause automatic advance', 'S')}${item('bar', 'Hide controls', 'Ctrl+H')}${item('fullscreen', 'Full screen', 'F')}<div class="fs-menu-sep"></div>${item('captions', 'Turn on captions', 'J')}${CC_SET}<div class="fs-menu-sep"></div>${item('end', 'End show', 'Esc')}</div>
-<div class="fs-show-grid" hidden><div class="fs-show-grid-head"><span class="fs-show-grid-title">All slides</span><span class="fs-show-grid-hint">Arrow keys to move, Enter to open, Esc to close</span>${btn('grid-close', 'Close (Esc)', icon('close', 16))}</div><div class="fs-show-grid-list"></div></div>
-<div class="fs-show-rehearse" hidden><span class="fs-show-rehearse-text"></span><button class="fs-btn fs-btn-primary fs-btn-sm" type="button" data-act="keep">Keep timings</button><button class="fs-btn fs-btn-ghost fs-btn-sm" type="button" data-act="discard">Discard</button></div>
+<div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
+<div class="fd-show-pop fd-show-more" hidden>${item('white', 'White screen', 'W')}${item('auto', 'Pause automatic advance', 'S')}${item('bar', 'Hide controls', 'Ctrl+H')}${item('fullscreen', 'Full screen', 'F')}<div class="fd-menu-sep"></div>${item('captions', 'Turn on captions', 'J')}${CC_SET}<div class="fd-menu-sep"></div>${item('end', 'End show', 'Esc')}</div>
+<div class="fd-show-grid" hidden><div class="fd-show-grid-head"><span class="fd-show-grid-title">All slides</span><span class="fd-show-grid-hint">Arrow keys to move, Enter to open, Esc to close</span>${btn('grid-close', 'Close (Esc)', icon('close', 16))}</div><div class="fd-show-grid-list"></div></div>
+<div class="fd-show-rehearse" hidden><span class="fd-show-rehearse-text"></span><button class="fd-btn fd-btn-primary fd-btn-sm" type="button" data-act="keep">Keep timings</button><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-act="discard">Discard</button></div>
 </div>`;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
@@ -123,11 +123,11 @@ class Thumbs {
     patchList(this.host, deck.slides, {
       key: (s) => s.id,
       create: (s) => {
-        const node = el(`<button class="fs-show-thumb" type="button"><span class="fs-show-thumb-frame"></span><span class="fs-show-thumb-num"></span></button>`);
-        const frame = q(node, '.fs-show-thumb-frame');
+        const node = el(`<button class="fd-show-thumb" type="button"><span class="fd-show-thumb-frame"></span><span class="fd-show-thumb-num"></span></button>`);
+        const frame = q(node, '.fd-show-thumb-frame');
         reserve(frame, { width: this.width, aspect });
         node.addEventListener('click', () => this.pick(s.id));
-        this.items.set(s.id, { node, frame, num: q(node, '.fs-show-thumb-num'), view: null });
+        this.items.set(s.id, { node, frame, num: q(node, '.fd-show-thumb-num'), view: null });
         this.io.observe(node);
         return node;
       },
@@ -280,36 +280,36 @@ class Show {
     this.prevFocus = document.activeElement;
     this.root = el(ROOT);
     const r = this.root;
-    this.stage = q(r, '.fs-show-stage');
-    this.frame = q(r, '.fs-show-frame');
-    const ls = Array.from(r.querySelectorAll<HTMLElement>('.fs-show-layer'));
+    this.stage = q(r, '.fd-show-stage');
+    this.frame = q(r, '.fd-show-frame');
+    const ls = Array.from(r.querySelectorAll<HTMLElement>('.fd-show-layer'));
     this.layers = [ls[0], ls[1]];
-    this.stash = q(r, '.fs-show-stash');
-    this.canvas = q<HTMLCanvasElement>(r, '.fs-show-ink');
-    this.laser = q(r, '.fs-show-laser');
-    this.blankEl = q(r, '.fs-show-blank');
-    this.endEl = q(r, '.fs-show-end');
-    this.chip = q(r, '.fs-show-chip');
-    this.bar = q(r, '.fs-show-bar');
-    this.countEl = q(r, '.fs-show-count');
-    this.pens = q(r, '.fs-show-pens');
-    this.more = q(r, '.fs-show-more');
-    this.gridEl = q(r, '.fs-show-grid');
-    this.rehearseEl = q(r, '.fs-show-rehearse');
-    this.consoleEl = q(r, '.fs-show-console');
-    this.nextBox = q(r, '.fs-show-next');
-    this.nextSlot = q(r, '.fs-show-next-slot');
-    this.nextEnd = q(r, '.fs-show-next-end');
-    this.notes = q(r, '.fs-show-notes');
+    this.stash = q(r, '.fd-show-stash');
+    this.canvas = q<HTMLCanvasElement>(r, '.fd-show-ink');
+    this.laser = q(r, '.fd-show-laser');
+    this.blankEl = q(r, '.fd-show-blank');
+    this.endEl = q(r, '.fd-show-end');
+    this.chip = q(r, '.fd-show-chip');
+    this.bar = q(r, '.fd-show-bar');
+    this.countEl = q(r, '.fd-show-count');
+    this.pens = q(r, '.fd-show-pens');
+    this.more = q(r, '.fd-show-more');
+    this.gridEl = q(r, '.fd-show-grid');
+    this.rehearseEl = q(r, '.fd-show-rehearse');
+    this.consoleEl = q(r, '.fd-show-console');
+    this.nextBox = q(r, '.fd-show-next');
+    this.nextSlot = q(r, '.fd-show-next-slot');
+    this.nextEnd = q(r, '.fd-show-next-end');
+    this.notes = q(r, '.fd-show-notes');
     try { this.nfs = clamp(Number(localStorage.getItem(NOTES_KEY)) || 18, 12, 44); } catch { this.nfs = 18; }
     setStyleVar(this.notes, '--notes-fs', `${this.nfs}px`);
     setClass(r, 'is-audience', audienceMode);
-    this.ccEl = q(r, '.fs-show-cc');
-    this.ccTextEl = q(r, '.fs-show-cc-text');
+    this.ccEl = q(r, '.fd-show-cc');
+    this.ccTextEl = q(r, '.fd-show-cc-text');
     const pen = /^#[0-9a-f]{6}$/i.test(this.set.pen ?? '') ? (this.set.pen as string).toLowerCase() : '';
     if (pen) {
       this.pen = pen;
-      if (!INKS.some(([c]) => c === pen)) q(this.pens, '.fs-show-swatches').appendChild(el(`<button class="fs-show-swatch" type="button" data-act="color" data-color="${pen}" title="Show pen" aria-label="Show pen" style="--swatch:${pen}"></button>`));
+      if (!INKS.some(([c]) => c === pen)) q(this.pens, '.fd-show-swatches').appendChild(el(`<button class="fd-show-swatch" type="button" data-act="color" data-color="${pen}" title="Show pen" aria-label="Show pen" style="--swatch:${pen}"></button>`));
     }
     setClass(r, 'is-kiosk', !!this.set.kiosk && !audienceMode);
     if (opts.record && !audienceMode) {
@@ -327,7 +327,7 @@ class Show {
   }
 
   async start(): Promise<void> {
-    document.body.classList.add('fs-showing');
+    document.body.classList.add('fd-showing');
     (document.getElementById('overlay-root') ?? document.body).appendChild(this.root);
     this.root.focus({ preventScroll: true });
     this.listen();
@@ -411,7 +411,7 @@ class Show {
     r.addEventListener('pointermove', (e) => { this.activity(); if (this.mode === 'laser') this.moveLaser(e); });
     r.addEventListener('pointerdown', (e) => {
       const t = e.target as HTMLElement;
-      if (this.popOpen() && !t.closest('.fs-show-pop') && !t.closest('[data-act="pen"], [data-act="more"]')) { this.closePops(); this.swallow = true; }
+      if (this.popOpen() && !t.closest('.fd-show-pop') && !t.closest('[data-act="pen"], [data-act="more"]')) { this.closePops(); this.swallow = true; }
     }, true);
     r.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
@@ -419,9 +419,9 @@ class Show {
       const swallow = this.swallow;
       this.swallow = false;
       if (b && r.contains(b)) { this.act(b.dataset.act ?? '', b); r.focus({ preventScroll: true }); return; }
-      if (!swallow && t.closest('.fs-show-stage')) this.stageClick(e, t);
+      if (!swallow && t.closest('.fd-show-stage')) this.stageClick(e, t);
     });
-    r.addEventListener('contextmenu', (e) => { e.preventDefault(); if ((e.target as HTMLElement).closest('.fs-show-stage') && this.mode === 'pointer' && !this.kiosk()) this.prev(); });
+    r.addEventListener('contextmenu', (e) => { e.preventDefault(); if ((e.target as HTMLElement).closest('.fd-show-stage') && this.mode === 'pointer' && !this.kiosk()) this.prev(); });
     this.stage.addEventListener('wheel', (e) => {
       if (Math.abs(e.deltaY) < 4 || performance.now() - this.wheelAt < 320 || !this.gridEl.hidden || this.kiosk()) return;
       this.wheelAt = performance.now();
@@ -444,7 +444,7 @@ class Show {
     this.muted = true;
     setClass(this.root, 'is-presenter', true);
     setHidden(this.consoleEl, false);
-    this.strip = new Thumbs(this.doc, q(this.root, '.fs-show-strip'), 128, (id) => this.jump(id));
+    this.strip = new Thumbs(this.doc, q(this.root, '.fd-show-strip'), 128, (id) => this.jump(id));
     this.strip.sync();
     if (TAURI) {
       void import('@tauri-apps/api/core').then((m) => m.invoke('open_presenter', { url })).catch(() => this.noAudience());
@@ -574,7 +574,7 @@ class Show {
     if (this.closed) return;
     e.stopPropagation();
     const k = e.key, mod = e.ctrlKey || e.metaKey;
-    if ((e.target as Element | null)?.closest?.('.fs-show-ccset')) { if (k === 'Escape') { e.preventDefault(); this.closePops(); this.root.focus({ preventScroll: true }); } return; }
+    if ((e.target as Element | null)?.closest?.('.fd-show-ccset')) { if (k === 'Escape') { e.preventDefault(); this.closePops(); this.root.focus({ preventScroll: true }); } return; }
     if (!this.gridEl.hidden) { this.gridKey(e); return; }
     if (!this.rehearseEl.hidden) {
       if (k === 'Escape') { e.preventDefault(); this.rehearsal = null; void this.exit(); }
@@ -692,9 +692,9 @@ class Show {
     if (this.audienceMode && !TAURI && !this.tapped && !document.fullscreenElement) { this.tapped = true; this.flash('', -1); void this.fullscreen(true); return; }
     if (this.atEnd) { this.next(); return; }
     if (this.blank !== 'normal') { this.setBlank('normal'); return; }
-    const rl = t.closest<HTMLElement>('.fs-r[data-link]');
+    const rl = t.closest<HTMLElement>('.fd-r[data-link]');
     if (rl) { const v = rl.dataset.link ?? ''; if (v.startsWith('#')) this.jump(v.slice(1)); else openUrl(v); return; }
-    const node = t.closest<HTMLElement>('.fs-el[data-id]');
+    const node = t.closest<HTMLElement>('.fd-el[data-id]');
     const elm = node?.dataset.id ? this.doc.element(this.cur, node.dataset.id) : undefined;
     if (elm?.link) { if ('url' in elm.link) openUrl(elm.link.url); else this.jump(elm.link.slide); return; }
     if (elm?.type === 'media') {
@@ -808,7 +808,7 @@ class Show {
       const a = this.mediaNode(this.cur, m.id);
       if (!a) continue;
       if (play) this.playMedia(a);
-      else { a.pause(); this.prep(a, m, a.closest<HTMLElement>('.fs-el')); }
+      else { a.pause(); this.prep(a, m, a.closest<HTMLElement>('.fd-el')); }
     }
   }
 
@@ -820,12 +820,12 @@ class Show {
   }
 
   private nodeOf(view: SlideView, id: string): HTMLElement | null {
-    return view.nodeFor(id) ?? view.content.querySelector<HTMLElement>(`.fs-el[data-id="${CSS.escape(id)}"]`);
+    return view.nodeFor(id) ?? view.content.querySelector<HTMLElement>(`.fd-el[data-id="${CSS.escape(id)}"]`);
   }
 
   private paras(view: SlideView, id: string): HTMLElement[] {
     const node = this.nodeOf(view, id);
-    return node ? Array.from(node.querySelectorAll<HTMLElement>('.fs-flow > p.fs-p')).filter((p) => (p.textContent ?? '').trim() !== '') : [];
+    return node ? Array.from(node.querySelectorAll<HTMLElement>('.fd-flow > p.fd-p')).filter((p) => (p.textContent ?? '').trim() !== '') : [];
   }
 
   private unitNode(view: SlideView, u: Unit): HTMLElement | null {
@@ -840,8 +840,8 @@ class Show {
   private applyState(view: SlideView, steps: Step[], upto: number): void {
     this.holds = this.holds.filter((h) => { if (h.view !== view) return true; h.anim.cancel(); return false; });
     const { hidden, held } = buildState(steps, upto);
-    for (const n of Array.from(view.el.querySelectorAll('.fs-anim-hidden'))) n.classList.remove('fs-anim-hidden');
-    for (const u of hidden) this.unitNode(view, u)?.classList.add('fs-anim-hidden');
+    for (const n of Array.from(view.el.querySelectorAll('.fd-anim-hidden'))) n.classList.remove('fd-anim-hidden');
+    for (const u of hidden) this.unitNode(view, u)?.classList.add('fd-anim-hidden');
     for (const it of held) {
       const node = this.unitNode(view, it.unit);
       if (!node) continue;
@@ -859,11 +859,11 @@ class Show {
       const node = this.unitNode(view, it.unit);
       if (!node) continue;
       const fx = this.fxFor(view, it, node);
-      node.classList.remove('fs-anim-hidden');
+      node.classList.remove('fd-anim-hidden');
       const a = node.animate(fx.frames, { duration: this.rushing ? 0 : fx.instant ? 1 : Math.max(1, it.dur), delay: this.rushing ? 0 : it.start, fill: 'both', easing: fx.easing });
       anims.push(a);
       void a.finished.then(() => {
-        if (it.kind === 'exit') node.classList.add('fs-anim-hidden');
+        if (it.kind === 'exit') node.classList.add('fd-anim-hidden');
         if (fx.hold) this.holds.push({ view, anim: a }); else a.cancel();
       }, () => undefined);
     }
@@ -1016,7 +1016,7 @@ class Show {
     this.autoPaused = !this.autoPaused;
     if (this.autoPaused) { this.pausedAt = performance.now(); this.clearAuto(); }
     else { this.enteredAt += performance.now() - this.pausedAt; this.armAuto(); }
-    setText(this.more.querySelector('[data-act="auto"] .fs-menu-label'), this.autoPaused ? 'Resume automatic advance' : 'Pause automatic advance');
+    setText(this.more.querySelector('[data-act="auto"] .fd-menu-label'), this.autoPaused ? 'Resume automatic advance' : 'Pause automatic advance');
     this.flash(this.autoPaused ? 'Automatic advance paused. Press S to resume.' : 'Automatic advance resumed');
   }
 
@@ -1204,7 +1204,7 @@ class Show {
   private toggleGrid(): void {
     if (!this.gridEl.hidden) { setHidden(this.gridEl, true); this.syncTools(); return; }
     this.closePops();
-    this.grid ??= new Thumbs(this.doc, q(this.gridEl, '.fs-show-grid-list'), 232, (id) => { setHidden(this.gridEl, true); this.syncTools(); this.jump(id); });
+    this.grid ??= new Thumbs(this.doc, q(this.gridEl, '.fd-show-grid-list'), 232, (id) => { setHidden(this.gridEl, true); this.syncTools(); this.jump(id); });
     this.grid.sync();
     setHidden(this.gridEl, false);
     this.gridFocus = Math.max(0, this.doc.slideIndex(this.cur));
@@ -1324,7 +1324,7 @@ class Show {
     const [n, of] = this.list && this.pos >= 0 ? [this.pos + 1, this.list.length] : [i + 1, slides.length];
     setText(this.countEl, `${n} / ${of}`);
     if (this.presenting) {
-      setText(q(this.root, '.fs-show-pcount'), this.atEnd ? 'End of show' : `Slide ${n} of ${of}`);
+      setText(q(this.root, '.fd-show-pcount'), this.atEnd ? 'End of show' : `Slide ${n} of ${of}`);
       const s = slides[i];
       const text = s?.notes?.trim() ?? '';
       setText(this.notes, text || 'No speaker notes for this slide.');
@@ -1365,21 +1365,21 @@ class Show {
     on('grid', !this.gridEl.hidden);
     on('captions', this.ccOn);
     for (const b of Array.from(this.pens.querySelectorAll<HTMLElement>('[data-act="color"]'))) setClass(b, 'is-chosen', this.mode === 'pen' && b.dataset.color === this.pen);
-    setClass(q(this.root, '.fs-show-ptop [data-act="rehearse"]'), 'is-on', !!this.rehearsal);
+    setClass(q(this.root, '.fd-show-ptop [data-act="rehearse"]'), 'is-on', !!this.rehearsal);
   }
 
   private syncTimerButton(): void {
     const b = q(this.root, '[data-act="timer-pause"]');
     setHtml(b, this.timerPausedAt ? icon('play', 14) : svg(PAUSE_ICON, 14), this.timerPausedAt ? 'play' : 'pause');
     b.title = this.timerPausedAt ? 'Resume timer' : 'Pause timer';
-    setClass(q(this.root, '.fs-show-timer'), 'is-paused', !!this.timerPausedAt);
+    setClass(q(this.root, '.fd-show-timer'), 'is-paused', !!this.timerPausedAt);
   }
 
   private onTick(): void {
     if (!this.presenting || this.closed) return;
-    setText(q(this.root, '.fs-show-timer'), fmt((this.timerPausedAt || performance.now()) - this.t0 - this.timerPaused));
-    setText(q(this.root, '.fs-show-clock'), new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
-    setText(q(this.root, '.fs-show-status'), this.audienceWin?.closed ? 'Audience window closed' : this.rehearsal ? 'Rehearsing' : '');
+    setText(q(this.root, '.fd-show-timer'), fmt((this.timerPausedAt || performance.now()) - this.t0 - this.timerPaused));
+    setText(q(this.root, '.fd-show-clock'), new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+    setText(q(this.root, '.fd-show-status'), this.audienceWin?.closed ? 'Audience window closed' : this.rehearsal ? 'Rehearsing' : '');
   }
 
   private toggleRehearse(): void {
@@ -1422,7 +1422,7 @@ class Show {
       setDisabled(b, !ok);
       if (!ok) setTitle(b, 'Captions need Chrome or Edge');
     }
-    const box = q(this.root, '.fs-show-ccset');
+    const box = q(this.root, '.fd-show-ccset');
     setHidden(box, !ok);
     box.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('button[data-v]');
@@ -1430,7 +1430,7 @@ class Show {
       if (!b?.dataset.v || !key) return;
       this.applyPrefs(key === 'pos' ? { ...this.ccPrefs, pos: b.dataset.v === 'top' ? 'top' : 'bottom' } : { ...this.ccPrefs, size: b.dataset.v === 's' ? 's' : b.dataset.v === 'l' ? 'l' : 'm' }, true);
     });
-    const lang = q<HTMLSelectElement>(box, '.fs-show-cclang');
+    const lang = q<HTMLSelectElement>(box, '.fd-show-cclang');
     lang.addEventListener('change', () => this.applyPrefs({ ...this.ccPrefs, lang: lang.value }, true));
     this.syncCaptionUi();
   }
@@ -1483,13 +1483,13 @@ class Show {
     setClass(this.ccEl, 'is-top', p.pos === 'top');
     setClass(this.ccEl, 'is-s', p.size === 's');
     setClass(this.ccEl, 'is-l', p.size === 'l');
-    for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('.fs-show-ccset button[data-v]'))) {
+    for (const b of Array.from(this.root.querySelectorAll<HTMLElement>('.fd-show-ccset button[data-v]'))) {
       const key = b.parentElement?.dataset.cc;
       setClass(b, 'is-on', b.dataset.v === (key === 'pos' ? p.pos : p.size));
     }
-    const lang = this.root.querySelector<HTMLSelectElement>('.fs-show-cclang');
+    const lang = this.root.querySelector<HTMLSelectElement>('.fd-show-cclang');
     if (lang && lang.value !== p.lang) lang.value = p.lang;
-    setText(this.more.querySelector('[data-act="captions"] .fs-menu-label'), this.ccOn ? 'Turn off captions' : 'Turn on captions');
+    setText(this.more.querySelector('[data-act="captions"] .fd-menu-label'), this.ccOn ? 'Turn off captions' : 'Turn on captions');
   }
 
   private async exit(): Promise<void> {
@@ -1501,7 +1501,7 @@ class Show {
       if (n) {
         let total = 0;
         for (const v of this.rehearsal.values()) total += v;
-        setText(q(this.rehearseEl, '.fs-show-rehearse-text'), `Rehearsed ${n} slide${n === 1 ? '' : 's'} in ${fmt(total * 1000)}. Keep these timings to advance automatically?`);
+        setText(q(this.rehearseEl, '.fd-show-rehearse-text'), `Rehearsed ${n} slide${n === 1 ? '' : 's'} in ${fmt(total * 1000)}. Keep these timings to advance automatically?`);
         setHidden(this.rehearseEl, false);
         if (!this.atEnd) { this.atEnd = true; setHidden(this.endEl, false); this.syncUi(); }
         return;
@@ -1530,7 +1530,7 @@ class Show {
     this.rec?.leave();
     const restore = this.fullscreen(false);
     this.root.remove();
-    document.body.classList.remove('fs-showing');
+    document.body.classList.remove('fd-showing');
     if (active === this) active = null;
     if (this.prevFocus instanceof HTMLElement && this.prevFocus.isConnected) this.prevFocus.focus({ preventScroll: true });
     if (this.cur) this.opts.onEnd?.(this.cur);

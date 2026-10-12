@@ -64,14 +64,14 @@
 
   --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'JetBrains Mono', monospace;
-  --fs-9: 9px;
-  --fs-10: 10px;
-  --fs-11: 11px;
-  --fs-12: 12px;
-  --fs-13: 13px;
-  --fs-14: 14px;
-  --fs-16: 16px;
-  --fs-18: 18px;
+  --fd-9: 9px;
+  --fd-10: 10px;
+  --fd-11: 11px;
+  --fd-12: 12px;
+  --fd-13: 13px;
+  --fd-14: 14px;
+  --fd-16: 16px;
+  --fd-18: 18px;
 
   --ctl-sm: 24px;
   --ctl-md: 28px;
@@ -183,18 +183,18 @@ body.animations-disabled * { transition: none !important; animation: none !impor
 body.nm-home .nm-canvas-surface { display: none !important; }
 
 :root {
-  --fs-titlebar-h: 44px;
-  --fs-options-h: 44px;
-  --fs-status-h: 28px;
-  --fs-strip-w: 232px;
-  --fs-props-w: 308px;
-  --fs-notes-h: 132px;
-  --fs-thumb-w: 168px;
-  --fs-handle: 8px;
-  --fs-sel: var(--accent-color);
-  --fs-guide: #ff4f7a;
-  --fs-pasteboard: var(--canvas-bg);
-  --fs-slide-shadow: 0 10px 36px rgba(0,0,0,0.45);
+  --fd-titlebar-h: 44px;
+  --fd-options-h: 44px;
+  --fd-status-h: 28px;
+  --fd-strip-w: 232px;
+  --fd-props-w: 308px;
+  --fd-notes-h: 132px;
+  --fd-thumb-w: 168px;
+  --fd-handle: 8px;
+  --fd-sel: var(--accent-color);
+  --fd-guide: #ff4f7a;
+  --fd-pasteboard: var(--canvas-bg);
+  --fd-slide-shadow: 0 10px 36px rgba(0,0,0,0.45);
   --z-toast: 3000;
 }
 
@@ -205,7 +205,7 @@ body.nm-home .nm-canvas-surface { display: none !important; }
   --glass-filter: blur(40px) saturate(1.8);
   --glass-shadow: 0 22px 56px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25);
 }
-.fs-menu, .fs-dd-pop, .fs-flyout, .fs-search-pop, .fs-pop {
+.fd-menu, .fd-dd-pop, .fd-flyout, .fd-search-pop, .fd-pop {
   background: var(--glass-bg) !important;
   border: 1px solid var(--glass-border) !important;
   box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow) !important;
