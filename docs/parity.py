@@ -55,7 +55,7 @@ row(a, "Line and paragraph spacing controls", 1, 1, 1, F, "`inspector.ts` Text b
 row(a, "Character spacing, caps, superscript, subscript", 1, 1, 1, F, "Character spacing in `inspector.ts`; Format > Superscript, Subscript, All Caps, Small Caps and toolbar buttons (`commands.ts scriptToggle, capsToggle`)")
 row(a, "Hyperlinks", 1, 1, 1, F, "Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py`")
 row(a, "Find and replace", 1, 1, 1, F, "`dialogs-insert.ts FindPanel` (match case, whole word)")
-row(a, "Spell check", 1, 1, 1, P, "browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings")
+row(a, "Spell check", 1, 1, 1, F, "`ui/dialogs-spelling.ts` Spelling (F7: suggestions, Change, Change All, Ignore, Add to Dictionary across slides, tables and notes) and Language (per run, Do not check spelling), `editor/spelling.ts` nspell with offline en-US, en-GB, es and fr dictionaries, run `lang` and `noProof` read and written in .pptx (`pptx/read_text.py`, `write_text.py`)")
 row(a, "WordArt and text effects", 1, 1, 0, P, "`render/text-fx.ts drawTextFx, paintTfx` (text fill, outline, shadow, glow, reflection, all 40 transforms), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; no bevel, 3-D text or picture fill")
 row(a, "Equations", 1, 1, 0, F, "`editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras`")
 
@@ -139,9 +139,9 @@ row(a, "Publish to the web or embed", 1, 1, 1, N, "nothing found")
 
 a = "Accessibility"
 row(a, "Accessibility checker", 1, 0, 0, F, "`backend/app/services/lint.py` checks alt text, contrast, tiny text and overflow measured in the window; Review > Check Deck (`frontend/src/ui/check-dialog.ts`, `decks.py check`) and agents (`lint_deck`)")
-row(a, "Reading order", 1, 0, 0, P, "`editor/selection-pane.ts` Reading order view (missing alt text flagged, drag reorders the shape tree); exported PDFs are untagged")
-row(a, "Screen reader labels in the app", 1, 1, 1, P, "ARIA roles and labels on dialogs, lists, menus and the show (`show.ts` aria-roledescription); not audited")
-row(a, "Tagged accessible PDF export", 1, 1, 1, N, "`routers/exports.py compose` writes an image PDF with an invisible text layer, untagged")
+row(a, "Reading order", 1, 0, 0, F, "`editor/selection-pane.ts` Reading order view (missing alt text flagged, drag reorders the shape tree); exported PDFs follow it as their structure order (`render/pdf-struct.ts`, `services/pdf_tags.py`)")
+row(a, "Screen reader labels in the app", 1, 1, 1, F, "ARIA roles and labels on dialogs, lists, menus and the show (`show.ts` aria-roledescription); axe-core 4.10 WCAG 2.1 A and AA audit at 0.8.3 of Home and the editor in all 15 UI themes, every menu, Spelling, the Agent tab and the show: no violations in the app's own interface")
+row(a, "Tagged accessible PDF export", 1, 1, 1, P, "`services/pdf_tags.py`, `routers/exports.py _pdf`: Tagged PDF with a structure tree (headings, paragraphs, nested lists, tables with header cells, figures with alt, artifacts), Lang, title and XMP; text is an invisible layer over a slide picture with non-embedded fonts and no PDF/UA validator run")
 
 a = "Import and export"
 row(a, "Open .pptx, .potx, .ppsx, .pptm", 1, 1, 1, F, "`backend/app/services/pptx/reader.py read_pptx` (warnings for what is dropped)")
@@ -158,7 +158,7 @@ row(a, "Print slides, notes pages, outline and handouts (2, 3, 4, 6, 9)", 1, 1, 
 row(a, "Grayscale, frame slides, include hidden slides, paper size", 1, 1, 1, F, "`PrintDialog` options")
 
 a = "Automation and agents"
-row(a, "Built-in AI assistant", 1, 1, 1, P, "no built-in model; `autodraft.py` drafts heuristically and outside agents do the rest")
+row(a, "Built-in AI assistant", 1, 1, 1, F, "`ui/chat-panel.ts` chat in the Agent tab that edits the deck with the MCP tools as undoable agent turns, through the person's connected agent (`chat_inbox`, `chat_reply`), an Anthropic or OpenAI-compatible key, or a local Ollama model (`services/chat/`)")
 row(a, "MCP server for outside agents (HTTP and stdio)", 0, 0, 0, F, "`backend/app/routers/mcp.py TOOLS` (24 tools), `setup/mcp_stdio.py`")
 row(a, "Agent edits land live in the open window, undone per turn", 0, 0, 0, F, "`services/store.py step(turn)`, `commands.ts undo-agent`")
 row(a, "Agent sees and measures its own slides", 0, 0, 0, F, "`agent-bridge.ts` render_slides, measure; `services/lint.py`")

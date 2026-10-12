@@ -18,7 +18,7 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.2
 | File and templates | 8 of 8 · 100% | 8 of 8 · 100% | 8 of 8 · 100% |
 | Slides and layouts | 10 of 10 · 100% | 10 of 10 · 100% | 7 of 7 · 100% |
 | Masters and themes | 3 of 3 · 100% | 1 of 1 · 100% | 3 of 3 · 100% |
-| Text | 11 of 12 · 92% | 10 of 11 · 91% | 8.5 of 9 · 94% |
+| Text | 11.5 of 12 · 96% | 10.5 of 11 · 95% | 9 of 9 · 100% |
 | Shapes and drawing | 7 of 7 · 100% | 7 of 7 · 100% | 6 of 6 · 100% |
 | Pictures and media | 6.5 of 8 · 81% | 6.5 of 8 · 81% | 6.5 of 8 · 81% |
 | Tables | 3 of 3 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
@@ -30,14 +30,14 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.2
 | Slideshow and presenter | 7.5 of 9 · 83% | 7 of 7 · 100% | 7.5 of 9 · 83% |
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Collaboration and sharing | 1.5 of 4 · 38% | 1.5 of 4 · 38% | 0.5 of 3 · 17% |
-| Accessibility | 2 of 4 · 50% | 0.5 of 2 · 25% | 0.5 of 2 · 25% |
+| Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
 | Import and export | 7 of 8 · 88% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
-| Automation and agents | 1 of 3 · 33% | 0.5 of 1 · 50% | 1 of 3 · 33% |
+| Automation and agents | 1.5 of 3 · 50% | 1 of 1 · 100% | 1.5 of 3 · 50% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **90.5 of 104 · 87.0%** | **80.5 of 88 · 91.5%** | **77 of 88 · 87.5%** |
+| **Overall** | **93 of 104 · 89.4%** | **82.5 of 88 · 93.8%** | **79 of 88 · 89.8%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 93 full, 11 partial and 8 none: 98.5 of 112 points, 87.9%.
+Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 97 full, 8 partial and 7 none: 101 of 112 points, 90.2%.
 
 ## Where FormDeck leads
 
@@ -108,7 +108,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Character spacing, caps, superscript, subscript | yes | yes | yes | Full | Character spacing in `inspector.ts`; Format > Superscript, Subscript, All Caps, Small Caps and toolbar buttons (`commands.ts scriptToggle, capsToggle`) |
 | Hyperlinks | yes | yes | yes | Full | Insert > Link, Mod+K (`ui/link-dialog.ts`): web address or slide, on selected text or whole objects; followed in `present/show.ts`, round-tripped in `pptx/write_text.py` |
 | Find and replace | yes | yes | yes | Full | `dialogs-insert.ts FindPanel` (match case, whole word) |
-| Spell check | yes | yes | yes | Partial | browser spell check on the editing flow (`editor/stage.ts beginEdit` sets spellcheck); no dictionary or language settings |
+| Spell check | yes | yes | yes | Full | `ui/dialogs-spelling.ts` Spelling (F7: suggestions, Change, Change All, Ignore, Add to Dictionary across slides, tables and notes) and Language (per run, Do not check spelling), `editor/spelling.ts` nspell with offline en-US, en-GB, es and fr dictionaries, run `lang` and `noProof` read and written in .pptx (`pptx/read_text.py`, `write_text.py`) |
 | WordArt and text effects | yes | yes | no | Partial | `render/text-fx.ts drawTextFx, paintTfx` (text fill, outline, shadow, glow, reflection, all 40 transforms), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; no bevel, 3-D text or picture fill |
 | Equations | yes | yes | no | Full | `editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras` |
 
@@ -228,9 +228,9 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Accessibility checker | yes | no | no | Full | `backend/app/services/lint.py` checks alt text, contrast, tiny text and overflow measured in the window; Review > Check Deck (`frontend/src/ui/check-dialog.ts`, `decks.py check`) and agents (`lint_deck`) |
-| Reading order | yes | no | no | Partial | `editor/selection-pane.ts` Reading order view (missing alt text flagged, drag reorders the shape tree); exported PDFs are untagged |
-| Screen reader labels in the app | yes | yes | yes | Partial | ARIA roles and labels on dialogs, lists, menus and the show (`show.ts` aria-roledescription); not audited |
-| Tagged accessible PDF export | yes | yes | yes | None | `routers/exports.py compose` writes an image PDF with an invisible text layer, untagged |
+| Reading order | yes | no | no | Full | `editor/selection-pane.ts` Reading order view (missing alt text flagged, drag reorders the shape tree); exported PDFs follow it as their structure order (`render/pdf-struct.ts`, `services/pdf_tags.py`) |
+| Screen reader labels in the app | yes | yes | yes | Full | ARIA roles and labels on dialogs, lists, menus and the show (`show.ts` aria-roledescription); axe-core 4.10 WCAG 2.1 A and AA audit at 0.8.3 of Home and the editor in all 15 UI themes, every menu, Spelling, the Agent tab and the show: no violations in the app's own interface |
+| Tagged accessible PDF export | yes | yes | yes | Partial | `services/pdf_tags.py`, `routers/exports.py _pdf`: Tagged PDF with a structure tree (headings, paragraphs, nested lists, tables with header cells, figures with alt, artifacts), Lang, title and XMP; text is an invisible layer over a slide picture with non-embedded fonts and no PDF/UA validator run |
 
 ### Import and export
 
@@ -256,7 +256,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 
 | Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Built-in AI assistant | yes | yes | yes | Partial | no built-in model; `autodraft.py` drafts heuristically and outside agents do the rest |
+| Built-in AI assistant | yes | yes | yes | Full | `ui/chat-panel.ts` chat in the Agent tab that edits the deck with the MCP tools as undoable agent turns, through the person's connected agent (`chat_inbox`, `chat_reply`), an Anthropic or OpenAI-compatible key, or a local Ollama model (`services/chat/`) |
 | MCP server for outside agents (HTTP and stdio) | no | no | no | Full | `backend/app/routers/mcp.py TOOLS` (24 tools), `setup/mcp_stdio.py` |
 | Agent edits land live in the open window, undone per turn | no | no | no | Full | `services/store.py step(turn)`, `commands.ts undo-agent` |
 | Agent sees and measures its own slides | no | no | no | Full | `agent-bridge.ts` render_slides, measure; `services/lint.py` |
