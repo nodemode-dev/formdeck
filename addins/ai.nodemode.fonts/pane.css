@@ -1,0 +1,18 @@
+:root { --bg: #111111; --surface: #1c1b1d; --text: #f7f7f7; --muted: #a4a4a4; --line: #2a2a2a; --accent: #f97316; --field: #222127; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+main { display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 14px; }
+h1 { margin: 0; font-size: 14px; font-weight: 600; }
+.fonts { flex: 0 0 168px; margin: 0; padding: 0; overflow-y: auto; list-style: none; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.fonts li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-bottom: 1px solid var(--line); }
+.fonts li:last-child { border-bottom: 0; }
+.fonts .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fonts .meta { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.field { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 8px; }
+.field span { color: var(--muted); }
+select, input { width: 100%; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--field); color: var(--text); font: inherit; }
+select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { height: 34px; border: 0; border-radius: 8px; background: var(--text); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer; }
+button:disabled { opacity: 0.45; cursor: default; }
+.note { min-height: 36px; margin: 0; color: var(--muted); font-size: 12px; }
+.note.err { color: #f87171; }

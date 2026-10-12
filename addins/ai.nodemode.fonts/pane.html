@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replace Fonts</title>
+<link rel="stylesheet" href="pane.css">
+</head>
+<body>
+<main>
+<h1>Fonts in this deck</h1>
+<ul class="fonts" id="fonts" aria-label="Fonts in this deck"></ul>
+<label class="field"><span>Replace</span><select id="from" aria-label="Font to replace"></select></label>
+<label class="field"><span>With</span><input id="to" list="choices" type="text" autocomplete="off" spellcheck="false" aria-label="Replacement font" placeholder="Type or pick a font"></label>
+<datalist id="choices"></datalist>
+<button id="go" type="button">Replace fonts</button>
+<p class="note" id="msg" role="status">Changes apply to every slide as one undo step.</p>
+</main>
+<script src="pane.js"></script>
+</body>
+</html>

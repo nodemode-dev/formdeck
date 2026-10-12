@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes Word Count</title>
+<link rel="stylesheet" href="pane.css">
+</head>
+<body>
+<main>
+<h1>Speaker notes</h1>
+<section class="tiles" aria-label="Totals">
+<div class="tile"><span class="tile-n" id="words">0</span><span class="tile-l">words</span></div>
+<div class="tile"><span class="tile-n" id="time">0:00</span><span class="tile-l">talk time</span></div>
+<div class="tile"><span class="tile-n" id="here">0</span><span class="tile-l">this slide</span></div>
+</section>
+<p class="note" id="note">Estimated at 130 words a minute. Hidden slides are not counted.</p>
+<ol class="rows" id="rows" aria-label="Words per slide"></ol>
+<p class="note err" id="err" role="alert" hidden></p>
+</main>
+<script src="pane.js"></script>
+</body>
+</html>
