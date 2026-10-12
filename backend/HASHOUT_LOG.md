@@ -249,3 +249,19 @@ The engine reads a linked .xlsx with openpyxl in read-only, values-only mode (ca
 ## 48. 3D models in .pptx · _v0.8.5 (services/pptx/write_model3d.py, read_model3d.py, write_elements.py _image, read_elements.py; core/ids.py mdl_; services/media.py)
 
 A model is written as PowerPoint does ([MS-ODRAWXML] 2.31.3.3 CT_Model3D and the schema in 5.29): an `mc:AlternateContent` whose Choice is a `p:graphicFrame` with `am3d:model3d` (spPr, camera, transform in the order preTrans, scale, rotate, postTrans, the poster as raster, viewport and three default lights) and whose Fallback is a `p:pic` of the poster, so readers without 3D show the picture. The .glb is one part shared by every slide that uses it. The part's content type `model/gltf.binary` and relationship type `http://schemas.microsoft.com/office/2017/06/relationships/model3d` come from secondary sources (the Learn page was not reachable), and the camera units and angles were not checked in PowerPoint; FormDeck's own round trip is exact. The bounding sphere comes from POSITION accessor min and max through node transforms, so no mesh decoding or new dependency is needed. Models get the `mdl_` media prefix and are sniffed by the glTF magic.
+
+## 49. MicroType Express decoder · _v0.8.6 (services/pptx/mtx.py, eot.py)
+
+PowerPoint and Google Slides usually save embedded fonts compressed with MicroType Express (W3C MTX submission). The reader inflates the three LZCOMP blocks (adaptive Huffman with a 7168-byte preloaded history and the optional run-length layer) and rebuilds TrueType from the compact table format: loca regenerated, cvt delta-decoded, hdmx predicted from hmtx plus coded corrections, glyf from the 128-entry triplet table, and the push-data stream turned back into PUSHB, PUSHW and NPUSH instructions with hop codes expanded. XOR obfuscation is undone before decompression, as the EOT spec orders. libeot (MPL-2.0) was read for details the spec leaves out (Huffman initial state, bit order, preload) and used only as an oracle; no code was copied. On 12 fonts from four real files (Apache POI and LibreOffice test documents) the output matches libeot glyph for glyph, and Roboto and Boldonse match their official releases outline for outline. VDMX and DSIG are not rebuilt; an hdmx that disagrees with its stored maximum is dropped rather than failing the font.
+
+## 50. Absent font styles are not errors · _v0.8.6 (services/pptx/embed_fonts.py import_embedded)
+
+A file that embeds only a regular face used to warn that the missing bold and italic parts could not be read. Missing styles are now skipped, and the warning is kept for parts that exist but do not decode.
+
+## 51. VBA is listed, never run · _v0.8.6 (services/pptx/reader.py _deck_warnings; services/model.py normalize)
+
+A .pptm or any package with a `vbaProject.bin` part opens with an import warning that its VBA was not imported; FormDeck macros are JavaScript in `deck.macros`, which `normalize` keeps clean and which no export writes.
+
+## 52. Date and slide number fields in .pptx · _v0.8.6 (services/pptx/write_text.py, read_text.py)
+
+The `‹date:N›` token is written as `a:fld type="datetimeN"` with today's date in that format as its cached text, and read back to the token, so PowerPoint updates the date when it opens the file.

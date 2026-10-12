@@ -140,7 +140,9 @@ Insert > 3D Models places a .glb file (or a .gltf with everything inside it; sav
 
 ### Pictures
 
-Insert > Picture, drop, or paste a picture. In the Format tab: Fit (Fill, Fit, Stretch), Shape (Square, Round, Circle), Grayscale, Brightness, Contrast, Saturation, Blur, Crop (a percentage off each side), Reset picture and Alt text. Replace Picture keeps the frame and swaps the file. Animated GIFs play on the slide and in the show.
+Insert > Picture, drop, or paste a picture. In the Format tab: Fit (Fill, Fit, Stretch), Shape (Square, Round, Circle), Grayscale, Brightness, Contrast, Saturation, Blur, Crop (a percentage off each side), Reset picture and Alt text. Replace Picture keeps the frame and swaps the file. Animated GIFs play on the slide and in the show. Picture Format > Crop works on the slide as in PowerPoint: drag the black handles to trim and drag the picture to move it inside the frame, then press Enter or click outside (Esc cancels); Fill, Fit and Crop to Shape sit beside it.
+
+Shapes have 3-D Format and 3-D Rotation in the Format pane's Effects section, the same controls as for text effects, and Shape Effects and Picture Effects menus on their ribbon tabs. The Transitions and Animations tabs hold galleries of every transition and animation FormDeck has, with Effect Options, Duration, Delay, Start, Apply To All, Add Animation, Move Earlier and Move Later; they change the same settings as the Animate pane.
 
 ### Tables
 
@@ -222,6 +224,16 @@ Type @ in a comment or reply to mention a person or an agent; arrows and Enter p
 Review > Activity lists every change by day with who made it (you, another window or an agent), what it was and the slides it touched; filter by person and click a line to go to the slide. Review > Compare compares the deck with a saved version or with a .pptx or .fdec file: each changed slide is listed with its differences, text changes are shown word by word, and Accept or Ignore applies or skips each one (Accept all is a single undo step).
 
 Review > Check Deck runs the same checks agents use: text that overflows (measured on the rendered slides), text too small or too low in contrast, pictures without alt text or too low in resolution, elements off the slide or overlapping, empty placeholders and wordy slides. It gives a score and one line per issue with a fix; click a line to go to that slide and element.
+
+### Format Painter, Header & Footer
+
+**Format Painter** (Home > Clipboard): select an object or text and click it to copy the look, then click where to paint it once; double-click it to keep painting until Esc. Ctrl+Shift+C copies and Ctrl+Shift+V pastes formatting (also in the Format menu). Shapes carry fill, outline, effects, 3-D, text box settings and text style; pictures carry border, effects, adjustments and shape. Each paint is one undo step.
+
+**Header & Footer** (Insert > Header & Footer): Date and time (updated automatically in a format you pick, or fixed text), Slide number, Footer text, and Don't show on title slide; Apply changes the selected slides, Apply to All the deck. They are ordinary placeholders you can move and format, and .pptx keeps them, with automatic dates as date fields.
+
+### Macros
+
+View > Macros (Alt+F8) lists the macros stored in the deck, with Run, Edit, Create and Delete; the Macro Editor (Alt+F11) has the code with line numbers, Run, Stop, an output console and an API reference. Macros are JavaScript and are saved in the deck (.fdec), not in .pptx; the VBA in a .pptm is listed in the import warnings and never run. A macro runs in a sandbox with no network and no access to the page, stops after 10 seconds, and all its changes are one undo step. Macros never run on open, and the first time you run macros that came from somewhere else FormDeck asks you to confirm.
 
 ### Spelling and language
 
@@ -309,9 +321,16 @@ Present in the title bar starts from the current slide; its arrow offers From Be
 
 Links on slides open in the show. Videos and audio play with their start, end and loop settings.
 
-**Presenter view** opens the audience window separately (the desktop app opens it as its own window; in the browser allow pop-ups for FormDeck, or the show runs in one window). Your screen shows the current slide, the next slide, the notes (with buttons to make the text larger or smaller), the elapsed time with Pause and Reset, Swap displays to bring the audience window forward, and End show. Ink, the laser and blanking are mirrored to the audience.
+**Presenter View** works like PowerPoint's: the audience sees only the slides, full screen, and you see everything else on your own screen. With two displays and Slide Show > Use Presenter View on (the default), From Beginning and From Current Slide start it by themselves; Alt+F5 always starts it. Your screen shows:
 
-**Rehearse** (in presenter view) records how long each slide takes; at the end choose Keep timings to save them as each slide's automatic advance, or discard them. Transitions and their durations are set in the Slide tab.
+- the elapsed time with Pause and Restart above the current slide, and the clock on the right;
+- the current slide, with the tools under it: pen and laser pointer, See all slides, Zoom into the slide, subtitles, Black or unblack, and More options; then Previous, "Slide 3 of 12" and Next;
+- Next Slide at the top right and your notes under it, with the two A buttons at the lower left of the notes to make the text larger or smaller; drag the line between the slide and the notes (or focus it and use the arrow keys) to give either more room;
+- Display Settings (Swap Presenter View and Slide Show, Duplicate Slide Show) and End Slide Show along the top.
+
+Zoom into the slide shows a box: click the part to enlarge, drag to move around, and press Esc or right-click to zoom back out; the audience sees the same zoom. Ink, the laser and blanking are mirrored to the audience. With one display, Alt+F5 (or More > Show Presenter View during a show) shows Presenter View on that display for practice, and More > Hide Presenter View returns to the slides. In the browser, FormDeck asks once for permission to use your displays so it can put the slides on the second one; allow pop-ups for FormDeck. The desktop app opens the slides full screen on the other display by itself.
+
+**Rehearse Timings** (Slide Show tab, or Present > Rehearse Timings) runs the show from the beginning and records how long each slide takes; at the end choose Keep timings to save them as each slide's automatic advance, or discard them. Transitions and their durations are set in the Slide tab.
 
 **Set Up Show** (Present > Set Up Show): Presented by a speaker, or Browsed at a kiosk (a kiosk show loops and moves on only by its timings, links and media; Esc still ends it). Loop continuously until Esc repeats the show; Show without narration keeps recorded voice silent; Show without animation shows every slide fully built. Show slides chooses All, a From and To range, or a custom show; Advance slides chooses Manually or Using timings, if present; and the pen colour sets the starting ink. From Beginning and presenter view follow these settings; From Current Slide plays the deck in order from where you are. The settings are kept in PowerPoint files.
 
@@ -336,7 +355,7 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
 - **Slides from PDF pages** (Insert > Slides from PDF Pages): one picture slide per PDF page with the page text in the notes (see PDFs in FormDeck).
 - **Google Slides**: download your presentation as .pptx and open it; to go back, export .pptx and upload it to Drive, then Open with Google Slides.
 - **Export** (File > Export or the Export button):
-  - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts: choose Do not embed (the computer that opens it needs the template's fonts or substitutes similar ones), Only characters used or All characters, as in PowerPoint's Embed fonts in the file. Embedded fonts are the deck's regular, bold, italic and bold italic styles, skipped with a warning when the font's license forbids embedding. A .pptx that embeds fonts brings them in with the deck; fonts PowerPoint stored in its compressed form cannot be read and are listed in the toast.
+  - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts: choose Do not embed (the computer that opens it needs the template's fonts or substitutes similar ones), Only characters used or All characters, as in PowerPoint's Embed fonts in the file. Embedded fonts are the deck's regular, bold, italic and bold italic styles, skipped with a warning when the font's license forbids embedding. A .pptx that embeds fonts brings them in with the deck, including the compressed fonts PowerPoint and Google Slides write; a font that cannot be read is listed in the toast and the deck opens without it.
   - Template (.potx): the masters, layouts, colours and fonts.
   - OpenDocument Presentation (.odp): for LibreOffice Impress and other OpenDocument apps. It keeps masters and layouts (as master pages), text formatting, bullets and numbering, shapes, freeforms, lines and connectors, pictures with cropping, tables, charts, speaker notes, transitions, hidden slides and comments; equations become formula objects, or readable linear text inside sentences. OpenDocument cannot carry text transparency, soft edges or gradients with more than two colours. In this release an .odp also flattens several masters into one, leaves out WordArt transforms, glow and text outlines, and leaves out media trim, fades and poster frames; the slides still look right, and .pptx keeps all of it.
   - PDF: one page per slide with searchable text and an outline of slide titles. Choose All, Current, Selected or Custom slides (`1-3, 5, 8-`), Standard or High quality, and whether to include hidden slides. The PDF is tagged for screen readers: each slide is a section in its reading order (the order in the selection pane's Reading order view), titles are headings, bullets are lists, tables keep header cells, and pictures and charts are figures with their alt text; decorative pictures, footers and slide numbers are skipped. Add alt text to every picture before exporting. The slide itself is a picture with an invisible text layer and the fonts are not embedded, so a strict PDF/UA checker may still report issues.

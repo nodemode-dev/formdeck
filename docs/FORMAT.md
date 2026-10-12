@@ -14,6 +14,7 @@ The contracts every part of FormDeck reads and writes: the deck model (`deck.jso
 - Transitions and animations
 - Review, comments, history
 - The .fdec package
+- Macros
 - Templates
 - Ops
 - Deck spec and slide script
@@ -58,6 +59,7 @@ The contracts every part of FormDeck reads and writes: the deck model (`deck.jso
 | `show` | optional Set Up Show settings (below); absent means a speaker-led show of all slides that uses timings when present |
 | `customShows` | optional named slide lists: `[ { "id": "cs1", "name": "Short version", "slides": ["s1", "s4", "s2"] } ]`. Order is play order, a slide may repeat, and hidden slides play when listed |
 | `guides` | optional drawing guides shared by every slide: `[ { "id": "g1", "axis": "x", "pos": 480 } ]`. `axis` `x` is a vertical guide at `pos` points from the slide's left edge, `y` a horizontal guide at `pos` points from the top. Objects snap to them while they are shown. In .pptx they are the `p15:sldGuideLst` extension of presentation.xml (`pos` in eighths of a point, `orient="horz"` for `y`) |
+| `macros` | optional macros stored in the deck, like a .pptm's modules: `[ { "id": "mac1", "name": "Uppercase titles", "code": "for (const s of slides) { ... }", "description": "optional" } ]`. `code` is JavaScript, the body of an async function; see Macros below. The engine drops entries without string `code`, fixes duplicate ids, clips `name` to 80 and `description` to 300 characters, and removes an empty list |
 
 ### Several masters
 
@@ -273,7 +275,34 @@ Packages written before 0.7.2 by formsld (FormDeck's earlier name) have the exte
 
 A deck's `media` may hold fonts: `{ "name": "Fraunces-Bold.ttf", "mime": "font/ttf", "bytes": 18636, "family": "Fraunces", "style": "bold" }`, where `style` is `regular`, `bold`, `italic` or `boldItalic` and `family` is the typeface name runs and themes use. Font media are kept in a package whether or not an element names them, and the window registers them (as `FontFace`) so the deck draws with them; a family the window already bundles is not registered again. Opening a .pptx that embeds fonts stores each readable one as such a media font.
 
-Exporting .pptx or .potx with Embed fonts (`embedFonts` `used` for Only characters used, `all` for All characters) writes what PowerPoint writes for File > Options > Save > Embed fonts in the file: `embedTrueTypeFonts="1"` on `p:presentation` (and `saveSubsetFonts="1"` for `used`), a `p:embeddedFontLst` after `p:notesSz` with one `p:embeddedFont` per typeface (`p:font typeface`, then `p:regular`, `p:bold`, `p:italic`, `p:boldItalic` as `r:id`), and one `/ppt/fonts/fontN.fntdata` part per style (content type `application/x-fontdata`, relationship type `.../relationships/font`). A `.fntdata` part is an Embedded OpenType file (W3C EOT submission, [MS-OE376]): a version 0x00020002 header, then uncompressed and unencrypted TrueType data, with the `TTEMBED_SUBSET` flag when the characters were trimmed. The engine takes each typeface's files from the deck's font media, then the fonts bundled with the window (the @fontsource woff2 files in the built `assets` folder, or `frontend/node_modules/@fontsource` in a source checkout), then the operating system's fonts; fonts every Office install has (Arial, Calibri and the like) are left out. A font whose OS/2 `fsType` says restricted license or bitmap-only is skipped with a warning, and one that forbids subsetting is embedded whole. Fonts with CFF outlines are skipped with a warning (PowerPoint embeds TrueType only). Variable fonts are instanced to the regular and bold weights. Reading accepts plain and XOR-obfuscated EOT; EOT data compressed with MicroType Express is reported in the import warnings and not imported.
+Exporting .pptx or .potx with Embed fonts (`embedFonts` `used` for Only characters used, `all` for All characters) writes what PowerPoint writes for File > Options > Save > Embed fonts in the file: `embedTrueTypeFonts="1"` on `p:presentation` (and `saveSubsetFonts="1"` for `used`), a `p:embeddedFontLst` after `p:notesSz` with one `p:embeddedFont` per typeface (`p:font typeface`, then `p:regular`, `p:bold`, `p:italic`, `p:boldItalic` as `r:id`), and one `/ppt/fonts/fontN.fntdata` part per style (content type `application/x-fontdata`, relationship type `.../relationships/font`). A `.fntdata` part is an Embedded OpenType file (W3C EOT submission, [MS-OE376]): a version 0x00020002 header, then uncompressed and unencrypted TrueType data, with the `TTEMBED_SUBSET` flag when the characters were trimmed. The engine takes each typeface's files from the deck's font media, then the fonts bundled with the window (the @fontsource woff2 files in the built `assets` folder, or `frontend/node_modules/@fontsource` in a source checkout), then the operating system's fonts; fonts every Office install has (Arial, Calibri and the like) are left out. A font whose OS/2 `fsType` says restricted license or bitmap-only is skipped with a warning, and one that forbids subsetting is embedded whole. Fonts with CFF outlines are skipped with a warning (PowerPoint embeds TrueType only). Variable fonts are instanced to the regular and bold weights. Reading accepts every form PowerPoint and Google Slides write: plain, XOR-obfuscated and MicroType Express compressed EOT (W3C MTX submission: LZCOMP, then the compact glyf, loca, cvt and hdmx tables rebuilt to TrueType), alone or combined, with XOR undone before decompression. TrueType and CFF fonts become `font/` media; VDMX and DSIG tables are not carried over, and a part that does not decode is reported in `meta.importWarnings`.
+
+Header and footer placeholders (`dt`, `ftr`, `sldNum`, idx 10, 11 and 12 when the layout has none) carry their text in the run: the slide number is the token `‹#›` and an automatic date is `‹date:N›`, where N is PowerPoint's date format number (1 to 13, `a:fld type="datetimeN"`), expanded when the slide is drawn and written to .pptx as the matching field.
+
+## Macros
+
+`deck.macros` holds JavaScript macros, the FormDeck counterpart of PowerPoint's Developer > Macros (Alt+F8) and the VBA editor (Alt+F11). They travel in `deck.json`, so a .fdec package keeps them. They are not written to .pptx, .potx or .odp: PowerPoint macros are VBA inside a .pptm and the two are not translatable. Opening a .pptm (or any .pptx that has a `vbaProject.bin` part) lists "This file contains VBA macro modules" in `meta.importWarnings`; the VBA is not imported and nothing is run.
+
+A macro's `code` is the body of an async function (top-level `await` works). The window runs it only when the person runs it, never on open, inside a dedicated Web Worker with no DOM and no network: `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `importScripts`, `WebTransport`, `Worker`, `SharedWorker`, `BroadcastChannel`, `indexedDB`, `caches`, `sendBeacon`, `eval` and the `Function` constructors throw, and `import()` is refused. A run that lasts 10 seconds is terminated (Stop terminates it sooner). The worker is given a read-only snapshot of the deck and these names:
+
+| Name | Meaning |
+| --- | --- |
+| `deck`, `slides` | the frozen deck JSON and `deck.slides` |
+| `find(fn)`, `findAll(fn)` | `{ slide, element }` for the first or every element (groups included) where `fn(element, slide)` is truthy |
+| `titleOf(slide)` | the slide's title or centered-title element, or `undefined` |
+| `text(el)` | plain text of an element or a `find` hit, paragraphs joined by a newline |
+| `setText(slideId, elementId, text)` | replaces the text of a shape, keeping its first paragraph and first run style; a newline starts a paragraph |
+| `setProp(slideId, elementId, key, value)` | sets one property; `key` is a string or an array path; an `undefined` value removes it |
+| `setSlideProp(slideId, key, value)` | the same for a slide property such as `notes` or `hidden` |
+| `addSlide(layout?, at?)` | queues a new slide and returns its id; `layout` is a layout id, name or `semantic` kind, default the content layout |
+| `deleteSlide(id)` | queues a slide removal, moving a section that started there |
+| `apply(ops)` | queues raw ops (see Ops): objects with `op` of `set`, `ins`, `del` or `move` and an array `path` of strings, integers and `{ "id" }` steps; changes to `macros`, `id`, `format` and `formatVersion` are refused |
+| `select(ids)`, `goto(slideId)` | the selection and the shown slide once the run ends |
+| `log(...)`, `console.log` | print to the macro console |
+
+Mutating calls change nothing while the macro runs: they are collected and sent back, the window validates them, and all ops of one run are applied as ONE undoable step labelled `Macro: [name]`. A macro that throws, times out or is stopped changes nothing. Errors are shown in the console with the line number in the macro's code.
+
+Macro security follows PowerPoint's macro bar: the first time a person runs a macro from a deck whose macros were not written in the window on this device, or whose macros changed outside the macro editor since (an agent or a collaborator edited `macros`), the window asks for confirmation. The answer is remembered per deck, as a hash of its macros, in the browser's localStorage. Agents reach decks through MCP and cannot run macros; there is no MCP tool for it.
 
 ## Templates
 
