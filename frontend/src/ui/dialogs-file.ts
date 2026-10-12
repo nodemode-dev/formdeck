@@ -614,7 +614,7 @@ export function intakeDialog(files: File[], template: string | undefined, hooks:
 class SaveAsDialog extends Dialog {
   private ed: Editor | null = null;
   private mode: 'file' | 'library' = 'file';
-  private fmt: 'fsld' | 'pptx' = 'fsld';
+  private fmt: 'fdec' | 'pptx' = 'fdec';
   private touched = false;
   private running = false;
   private readonly choices: HTMLElement;
@@ -627,11 +627,11 @@ class SaveAsDialog extends Dialog {
   constructor() {
     super('Save a copy', 540);
     this.choices = el(`<div class="fd-dlg-choices" role="radiogroup" aria-label="Where to save">
-<button class="fd-dlg-choice" type="button" role="radio" data-mode="file"><span class="fd-dlg-choice-icon">${icon('save', 18)}</span><span class="fd-dlg-choice-text"><span class="fd-dlg-choice-title">A file on this computer</span><span class="fd-dlg-choice-sub">.fsld keeps everything for FormDeck. .pptx opens in PowerPoint, Keynote and Google Slides.</span></span></button>
+<button class="fd-dlg-choice" type="button" role="radio" data-mode="file"><span class="fd-dlg-choice-icon">${icon('save', 18)}</span><span class="fd-dlg-choice-text"><span class="fd-dlg-choice-title">A file on this computer</span><span class="fd-dlg-choice-sub">.fdec keeps everything for FormDeck. .pptx opens in PowerPoint, Keynote and Google Slides.</span></span></button>
 <button class="fd-dlg-choice" type="button" role="radio" data-mode="library"><span class="fd-dlg-choice-icon">${icon('duplicate', 18)}</span><span class="fd-dlg-choice-text"><span class="fd-dlg-choice-title">A copy in your library</span><span class="fd-dlg-choice-sub">A separate deck you can change without touching this one.</span></span></button>
 </div>`);
     this.fileOpts = el(`<div class="fd-dlg-stack">
-<div class="fd-field"><span>Format</span><div class="fd-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fsld">FormDeck (.fsld)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
+<div class="fd-field"><span>Format</span><div class="fd-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fdec">FormDeck (.fdec)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
 <label class="fd-field fd-dlg-path"><span>Save to</span><input class="fd-input" type="text" spellcheck="false" aria-label="File path"></label>
 <p class="fd-note fd-dlg-browser-note">Your browser saves the file to its downloads folder.</p>
 </div>`);
@@ -646,7 +646,7 @@ class SaveAsDialog extends Dialog {
       if (b?.dataset.mode === 'file' || b?.dataset.mode === 'library') { this.mode = b.dataset.mode; this.sync(); }
     });
     segOn(this.fmtSeg, (v) => {
-      this.fmt = v === 'pptx' ? 'pptx' : 'fsld';
+      this.fmt = v === 'pptx' ? 'pptx' : 'fdec';
       if (this.path.value) this.path.value = withExt(this.path.value, this.fmt);
       this.sync();
     });
@@ -663,7 +663,7 @@ class SaveAsDialog extends Dialog {
     this.status.reset();
     const deck = ed.doc.deck;
     const linked = deck.meta.file as { path?: string; format?: string } | undefined;
-    this.fmt = linked?.format === 'pptx' ? 'pptx' : 'fsld';
+    this.fmt = linked?.format === 'pptx' ? 'pptx' : 'fdec';
     this.path.value = '';
     if (isTauri()) void exportPath(deck.title, this.fmt).then((p) => { if (this.ed === ed && !this.touched) this.path.value = withExt(p, this.fmt); });
     this.sync();
@@ -734,7 +734,7 @@ export async function saveDialog(ed: Editor, saveAs: boolean): Promise<void> {
   }
 }
 
-type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fsld' | 'video' | 'gif' | 'txt' | 'rtf' | 'odp';
+type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fdec' | 'video' | 'gif' | 'txt' | 'rtf' | 'odp';
 const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }> = {
   pptx: { label: 'PowerPoint', ext: 'pptx', sub: 'Editable slides for PowerPoint, Keynote and Google Slides.' },
   pdf: { label: 'PDF', ext: 'pdf', sub: 'One page per slide with searchable text and an outline of slide titles.' },
@@ -742,7 +742,7 @@ const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }>
   jpeg: { label: 'JPEG', ext: 'jpg', sub: 'Smaller pictures of your slides. Several slides arrive together in a .zip.' },
   potx: { label: 'Template', ext: 'potx', sub: 'A PowerPoint template with this deck’s masters, layouts, colours and fonts.' },
   odp: { label: 'OpenDocument', ext: 'odp', sub: 'Editable slides for LibreOffice Impress and other OpenDocument apps, with master pages, notes and transitions.' },
-  fsld: { label: 'FormDeck', ext: 'fsld', sub: 'One file with every slide, picture and the template, for FormDeck on any computer.' },
+  fdec: { label: 'FormDeck', ext: 'fdec', sub: 'One file with every slide, picture and the template, for FormDeck on any computer.' },
   video: { label: 'Video', ext: 'mp4', sub: 'A movie of the show with its timings, narration, builds and fades. It records in real time.' },
   gif: { label: 'GIF', ext: 'gif', sub: 'A looping animated picture of your slides for chat, email and web pages.' },
   txt: { label: 'Outline', ext: 'txt', sub: 'Slide titles and bullet points as plain text, indented by level.' },
@@ -805,7 +805,7 @@ class ExportDialog extends Dialog {
   private readonly bar: HTMLElement;
   private readonly formats: HTMLElement;
   private readonly sub: HTMLElement;
-  private readonly groups: Record<'office' | 'fsld' | 'pdf' | 'raster' | 'motion' | 'outline', HTMLElement>;
+  private readonly groups: Record<'office' | 'fdec' | 'pdf' | 'raster' | 'motion' | 'outline', HTMLElement>;
   private readonly custom: HTMLInputElement;
   private readonly quality: HTMLSelectElement;
   private readonly hidden: HTMLInputElement;
@@ -823,7 +823,7 @@ class ExportDialog extends Dialog {
     this.formats = el(`<div class="fd-seg fd-dlg-formats" role="group" aria-label="Format">${ids.map((f) => `<button type="button" data-v="${f}">${EXPORTS[f].label}</button>`).join('')}</div>`);
     this.sub = el('<p class="fd-note fd-dlg-format-sub"></p>');
     const office = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. Fonts are not embedded, so the computer that opens the file needs <span class="fd-dlg-fonts"></span> installed or it substitutes a similar font.</div></div>`);
-    const fsld = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in FormDeck. Agents can read it too.</div></div>`);
+    const fdec = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in FormDeck. Agents can read it too.</div></div>`);
     const pdf = el(`<div class="fd-dlg-stack">
 <div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
 <label class="fd-field fd-dlg-custom" hidden><span>Numbers</span><input class="fd-input" type="text" spellcheck="false" placeholder="For example 1-3, 5, 8-" aria-label="Slide numbers"></label>
@@ -852,8 +852,8 @@ class ExportDialog extends Dialog {
     this.secs.addEventListener('input', () => this.sync());
     for (const c of Array.from(motion.querySelectorAll('input[type="checkbox"]'))) c.addEventListener('change', () => this.sync());
     this.pathRow = el('<label class="fd-field fd-dlg-path"><span>Save to</span><input class="fd-input" type="text" spellcheck="false" aria-label="File path"></label>');
-    this.groups = { office, fsld, pdf, raster, motion, outline };
-    this.body.append(this.formats, this.sub, office, fsld, pdf, raster, motion, outline, this.pathRow);
+    this.groups = { office, fdec, pdf, raster, motion, outline };
+    this.body.append(this.formats, this.sub, office, fdec, pdf, raster, motion, outline, this.pathRow);
     this.custom = q<HTMLInputElement>(pdf, '.fd-dlg-custom input');
     this.quality = q<HTMLSelectElement>(pdf, '.fd-dlg-quality');
     this.hidden = q<HTMLInputElement>(pdf, '[data-f="hidden"]');
@@ -929,7 +929,7 @@ class ExportDialog extends Dialog {
     segSet(this.formats, f);
     setText(this.sub, EXPORTS[f].sub);
     setHidden(this.groups.office, f !== 'pptx' && f !== 'potx');
-    setHidden(this.groups.fsld, f !== 'fsld');
+    setHidden(this.groups.fdec, f !== 'fdec');
     setHidden(this.groups.pdf, f !== 'pdf');
     setHidden(this.groups.raster, f !== 'png' && f !== 'jpeg');
     setHidden(this.groups.motion, !isMotion(f));
@@ -995,7 +995,7 @@ class ExportDialog extends Dialog {
         if (tauri) savedToast('Exported to', r.path);
         else { download(r.url); toast(`Exported ${plural(slides.length, 'slide')} as ${EXPORTS[f].label}`); }
       } else if (tauri) {
-        this.status.busy(f === 'fsld' ? 'Packing the deck' : f === 'odp' ? 'Writing the OpenDocument file' : 'Writing the PowerPoint file');
+        this.status.busy(f === 'fdec' ? 'Packing the deck' : f === 'odp' ? 'Writing the OpenDocument file' : 'Writing the PowerPoint file');
         const r = await api.export(deck.id, f, path);
         this.status.done();
         this.close();

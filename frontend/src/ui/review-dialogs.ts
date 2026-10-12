@@ -153,8 +153,8 @@ class CompareDialog extends Dialog {
   constructor() {
     super('Compare', 460);
     this.scrim.classList.add('fd-scrim-through', 'fd-ins-side');
-    const src = el(`<div class="fd-cmp-src"><select data-f="version" aria-label="Saved version"><option value="">Saved version…</option></select><button class="fd-btn fd-btn-sm" type="button" data-a="file">${icon('folderOpen', 14)}<span>Choose a file…</span></button><input type="file" accept=".pptx,.fsld,.potx,.ppsx,.pptm" hidden></div>`);
-    this.summary = el('<div class="fd-note fd-cmp-summary">Compare this deck with a saved version or a .pptx or .fsld file. Nothing is added to your library.</div>');
+    const src = el(`<div class="fd-cmp-src"><select data-f="version" aria-label="Saved version"><option value="">Saved version…</option></select><button class="fd-btn fd-btn-sm" type="button" data-a="file">${icon('folderOpen', 14)}<span>Choose a file…</span></button><input type="file" accept=".pptx,.fdec,.fsld,.potx,.ppsx,.pptm" hidden></div>`);
+    this.summary = el('<div class="fd-note fd-cmp-summary">Compare this deck with a saved version or a .pptx, .fdec or .fsld file. Nothing is added to your library.</div>');
     const box = el(`<div class="fd-cmp-box"><div class="fd-cmp-list"></div><div class="fd-empty" hidden><span class="fd-empty-icon">${icon('compare', 20)}</span><div class="fd-empty-title">No differences</div><div class="fd-empty-note">This deck matches the other version.</div></div></div>`);
     this.body.append(src, this.summary, box);
     this.version = q<HTMLSelectElement>(src, 'select');

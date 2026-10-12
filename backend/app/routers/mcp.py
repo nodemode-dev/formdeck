@@ -186,11 +186,11 @@ TOOLS = [
     _tool("lint_deck", "Checks a deck (measured in the window when it is open): issues per slide with a fix each, and a score.", {"deck": _DECK, "slides": _SLIDES}, ["deck"], read=True),
     _tool("render_slides", "Contact-sheet images of slides, rendered by the FormDeck window.", {"deck": _DECK, "slides": _SLIDES, "width": {"type": "integer", "description": "Cell width px (default 320)"}, "cols": _INT},
           ["deck"], read=True),
-    _tool("export_deck", "Writes a deck as pptx, potx, fsld, odp (OpenDocument for LibreOffice Impress), pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
+    _tool("export_deck", "Writes a deck as pptx, potx, fdec (FormDeck's own file; fsld is accepted as an older name), odp (OpenDocument for LibreOffice Impress), pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
           "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
-          {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fsld", "odp", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
+          {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fdec", "fsld", "odp", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
            "notes": {"type": "boolean"}, "width": _INT}, ["deck", "format"]),
-    _tool("open_file", "Opens a .pptx, .potx, .odp or .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
+    _tool("open_file", "Opens a .pptx, .potx, .odp, .fdec or older .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
     _tool("comments", "Lists, adds, replies to or resolves review comments, with @mentions and assignees. list shows each comment's mentions and assignee; "
           "filter mine lists the open comments that mention you or are assigned to you. add and reply read @Name in the text and take mentions and assignee.",
           {"deck": _DECK, "action": {"type": "string", "enum": ["list", "add", "reply", "resolve"]}, "slide": _SLIDE, "element": _S, "text": _S, "id": _S,
@@ -1435,7 +1435,7 @@ async def t_render_slides(a: Agent, args: dict) -> dict:
 async def t_export_deck(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
     fmt = str(args.get("format") or "pptx").lower()
-    if fmt in ("pptx", "potx", "fsld", "odp"):
+    if fmt in ("pptx", "potx", "fdec", "fsld", "odp"):
         from app.routers.decks import export_bytes
         data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt)
         if args.get("path"):
@@ -1450,7 +1450,7 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
         return _ok(f"Wrote {p} ({len(data) // 1024:,} KB, {len(deck['slides'])} slides).", {"path": str(p), "bytes": len(data)})
     if fmt in ("pdf", "png", "jpeg", "jpg"):
         if not bridge.window_connected():
-            return _fail(f"{fmt} export renders the slides in the FormDeck window, and none is open. Ask the person to open FormDeck (./formdeck), then retry; pptx and fsld export work without it.")
+            return _fail(f"{fmt} export renders the slides in the FormDeck window, and none is open. Ask the person to open FormDeck (./formdeck), then retry; pptx and fdec export work without it.")
         payload = {"deck": deck["id"], "format": "jpeg" if fmt == "jpg" else fmt}
         if args.get("slides"):
             payload["slides"] = [deck["slides"][i]["id"] for i in _sel(deck, args["slides"])]
@@ -1475,7 +1475,7 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
             raise ToolError(f"The folder {p.parent} does not exist.")
         await asyncio.to_thread(p.write_bytes, data)
         return _ok(f"Wrote {p} ({max(1, len(data) // 1024):,} KB, {n} slides).", {"path": str(p), "bytes": len(data)})
-    raise ToolError("format is pptx, potx, fsld, odp, pdf, png, gif, txt or rtf.")
+    raise ToolError("format is pptx, potx, fdec, odp, pdf, png, gif, txt or rtf.")
 
 
 async def t_open_file(a: Agent, args: dict) -> dict:

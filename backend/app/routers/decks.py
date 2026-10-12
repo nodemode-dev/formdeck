@@ -169,8 +169,8 @@ def get_thumb(deck_id: str):
 
 def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None) -> tuple[bytes, str, str]:
     title = _safe_name(deck.get("title", "deck"))
-    if fmt == "fsld":
-        return package.pack(deck, media_store()), f"{title}.fsld", package.MIMETYPE
+    if fmt in package.FORMATS:
+        return package.pack(deck, media_store()), f"{title}.{package.EXT}", package.MIMETYPE
     if fmt in ("pptx", "potx"):
         from app.services.pptx import write_pptx
         buf = io.BytesIO()
@@ -181,11 +181,11 @@ def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None) -> tuple
         from app.services.odp.common import MIMETYPE, TEMPLATE_MIMETYPE
         data, _ = odp_bytes(deck, media_store(), template=fmt == "otp")
         return data, f"{title}.{fmt}", MIMETYPE if fmt == "odp" else TEMPLATE_MIMETYPE
-    raise HTTPException(400, f"Unknown format {fmt}; use fsld, pptx, potx or odp.")
+    raise HTTPException(400, f"Unknown format {fmt}; use fdec, pptx, potx or odp.")
 
 
 @router.get("/decks/{deck_id}/download")
-async def download(deck_id: str, format: str = "fsld"):
+async def download(deck_id: str, format: str = "fdec"):
     s = _session_or_404(deck_id)
     data, name, mime = await asyncio.to_thread(export_bytes, s.deck, format)
     return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{name}"'})
@@ -206,7 +206,7 @@ async def export(deck_id: str, body: dict = Body(default={})) -> dict:
 
 def import_bytes(data: bytes, name: str, as_template: bool = False) -> dict:
     lower = name.lower()
-    if package.is_package(data) or lower.endswith(".fsld"):
+    if package.is_package(data) or lower.endswith(tuple("." + f for f in package.FORMATS)):
         deck = package.unpack(data, media_store())
         deck["id"] = ids.deck_id()
         return deck
@@ -222,7 +222,7 @@ def import_bytes(data: bytes, name: str, as_template: bool = False) -> dict:
         if not deck.get("title") or deck["title"] in ("PowerPoint Presentation", ""):
             deck["title"] = Path(name).stem
         return model.normalize(deck)
-    raise ValueError(f"{name}: formsld opens .fsld, .pptx, .potx, .ppsx, .pptm and .odp decks here.")
+    raise ValueError(f"{name}: FormDeck opens .fdec (and older .fsld), .pptx, .potx, .ppsx, .pptm and .odp decks here.")
 
 
 @router.post("/import")
@@ -265,9 +265,9 @@ async def save(deck_id: str, body: dict = Body(default={})) -> dict:
     if not target:
         return {"saved": "library"}
     path = Path(target).expanduser()
-    fmt = body.get("format") or path.suffix.lower().lstrip(".") or "fsld"
-    if fmt not in ("fsld", "pptx", "potx", "odp", "otp"):
-        fmt = "fsld"
+    fmt = body.get("format") or path.suffix.lower().lstrip(".") or package.EXT
+    if fmt not in (*package.FORMATS, "pptx", "potx", "odp", "otp"):
+        fmt = package.EXT
     data, _, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"))
     await asyncio.to_thread(path.write_bytes, data)
     if body.get("path"):

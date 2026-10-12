@@ -6,6 +6,8 @@ from app.services import model
 from app.services.media import EXT_BY_MIME, MediaStore
 
 MIMETYPE = "application/x-formdeck"
+EXT = "fdec"
+FORMATS = (EXT, "fsld")
 
 
 def pack(deck: dict, media: MediaStore, thumbs: dict[str, bytes] | None = None) -> bytes:

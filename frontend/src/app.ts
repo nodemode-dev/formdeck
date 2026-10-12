@@ -208,7 +208,7 @@ export async function startApp(): Promise<void> {
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
-      input.accept = '.fsld,.pptx,.potx,.ppsx,.pptm,.odp,.otp,.pdf';
+      input.accept = '.fdec,.fsld,.pptx,.potx,.ppsx,.pptm,.odp,.otp,.pdf';
       input.onchange = () => void openFiles(Array.from(input.files ?? []));
       input.click();
     },
@@ -286,7 +286,7 @@ export async function startApp(): Promise<void> {
   registerEquationCommands(commands, () => editor);
 
   const menus: MenuDef[] = [
-    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fsld', '-', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', 'delete-deck'] },
+    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
     { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes'] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-media', 'insert-icons', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-pdf-pages', '-', 'insert-link', 'add-comment'] },
@@ -305,7 +305,7 @@ export async function startApp(): Promise<void> {
     if (b && !(b as HTMLButtonElement).disabled && !t.closest('.fd-options') && !t.closest('.fd-props-col') && !t.closest('.fd-menu')) { commands.run(b.dataset.cmd as string); syncChrome(); return; }
     const a = t.closest('[data-act]') as HTMLElement | null;
     if (a?.dataset.act === 'present-menu') { presentMenu.setItems(['present-start', 'present-current', 'presenter-view']); const r = a.getBoundingClientRect(); presentMenu.openAt(r.right - 220, r.bottom + 6); }
-    if (a?.dataset.act === 'share') { contextMenu.setItems(['export-pptx', 'export-pdf', 'export-png', 'export-potx', 'export-fsld', '-', 'print']); const r = a.getBoundingClientRect(); contextMenu.openAt(r.left, r.bottom + 6); }
+    if (a?.dataset.act === 'share') { contextMenu.setItems(['export-pptx', 'export-pdf', 'export-png', 'export-potx', 'export-fdec', '-', 'print']); const r = a.getBoundingClientRect(); contextMenu.openAt(r.left, r.bottom + 6); }
   });
   zoomSlider.addEventListener('input', () => editor?.stage.setZoom(Number(zoomSlider.value) / 100));
 
@@ -411,7 +411,7 @@ export async function startApp(): Promise<void> {
   async function openFiles(files: File[]): Promise<void> {
     for (const f of files) {
       const lower = f.name.toLowerCase();
-      if (/\.(fsld|pptx|potx|ppsx|pptm|odp|otp)$/.test(lower)) {
+      if (/\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/.test(lower)) {
         try {
           const d = await api.importFile(f);
           if (d.warnings?.length) toast(`${f.name} opened. ${d.warnings.length} item${d.warnings.length === 1 ? '' : 's'} could not be kept: ${d.warnings.slice(0, 2).join('; ')}`);
@@ -419,7 +419,7 @@ export async function startApp(): Promise<void> {
         } catch (err) { toast(`Could not open ${f.name}: ${err instanceof Error ? err.message : err}`, 'error'); }
         continue;
       }
-      const material = files.filter((m) => !/\.(fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(m.name));
+      const material = files.filter((m) => !/\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(m.name));
       dialogs.intakeDialog(material, undefined, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') });
       if (material.some((m) => /\.pdf$/i.test(m.name))) pdfMaterialNote();
       return;

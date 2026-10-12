@@ -26,7 +26,7 @@ def args() -> argparse.Namespace:
     ap.add_argument("--slides", "-n", type=int, help="target slide count")
     ap.add_argument("--script", "-s", help="a markdown slide script to build instead of the automatic draft")
     ap.add_argument("--out", "-o", help="output file (default <title>.<format> in the current folder)")
-    ap.add_argument("--format", "-f", choices=["pptx", "fsld", "potx"], help="output format (default from --out, else pptx)")
+    ap.add_argument("--format", "-f", choices=["pptx", "fdec", "fsld", "potx"], help="output format (default from --out, else pptx)")
     ap.add_argument("--size", default=None, help="16:9 (default), 4:3, 16:10, a4, letter, square, story")
     ap.add_argument("--list-templates", action="store_true", help="print the templates and exit")
     ap.add_argument("--print-script", action="store_true", help="print the drafted slide script and exit")
@@ -87,7 +87,7 @@ def main() -> int:
     deck, warnings = compiler.build(spec, template=tid, intake=intake, title=a.title, size=a.size, base_dir=str(base))
     if intake:
         deck["meta"]["intake"] = intake["id"]
-    fmt = a.format or (Path(a.out).suffix.lower().lstrip(".") if a.out and Path(a.out).suffix.lower() in (".pptx", ".fsld", ".potx") else "pptx")
+    fmt = a.format or (Path(a.out).suffix.lower().lstrip(".") if a.out and Path(a.out).suffix.lower() in (".pptx", ".fdec", ".fsld", ".potx") else "pptx")
     name = re.sub(r"\s+", " ", re.sub(r"[^\w\s.-]+", "", deck.get("title") or "deck")).strip()[:80] or "deck"
     out = here(a.out) if a.out else CALLER / f"{name}.{fmt}"
     if out.is_dir():
@@ -95,7 +95,7 @@ def main() -> int:
     if not out.parent.is_dir():
         print(f"formdeck: the folder {out.parent} does not exist", file=sys.stderr)
         return 2
-    if fmt == "fsld":
+    if fmt in package.FORMATS:
         data = package.pack(deck, media_store())
     else:
         from app.services.pptx import write_pptx

@@ -15,7 +15,7 @@ export interface AppHooks {
   newDeck(): void;
   openFile(): void;
   save(as?: boolean): void;
-  exportAs(format: 'pptx' | 'potx' | 'pdf' | 'png' | 'fsld' | 'odp'): void;
+  exportAs(format: 'pptx' | 'potx' | 'pdf' | 'png' | 'fdec' | 'odp'): void;
   print(): void;
   present(from: 'start' | 'current', presenter?: boolean): void;
   view(v: 'normal' | 'sorter' | 'outline'): void;
@@ -134,7 +134,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'export-odp', label: 'Export as OpenDocument Presentation (.odp)', icon: 'fileOdp', enabled: has, run: () => h.exportAs('odp') },
     { id: 'export-pdf', label: 'Export as PDF', icon: 'filePdf', enabled: has, run: () => h.exportAs('pdf') },
     { id: 'export-png', label: 'Export Slides as Pictures', icon: 'fileImage', enabled: has, run: () => h.exportAs('png') },
-    { id: 'export-fsld', label: 'Download FormDeck File (.fsld)', icon: 'download', enabled: has, run: () => h.exportAs('fsld') },
+    { id: 'export-fdec', label: 'Download FormDeck File (.fdec)', icon: 'download', enabled: has, run: () => h.exportAs('fdec') },
     { id: 'print', label: 'Print or Save as PDF...', keys: ['Mod+P'], enabled: has, run: () => h.print() },
     { id: 'undo', label: 'Undo', keys: ['Mod+Z'], icon: 'undo', enabled: () => !!E()?.doc.canUndo, run: () => { const ed = E(); if (!ed) return; ed.stage.endEdit(); ed.live.undo(ed.doc.id); } },
     { id: 'redo', label: 'Redo', keys: ['Shift+Mod+Z', 'Mod+Y'], icon: 'redo', enabled: () => !!E()?.doc.canRedo, run: () => { const ed = E(); if (ed) ed.live.redo(ed.doc.id); } },
