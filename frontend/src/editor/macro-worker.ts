@@ -3,6 +3,7 @@ import { opError } from './macro-ops';
 type Json = Record<string, unknown>;
 interface Scope { postMessage(m: unknown): void; onmessage: ((e: MessageEvent) => void) | null }
 interface Hit { slide: Json; element: Json }
+interface AddinMsg { perms: string[]; entry?: string; args?: unknown[]; selection?: { slideId: string; elementIds: string[] } }
 
 const scope = self as unknown as Scope;
 const post = scope.postMessage.bind(scope);
@@ -103,6 +104,13 @@ function deepFreeze<T>(v: T): T {
   return v;
 }
 
+const plainValue = (v: unknown): unknown => {
+  try {
+    const s = JSON.stringify(v);
+    return s === undefined || s.length > 262144 ? undefined : (JSON.parse(s) as unknown);
+  } catch { return undefined; }
+};
+
 const fmt = (v: unknown): string => {
   if (typeof v === 'string') return v;
   if (v instanceof Error) return v.message;
@@ -110,8 +118,12 @@ const fmt = (v: unknown): string => {
   try { return JSON.stringify(v, null, typeof v === 'object' ? 2 : undefined) ?? String(v); } catch { return String(v); }
 };
 
-function build(snapshot: Json): { api: Record<string, unknown>; finish: () => Json } {
+function build(snapshot: Json, addin?: AddinMsg): { api: Record<string, unknown>; finish: () => Json } {
   const deck = deepFreeze(snapshot);
+  const granted = addin ? new Set(addin.perms) : null;
+  const need = (perm: string, what: string): void => {
+    if (granted && !granted.has(perm)) throw new Error(`Permission denied: ${what} needs the "${perm}" permission, which this add-in did not declare.`);
+  };
   const slides = deck.slides as Json[];
   const ops: Json[] = [];
   const used = new Set<string>();
@@ -133,6 +145,7 @@ function build(snapshot: Json): { api: Record<string, unknown>; finish: () => Js
   };
 
   const push = (op: Json): void => {
+    need('edit', 'changing the deck');
     const bad = opError(op);
     if (bad) throw new Error(`invalid op: ${bad}`);
     if (ops.length >= MAX_OPS) throw new Error(`a macro may queue at most ${MAX_OPS} ops`);
@@ -171,6 +184,7 @@ function build(snapshot: Json): { api: Record<string, unknown>; finish: () => Js
     return body.paras.map((p) => (p.runs ?? []).map((r) => r.t ?? '').join('')).join('\n');
   };
   const hits = (pred: (el: Json, slide: Json) => unknown): Hit[] => {
+    need('read', 'reading the deck');
     const out: Hit[] = [];
     for (const s of slides) walk(s.elements as Json[], (el) => { if (pred(el, s)) out.push({ slide: s, element: el }); });
     return out;
@@ -189,6 +203,7 @@ function build(snapshot: Json): { api: Record<string, unknown>; finish: () => Js
     find: (pred: (el: Json, slide: Json) => unknown): Hit | undefined => hits(pred)[0],
     findAll: (pred: (el: Json, slide: Json) => unknown): Hit[] => hits(pred),
     titleOf: (slide: Json | string): Json | undefined => {
+      need('read', 'reading the deck');
       const s = typeof slide === 'string' ? slideById(slide) : slide;
       let found: Json | undefined;
       walk((s.elements as Json[]) ?? [], (e) => { const t = (e.ph as Json | undefined)?.type; if (!found && (t === 'title' || t === 'ctrTitle')) found = e; });
@@ -246,10 +261,17 @@ function build(snapshot: Json): { api: Record<string, unknown>; finish: () => Js
       if (!Array.isArray(list)) throw new Error('apply needs an array of ops');
       for (const op of list) push(op as Json);
     },
-    select: (ids: unknown): void => { selected = (Array.isArray(ids) ? ids : [ids]).map(String); },
-    goto: (id: string): void => { target = String(id); },
+    select: (ids: unknown): void => { need('selection', 'changing the selection'); selected = (Array.isArray(ids) ? ids : [ids]).map(String); },
+    goto: (id: string): void => { need('edit', 'showing another slide'); target = String(id); },
     log,
   };
+  if (addin) {
+    api.permissions = Object.freeze([...addin.perms]);
+    api.getSelection = (): Json => {
+      need('selection', 'reading the selection');
+      return deepFreeze(structuredClone((addin.selection ?? { slideId: '', elementIds: [] }) as Json));
+    };
+  }
   api.console = { log, info: (...a: unknown[]) => emit('info', a), warn: (...a: unknown[]) => emit('warn', a), error: (...a: unknown[]) => emit('error', a) };
   return { api, finish: () => ({ ops, select: selected, goto: target }) };
 }
@@ -257,22 +279,29 @@ function build(snapshot: Json): { api: Record<string, unknown>; finish: () => Js
 lockdown();
 
 scope.onmessage = async (ev: MessageEvent): Promise<void> => {
-  const msg = ev.data as { type?: string; deck?: Json; code?: string };
+  const msg = ev.data as { type?: string; deck?: Json; code?: string; addin?: AddinMsg };
   if (msg?.type !== 'run' || !msg.deck || typeof msg.code !== 'string') return;
   scope.onmessage = null;
   try {
-    const { api, finish } = build(msg.deck);
+    const { api, finish } = build(msg.deck, msg.addin);
     const names = Object.keys(api);
     const importLine = dynamicImportAt(msg.code);
     if (importLine) throw Object.assign(new Error('import() is blocked inside macros'), { line: importLine });
+    const entry = msg.addin?.entry;
+    if (entry !== undefined && !/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(entry)) throw new Error('the entry name is not a function name');
+    const tail = entry ? `\n;return typeof ${entry} === 'function' ? ${entry} : undefined;` : '';
     let fn: (...a: unknown[]) => Promise<unknown>;
     try {
-      fn = new AsyncFunction(...names, `${msg.code}\n//# sourceURL=${SOURCE}`);
+      fn = new AsyncFunction(...names, `${msg.code}${tail}\n//# sourceURL=${SOURCE}`);
     } catch (e) {
       throw Object.assign(e instanceof Error ? e : new Error(String(e)), { line: syntaxLine(names, msg.code) });
     }
-    const result = await fn(...names.map((n) => api[n]));
-    post({ type: 'done', ...finish(), result: result === undefined ? undefined : fmt(result) });
+    let result = await fn(...names.map((n) => api[n]));
+    if (entry) {
+      if (typeof result !== 'function') throw new Error(`The add-in has no function named ${entry}.`);
+      result = await (result as (...a: unknown[]) => unknown)(...(msg.addin?.args ?? []));
+    }
+    post({ type: 'done', ...finish(), result: result === undefined ? undefined : fmt(result), value: plainValue(result) });
   } catch (e) {
     const err = e as { message?: string; name?: string; line?: number };
     post({ type: 'error', name: err?.name ?? 'Error', message: err?.message ?? String(e), line: err?.line ?? lineOf(e) });

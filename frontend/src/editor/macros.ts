@@ -8,7 +8,9 @@ const TRUST_KEY = 'formdeck_macro_trust';
 
 export type MacroLevel = 'log' | 'info' | 'warn' | 'error' | 'sys';
 export interface MacroLine { level: MacroLevel; text: string }
-export interface MacroOutcome { status: 'ok' | 'error' | 'stopped' | 'timeout'; ms: number; ops: number; line?: number }
+export interface MacroOutcome { status: 'ok' | 'error' | 'stopped' | 'timeout'; ms: number; ops: number; line?: number; value?: unknown; message?: string }
+export interface AddinRun { perms: string[]; entry?: string; args?: unknown[] }
+export interface RunOptions { addin?: AddinRun; label?: string }
 
 interface Active { name: string; worker: Worker; finish: (o: Omit<MacroOutcome, 'ms'>) => void; timer: number }
 
@@ -29,7 +31,9 @@ for (const s of slides) {
 }
 `;
 
-export function runMacroCode(ed: Editor, name: string, code: string, out: (l: MacroLine) => void): Promise<MacroOutcome> {
+const EMPTY_DECK = { id: '', title: '', slides: [], layouts: [], masters: [], sections: [] };
+
+export function runMacroCode(ed: Editor, name: string, code: string, out: (l: MacroLine) => void, opts: RunOptions = {}): Promise<MacroOutcome> {
   if (active) return Promise.reject(new Error(`Macro "${active.name}" is still running. Stop it first.`));
   return new Promise((resolve) => {
     const started = performance.now();
@@ -57,14 +61,23 @@ export function runMacroCode(ed: Editor, name: string, code: string, out: (l: Ma
     active = { name, worker, finish, timer };
     notify();
     worker.onmessage = (ev: MessageEvent): void => {
-      const m = ev.data as { type: string; level?: MacroLevel; text?: string; ops?: unknown; select?: string[]; goto?: string; result?: string; message?: string; name?: string; line?: number };
+      const m = ev.data as { type: string; level?: MacroLevel; text?: string; ops?: unknown; select?: string[]; goto?: string; result?: string; value?: unknown; message?: string; name?: string; line?: number };
       if (m.type === 'log') { out({ level: m.level ?? 'log', text: m.text ?? '' }); return; }
       if (m.type === 'error') {
         out({ level: 'error', text: `${m.name ?? 'Error'}: ${m.message ?? ''}${m.line ? ` (line ${m.line})` : ''}` });
-        finish({ status: 'error', ops: 0, line: m.line });
+        finish({ status: 'error', ops: 0, line: m.line, message: m.message });
         return;
       }
       if (m.type !== 'done') return;
+      const perms = opts.addin?.perms;
+      if (perms && !perms.includes('edit') && Array.isArray(m.ops) && m.ops.length) {
+        const message = `${name} tried to change the deck but did not declare the edit permission. Nothing was changed.`;
+        out({ level: 'error', text: message });
+        finish({ status: 'error', ops: 0, message });
+        return;
+      }
+      if (perms && !perms.includes('selection')) m.select = undefined;
+      if (perms && !perms.includes('edit')) m.goto = undefined;
       let ops: Op[];
       try { ops = validateOps(m.ops); } catch (e) {
         out({ level: 'error', text: `Rejected: ${e instanceof Error ? e.message : String(e)}. Nothing was changed.` });
@@ -72,7 +85,7 @@ export function runMacroCode(ed: Editor, name: string, code: string, out: (l: Ma
         return;
       }
       if (ops.length) {
-        const label = `Macro: ${name}`;
+        const label = opts.label ?? `Macro: ${name}`;
         const ok = ed.holderKind === 'slide' ? ed.apply(ops, label) : ed.doc.apply(ops, label) !== null;
         if (!ok) {
           out({ level: 'error', text: 'The queued changes no longer fit the deck (it changed while the macro ran). Nothing was changed.' });
@@ -84,14 +97,18 @@ export function runMacroCode(ed: Editor, name: string, code: string, out: (l: Ma
       if (m.select && ed.holderKind === 'slide') ed.select(m.select.filter((id) => !!ed.element(id)));
       if (m.result !== undefined) out({ level: 'info', text: `returned ${m.result}` });
       out({ level: 'sys', text: ops.length ? `Done. ${ops.length} change${ops.length === 1 ? '' : 's'} applied as one undoable step.` : 'Done. No changes.' });
-      finish({ status: 'ok', ops: ops.length });
+      finish({ status: 'ok', ops: ops.length, value: m.value });
     };
     worker.onerror = (ev: ErrorEvent): void => {
       ev.preventDefault();
       out({ level: 'error', text: `${ev.message || 'The macro sandbox failed'}${ev.lineno ? ` (line ${ev.lineno})` : ''}` });
       finish({ status: 'error', ops: 0 });
     };
-    worker.postMessage({ type: 'run', deck: ed.doc.deck, code });
+    const addin = opts.addin && {
+      ...opts.addin,
+      selection: opts.addin.perms.includes('selection') ? { slideId: ed.current, elementIds: [...ed.selection] } : undefined,
+    };
+    worker.postMessage({ type: 'run', deck: addin && !addin.perms.includes('read') ? EMPTY_DECK : ed.doc.deck, code, addin });
   });
 }
 
