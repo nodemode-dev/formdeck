@@ -3,9 +3,10 @@ import { backgroundOf, colorCss, slideTheme } from '../engine/resolve';
 import { ensureFonts, fontsOfDeck } from './fonts';
 import { SlideView, mediaUrl } from './slide';
 import { paintTfx, tfxData, tfxLines } from './text-fx';
+import { structOf, type PdfNode } from './pdf-struct';
 
-export interface TextItem { x: number; y: number; w: number; h: number; text: string; size: number; font?: string }
-export interface Raster { canvas: HTMLCanvasElement; text: TextItem[]; w: number; h: number }
+export interface TextItem { x: number; y: number; w: number; h: number; text: string; size: number; font?: string; e?: string; p?: number; r?: number; c?: number; b?: number; lv?: number }
+export interface Raster { canvas: HTMLCanvasElement; text: TextItem[]; w: number; h: number; struct: PdfNode[] }
 
 type Ctx = CanvasRenderingContext2D;
 interface Box { x: number; y: number; w: number; h: number }
@@ -118,7 +119,7 @@ export async function contactSheet(deck: Deck, slideIds: string[], opts: { cell?
   return canvas;
 }
 
-interface Pending { ops: Op[]; w: Walk; W: number; H: number; deck: Deck }
+interface Pending { ops: Op[]; w: Walk; W: number; H: number; deck: Deck; struct: PdfNode[] }
 
 function collect(deck: Deck, view: SlideView, scale: number): Pending {
   const slide = view.slide as Slide;
@@ -128,7 +129,8 @@ function collect(deck: Deck, view: SlideView, scale: number): Pending {
   const bg = backgroundOp(deck, slide, w);
   if (bg) ops.push(bg);
   for (const layer of Array.from(view.inner.children)) walk(layer, [], ops, w, false);
-  return { ops, w, W, H, deck };
+  const struct = structOf(slide, view.inner, (e) => rel(e.getBoundingClientRect(), w.origin));
+  return { ops, w, W, H, deck, struct };
 }
 
 async function render(p: Pending): Promise<Raster> {
@@ -143,7 +145,7 @@ async function render(p: Pending): Promise<Raster> {
   const pool: HTMLCanvasElement[] = [];
   for (const op of p.ops) drawOp(c, op, base, pool, 0, p.W, p.H);
   for (const l of pool) l.width = 0;
-  return { canvas, text: mergeText(p.w.text), w: p.W, h: p.H };
+  return { canvas, text: mergeText(p.w.text), w: p.W, h: p.H, struct: p.struct };
 }
 
 function rel(r: DOMRect | DOMRectReadOnly, o: DOMRect): Box {
@@ -223,8 +225,8 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
     const lm = matOf(local);
     const k = w.scale * Math.sqrt(Math.abs(lm.a * lm.d - lm.b * lm.c));
     const shadows = fx.shadows.map((s) => device(local, w.scale, s));
-    if (node instanceof SVGSVGElement && node.classList.contains('fd-tfx')) { if (!hidden) tfxNode(node, b, local, out, w, opacity); return; }
-    if (node instanceof SVGSVGElement) { if (!hidden) svgNode(node, cs, b, local, out, w, opacity, shadows, scaleCss(fx.css, k)); return; }
+    if (node instanceof SVGSVGElement && node.classList.contains('fd-tfx')) { if (!hidden) { const n0 = w.text.length; tfxNode(node, b, local, out, w, opacity); stamp(w.text, n0, node); } return; }
+    if (node instanceof SVGSVGElement) { if (!hidden) { const n0 = w.text.length; svgNode(node, cs, b, local, out, w, opacity, shadows, scaleCss(fx.css, k)); stamp(w.text, n0, node); } return; }
     if (node instanceof HTMLImageElement) { if (!hidden) imageNode(node, cs, b, local, out, opacity, shadows, fx, k); return; }
     if (node instanceof HTMLVideoElement) { if (!hidden) videoNode(node, b, local, out, w, opacity); return; }
     if (node instanceof SVGElement) return;
@@ -237,16 +239,38 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
       sink = layer.ops;
     }
     if (!hidden) paintBox(node, cs, b, local, sink, w);
-    if (node.namespaceURI === MATHML_NS && !hidden && mathNode(node, cs, b, local, sink, w)) return;
+    if (node.namespaceURI === MATHML_NS && !hidden) {
+      const n0 = w.text.length;
+      const done = mathNode(node, cs, b, local, sink, w);
+      stamp(w.text, n0, node);
+      if (done) return;
+    }
     let inner = local;
     if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') inner = [...inner, { r: [b.x, b.y, b.w, b.h] }];
     if (clipStep) inner = [...inner, clipStep];
     for (const ch of Array.from(node.childNodes)) {
-      if (ch.nodeType === Node.TEXT_NODE) { if (!hidden) textNode(ch as Text, cs, inner, sink, w); }
+      if (ch.nodeType === Node.TEXT_NODE) { if (!hidden) { const n0 = w.text.length; textNode(ch as Text, cs, inner, sink, w); stamp(w.text, n0, node); } }
       else if (ch instanceof Element) walk(ch, inner, sink, w, hidden);
     }
   } finally {
     if (moved && style) style.transform = inline;
+  }
+}
+
+function stamp(items: Item[], from: number, at: Element): void {
+  if (from >= items.length) return;
+  const host = at.closest<HTMLElement>('.fd-el[data-id]');
+  if (!host?.dataset.id) return;
+  const para = at.closest<HTMLElement>('p.fd-p');
+  const cell = at.closest<HTMLElement>('td[data-r]');
+  const pIndex = para?.parentElement ? Array.from(para.parentElement.children).filter((n) => n.matches('p.fd-p')).indexOf(para) : -1;
+  const bullet = !!para?.querySelector(':scope > .fd-bu');
+  for (let i = from; i < items.length; i++) {
+    const it = items[i];
+    it.e = host.dataset.id;
+    if (pIndex >= 0) it.p = pIndex;
+    if (bullet) { it.b = 1; it.lv = Number(para?.dataset.lvl) || 0; }
+    if (cell) { it.r = Number(cell.dataset.r); it.c = Number(cell.dataset.c); }
   }
 }
 
@@ -508,7 +532,7 @@ function mergeText(items: Item[]): TextItem[] {
   const out: Item[] = [];
   for (const it of items) {
     const p = out[out.length - 1];
-    const sameLine = p && Math.abs(p.y + p.h / 2 - (it.y + it.h / 2)) < Math.max(p.h, it.h) * 0.4;
+    const sameLine = p && p.e === it.e && p.p === it.p && p.r === it.r && p.c === it.c && Math.abs(p.y + p.h / 2 - (it.y + it.h / 2)) < Math.max(p.h, it.h) * 0.4;
     const gapPx = p ? it.x - (p.x + p.w) : 0;
     if (p && sameLine && gapPx > -Math.max(p.size, it.size) * 0.5 && gapPx < Math.max(p.size, it.size) * 1.2) {
       const r = Math.max(p.x + p.w, it.x + it.w), b = Math.max(p.y + p.h, it.y + it.h);

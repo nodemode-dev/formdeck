@@ -35,6 +35,7 @@ def capabilities() -> dict:
         "docx": _available("docx"),
         "xlsx": _available("openpyxl"),
         "pdfCompose": _available("reportlab"),
+        "pdfTagged": _available("reportlab") and _available("pypdf"),
         "desktop": config.is_desktop(),
         "dataDir": str(config.data_dir()),
         "port": int(config.env("PORT") or config.BACKEND_PORT),

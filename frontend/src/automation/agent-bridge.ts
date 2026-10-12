@@ -5,6 +5,7 @@ import type { Editor } from '../editor/editor';
 import { api } from '../io/api';
 import type { LiveClient } from '../live/socket';
 import { contactSheet, rasterSlide, toBlob, withSlide, type TextItem } from '../render/raster';
+import type { PdfNode } from '../render/pdf-struct';
 import type { SlideView } from '../render/slide';
 import { Dialog } from '../ui/dialogs';
 import { el, setText } from '../ui/dom';
@@ -251,18 +252,18 @@ export class AgentBridge {
     const pdf = opts.format === 'pdf';
     const mime = opts.format === 'png' ? 'image/png' : 'image/jpeg';
     const ext = opts.format === 'png' ? 'png' : 'jpg';
-    const slides: Array<{ id: string; n: number; title: string; text: TextItem[] }> = [];
+    const slides: Array<{ id: string; n: number; title: string; text: TextItem[]; struct: PdfNode[] }> = [];
     const files: Blob[] = [];
     for (const id of ids) {
       const s = deck.slides.find((x) => x.id === id) as Slide;
       const r = await rasterSlide(deck, id, scale);
       files.push(await toBlob(r.canvas, mime, pdf ? 0.9 : opts.format === 'jpeg' ? 0.92 : undefined));
       r.canvas.width = 0;
-      slides.push({ id, n: deck.slides.indexOf(s) + 1, title: slideTitle(deck, s), text: pdf ? r.text : [] });
+      slides.push({ id, n: deck.slides.indexOf(s) + 1, title: slideTitle(deck, s), text: pdf ? r.text : [], struct: pdf ? r.struct : [] });
     }
     const fd = new FormData();
     fd.append('format', opts.format);
-    fd.append('meta', JSON.stringify({ size: deck.size, title: deck.title, slides, ...(opts.path ? { path: opts.path } : {}) }));
+    fd.append('meta', JSON.stringify({ size: deck.size, title: deck.title, lang: typeof deck.meta.lang === 'string' ? deck.meta.lang : '', slides, ...(opts.path ? { path: opts.path } : {}) }));
     files.forEach((b, i) => fd.append('images', b, `slide-${String(slides[i].n).padStart(3, '0')}.${ext}`));
     const res = await fetch(`/api/decks/${encodeURIComponent(deck.id)}/compose`, { method: 'POST', body: fd });
     if (!res.ok) {

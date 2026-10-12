@@ -11,10 +11,12 @@ from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.core import config
+from app.services import pdf_tags
 from app.services.store import STORE
 
 router = APIRouter()
 _NAME = re.compile(r"^[\w][\w .()-]{0,180}$")
+_LANG = re.compile(r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,3}$")
 
 
 def _title(deck_id: str) -> str:
@@ -51,52 +53,80 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
     ph = sh + extra
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(pw, ph))
+    title = str(meta.get("title") or "").strip() or title
     c.setTitle(title)
     c.setAuthor(author)
     c.setSubject(f"{title} · {len(images)} slides")
     c.setCreator(f"FormDeck {config.VERSION}")
     slides = meta.get("slides") or []
+    sects = []
     for i, data in enumerate(images):
         info = slides[i] if i < len(slides) and isinstance(slides[i], dict) else {}
+        c._code.append("/Artifact BMC")
         c.drawImage(ImageReader(io.BytesIO(data)), 0, extra, pw, sh)
+        c._code.append("EMC")
+        sect, runs = pdf_tags.layout(info, ph)
+        mc = 0
+        for run in runs:
+            if run.elem is None:
+                c._code.append("/Artifact BMC")
+            else:
+                c._code.append(f"/{run.tag} <</MCID {mc}>> BDC")
+                run.elem.mcids.append(mc)
+                mc += 1
+            for item in run.items:
+                sz = max(1.0, float(item.get("size") or 12))
+                x, y, w = float(item.get("x") or 0), float(item.get("y") or 0), float(item.get("w") or 0)
+                for k, line in enumerate(str(item.get("text") or "").split("\n")):
+                    if not line.strip():
+                        continue
+                    t = c.beginText()
+                    t.setTextRenderMode(3)
+                    t.setFont("Helvetica", sz)
+                    width = stringWidth(line, "Helvetica", sz)
+                    if w > 0 and width > 0:
+                        t.setHorizScale(max(20.0, min(300.0, w / width * 100)))
+                    t.setTextOrigin(x, ph - (y + sz) - k * sz * 1.2)
+                    t.textLine(line)
+                    c.drawText(t)
+            c._code.append("EMC")
         if notes is not None:
             k = pw / 960
             text = notes.get(str(info.get("id") or ""), "").strip()
+            c._code.append("/Artifact BMC")
             c.setStrokeColorRGB(0.8, 0.8, 0.8)
             c.rect(0, extra, pw, sh, stroke=1, fill=0)
+            c._code.append("EMC")
             y = extra - 36 * k
             c.setFillColorRGB(0.15, 0.15, 0.15)
+            div = pdf_tags.Elem("Div")
+            sect.kids.append(div)
             for para in (text.split("\n") if text else ["(no notes)"]):
+                p = pdf_tags.Elem("P", mcids=[mc])
+                div.kids.append(p)
+                c._code.append(f"/P <</MCID {mc}>> BDC")
+                mc += 1
                 for line in simpleSplit(para, "Helvetica", 14 * k, pw - 96 * k) or [""]:
                     if y < 24 * k:
                         break
                     c.setFont("Helvetica", 14 * k)
                     c.drawString(48 * k, y, line)
                     y -= 14 * k * 1.35
-        for item in info.get("text") or []:
-            text = str(item.get("text") or "")
-            if not text.strip():
-                continue
-            sz = max(1.0, float(item.get("size") or 12))
-            x, y, w = float(item.get("x") or 0), float(item.get("y") or 0), float(item.get("w") or 0)
-            for k, line in enumerate(text.split("\n")):
-                if not line.strip():
-                    continue
-                t = c.beginText()
-                t.setTextRenderMode(3)
-                t.setFont("Helvetica", sz)
-                width = stringWidth(line, "Helvetica", sz)
-                if w > 0 and width > 0:
-                    t.setHorizScale(max(20.0, min(300.0, w / width * 100)))
-                t.setTextOrigin(x, ph - (y + sz) - k * sz * 1.2)
-                t.textLine(line)
-                c.drawText(t)
+                c._code.append("EMC")
+        sects.append(sect)
         key = f"s{i + 1}"
         c.bookmarkPage(key)
         c.addOutlineEntry(str(info.get("title") or f"Slide {info.get('n') or i + 1}")[:120], key, level=0)
         c.showPage()
     c.save()
-    return buf.getvalue()
+    raw = buf.getvalue()
+    lang = str(meta.get("lang") or "")
+    lang = lang if _LANG.match(lang) else "en-US"
+    figs = [e for s in sects for e in s.walk() if e.role == "Figure"]
+    try:
+        return pdf_tags.tag(raw, sects, title=title, author=author, creator=f"FormDeck {config.VERSION}", lang=lang, ua=notes is None and all(f.alt for f in figs))
+    except ImportError:
+        return raw
 
 
 def _raster(data: bytes, fmt: str) -> bytes:
