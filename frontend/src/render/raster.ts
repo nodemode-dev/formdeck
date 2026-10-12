@@ -2,7 +2,8 @@ import type { Deck, Fill, Slide } from '../engine/model';
 import { backgroundOf, colorCss, slideTheme } from '../engine/resolve';
 import { ensureFonts, fontsOfDeck } from './fonts';
 import { SlideView, mediaUrl } from './slide';
-import { paintTfx, tfxData, tfxLines } from './text-fx';
+import { loadFxImage, paintTfx, tfxData, tfxLines } from './text-fx';
+import { warpMesh } from './fx3d';
 import { structOf, type PdfNode } from './pdf-struct';
 
 export interface TextItem { x: number; y: number; w: number; h: number; text: string; size: number; font?: string; e?: string; p?: number; r?: number; c?: number; b?: number; lv?: number }
@@ -13,7 +14,7 @@ interface Box { x: number; y: number; w: number; h: number }
 interface Shadow { x: number; y: number; blur: number; color: string }
 type Step = { m: DOMMatrix } | { r: [number, number, number, number] } | { p: Path2D; x: number; y: number };
 interface Draw { k: 'd'; steps: Step[]; alpha: number; shadows: Shadow[]; filter: string; run: (c: Ctx) => void }
-interface Layer { k: 'l'; depth: number; clip: Step[] | null; alpha: number; shadows: Shadow[]; filter: string; ops: Op[] }
+interface Layer { k: 'l'; depth: number; clip: Step[] | null; alpha: number; shadows: Shadow[]; filter: string; ops: Op[]; warp?: { m: DOMMatrix; steps: Step[]; box: Box } }
 type Op = Draw | Layer;
 interface Item extends TextItem { gap: boolean }
 interface Walk { origin: DOMRect; scale: number; text: Item[]; waits: Array<Promise<unknown>>; media: Map<string, Promise<string>>; space: boolean }
@@ -220,7 +221,13 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
     if (moved) {
       const [ox, oy] = origin.split(' ').map((v) => parseFloat(v) || 0);
       const cx = b.x + ox, cy = b.y + oy;
-      local = [...steps, { m: new DOMMatrix().translate(cx, cy).multiplySelf(new DOMMatrix(transform)).translateSelf(-cx, -cy) }];
+      const mm = new DOMMatrix().translate(cx, cy).multiplySelf(new DOMMatrix(transform)).translateSelf(-cx, -cy);
+      if (/^matrix3d/.test(transform) && !(node instanceof SVGElement && !(node instanceof SVGSVGElement))) {
+        const pad = Math.max(b.w, b.h) * 0.6 + 60;
+        const layer: Layer = { k: 'l', depth: steps.length, clip: null, alpha: 1, shadows: [], filter: '', ops: [], warp: { m: mm, steps, box: { x: b.x - pad, y: b.y - pad, w: b.w + 2 * pad, h: b.h + 2 * pad } } };
+        out.push(layer);
+        out = layer.ops;
+      } else local = [...steps, { m: mm }];
     }
     const lm = matOf(local);
     const k = w.scale * Math.sqrt(Math.abs(lm.a * lm.d - lm.b * lm.c));
@@ -840,7 +847,7 @@ function drawOp(c: Ctx, op: Op, base: DOMMatrix, pool: HTMLCanvasElement[], dept
   }
   if (!op.ops.length) return;
   const one = op.ops.length === 1 && op.ops[0].k === 'd' ? op.ops[0] : null;
-  if (one && !op.clip && one.steps.length === op.depth && one.alpha >= 0.999 && !one.shadows.length && !one.filter) {
+  if (one && !op.clip && !op.warp && one.steps.length === op.depth && one.alpha >= 0.999 && !one.shadows.length && !one.filter) {
     drawOp(c, { ...one, alpha: op.alpha, shadows: op.shadows, filter: op.filter }, base, pool, depth, W, H);
     return;
   }
@@ -856,7 +863,15 @@ function drawOp(c: Ctx, op: Op, base: DOMMatrix, pool: HTMLCanvasElement[], dept
   if (op.alpha < 0.999) c.globalAlpha = op.alpha;
   if (op.filter && FILTER_OK) c.filter = op.filter;
   const layer = lc;
-  withShadows(c, op.shadows, () => c.drawImage(layer, 0, 0));
+  const wp = op.warp;
+  if (wp) {
+    const P = base.multiply(matOf(wp.steps));
+    const corners = [[wp.box.x, wp.box.y], [wp.box.x + wp.box.w, wp.box.y + wp.box.h]].map(([x, y]) => P.transformPoint(new DOMPoint(x, y)));
+    const x0 = Math.max(0, Math.floor(Math.min(corners[0].x, corners[1].x))), y0 = Math.max(0, Math.floor(Math.min(corners[0].y, corners[1].y)));
+    const x1 = Math.min(W, Math.ceil(Math.max(corners[0].x, corners[1].x))), y1 = Math.min(H, Math.ceil(Math.max(corners[0].y, corners[1].y)));
+    const dev = P.multiply(wp.m).multiply(P.inverse());
+    if (x1 > x0 && y1 > y0) warpMesh(c, layer, dev, 0, 0, W, H, x0, y0, x1, y1);
+  } else withShadows(c, op.shadows, () => c.drawImage(layer, 0, 0));
   c.restore();
 }
 
@@ -864,6 +879,7 @@ function tfxNode(svg: SVGSVGElement, b: Box, steps: Step[], out: Op[], w: Walk, 
   const data = tfxData(svg);
   if (!data) return;
   const m = matOf(steps);
+  for (const g of data.glyphs) if (g.spec?.f?.k === 'i') w.waits.push(loadFxImage(g.spec.f.src));
   for (const l of tfxLines(data)) {
     const pts = l.pts.map(([x, y]) => m.transformPoint(new DOMPoint(b.x + x, b.y + y)));
     const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);

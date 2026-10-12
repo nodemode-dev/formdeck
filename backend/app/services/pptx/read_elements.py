@@ -4,10 +4,12 @@ from .colors import degrees
 from .geom import cust_geom_to_svg, preset_adjustments
 from .ooxml import CHART_URI, DIAGRAM_DRAWING_RT, DIAGRAM_URI, NS, TABLE_URI, bool_attr, emu_pt, find, findall, int_attr, local, parse, qn, xpath
 from .read_chart import read_chart
+from .read_diagram import read_diagram
 from .read_media import read_media_settings
 from .read_style import fill_element, read_effects, read_fill, read_line, style_effects, style_fill, style_font, style_line
 from .read_table import read_table
 from .read_text import plain_text, read_text_body
+from .text_fx import read_3d
 
 R_EMBED = f"{{{NS['r']}}}embed"
 R_LINK = f"{{{NS['r']}}}link"
@@ -192,6 +194,7 @@ def _apply_shape_style(el: dict, sp_pr, style, ctx, placeholder: bool) -> None:
         effects = style_effects(style, ctx)
     if effects:
         el["effects"] = effects
+    el.update(read_3d(sp_pr, ctx))
 
 
 def read_sp(sp, ctx, tf: Transform) -> dict:
@@ -432,7 +435,12 @@ def _read_smartart(c_nv_pr, data, xfrm, ctx, tf: Transform) -> dict | None:
     group = base_element("group", c_nv_pr, ctx)
     group.update(read_frame(xfrm, tf))
     group["children"] = children
-    ctx.warn("SmartArt imported as a group of shapes")
+    rel_ids = find(data, "dgm:relIds")
+    data_part = ctx.related(rel_ids.get(f"{{{NS['r']}}}dm") if rel_ids is not None else None)
+    model = read_diagram(data_part) if data_part is not None else None
+    if model:
+        group["diagram"] = model
+    ctx.warn("SmartArt imported as an editable diagram" if model else "SmartArt imported as a group of shapes")
     return group
 
 

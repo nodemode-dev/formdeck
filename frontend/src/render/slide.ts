@@ -5,10 +5,11 @@ import { isLineGeom, presetGeometry } from '../engine/geometry/presets';
 import { scalePath } from '../engine/geometry/path';
 import type { Touched } from '../engine/ops';
 import { chartSvg } from './chart';
-import { cssBackground, cssFilter, svgFill, svgStroke, round } from './paint';
+import { cssBackground, cssFilter, svgFill, svgStroke, round, uid } from './paint';
 import { tableHtml } from './table';
 import { fitText, textHtml, type TextCtx } from './text';
 import { activeWarp, drawTextFx, needsOverlay } from './text-fx';
+import { cssTransform3d, depthSteps, fx3Of, layers3d } from './fx3d';
 
 export type RenderMode = 'edit' | 'thumb' | 'show' | 'print';
 export const mediaUrl = (id: string): string => `/api/media/${id}`;
@@ -21,10 +22,11 @@ function phFilled(slide: Slide, ph: Placeholder): boolean {
   return slide.elements.some((e) => e.ph && e.ph.type === ph.type && (e.ph.idx ?? 0) === (ph.idx ?? 0));
 }
 
-function boxStyle(f: Frame, el: SlideElement, extra = ''): string {
+function boxStyle(f: Frame, el: SlideElement, extra = '', t3 = ''): string {
   const t: string[] = [];
   if (el.rot) t.push(`rotate(${el.rot}deg)`);
   if (el.flipH || el.flipV) t.push(`scale(${el.flipH ? -1 : 1},${el.flipV ? -1 : 1})`);
+  if (t3) t.push(t3);
   const refl = 'effects' in el ? el.effects?.reflection : null;
   const mirror = refl ? `-webkit-box-reflect:below ${round(refl.dist ?? 2)}px linear-gradient(to bottom, rgba(0,0,0,${round(refl.alpha ?? 0.5)}) 0%, transparent ${round(Math.max(5, Math.min(100, (refl.size ?? 0.5) * 100)))}%);` : '';
   return `left:${round(f.x)}px;top:${round(f.y)}px;width:${round(Math.max(0, f.w))}px;height:${round(Math.max(0, f.h))}px;${t.length ? `transform:${t.join(' ')};` : ''}${el.opacity !== undefined && el.opacity < 1 ? `opacity:${el.opacity};` : ''}${el.hidden ? 'visibility:hidden;' : ''}${mirror}${extra}`;
@@ -55,6 +57,16 @@ function shapeSvg(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
   if (ctx.mode === 'edit' && (lineOnly || openPath(el))) for (const p of paths) body += `<path class="fd-hit" d="${p.d}" stroke-width="${round(Math.max(8, st.width + 6))}"/>`;
   const filter = cssFilter(el.effects, theme);
   const bw = lineOnly ? Math.max(1, w) : w, bh = lineOnly ? Math.max(1, h) : h;
+  const f3 = lineOnly ? null : fx3Of(el.sp3d, el.scene3d, theme);
+  if (f3 && (f3.bt || f3.cw > 0 || depthSteps(f3) > 0)) {
+    const tag = uid('s');
+    const m = 24 + f3.d * 3 + f3.cw + (f3.bt?.w ?? 0);
+    const L = layers3d(f3, `${tag}F`, tag, [-m, -m, bw + 2 * m, bh + 2 * m]);
+    const hits = body.match(/<path class="fd-hit"[^>]*\/>/g) ?? [];
+    for (const hit of hits) body = body.replace(hit, '');
+    body = `<g id="${tag}F">${body}</g>`;
+    return `<svg class="fd-geom" viewBox="0 0 ${round(bw)} ${round(bh)}" width="${round(bw)}" height="${round(bh)}" preserveAspectRatio="none"${filter ? ` style="filter:${filter}"` : ''}><defs>${fp.defs}${st.defs}${L.defs}${body}</defs>${L.back}<use href="#${tag}F"${L.faceFilter ? ` filter="${L.faceFilter}"` : ''}/>${hits.join('')}</svg>`;
+  }
   return `<svg class="fd-geom" viewBox="0 0 ${round(bw)} ${round(bh)}" width="${round(bw)}" height="${round(bh)}" preserveAspectRatio="none"${filter ? ` style="filter:${filter}"` : ''}>${fp.defs || st.defs ? `<defs>${fp.defs}${st.defs}</defs>` : ''}${body}</svg>`;
 }
 
@@ -88,7 +100,8 @@ function textBlock(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
   const vert = props.vert === 'vert' || props.vert === 'stacked' ? 'writing-mode:vertical-rl;' : props.vert === 'vert270' ? 'writing-mode:vertical-rl;transform:rotate(180deg);' : '';
   const cols = props.cols > 1 ? `column-count:${props.cols};column-gap:${round(18)}px;` : '';
   const wrap = props.wrap ? '' : 'white-space:pre;';
-  const tfx = needsOverlay(el.text) ? ` has-tfx"${activeWarp(el.text) ? ` data-warp="${esc(JSON.stringify(activeWarp(el.text)))}"` : ''}` : '"';
+  const f3 = fx3Of(el.text?.sp3d, el.text?.scene3d, ctx.deck.theme);
+  const tfx = needsOverlay(el.text) ? ` has-tfx"${activeWarp(el.text) ? ` data-warp="${esc(JSON.stringify(activeWarp(el.text)))}"` : ''}${f3 ? ` data-s3d="${esc(JSON.stringify(f3))}"` : ''}` : '"';
   return `<div class="fd-tx${tfx} data-autofit="${props.autofit}" style="left:${round(l)}px;top:${round(t)}px;right:${round(r)}px;bottom:${round(b)}px;justify-content:${justify};${vert}"><div class="fd-flow" style="${cols}${wrap}">${html}</div></div>`;
 }
 
@@ -186,7 +199,8 @@ export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: s
   }
   const lineLike = el.type === 'shape' && !el.path && (isLineGeom(geomOf(c)) || geomOf(c) === 'line');
   if (el.type === 'shape' && kind === 'shape' && (lineLike || openPath(el))) kind = 'line';
-  return { box: boxStyle(f, el, lineLike ? 'overflow:visible;' : ''), inner, kind };
+  const t3 = el.type === 'shape' && !lineLike ? cssTransform3d(fx3Of(el.sp3d, el.scene3d, ctx.deck.theme), f.w, f.h) : '';
+  return { box: boxStyle(f, el, lineLike ? 'overflow:visible;' : '', t3), inner, kind };
 }
 
 interface Item { key: string; el: SlideElement; prompt: boolean; sk: string }
@@ -345,7 +359,7 @@ export class SlideView {
       const sig = JSON.stringify(item.el) + tag;
       const boxless = JSON.stringify({ ...item.el, x: 0, y: 0, rot: 0 }) + tag;
       let node = existing.get(item.key);
-      const editing = !item.prompt && item.el.id === this.editingId;
+      const editing = !item.prompt && (item.el.id === this.editingId || (item.el.type === 'group' && !!this.editingId && !!item.el.diagram && this.editingId.startsWith(`${item.el.id}_`)));
       if (!node) {
         node = document.createElement('div');
         node.dataset.key = item.key;
@@ -439,7 +453,7 @@ export class SlideView {
   }
 
   nodeFor(id: string): HTMLElement | null {
-    return this.content.querySelector<HTMLElement>(`:scope > [data-key="${CSS.escape(id)}"]`);
+    return this.content.querySelector<HTMLElement>(`:scope > [data-key="${CSS.escape(id)}"]`) ?? this.content.querySelector<HTMLElement>(`:scope > [data-key] [data-id="${CSS.escape(id)}"]`);
   }
 }
 

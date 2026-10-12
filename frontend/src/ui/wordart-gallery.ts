@@ -1,9 +1,34 @@
-import type { Color, Run, Theme } from '../engine/model';
+import type { BevelPreset, Color, Run, Scene3d, Sp3d, Theme } from '../engine/model';
 import { colorCss } from '../engine/resolve';
 import { warpPreview } from '../render/text-fx';
+import { BEVELS, BEVEL_LABELS, bevelFilter, cssTransform3d, extrudeVec, fx3Of, layers3d } from '../render/fx3d';
 import { el, escapeHtml, setClass, setHidden, setStyleVar } from './dom';
 
-export interface WordArtStyle { id: string; label: string; run: Partial<Run> }
+export interface WordArtStyle { id: string; label: string; run: Partial<Run>; body?: { sp3d?: Sp3d; scene3d?: Scene3d } }
+
+export const CAMERA_GROUPS: Array<{ label: string; items: Array<[string, string]> }> = [
+  { label: 'Parallel', items: [['orthographicFront', 'Front'], ['isometricTopUp', 'Isometric top up'], ['isometricTopDown', 'Isometric top down'], ['isometricBottomUp', 'Isometric bottom up'], ['isometricBottomDown', 'Isometric bottom down'], ['isometricLeftUp', 'Isometric left up'], ['isometricLeftDown', 'Isometric left down'], ['isometricRightUp', 'Isometric right up'], ['isometricRightDown', 'Isometric right down'], ['isometricOffAxis1Left', 'Off axis 1 left'], ['isometricOffAxis1Right', 'Off axis 1 right'], ['isometricOffAxis1Top', 'Off axis 1 top'], ['isometricOffAxis2Left', 'Off axis 2 left'], ['isometricOffAxis2Right', 'Off axis 2 right'], ['isometricOffAxis2Top', 'Off axis 2 top'], ['isometricOffAxis3Left', 'Off axis 3 left'], ['isometricOffAxis3Right', 'Off axis 3 right'], ['isometricOffAxis3Bottom', 'Off axis 3 bottom'], ['isometricOffAxis4Left', 'Off axis 4 left'], ['isometricOffAxis4Right', 'Off axis 4 right']] },
+  { label: 'Perspective', items: [['perspectiveFront', 'Perspective front'], ['perspectiveLeft', 'Perspective left'], ['perspectiveRight', 'Perspective right'], ['perspectiveAbove', 'Perspective above'], ['perspectiveBelow', 'Perspective below'], ['perspectiveAboveLeftFacing', 'Above, left facing'], ['perspectiveAboveRightFacing', 'Above, right facing'], ['perspectiveContrastingLeftFacing', 'Contrasting, left facing'], ['perspectiveContrastingRightFacing', 'Contrasting, right facing'], ['perspectiveHeroicLeftFacing', 'Heroic, left facing'], ['perspectiveHeroicRightFacing', 'Heroic, right facing'], ['perspectiveHeroicExtremeLeftFacing', 'Heroic extreme, left'], ['perspectiveHeroicExtremeRightFacing', 'Heroic extreme, right'], ['perspectiveRelaxed', 'Relaxed'], ['perspectiveRelaxedModerately', 'Relaxed moderately']] },
+  { label: 'Oblique', items: [['obliqueTopLeft', 'Oblique top left'], ['obliqueTop', 'Oblique top'], ['obliqueTopRight', 'Oblique top right'], ['obliqueLeft', 'Oblique left'], ['obliqueRight', 'Oblique right'], ['obliqueBottomLeft', 'Oblique bottom left'], ['obliqueBottom', 'Oblique bottom'], ['obliqueBottomRight', 'Oblique bottom right']] },
+];
+export const cameraLabel = (name: string | undefined): string => CAMERA_GROUPS.flatMap((g) => g.items).find(([p]) => p === (name ?? 'orthographicFront'))?.[1] ?? name ?? 'Front';
+const STUB: Theme = { name: '', colors: {}, fonts: { major: '', minor: '' } };
+
+export function bevelPreview(p: BevelPreset | null, id: string): string {
+  if (!p) return '<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="6" y="5" width="28" height="18" rx="3" fill="currentColor" opacity="0.45"/></svg>';
+  const f = fx3Of({ bevelT: { prst: p, w: 5, h: 5 }, material: 'plastic' }, undefined, STUB);
+  const filter = f ? bevelFilter(`${id}b`, f, [-10, -10, 60, 48]) : '';
+  return `<svg viewBox="0 0 40 28" aria-hidden="true"><defs>${filter}</defs><rect x="6" y="5" width="28" height="18" rx="3" fill="#8b94a8"${filter ? ` filter="url(#${id}b)"` : ''}/></svg>`;
+}
+
+export function cameraPreview(name: string, id: string): string {
+  const f = fx3Of({ depth: 7 }, { camera: name }, STUB);
+  const [vx, vy] = f ? extrudeVec(f) : [0, 0];
+  const flat = `${id}F`;
+  const L = f ? layers3d(f, flat, id, [-20, -20, 80, 70]) : null;
+  const t = cssTransform3d(f, 24, 16);
+  return `<span class="fd-wa-cam3d"${t ? ` style="transform:${t}"` : ''}><svg viewBox="0 0 40 28" aria-hidden="true"><defs>${L?.defs ?? ''}<g id="${flat}"><rect x="9" y="6" width="22" height="15" rx="1.5" fill="#8b94a8"/></g></defs>${L && Math.hypot(vx, vy) > 0 ? L.back : ''}<use href="#${flat}"/><text x="20" y="17.5" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="10" fill="#fff">A</text></svg></span>`;
+}
 
 const S = (c: Color, alpha: number): Color => (typeof c === 'string' ? { scheme: c as 'tx1', alpha } : { ...c, alpha });
 const SOFT = { color: '#00000059', blur: 6, dist: 3, angle: 45 };
@@ -26,6 +51,11 @@ export const WORDART_STYLES: WordArtStyle[] = [
   { id: 'wa13', label: 'Fill: accent 2, outline: background, hard shadow: accent 2', run: { color: 'accent2', ln: { color: 'bg1', width: 1.25 }, fx: { shadow: hard('accent2') } } },
   { id: 'wa14', label: 'Fill: white, outline: accent 5, shadow', run: { color: 'bg1', ln: { color: 'accent5', width: 1.5 }, fx: { shadow: SOFT } } },
   { id: 'wa15', label: 'Fill: accent 6, glow: accent 6', run: { color: 'accent6', fx: { glow: { color: S('accent6', 0.55), radius: 8 } } } },
+  { id: 'wa16', label: '3-D: accent 1, circle bevel', run: { color: 'accent1' }, body: { sp3d: { bevelT: { prst: 'circle', w: 3, h: 3 }, material: 'plastic' } } },
+  { id: 'wa17', label: '3-D: accent 3, soft round bevel, metal', run: { color: 'accent3' }, body: { sp3d: { bevelT: { prst: 'softRound', w: 4, h: 4 }, material: 'metal' } } },
+  { id: 'wa18', label: '3-D: accent 2, extrusion, off axis 1 right', run: { color: 'accent2' }, body: { sp3d: { depth: 10, depthColor: { scheme: 'accent2', lumMod: 0.6 } }, scene3d: { camera: 'isometricOffAxis1Right' } } },
+  { id: 'wa19', label: '3-D: accent 5, bevel and extrusion, heroic', run: { color: 'accent5' }, body: { sp3d: { depth: 8, bevelT: { prst: 'angle', w: 2.5, h: 2.5 } }, scene3d: { camera: 'perspectiveHeroicLeftFacing' } } },
+  { id: 'wa20', label: '3-D: white, contour, oblique', run: { color: 'bg1' }, body: { sp3d: { depth: 6, contour: 1.2, contourColor: 'tx1', depthColor: 'accent4' }, scene3d: { camera: 'obliqueBottomRight' } } },
 ];
 
 export const WARP_GROUPS: Array<{ label: string; items: Array<[string, string]> }> = [
@@ -62,10 +92,19 @@ export function stylePreview(st: WordArtStyle, theme: Theme, id: string): string
     filter = ` filter="url(#${id}f)"`;
   }
   const refl = r.fx?.reflection ? `<text x="30" y="34" transform="matrix(1 0 0 -1 0 68)" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="28" fill="${fill}" opacity="0.25">A</text>` : '';
-  return `<svg viewBox="0 0 60 44" aria-hidden="true">${defs ? `<defs>${defs}</defs>` : ''}${refl}<text x="30" y="32" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="28" fill="${fill}"${ln}${filter}>A</text></svg>`;
+  const glyph = (extra: string): string => `<text x="30" y="32" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="28" fill="${fill}"${ln}${extra}>A</text>`;
+  const f3 = fx3Of(st.body?.sp3d, st.body?.scene3d, theme);
+  if (f3 && (f3.bt || f3.d > 0 || f3.cw > 0)) {
+    const L = layers3d(f3, `${id}F`, id, [-20, -20, 100, 84]);
+    return `<svg viewBox="0 0 60 44" aria-hidden="true"><defs>${defs}${L.defs}<g id="${id}F">${glyph('')}</g></defs>${L.back}<use href="#${id}F"${L.faceFilter ? ` filter="${L.faceFilter}"` : ''}/></svg>`;
+  }
+  return `<svg viewBox="0 0 60 44" aria-hidden="true">${defs ? `<defs>${defs}</defs>` : ''}${refl}${glyph(filter)}</svg>`;
 }
 
-export interface GalleryHandlers { style?: (st: WordArtStyle) => void; warp?: (preset: string) => void; current?: string }
+export interface GalleryHandlers {
+  style?: (st: WordArtStyle) => void; warp?: (preset: string) => void; current?: string;
+  bevel?: (preset: BevelPreset | null) => void; camera?: (name: string) => void; currentBevel?: string; currentCamera?: string;
+}
 
 class WordArtPop {
   readonly pop: HTMLElement;
@@ -74,22 +113,33 @@ class WordArtPop {
   private themeKey = '';
   private readonly styles: HTMLElement;
   private readonly warps: HTMLElement;
+  private readonly bevels: HTMLElement;
+  private readonly cams: HTMLElement;
+  private built = false;
 
   constructor() {
     const warpHtml = WARP_GROUPS.map((g) => `<div class="fd-pop-head">${escapeHtml(g.label)}</div><div class="fd-wa-warps">${g.items.map(([p, label]) => `<button type="button" class="fd-wa-warp" data-warp="${p}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 40 28" aria-hidden="true">${warpPreview(p, 40, 28)}</svg></button>`).join('')}</div>`).join('');
     this.pop = el(`<div class="fd-pop fd-wa-pop" hidden role="dialog" aria-label="WordArt">
 <div class="fd-wa-styles"><div class="fd-pop-head">WordArt styles</div><div class="fd-wa-grid">${WORDART_STYLES.map((s) => `<button type="button" class="fd-wa-style" data-style="${s.id}" title="${escapeHtml(s.label)}" aria-label="${escapeHtml(s.label)}"></button>`).join('')}</div></div>
-<div class="fd-wa-warpset">${warpHtml}</div></div>`);
+<div class="fd-wa-warpset">${warpHtml}</div>
+<div class="fd-wa-bevelset"><div class="fd-pop-head">Bevel</div><div class="fd-wa-warps"><button type="button" class="fd-wa-warp" data-bevel="none" title="No bevel" aria-label="No bevel"></button>${BEVELS.map((p) => `<button type="button" class="fd-wa-warp" data-bevel="${p}" title="${BEVEL_LABELS[p]}" aria-label="${BEVEL_LABELS[p]}"></button>`).join('')}</div></div>
+<div class="fd-wa-camset">${CAMERA_GROUPS.map((g) => `<div class="fd-pop-head">3-D rotation: ${escapeHtml(g.label)}</div><div class="fd-wa-warps">${g.items.map(([p, label]) => `<button type="button" class="fd-wa-warp" data-cam="${p}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"></button>`).join('')}</div>`).join('')}</div></div>`);
     this.styles = this.pop.querySelector('.fd-wa-styles') as HTMLElement;
     this.warps = this.pop.querySelector('.fd-wa-warpset') as HTMLElement;
+    this.bevels = this.pop.querySelector('.fd-wa-bevelset') as HTMLElement;
+    this.cams = this.pop.querySelector('.fd-wa-camset') as HTMLElement;
     document.getElementById('overlay-root')?.appendChild(this.pop);
     this.pop.addEventListener('mousedown', (e) => { if ((e.target as HTMLElement).closest('button')) e.preventDefault(); });
     this.pop.addEventListener('click', (e) => {
       const s = (e.target as HTMLElement).closest<HTMLElement>('[data-style]');
       const w = (e.target as HTMLElement).closest<HTMLElement>('[data-warp]');
+      const bv = (e.target as HTMLElement).closest<HTMLElement>('[data-bevel]');
+      const cm = (e.target as HTMLElement).closest<HTMLElement>('[data-cam]');
       const h = this.handlers;
       if (s) { const st = WORDART_STYLES.find((x) => x.id === s.dataset.style); this.close(); if (st) h.style?.(st); }
       else if (w) { this.close(); h.warp?.(w.dataset.warp as string); }
+      else if (bv) { this.close(); h.bevel?.(bv.dataset.bevel === 'none' ? null : bv.dataset.bevel as BevelPreset); }
+      else if (cm) { this.close(); h.camera?.(cm.dataset.cam as string); }
     });
     document.addEventListener('pointerdown', (e) => {
       const t = e.target as Node;
@@ -116,7 +166,16 @@ class WordArtPop {
     }
     setHidden(this.styles, !handlers.style);
     setHidden(this.warps, !handlers.warp);
+    setHidden(this.bevels, !handlers.bevel);
+    setHidden(this.cams, !handlers.camera);
+    if (!this.built && (handlers.bevel || handlers.camera)) {
+      this.built = true;
+      for (const b of Array.from(this.bevels.querySelectorAll<HTMLElement>('[data-bevel]'))) b.innerHTML = bevelPreview(b.dataset.bevel === 'none' ? null : b.dataset.bevel as BevelPreset, `bv${b.dataset.bevel}`);
+      for (const b of Array.from(this.cams.querySelectorAll<HTMLElement>('[data-cam]'))) b.innerHTML = cameraPreview(b.dataset.cam as string, `cm${b.dataset.cam}`);
+    }
     for (const b of Array.from(this.warps.querySelectorAll<HTMLElement>('[data-warp]'))) setClass(b, 'is-on', b.dataset.warp === (handlers.current ?? 'textNoShape'));
+    for (const b of Array.from(this.bevels.querySelectorAll<HTMLElement>('[data-bevel]'))) setClass(b, 'is-on', b.dataset.bevel === (handlers.currentBevel ?? 'none'));
+    for (const b of Array.from(this.cams.querySelectorAll<HTMLElement>('[data-cam]'))) setClass(b, 'is-on', b.dataset.cam === (handlers.currentCamera ?? 'orthographicFront'));
     if (anchor instanceof HTMLButtonElement) anchor.setAttribute('aria-expanded', 'true');
     setHidden(this.pop, false);
     const r = anchor.getBoundingClientRect();

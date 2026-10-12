@@ -1,6 +1,6 @@
 from .ooxml import bool_attr, emu_pt, find, findall, int_attr, local
 from .read_style import fill_element, read_fill
-from .text_fx import read_run_fx, read_warp
+from .text_fx import read_3d, read_run_fx, read_warp
 
 ANCHOR_OF = {"t": "t", "ctr": "m", "b": "b", "just": "t", "dist": "t"}
 ALIGN_OF = {"l": "l", "ctr": "c", "r": "r", "just": "j", "dist": "j", "justLow": "j", "thaiDist": "j"}
@@ -26,7 +26,7 @@ def normalize_font(typeface: str | None) -> str | None:
 
 def read_text_body(tx_body, ctx, font_ref: tuple | None = None) -> dict:
     body: dict = {"paras": []}
-    _read_body_pr(find(tx_body, "a:bodyPr"), body)
+    _read_body_pr(find(tx_body, "a:bodyPr"), body, ctx)
     levels = read_list_style(find(tx_body, "a:lstStyle"), ctx)
     if levels:
         body["lstStyle"] = levels
@@ -37,7 +37,7 @@ def read_text_body(tx_body, ctx, font_ref: tuple | None = None) -> dict:
     return body
 
 
-def _read_body_pr(body_pr, body: dict) -> None:
+def _read_body_pr(body_pr, body: dict, ctx=None) -> None:
     if body_pr is None:
         return
     if body_pr.get("anchor") in ANCHOR_OF:
@@ -57,6 +57,8 @@ def _read_body_pr(body_pr, body: dict) -> None:
     warp = read_warp(body_pr)
     if warp:
         body["warp"] = warp
+    if ctx is not None:
+        body.update(read_3d(body_pr, ctx))
 
 
 def read_list_style(lst_style, ctx) -> list:

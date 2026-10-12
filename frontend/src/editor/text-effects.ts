@@ -1,4 +1,4 @@
-import type { Color, Dash, Effects, Fill, Line, Para, Run, ShapeElement, SlideElement, TextWarp } from '../engine/model';
+import type { BevelPreset, Color, Dash, Effects, Fill, Line, Para, Run, Scene3d, ShapeElement, SlideElement, Sp3d, TextWarp } from '../engine/model';
 import { adjOf, bodyProps, chain, colorCss, geomOf } from '../engine/resolve';
 import { elPath, type Op } from '../engine/ops';
 import { isLineGeom, presetGeometry, type GeomHandle } from '../engine/geometry/presets';
@@ -7,7 +7,8 @@ import { pickColor } from '../ui/colorpop';
 import type { Command, Commands } from '../ui/commands';
 import { el, setHidden, setStyleVar, setText, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
-import { warpLabel, wordArtGallery, type WordArtStyle } from '../ui/wordart-gallery';
+import { BEVEL_LABELS, MATERIALS, cameraOf } from '../render/fx3d';
+import { cameraLabel, warpLabel, wordArtGallery, type WordArtStyle } from '../ui/wordart-gallery';
 import type { Editor } from './editor';
 import { bodyPropOps, dirtyOp, resolvedFrame, runStyleOps } from './actions';
 import { editorTheme } from './master-view';
@@ -173,6 +174,41 @@ function setWarp(ed: Editor, warp: TextWarp | undefined, label: string, coalesce
   if (ops.length) ed.apply([...ops, ...dirtyOp(s)], label, coalesce);
 }
 
+type Body3 = { sp3d?: Sp3d; scene3d?: Scene3d };
+
+function clean<T extends object>(o: T): T | undefined {
+  const out = { ...o } as Record<string, unknown>;
+  for (const k of Object.keys(out)) if (out[k] === undefined || out[k] === null) delete out[k];
+  return Object.keys(out).length ? out as T : undefined;
+}
+
+export function set3d(ed: Editor, key: 'sp3d' | 'scene3d', value: Sp3d | Scene3d | undefined, label: string, coalesce?: string): void {
+  const s = ed.slide;
+  if (!s) return;
+  if (ed.stage.editing) ed.stage.endEdit();
+  const els = ed.selected().filter(isTextShape);
+  const ops = bodyPropOps(s, els, key, value);
+  if (ops.length) ed.apply([...ops, ...dirtyOp(s)], label, coalesce);
+}
+
+function applyStyle(ed: Editor, st: WordArtStyle, snap: Snap | null): void {
+  applyRunFx(ed, styleRun(st), 'WordArt style', snap);
+  const cur = probe(ed)?.el.text as Body3 | undefined;
+  if (!st.body && !cur?.sp3d && !cur?.scene3d) return;
+  set3d(ed, 'sp3d', st.body?.sp3d, 'WordArt style');
+  set3d(ed, 'scene3d', st.body?.scene3d, 'WordArt style');
+}
+
+function setBevel(ed: Editor, p: BevelPreset | null): void {
+  const cur = (probe(ed)?.el.text?.sp3d ?? {}) as Sp3d;
+  set3d(ed, 'sp3d', clean({ ...cur, bevelT: p ? { prst: p, w: cur.bevelT?.w ?? 6, h: cur.bevelT?.h ?? 6 } : undefined }), 'Bevel');
+}
+
+function setCamera(ed: Editor, name: string): void {
+  const cur = (probe(ed)?.el.text?.scene3d ?? {}) as Scene3d;
+  set3d(ed, 'scene3d', clean({ ...cur, camera: name === 'orthographicFront' ? undefined : name, rot: undefined, fov: undefined }), '3-D rotation');
+}
+
 export function newWordArt(ed: Editor, st: WordArtStyle): void {
   const d = ed.doc.deck.size;
   const w = Math.min(d.w - 40, 620), h = 96;
@@ -180,7 +216,7 @@ export function newWordArt(ed: Editor, st: WordArtStyle): void {
   for (const k of Object.keys(run) as Array<keyof Run>) if (run[k] === undefined) delete run[k];
   const box: Omit<ShapeElement, 'id'> = {
     type: 'shape', name: 'WordArt', geom: 'rect', x: Math.round((d.w - w) / 2), y: Math.round((d.h - h) / 2), w, h, fill: { type: 'none' }, line: { type: 'none' },
-    text: { paras: [{ runs: [run], align: 'c', bullet: { type: 'none' } }], autofit: 'grow', wrap: false, anchor: 'm', inset: [7.2, 3.6, 7.2, 3.6] },
+    text: { paras: [{ runs: [run], align: 'c', bullet: { type: 'none' } }], autofit: 'grow', wrap: false, anchor: 'm', inset: [7.2, 3.6, 7.2, 3.6], ...(st.body?.sp3d ? { sp3d: st.body.sp3d } : {}), ...(st.body?.scene3d ? { scene3d: st.body.scene3d } : {}) },
   };
   const id = ed.insert(box as SlideElement, 'Insert WordArt');
   if (!id) return;
@@ -210,10 +246,11 @@ export function registerTextFxCommands(cmds: Commands, E: () => Editor | null): 
       const ed = E();
       if (!ed) return;
       const snap = snapOf(ed);
-      wordArtGallery(anchorFor('.fd-options [data-cmd="text-effects"]'), editorTheme(ed), { style: (st) => applyRunFx(ed, styleRun(st), 'WordArt style', snap), warp: (p) => setWarp(ed, p === 'textNoShape' ? undefined : { preset: p }, 'Transform text'), current: activeWarp(probe(ed)?.el.text)?.preset });
+      const tb = probe(ed)?.el.text;
+      wordArtGallery(anchorFor('.fd-options [data-cmd="text-effects"]'), editorTheme(ed), { style: (st) => applyStyle(ed, st, snap), warp: (p) => setWarp(ed, p === 'textNoShape' ? undefined : { preset: p }, 'Transform text'), current: activeWarp(tb)?.preset, bevel: (p) => setBevel(ed, p), camera: (c) => setCamera(ed, c), currentBevel: tb?.sp3d?.bevelT?.prst ?? 'none', currentCamera: tb?.scene3d?.camera });
     } },
     { id: 'text-transform', label: 'Transform Text...', icon: 'textWarp', enabled: textSel, run: () => { const ed = E(); if (ed) wordArtGallery(anchorFor('.fd-tfx-panel [data-ta="warp"]'), editorTheme(ed), { warp: (p) => setWarp(ed, p === 'textNoShape' ? undefined : { preset: p }, 'Transform text'), current: activeWarp(probe(ed)?.el.text)?.preset }); } },
-    { id: 'clear-text-effects', label: 'Clear Text Effects', enabled: textSel, run: () => { const ed = E(); if (!ed) return; applyRunFx(ed, { fill: undefined, ln: undefined, fx: undefined }, 'Clear text effects', snapOf(ed)); if (!ed.stage.editing) setWarp(ed, undefined, 'Clear text effects'); } },
+    { id: 'clear-text-effects', label: 'Clear Text Effects', enabled: textSel, run: () => { const ed = E(); if (!ed) return; applyRunFx(ed, { fill: undefined, ln: undefined, fx: undefined }, 'Clear text effects', snapOf(ed)); if (!ed.stage.editing) { setWarp(ed, undefined, 'Clear text effects'); set3d(ed, 'sp3d', undefined, 'Clear text effects'); set3d(ed, 'scene3d', undefined, 'Clear text effects'); } } },
   ];
   cmds.add(...list);
 }
@@ -239,10 +276,22 @@ ${row('Outline', `<select data-xf="ln" aria-label="Text outline"><option value="
 ${row('Shadow', `<select data-xf="shadow" aria-label="Text shadow"><option value="none">None</option><option value="soft">Soft</option><option value="below">Below</option><option value="hard">Hard</option><option value="long">Long</option></select>`)}
 ${row('Glow', `<select data-xf="glow" aria-label="Text glow"><option value="none">None</option><option value="5">Small</option><option value="10">Medium</option><option value="18">Large</option></select>${swatch('glowcolor', 'Glow colour')}`)}
 ${row('Reflection', `<select data-xf="refl" aria-label="Text reflection"><option value="none">None</option><option value="0.3">Tight</option><option value="0.5">Half</option><option value="0.9">Full</option></select>`)}
+${row('Soft edges', `<select data-xf="soft" aria-label="Text soft edges"><option value="none">None</option><option value="1">1 pt</option><option value="2.5">2.5 pt</option><option value="5">5 pt</option><option value="10">10 pt</option></select>`)}
 ${row('Transform', `<button class="fd-btn fd-btn-sm" type="button" data-ta="warp" title="Transform"><svg class="fd-tfx-warp-icon" viewBox="0 0 40 28" width="28" height="20" aria-hidden="true"></svg><span class="fd-tfx-warp-name">No transform</span></button>`)}
 ${row('Amount', '<input class="fd-slider" type="range" min="0" max="1000" step="1" data-xf="adj0" aria-label="Transform amount">', ' data-xr="adj0"')}
 ${row('Amount 2', '<input class="fd-slider" type="range" min="0" max="1000" step="1" data-xf="adj1" aria-label="Second transform amount">', ' data-xr="adj1"')}
-${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="clear">Clear text effects</button>')}
+<div class="fd-panel-head fd-tfx-sub"><span class="fd-panel-title">3-D format</span></div>
+${row('Bevel', `<button class="fd-btn fd-btn-sm" type="button" data-ta="bevel" title="Bevel"><span class="fd-tfx-bevel-name">None</span></button>`)}
+${row('Size', `<label class="fd-num" title="Bevel width"><input type="number" min="0" max="60" step="0.5" data-xf="bw" aria-label="Bevel width"><span class="fd-unit">W</span></label><label class="fd-num" title="Bevel height"><input type="number" min="0" max="60" step="0.5" data-xf="bh" aria-label="Bevel height"><span class="fd-unit">H</span></label>`, ' data-xr="bevel"')}
+${row('Depth', `<label class="fd-num" title="Extrusion depth"><input type="number" min="0" max="200" step="1" data-xf="depth" aria-label="Depth"><span class="fd-unit">pt</span></label>${swatch('depthcolor', 'Depth colour')}`)}
+${row('Contour', `<label class="fd-num" title="Contour width"><input type="number" min="0" max="40" step="0.5" data-xf="contour" aria-label="Contour width"><span class="fd-unit">pt</span></label>${swatch('contourcolor', 'Contour colour')}`)}
+${row('Material', `<select data-xf="mat" aria-label="Material">${MATERIALS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>`)}
+${row('Lighting', `<select data-xf="rig" aria-label="Lighting"><option value="threePt">Three point</option><option value="balanced">Balanced</option><option value="soft">Soft</option><option value="harsh">Harsh</option><option value="flood">Flood</option><option value="contrasting">Contrasting</option><option value="morning">Morning</option><option value="sunrise">Sunrise</option><option value="sunset">Sunset</option><option value="chilly">Chilly</option><option value="freezing">Freezing</option><option value="twoPt">Two point</option><option value="glow">Glow</option><option value="brightRoom">Bright room</option><option value="flat">Flat</option></select><select data-xf="dir" aria-label="Light direction"><option value="t">Top</option><option value="tl">Top left</option><option value="tr">Top right</option><option value="l">Left</option><option value="r">Right</option><option value="bl">Bottom left</option><option value="b">Bottom</option><option value="br">Bottom right</option></select>`)}
+<div class="fd-panel-head fd-tfx-sub"><span class="fd-panel-title">3-D rotation</span></div>
+${row('Preset', `<button class="fd-btn fd-btn-sm" type="button" data-ta="camera" title="3-D rotation preset"><span class="fd-tfx-camera-name">Front</span></button>`)}
+${row('Angles', `<div class="fd-tfx-rot"><label class="fd-num" title="Tilt, about the horizontal axis"><input type="number" min="-180" max="180" step="1" data-xf="lat" aria-label="Tilt"><span class="fd-unit">X</span></label><label class="fd-num" title="Turn, about the vertical axis"><input type="number" min="-180" max="180" step="1" data-xf="lon" aria-label="Turn"><span class="fd-unit">Y</span></label><label class="fd-num" title="Roll, about the viewing axis"><input type="number" min="-180" max="180" step="1" data-xf="rev" aria-label="Roll"><span class="fd-unit">Z</span></label></div>`)}
+${row('Perspective', `<label class="fd-num" title="Field of view"><input type="number" min="0" max="120" step="5" data-xf="fov" aria-label="Perspective"><span class="fd-unit">deg</span></label>`)}
+${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="clear3d">Clear 3-D</button><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="clear">Clear text effects</button>')}
 </div>`);
     const keep = (): void => { const ed = this.ed; this.snap = ed ? snapOf(ed) ?? this.snap : null; };
     this.el.addEventListener('pointerdown', keep, true);
@@ -299,10 +348,30 @@ ${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="
     setStyleVar(this.q('[data-ta="glowcolor"] .fd-tfx-swatch'), '--swatch', fx.glow ? colorCss(fx.glow.color ?? 'accent1', theme) : 'transparent');
     setHidden(this.q('[data-ta="glowcolor"]'), !fx.glow);
     setValue(this.q('[data-xf="refl"]'), fx.reflection ? String(nearest(REFLECTIONS, fx.reflection.size ?? 0.5)) : 'none');
+    setValue(this.q('[data-xf="soft"]'), fx.softEdge ? String(nearest([1, 2.5, 5, 10], fx.softEdge)) : 'none');
     const warp = activeWarp(p.el.text);
     const preset = warp?.preset ?? 'textNoShape';
     if (this.warpKey !== preset) { this.warpKey = preset; this.q('.fd-tfx-warp-icon').innerHTML = warpPreview(preset, 40, 28); }
     setText(this.q('.fd-tfx-warp-name'), warpLabel(preset));
+    const sp = p.el.text?.sp3d, sc = p.el.text?.scene3d;
+    setText(this.q('.fd-tfx-bevel-name'), sp?.bevelT ? BEVEL_LABELS[sp.bevelT.prst ?? 'circle'] : 'None');
+    setHidden(this.q('[data-xr="bevel"]'), !sp?.bevelT);
+    setValue(this.q('[data-xf="bw"]'), String(sp?.bevelT?.w ?? 6));
+    setValue(this.q('[data-xf="bh"]'), String(sp?.bevelT?.h ?? 6));
+    setValue(this.q('[data-xf="depth"]'), String(sp?.depth ?? 0));
+    setValue(this.q('[data-xf="contour"]'), String(sp?.contour ?? 0));
+    setStyleVar(this.q('[data-ta="depthcolor"] .fd-tfx-swatch'), '--swatch', sp?.depthColor ? colorCss(sp.depthColor, theme) : 'transparent');
+    setStyleVar(this.q('[data-ta="contourcolor"] .fd-tfx-swatch'), '--swatch', colorCss(sp?.contourColor ?? '#000000', theme));
+    setValue(this.q('[data-xf="mat"]'), sp?.material ?? 'matte');
+    setValue(this.q('[data-xf="rig"]'), sc?.rig ?? 'threePt');
+    setValue(this.q('[data-xf="dir"]'), sc?.dir ?? 't');
+    const cam = cameraOf(sc?.camera);
+    const rot = sc?.rot ?? { lat: cam.rot[0], lon: cam.rot[1], rev: cam.rot[2] };
+    setText(this.q('.fd-tfx-camera-name'), cameraLabel(sc?.camera));
+    setValue(this.q('[data-xf="lat"]'), String(Math.round(rot.lat * 10) / 10));
+    setValue(this.q('[data-xf="lon"]'), String(Math.round(rot.lon * 10) / 10));
+    setValue(this.q('[data-xf="rev"]'), String(Math.round(rot.rev * 10) / 10));
+    setValue(this.q('[data-xf="fov"]'), String(sc?.fov ?? cam.fov));
     const ranges = warp ? warpAdjRanges(warp.preset) : [];
     for (const i of [0, 1]) {
       const rg = ranges[i];
@@ -322,7 +391,18 @@ ${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="
     const theme = editorTheme(ed);
     const snap = this.snap;
     const a = b.dataset.ta;
-    if (a === 'styles') { wordArtGallery(b, theme, { style: (st) => applyRunFx(ed, styleRun(st), 'WordArt style', snap) }); return; }
+    if (a === 'styles') { wordArtGallery(b, theme, { style: (st) => applyStyle(ed, st, snap) }); return; }
+    if (a === 'bevel') { wordArtGallery(b, theme, { bevel: (pr) => setBevel(ed, pr), currentBevel: p.el.text?.sp3d?.bevelT?.prst ?? 'none' }); return; }
+    if (a === 'camera') { wordArtGallery(b, theme, { camera: (c) => setCamera(ed, c), currentCamera: p.el.text?.scene3d?.camera }); return; }
+    if (a === 'clear3d') { set3d(ed, 'sp3d', undefined, 'Clear 3-D'); set3d(ed, 'scene3d', undefined, 'Clear 3-D'); return; }
+    if (a === 'depthcolor' || a === 'contourcolor') {
+      const key = a === 'depthcolor' ? 'depthColor' : 'contourColor';
+      const sp = (p.el.text?.sp3d ?? {}) as Sp3d;
+      const c = await pickColor(b, theme, { none: key === 'depthColor' ? 'Automatic' : undefined, current: sp[key] ?? null });
+      if (c === undefined) return;
+      set3d(ed, 'sp3d', clean({ ...sp, [key]: c === null ? undefined : c }), key === 'depthColor' ? 'Depth colour' : 'Contour colour');
+      return;
+    }
     if (a === 'warp') { wordArtGallery(b, theme, { warp: (pr) => setWarp(ed, pr === 'textNoShape' ? undefined : { preset: pr }, 'Transform text'), current: activeWarp(p.el.text)?.preset }); return; }
     if (a === 'clear') { ed.run('clear-text-effects'); return; }
     if (a === 'fill1' || a === 'fill2') {
@@ -369,8 +449,30 @@ ${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="
       applyRunFx(ed, (r) => ({ ln: { ...(r.ln && r.ln.type !== 'none' ? r.ln : { color: 'tx1' }), width: Math.min(20, w) } as Line }), 'Outline width', snap);
     } else if (f === 'shadow') applyRunFx(ed, fxPatch((fx) => ({ ...fx, shadow: SHADOWS[v] ?? null })), 'Text shadow', snap);
     else if (f === 'glow') applyRunFx(ed, fxPatch((fx) => ({ ...fx, glow: v === 'none' ? null : { color: fx.glow?.color ?? { scheme: 'accent1', alpha: 0.6 }, radius: Number(v) } })), 'Text glow', snap);
+    else if (f === 'soft') applyRunFx(ed, fxPatch((fx) => ({ ...fx, softEdge: v === 'none' ? null : Number(v) })), 'Text soft edges', snap);
     else if (f === 'refl') applyRunFx(ed, fxPatch((fx) => ({ ...fx, reflection: v === 'none' ? null : { size: Number(v), alpha: 0.5, dist: 1 } })), 'Text reflection', snap);
-    else if (f === 'adj0' || f === 'adj1') {
+    else if (f === 'bw' || f === 'bh' || f === 'depth' || f === 'contour' || f === 'mat') {
+      const pr = probe(ed);
+      const sp = (pr?.el.text?.sp3d ?? {}) as Sp3d;
+      const n = Math.max(0, Number(v));
+      const co = live ? `sp3d:${pr?.el.id}:${f}` : undefined;
+      if (f === 'mat') set3d(ed, 'sp3d', clean({ ...sp, material: v === 'matte' ? undefined : v }), 'Material');
+      else if (!Number.isFinite(n)) return;
+      else if (f === 'depth') set3d(ed, 'sp3d', clean({ ...sp, depth: n || undefined }), 'Depth', co);
+      else if (f === 'contour') set3d(ed, 'sp3d', clean({ ...sp, contour: n || undefined }), 'Contour', co);
+      else {
+        const b = sp.bevelT ?? { prst: 'circle' as BevelPreset, w: 6, h: 6 };
+        set3d(ed, 'sp3d', clean({ ...sp, bevelT: { ...b, [f === 'bw' ? 'w' : 'h']: n } }), 'Bevel size', co);
+      }
+    } else if (f === 'rig' || f === 'dir' || f === 'lat' || f === 'lon' || f === 'rev' || f === 'fov') {
+      const pr = probe(ed);
+      const sc = (pr?.el.text?.scene3d ?? {}) as Scene3d;
+      const n = Number(v);
+      if ((f === 'lat' || f === 'lon' || f === 'rev' || f === 'fov') && !Number.isFinite(n)) return;
+      const eff = sc.rot ?? { lat: cameraOf(sc.camera).rot[0], lon: cameraOf(sc.camera).rot[1], rev: cameraOf(sc.camera).rot[2] };
+      const next: Scene3d = f === 'rig' ? { ...sc, rig: v === 'threePt' ? undefined : v } : f === 'dir' ? { ...sc, dir: v === 't' ? undefined : v } : f === 'fov' ? { ...sc, fov: n } : { ...sc, rot: { ...eff, [f]: n } };
+      set3d(ed, 'scene3d', clean(next), '3-D rotation', live ? `scene3d:${pr?.el.id}:${f}` : undefined);
+    } else if (f === 'adj0' || f === 'adj1') {
       const p = probe(ed);
       const warp = activeWarp(p?.el.text);
       const rg = warp ? warpAdjRanges(warp.preset)[f === 'adj0' ? 0 : 1] : undefined;

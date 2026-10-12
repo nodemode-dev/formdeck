@@ -10,6 +10,7 @@ import type { MenuItem, PopupMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import { setText } from '../ui/dom';
 import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, refitGroupOps, resolvedFrame, setFrameOps } from './actions';
+import { diagramSync } from './diagram-sync';
 import { Filmstrip } from './filmstrip';
 import { remapCopies } from './connectors';
 import { layoutMenuItems } from './master-view';
@@ -107,6 +108,7 @@ export class Editor {
 
   apply(ops: Op[], label = 'Edit', coalesce?: string): boolean {
     if (ops.length && this.holderKind !== 'slide') ops = holderOps(this.doc.deck, ops);
+    else if (ops.length) ops = diagramSync(this.doc, ops);
     if (!ops.length) return false;
     return this.doc.apply(ops, label, coalesce) !== null;
   }

@@ -102,6 +102,7 @@ export const ICONS: Record<string, string> = {
   video: L('<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.2l4-2.5a.5.5 0 0 1 .8.4v7.8a.5.5 0 0 1-.8.4L16 13.8"/>'),
   audio: L('<path d="M4 10.5v3M8 7.5v9M12 4.5v15M16 8v8M20 10.5v3"/>'),
   iconLib: L('<circle cx="7.5" cy="7.5" r="3.5"/><rect x="13" y="4" width="7" height="7" rx="1"/><path d="M7.5 13.5l4 6.5h-8z"/><path d="M16.5 13.5l1.1 2.3 2.4.3-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.3z"/>'),
+  diagram: L('<rect x="9" y="3.5" width="6" height="5" rx="1"/><rect x="3.5" y="15.5" width="6" height="5" rx="1"/><rect x="14.5" y="15.5" width="6" height="5" rx="1"/><path d="M12 8.5V12M6.5 15.5V12h11v3.5"/>'),
   trim: L('<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.4L20 16.5M8.2 15.6L20 7.5"/>'),
   speaker: L('<path d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a7.6 7.6 0 0 1 0 11"/>'),
   comment: L(`${BUBBLE}<path d="M8 9h8M8 12.5h5"/>`),

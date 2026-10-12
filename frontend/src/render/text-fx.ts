@@ -2,12 +2,27 @@ import type { Effects, Fill, Line, Run, TextBody, TextWarp, Theme } from '../eng
 import { colorCss } from '../engine/resolve';
 import { addPresets, presetGeometry, type GeomHandle } from '../engine/geometry/presets';
 import { cssBackground, uid } from './paint';
+import { cssTransform3d, depthSteps, extrudeVec, layers3d, litPixels, shade, softFilter, softPixels, type Fx3 } from './fx3d';
 import WARPS from './text-warps.json?raw';
 import '../styles/text-effects.css';
 
 export interface FxShadow { x: number; y: number; blur: number; color: string }
-export type FxFill = { k: 'n' } | { k: 's'; c: string } | { k: 'l' | 'r'; a: number; s: Array<[number, string]> };
-export interface FxSpec { f?: FxFill; l?: { w: number; c: string; d: string }; sh?: FxShadow[]; r?: { s: number; a: number; d: number } }
+export type FxFill = { k: 'n' } | { k: 's'; c: string } | { k: 'l' | 'r'; a: number; s: Array<[number, string]> } | { k: 'i'; src: string; m: string; a?: number };
+const MEDIA = '/api/media/';
+const images = new Map<string, HTMLImageElement>();
+
+export function loadFxImage(src: string): Promise<void> {
+  let img = images.get(src);
+  if (!img) { img = new Image(); img.decoding = 'async'; img.src = src; images.set(src, img); }
+  return img.decode().then(() => undefined, () => undefined);
+}
+
+export function has3d(body: TextBody | undefined): boolean {
+  const sp = body?.sp3d, sc = body?.scene3d;
+  if (!sp && !sc) return false;
+  return !!((sp?.bevelT && (sp.bevelT.w ?? 6) > 0) || (sp?.depth ?? 0) > 0 || (sp?.contour ?? 0) > 0 || sc?.rot || (sc?.camera && sc.camera !== 'orthographicFront'));
+}
+export interface FxSpec { f?: FxFill; l?: { w: number; c: string; d: string }; sh?: FxShadow[]; se?: number; r?: { s: number; a: number; d: number } }
 
 export const FOLLOW_WARPS: ReadonlySet<string> = new Set(['textArchUp', 'textArchDown', 'textCircle', 'textButton']);
 let loaded = false;
@@ -24,13 +39,13 @@ export function activeWarp(body: TextBody | undefined): TextWarp | null {
 }
 
 export function runHasFx(r: Run): boolean {
-  return !!(r.fill || (r.ln && r.ln.type !== 'none') || (r.fx && (r.fx.shadow || r.fx.glow || r.fx.reflection)));
+  return !!(r.fill || (r.ln && r.ln.type !== 'none') || (r.fx && (r.fx.shadow || r.fx.glow || r.fx.reflection || r.fx.softEdge)));
 }
 
 export function needsOverlay(body: TextBody | undefined): boolean {
   if (!body || (body.vert && body.vert !== 'horz')) return false;
   const text = body.paras.some((p) => p.runs.some((r) => r.t && r.t !== '\n'));
-  return text && (!!activeWarp(body) || body.paras.some((p) => p.runs.some(runHasFx)));
+  return text && (!!activeWarp(body) || has3d(body) || body.paras.some((p) => p.runs.some(runHasFx)));
 }
 
 export function shadowsOf(fx: Effects | undefined, theme: Theme): FxShadow[] {
@@ -57,11 +72,13 @@ export function fxSpec(r: Run, theme: Theme): FxSpec | null {
     if (f.type === 'none') spec.f = { k: 'n' };
     else if (f.type === 'solid') spec.f = { k: 's', c: colorCss(f.color, theme) };
     else if (f.type === 'gradient') spec.f = { k: f.kind === 'radial' ? 'r' : 'l', a: f.angle ?? 90, s: [...f.stops].sort((a, b) => a.pos - b.pos).map((s) => [rnd(s.pos), colorCss(s.color, theme)]) };
+    else if (f.type === 'image') spec.f = { k: 'i', src: MEDIA + f.src, m: f.mode ?? 'cover', ...(f.alpha !== undefined ? { a: f.alpha } : {}) };
   }
   const ln: Line | undefined = r.ln;
   if (ln && ln.type !== 'none') spec.l = { w: ln.width ?? 0.75, c: colorCss(ln.color ?? 'tx1', theme), d: ln.dash ?? 'solid' };
   const sh = shadowsOf(r.fx, theme);
   if (sh.length) spec.sh = sh;
+  if (r.fx?.softEdge) spec.se = r.fx.softEdge;
   const rf = r.fx?.reflection;
   if (rf) spec.r = { s: rf.size ?? 0.5, a: rf.alpha ?? 0.5, d: rf.dist ?? 0 };
   return spec;
@@ -193,7 +210,7 @@ export interface TfxGlyph {
   weight: string; style: string; variant: string; color: string; spec: FxSpec | null; asc: number; desc: number; u: boolean; s: boolean; line: number;
   x0: number; base: number; box: [number, number, number, number];
 }
-export interface TfxData { glyphs: TfxGlyph[]; refl: { s: number; a: number; d: number } | null; top: number; bottom: number; left: number; right: number }
+export interface TfxData { glyphs: TfxGlyph[]; refl: { s: number; a: number; d: number } | null; top: number; bottom: number; left: number; right: number; f3: Fx3 | null }
 
 const DATA = new WeakMap<SVGSVGElement, TfxData>();
 export const tfxData = (svg: SVGSVGElement): TfxData | undefined => DATA.get(svg);
@@ -456,7 +473,11 @@ export function drawTextFx(tx: HTMLElement): void {
     }
   }
   const refl = glyphs.find((g) => g.spec?.r)?.spec?.r ?? null;
-  const data: TfxData = { glyphs, refl, top, bottom, left, right };
+  let f3: Fx3 | null = null;
+  try { f3 = tx.dataset.s3d ? JSON.parse(tx.dataset.s3d) as Fx3 : null; } catch { f3 = null; }
+  const data: TfxData = { glyphs, refl, top, bottom, left, right, f3 };
+  const t3 = cssTransform3d(f3, W, H);
+  if (svg.style.transform !== t3) { svg.style.transform = t3; svg.style.transformOrigin = `${rnd(W / 2)}px ${rnd(H / 2)}px`; }
   const markup = tfxMarkup(data, W, H);
   if (svg.dataset.key !== String(markup.length) + hashOf(markup)) {
     svg.dataset.key = String(markup.length) + hashOf(markup);
@@ -481,11 +502,17 @@ function tfxMarkup(d: TfxData, W: number, H: number): string {
   let n = 0;
   for (const g of d.glyphs) {
     const sp = g.spec;
-    const key = sp?.sh ? JSON.stringify(sp.sh) : '';
+    const key = sp?.sh || sp?.se ? JSON.stringify([sp.sh ?? [], sp.se ?? 0]) : '';
     let paint = `fill="${g.color}"`;
     if (sp?.f?.k === 'n') paint = 'fill="none"';
     else if (sp?.f?.k === 's') paint = `fill="${sp.f.c}"`;
-    else if (sp?.f) {
+    else if (sp?.f?.k === 'i') {
+      const id = `${tag}g${n++}`;
+      const bw = Math.max(1, g.box[2] - g.box[0]), bh = Math.max(1, g.box[3] - g.box[1]);
+      const par = sp.f.m === 'contain' ? 'xMidYMid meet' : sp.f.m === 'stretch' ? 'none' : 'xMidYMid slice';
+      defs += `<pattern id="${id}" patternUnits="userSpaceOnUse" x="${rnd(g.box[0] - g.x0)}" y="${rnd(g.box[1] - g.base)}" width="${rnd(bw)}" height="${rnd(bh)}"><image href="${esc(sp.f.src)}" width="${rnd(bw)}" height="${rnd(bh)}" preserveAspectRatio="${par}"${sp.f.a !== undefined ? ` opacity="${sp.f.a}"` : ''}/></pattern>`;
+      paint = `fill="url(#${id})"`;
+    } else if (sp?.f) {
       const id = `${tag}g${n++}`;
       const [a, b, c, e] = gradPoints(sp.f, [g.box[0] - g.x0, g.box[1] - g.base, g.box[2] - g.x0, g.box[3] - g.base]);
       const stops = sp.f.s.map(([pos, col]) => `<stop offset="${pos}" stop-color="${col}"/>`).join('');
@@ -508,12 +535,33 @@ function tfxMarkup(d: TfxData, W: number, H: number): string {
     if (inner) groups.set(key, (groups.get(key) ?? '') + `<g transform="${m}">${inner}</g>`);
   }
   let main = '';
-  for (const [key, body] of groups) {
-    if (!key) { main += body; continue; }
-    const id = `${tag}f${n++}`;
-    defs += filterDef(id, JSON.parse(key) as FxShadow[], W, H);
-    main += `<g filter="url(#${id})">${body}</g>`;
+  const f3 = d.f3;
+  let back = '';
+  let face = '';
+  if (f3 && Number.isFinite(d.left) && (f3.bt || f3.cw > 0 || depthSteps(f3) > 0)) {
+    const m = 24 + f3.d * 3 + f3.cw + (f3.bt?.w ?? 0);
+    const L = layers3d(f3, `${tag}F`, tag, [d.left - m, d.top - m, d.right - d.left + 2 * m, d.bottom - d.top + 2 * m]);
+    defs += L.defs;
+    if (L.back) defs += `<g id="${tag}F">${[...groups.values()].join('')}</g>`;
+    back = L.back;
+    face = L.faceFilter;
   }
+  for (const [key, raw] of groups) {
+    const body = face ? `<g filter="${face}">${raw}</g>` : raw;
+    if (!key) { main += body; continue; }
+    const [sh, se] = JSON.parse(key) as [FxShadow[], number];
+    let inner = body;
+    if (se) {
+      const sid = `${tag}s${n++}`;
+      defs += softFilter(sid, se, Number.isFinite(d.left) ? [d.left - 30, d.top - 30, d.right - d.left + 60, d.bottom - d.top + 60] : [0, 0, W, H]);
+      inner = `<g filter="url(#${sid})">${inner}</g>`;
+    }
+    if (!sh.length) { main += inner; continue; }
+    const id = `${tag}f${n++}`;
+    defs += filterDef(id, sh, W, H);
+    main += `<g filter="url(#${id})">${inner}</g>`;
+  }
+  main = back + main;
   const mid = `${tag}m`;
   let mirror = '';
   if (d.refl && Number.isFinite(d.bottom)) {
@@ -560,10 +608,22 @@ export function paintTfx(c: CanvasRenderingContext2D, d: TfxData, mirror = false
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px';
-    let fill: string | CanvasGradient | null = g.color;
+    let fill: string | CanvasGradient | CanvasPattern | null = g.color;
     if (sp?.f?.k === 'n') fill = null;
     else if (sp?.f?.k === 's') fill = sp.f.c;
-    else if (sp?.f) {
+    else if (sp?.f?.k === 'i') {
+      const img = images.get(sp.f.src);
+      if (img && img.complete && img.naturalWidth > 0) {
+        const bx = g.box[0] - g.x0, by = g.box[1] - g.base, bw = Math.max(1, g.box[2] - g.box[0]), bh = Math.max(1, g.box[3] - g.box[1]);
+        const sx = sp.f.m === 'stretch' ? bw / img.naturalWidth : (sp.f.m === 'contain' ? Math.min : Math.max)(bw / img.naturalWidth, bh / img.naturalHeight);
+        const sy = sp.f.m === 'stretch' ? bh / img.naturalHeight : sx;
+        const pat = ctx.createPattern(img, 'no-repeat');
+        if (pat) {
+          pat.setTransform(new DOMMatrix().translate(bx + (bw - img.naturalWidth * sx) / 2, by + (bh - img.naturalHeight * sy) / 2).scale(sx, sy));
+          fill = pat;
+        }
+      }
+    } else if (sp?.f) {
       const [a, b, cc, e] = gradPoints(sp.f, [g.box[0] - g.x0, g.box[1] - g.base, g.box[2] - g.x0, g.box[3] - g.base]);
       const gr = sp.f.k === 'l' ? ctx.createLinearGradient(a, b, cc, e) : ctx.createRadialGradient(a, b, 0, a, b, cc);
       for (const [pos, col] of sp.f.s) gr.addColorStop(Math.max(0, Math.min(1, pos)), col);
@@ -603,13 +663,71 @@ export function paintTfx(c: CanvasRenderingContext2D, d: TfxData, mirror = false
       c.restore();
     }
   }
-  for (const g of d.glyphs) {
-    if (g.skip && !g.u && !g.s) continue;
-    c.save();
-    c.transform(...g.m);
-    draw(g, c);
-    c.restore();
+  const f3 = d.f3;
+  if (f3) {
+    const n = depthSteps(f3);
+    const [vx, vy] = extrudeVec(f3);
+    const flat = (ctx: CanvasRenderingContext2D, g: TfxGlyph, color: string, grow: number, ox: number, oy: number): void => {
+      ctx.save();
+      ctx.translate(ox, oy);
+      ctx.transform(...g.m);
+      ctx.font = g.font;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      if (grow > 0) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = (grow * 2) / scaleOf(g.m);
+        ctx.lineJoin = 'round';
+        ctx.strokeText(g.ch, 0, 0);
+      }
+      ctx.fillStyle = color;
+      ctx.fillText(g.ch, 0, 0);
+      ctx.restore();
+    };
+    const glyphs = d.glyphs.filter((g) => !g.skip);
+    if (f3.cw > 0) {
+      for (let i = n; i >= 0; i -= Math.max(1, Math.floor(n / 6))) for (const g of glyphs) flat(c, g, f3.cc, f3.cw, (vx * f3.d * i) / Math.max(1, n), (vy * f3.d * i) / Math.max(1, n));
+    }
+    for (let i = n; i >= 1; i--) for (const g of glyphs) flat(c, g, f3.dc || shade(g.spec?.f?.k === 's' ? g.spec.f.c : g.spec?.f?.k === 'l' || g.spec?.f?.k === 'r' ? g.spec.f.s[0][1] : g.color, 0.62), 0, (vx * f3.d * i) / n, (vy * f3.d * i) / n);
   }
+  const faces = (ctx: CanvasRenderingContext2D): void => {
+    for (const g of d.glyphs) {
+      if (g.skip && !g.u && !g.s) continue;
+      ctx.save();
+      ctx.transform(...g.m);
+      draw(g, ctx);
+      ctx.restore();
+    }
+  };
+  const soft = d.glyphs.find((g) => g.spec?.se)?.spec?.se ?? 0;
+  if ((f3?.bt || soft) && Number.isFinite(d.left)) {
+    const tmp = document.createElement('canvas');
+    tmp.width = c.canvas.width;
+    tmp.height = c.canvas.height;
+    const t = tmp.getContext('2d', { willReadFrequently: true });
+    if (t) {
+      t.setTransform(T);
+      faces(t);
+      const m = ((f3?.bt?.w ?? 0) + (f3?.cw ?? 0) + soft + 4) * det;
+      const corners = [[d.left, d.top], [d.right, d.top], [d.left, d.bottom], [d.right, d.bottom]].map(([x, y]) => new DOMPoint(x, y).matrixTransform(T));
+      const bx = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x)) - m)), by = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y)) - m));
+      const ex = Math.min(tmp.width, Math.ceil(Math.max(...corners.map((p) => p.x)) + m)), ey = Math.min(tmp.height, Math.ceil(Math.max(...corners.map((p) => p.y)) + m));
+      if (ex > bx && ey > by) {
+        let px = t.getImageData(bx, by, ex - bx, ey - by);
+        t.clearRect(bx, by, ex - bx, ey - by);
+        if (f3?.bt) px = litPixels(px, f3, det);
+        if (soft) px = softPixels(px, soft, det);
+        t.putImageData(px, bx, by);
+      }
+      c.save();
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.drawImage(tmp, 0, 0);
+      c.restore();
+      tmp.width = 0;
+      return;
+    }
+  }
+  faces(c);
 }
 
 export function tfxLines(d: TfxData): Array<{ text: string; pts: Array<[number, number]>; size: number; family: string }> {

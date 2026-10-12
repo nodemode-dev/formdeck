@@ -1,6 +1,6 @@
 from .colors import color_element
 from .ooxml import clean_text, make, pt_emu, sub
-from .text_fx import append_run_fx, warp_element
+from .text_fx import append_3d, append_run_fx, warp_element
 
 ANCHOR_VALUES = {"t": "t", "m": "ctr", "b": "b"}
 ALIGN_VALUES = {"l": "l", "c": "ctr", "r": "r", "j": "just"}
@@ -70,6 +70,7 @@ def body_pr_element(text: dict, ctx, element_id: str | None):
         sub(body_pr, "a:spAutoFit")
     elif autofit == "none":
         sub(body_pr, "a:noAutofit")
+    append_3d(body_pr, text)
     return body_pr
 
 
@@ -139,7 +140,7 @@ def run_props(run: dict, ctx, tag: str, with_link: bool = True):
 
 
 def _run_children(rpr, run: dict, ctx, with_link: bool) -> None:
-    append_run_fx(rpr, run)
+    append_run_fx(rpr, run, ctx)
     if run.get("hl") is not None:
         highlight = sub(rpr, "a:highlight")
         child = color_element(run["hl"])

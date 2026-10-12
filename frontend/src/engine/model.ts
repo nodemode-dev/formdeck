@@ -30,6 +30,10 @@ export interface Run {
 }
 export interface MathRun { tex: string; mml?: string; display?: boolean }
 export interface TextWarp { preset: string; adj?: Record<string, number> }
+export type BevelPreset = 'circle' | 'relaxedInset' | 'cross' | 'coolSlant' | 'angle' | 'softRound' | 'convex' | 'slope' | 'divot' | 'riblet' | 'hardEdge' | 'artDeco';
+export interface Bevel { prst?: BevelPreset; w?: number; h?: number }
+export interface Sp3d { bevelT?: Bevel; bevelB?: Bevel; depth?: number; depthColor?: Color; contour?: number; contourColor?: Color; material?: string }
+export interface Scene3d { camera?: string; fov?: number; zoom?: number; rot?: { lat: number; lon: number; rev: number }; rig?: string; dir?: string }
 export type Bullet = { type: 'none' } | { type: 'char'; char: string; color?: Color; font?: string; size?: number } | { type: 'auto'; scheme: string; start?: number };
 export interface Para {
   runs: Run[]; align?: 'l' | 'c' | 'r' | 'j'; lvl?: number; bullet?: Bullet | null;
@@ -42,7 +46,7 @@ export interface LevelStyle {
 export interface TextBody {
   paras: Para[]; anchor?: 't' | 'm' | 'b'; autofit?: 'none' | 'shrink' | 'grow'; inset?: [number, number, number, number];
   wrap?: boolean; cols?: number; vert?: 'horz' | 'vert' | 'vert270' | 'stacked'; lstStyle?: LevelStyle[]; prompt?: string;
-  warp?: TextWarp;
+  warp?: TextWarp; sp3d?: Sp3d; scene3d?: Scene3d;
 }
 
 export type Link = { url: string } | { slide: string };
@@ -58,6 +62,7 @@ export interface ConnEnd { id: string; site: number }
 export interface Connection { kind: ConnKind; start?: ConnEnd; end?: ConnEnd }
 export interface ShapeElement extends ElementBase {
   type: 'shape'; geom?: string; adj?: Record<string, number>; path?: string; pathSize?: [number, number]; conn?: Connection; fill?: Fill | null; line?: Line | null; effects?: Effects; text?: TextBody;
+  sp3d?: Sp3d; scene3d?: Scene3d;
 }
 export interface ImageElement extends ElementBase {
   type: 'image'; src: string; crop?: { l: number; t: number; r: number; b: number }; fit?: 'cover' | 'contain' | 'stretch';
@@ -79,10 +84,13 @@ export interface ChartAxis { min?: number | null; max?: number | null; format?: 
 export interface ChartData {
   kind: ChartKind; categories: string[]; series: ChartSeries[]; title?: string; legend?: 'none' | 'top' | 'bottom' | 'left' | 'right';
   labels?: boolean; stacked?: boolean; percent?: boolean; axes?: { x?: ChartAxis; y?: ChartAxis }; gridlines?: boolean; style?: number; hole?: number;
-  font?: string; textColor?: Color;
+  font?: string; textColor?: Color; link?: ChartLink;
 }
+export interface ChartLink { path: string; sheet?: string; range?: string; mtime?: number }
 export interface ChartElement extends ElementBase { type: 'chart'; chart: ChartData }
-export interface GroupElement extends ElementBase { type: 'group'; children: SlideElement[] }
+export interface DiagramItem { id: string; text: string; children?: DiagramItem[] }
+export interface Diagram { layout: string; items: DiagramItem[]; style?: string; colors?: string }
+export interface GroupElement extends ElementBase { type: 'group'; children: SlideElement[]; diagram?: Diagram }
 export interface MediaElement extends ElementBase {
   type: 'media'; src: string; kind: 'video' | 'audio'; poster?: string; autoplay?: boolean; loop?: boolean; start?: number; end?: number; volume?: number;
   hideInShow?: boolean; narration?: boolean; sequence?: boolean; fadeIn?: number; fadeOut?: number; muted?: boolean; fullScreen?: boolean; rewind?: boolean;

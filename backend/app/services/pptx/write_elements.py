@@ -10,6 +10,7 @@ from .read_layouts import match_layout_ph
 from .write_chart import chart_graphic_data
 from .write_context import NATIVE_IMAGE_MIMES, to_png
 from .write_media import media_settings, write_audio
+from .text_fx import append_3d
 from .write_style import effects_element, fill_element, line_element
 from .write_table import table_graphic_data
 from .write_text import hyperlink_element, text_body_element
@@ -197,6 +198,7 @@ class ElementWriter:
         effects = effects_element(el.get("effects"))
         if effects is not None:
             sp_pr.append(effects)
+        append_3d(sp_pr, el)
         return sp_pr
 
     def _locks(self, parent, tag: str, el: dict) -> None:
