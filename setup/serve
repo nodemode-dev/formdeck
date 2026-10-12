@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-[ -f "$FORMSLD_ROOT/frontend/dist/index.html" ] || "$FORMSLD_ROOT/setup/build_frontend"
-fs_venv
-cd "$FORMSLD_ROOT/backend"
-export FORMSLD_DIST="$FORMSLD_ROOT/frontend/dist"
-fs_say "serving http://${FORMSLD_HOST:-127.0.0.1}:${FORMSLD_PORT:-8197}"
-exec uvicorn app.main:app --host "${FORMSLD_HOST:-127.0.0.1}" --port "${FORMSLD_PORT:-8197}"
+[ -f "$FORMDECK_ROOT/frontend/dist/index.html" ] || "$FORMDECK_ROOT/setup/build_frontend"
+fd_venv
+cd "$FORMDECK_ROOT/backend"
+export FORMDECK_DIST="$FORMDECK_ROOT/frontend/dist"
+fd_say "serving http://${FORMDECK_HOST:-127.0.0.1}:${FORMDECK_PORT:-8197}"
+exec uvicorn app.main:app --host "${FORMDECK_HOST:-127.0.0.1}" --port "${FORMDECK_PORT:-8197}"

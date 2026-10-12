@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-cd "$FORMSLD_ROOT/frontend"
+cd "$FORMDECK_ROOT/frontend"
 [ -d node_modules ] || npm install
 npm run build
-fs_say "built frontend/dist"
+fd_say "built frontend/dist"

@@ -15,17 +15,21 @@ STATE = {"session": None, "version": None, "started": False}
 
 
 def say(text: str) -> None:
-    print(f"[formsld mcp] {text}", file=sys.stderr, flush=True)
+    print(f"[formdeck mcp] {text}", file=sys.stderr, flush=True)
 
 
 def data_dir() -> Path:
-    raw = os.environ.get("FORMSLD_DATA_DIR")
-    return Path(raw).expanduser() if raw else Path.home() / "Formsld"
+    raw = os.environ.get("FORMDECK_DATA_DIR") or os.environ.get("FORMSLD_DATA_DIR")
+    if raw:
+        return Path(raw).expanduser()
+    current, legacy = Path.home() / "FormDeck", Path.home() / "Formsld"
+    return legacy if legacy.is_dir() and not current.exists() else current
 
 
 def port() -> int:
-    if os.environ.get("FORMSLD_PORT"):
-        return int(os.environ["FORMSLD_PORT"])
+    raw = os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT")
+    if raw:
+        return int(raw)
     try:
         return int(json.loads((data_dir() / "engine.json").read_text(encoding="utf-8")).get("port") or DEFAULT_PORT)
     except (OSError, ValueError, TypeError):
@@ -46,7 +50,7 @@ def alive(timeout: float = 2) -> bool:
 
 def engine_command() -> tuple[list[str], str] | None:
     exe = ".exe" if os.name == "nt" else ""
-    for frozen in (Path(__file__).resolve().parent / f"formsld-engine{exe}", ROOT / f"formsld-engine{exe}"):
+    for frozen in (Path(__file__).resolve().parent / f"formdeck-engine{exe}", ROOT / f"formdeck-engine{exe}"):
         if frozen.is_file():
             return [str(frozen)], str(frozen.parent)
     backend = ROOT / "backend"
@@ -57,19 +61,19 @@ def engine_command() -> tuple[list[str], str] | None:
 
 
 def start_engine() -> bool:
-    if STATE["started"] or os.environ.get("FORMSLD_MCP_AUTOSTART", "1") == "0":
+    if STATE["started"] or (os.environ.get("FORMDECK_MCP_AUTOSTART") or os.environ.get("FORMSLD_MCP_AUTOSTART") or "1") == "0":
         return False
     STATE["started"] = True
     cmd = engine_command()
     if cmd is None:
-        say("no engine found: run ./formsld install in the formsld folder")
+        say("no engine found: run ./formdeck install in the formdeck folder")
         return False
     env = dict(os.environ)
-    env.setdefault("FORMSLD_PORT", str(port()))
+    env.setdefault("FORMDECK_PORT", str(port()))
     dist = ROOT / "frontend" / "dist"
     if (dist / "index.html").is_file():
-        env.setdefault("FORMSLD_DIST", str(dist))
-    log = open(Path(tempfile.gettempdir()) / "formsld-engine.log", "ab")
+        env.setdefault("FORMDECK_DIST", str(dist))
+    log = open(Path(tempfile.gettempdir()) / "formdeck-engine.log", "ab")
     say(f"starting the engine on port {port()}; log: {log.name}")
     kw = {"creationflags": 0x00000008 | 0x00000200} if os.name == "nt" else {"start_new_session": True}
     subprocess.Popen(cmd[0], cwd=cmd[1], env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=log, **kw)
@@ -109,7 +113,7 @@ def forward(line: str) -> str | None:
             return forward(line)
         if msg.get("id") is None:
             return None
-        return json.dumps({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": -32000, "message": "The formsld engine is not running and could not be started: run ./formsld in the formsld folder (or open the formsld app), then retry."}})
+        return json.dumps({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": -32000, "message": "The formdeck engine is not running and could not be started: run ./formdeck in the formdeck folder (or open the formdeck app), then retry."}})
     sid = next((v for k, v in headers.items() if k.lower() == "mcp-session-id"), None)
     if sid:
         STATE["session"] = sid

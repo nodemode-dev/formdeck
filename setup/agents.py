@@ -8,11 +8,11 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILLS = ["formsld-harness", "formsld-skillset"]
-PORT = int(os.environ.get("FORMSLD_PORT") or 8197)
+SKILLS = ["formdeck-harness", "formdeck-skillset"]
+PORT = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 8197)
 PY = "python" if os.name == "nt" else "python3"
-USAGE = """usage: ./formsld agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
-       ./formsld agents sync [--check]       copy the formsld skills again (and mirror .claude/skills to .agents/skills)"""
+USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
+       ./formdeck agents sync [--check]       copy the formdeck skills again (and mirror .claude/skills to .agents/skills)"""
 
 
 def home() -> Path:
@@ -20,7 +20,7 @@ def home() -> Path:
 
 
 def caller() -> Path:
-    raw = os.environ.get("FORMSLD_CALLER_DIR")
+    raw = os.environ.get("FORMDECK_CALLER_DIR")
     return Path(raw).resolve() if raw else ROOT
 
 
@@ -32,9 +32,9 @@ def entries(portable: bool) -> dict:
     else:
         codex = f"command = {json.dumps(PY)}\nargs = [{json.dumps(str(ROOT / 'setup' / 'mcp_stdio.py'))}]\n"
     return {
-        "claude": {"formsld": {"type": "http", "url": f"http://127.0.0.1:{PORT}/mcp"}, "formsld-stdio": {"type": "stdio", "command": PY, "args": [script]}},
-        "codex": "[mcp_servers.formsld]\n" + codex + "startup_timeout_sec = 30\ntool_timeout_sec = 300\n",
-        "cursor": {"formsld": {"command": PY, "args": [cursor]}},
+        "claude": {"formdeck": {"type": "http", "url": f"http://127.0.0.1:{PORT}/mcp"}, "formdeck-stdio": {"type": "stdio", "command": PY, "args": [script]}},
+        "codex": "[mcp_servers.formdeck]\n" + codex + "startup_timeout_sec = 30\ntool_timeout_sec = 300\n",
+        "cursor": {"formdeck": {"command": PY, "args": [cursor]}},
     }
 
 
@@ -74,7 +74,7 @@ def merge_json(path: Path, servers: dict, dry: bool, said: list) -> None:
 
 def merge_toml(path: Path, block: str, dry: bool, said: list) -> None:
     text = path.read_text(encoding="utf-8") if path.exists() else ""
-    found = re.search(r"(?ms)^\[mcp_servers\.formsld\]\s*\n.*?(?=^\[|\Z)", text)
+    found = re.search(r"(?ms)^\[mcp_servers\.formdeck\]\s*\n.*?(?=^\[|\Z)", text)
     if found:
         new = text[:found.start()] + block + ("\n" if text[found.end():].strip() else "") + text[found.end():]
     else:
@@ -135,10 +135,10 @@ def install(dry: bool) -> int:
         where = caller()
         print(f"""
 Next:
-  1. Start formsld: ./formsld (the window at http://localhost:5197; the engine at http://127.0.0.1:{PORT}).
-  2. Open Claude Code, Codex or Cursor in {where} and approve the formsld MCP server
-     (Claude Code: /mcp; the formsld-stdio entry starts the engine itself when it is not running).
-  3. Ask: "Build a 10 slide deck from ./notes in the studio template". The first edit asks you once, in the formsld window, to allow agents.""")
+  1. Start formdeck: ./formdeck (the window at http://localhost:5197; the engine at http://127.0.0.1:{PORT}).
+  2. Open Claude Code, Codex or Cursor in {where} and approve the formdeck MCP server
+     (Claude Code: /mcp; the formdeck-stdio entry starts the engine itself when it is not running).
+  3. Ask: "Build a 10 slide deck from ./notes in the studio template". The first edit asks you once, in the formdeck window, to allow agents.""")
     return 0
 
 
@@ -147,7 +147,7 @@ def sync(check: bool) -> int:
     n = skills(check, said)
     print("\n".join(said))
     if check:
-        print("agents: in step" if n == 0 else "agents: skills drifted (run ./formsld agents sync)")
+        print("agents: in step" if n == 0 else "agents: skills drifted (run ./formdeck agents sync)")
         return 1 if n else 0
     print(f"agents: {n} skill cop{'ies' if n != 1 else 'y'} updated")
     return 0

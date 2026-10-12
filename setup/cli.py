@@ -9,8 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
-os.environ.setdefault("FORMSLD_DATA_DIR", str(Path.home() / "Formsld"))
-CALLER = Path(os.environ.get("FORMSLD_CALLER_DIR") or os.getcwd())
+CALLER = Path(os.environ.get("FORMDECK_CALLER_DIR") or os.environ.get("FORMSLD_CALLER_DIR") or os.getcwd())
 
 
 def here(p: str) -> Path:
@@ -19,7 +18,7 @@ def here(p: str) -> Path:
 
 
 def args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(prog="./formsld build-deck", description="Build a deck from files without the window: ingest, draft (or your script), compile, export.")
+    ap = argparse.ArgumentParser(prog="./formdeck build-deck", description="Build a deck from files without the window: ingest, draft (or your script), compile, export.")
     ap.add_argument("files", nargs="*", help="files or folders: md, txt, pdf, docx, pptx, csv, xlsx, images, gifs, meeting notes")
     ap.add_argument("--template", "-t", help="template id (--list-templates)")
     ap.add_argument("--title", help="deck title")
@@ -49,10 +48,10 @@ def main() -> int:
         return 0
     ids = {t["id"] for t in templates.catalog()["templates"]}
     if a.template and a.template not in ids:
-        print(f"formsld: no template {a.template} (--list-templates shows them)", file=sys.stderr)
+        print(f"formdeck: no template {a.template} (--list-templates shows them)", file=sys.stderr)
         return 2
     if not a.files and not a.script:
-        print("formsld: give files to build from, or --script deck.md (see --help)", file=sys.stderr)
+        print("formdeck: give files to build from, or --script deck.md (see --help)", file=sys.stderr)
         return 2
     t0 = time.time()
     intake = None
@@ -60,19 +59,19 @@ def main() -> int:
         paths = [here(f) for f in a.files]
         missing = [str(p) for p in paths if not p.exists()]
         if missing:
-            print("formsld: not found: " + ", ".join(missing), file=sys.stderr)
+            print("formdeck: not found: " + ", ".join(missing), file=sys.stderr)
             return 2
         intake = intake_mod.ingest(paths)
         if a.brief:
             intake["brief"] = a.brief
         bad = [f"{s.get('name')}: {s['error']}" for s in intake.get("sources", []) if s.get("error")]
         if bad:
-            print("formsld: skipped " + "; ".join(bad), file=sys.stderr)
+            print("formdeck: skipped " + "; ".join(bad), file=sys.stderr)
     tid = a.template or templates.DEFAULT_ID
     if a.script:
         sp = here(a.script)
         if not sp.is_file():
-            print(f"formsld: no script at {sp}", file=sys.stderr)
+            print(f"formdeck: no script at {sp}", file=sys.stderr)
             return 2
         script = sp.read_text(encoding="utf-8")
         base = sp.parent
@@ -94,7 +93,7 @@ def main() -> int:
     if out.is_dir():
         out = out / f"{name}.{fmt}"
     if not out.parent.is_dir():
-        print(f"formsld: the folder {out.parent} does not exist", file=sys.stderr)
+        print(f"formdeck: the folder {out.parent} does not exist", file=sys.stderr)
         return 2
     if fmt == "fsld":
         data = package.pack(deck, media_store())
@@ -105,7 +104,7 @@ def main() -> int:
         data = buf.getvalue()
     out.write_bytes(data)
     report = lint.lint(deck)
-    print(f"formsld build-deck · {len(deck['slides'])} slides · {tid} · {deck['size']['w']:g}x{deck['size']['h']:g}")
+    print(f"formdeck build-deck · {len(deck['slides'])} slides · {tid} · {deck['size']['w']:g}x{deck['size']['h']:g}")
     for n, s in enumerate(deck["slides"], 1):
         sem = (s.get("spec") or {}).get("layout") or ""
         print(f"{n:>3} {sem:<11} {lint.slide_title(s)[:70] or (s.get('spec') or {}).get('quote', '')[:70]}")

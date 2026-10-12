@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -e
-FORMSLD_CALLER_DIR="$PWD"
-export FORMSLD_CALLER_DIR
+FORMDECK_CALLER_DIR="$PWD"
+export FORMDECK_CALLER_DIR
 cd "$(dirname "$0")"
 usage() {
-  printf 'formsld %s · presentation editor\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
+  printf 'formdeck %s · presentation editor\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
   cat << 'EOF'
 
-usage: ./formsld [command] [options]
+usage: ./formdeck [command] [options]
 
   (none) | boot       boot backend (8197) and frontend (5197) together
   install [--lite]    install backend and frontend
@@ -19,7 +19,7 @@ usage: ./formsld [command] [options]
   freeze              freeze the backend into the Tauri sidecar binary
   desktop dev|build   run or bundle the desktop app
   doctor              check the toolchain, installs and ports
-  mcp                 formsld over MCP's stdio transport, for Claude Desktop and other MCP clients
+  mcp                 formdeck over MCP's stdio transport, for Claude Desktop and other MCP clients
   agents install|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
   build-deck [args]   build a deck from files headlessly, without the window
   templates export [dir]  write the built-in templates as .pptx files
@@ -53,5 +53,5 @@ case "$cmd" in
   templates) exec setup/templates "$@" ;;
   clean) exec setup/clean "$@" ;;
   help|-h|--help) usage ;;
-  *) printf '[formsld] unknown command: %s\n\n' "$cmd"; usage; exit 2 ;;
+  *) printf '[formdeck] unknown command: %s\n\n' "$cmd"; usage; exit 2 ;;
 esac

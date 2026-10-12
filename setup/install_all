@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-fs_say "installing backend"
-( cd "$FORMSLD_ROOT/backend" && ./oc_install "$@" )
-fs_say "installing frontend"
-( cd "$FORMSLD_ROOT/frontend" && ./oc_install "$@" )
-fs_say "done. Boot with ./formsld"
+fd_say "installing backend"
+( cd "$FORMDECK_ROOT/backend" && ./oc_install "$@" )
+fd_say "installing frontend"
+( cd "$FORMDECK_ROOT/frontend" && ./oc_install "$@" )
+fd_say "done. Boot with ./formdeck"

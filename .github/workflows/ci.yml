@@ -37,8 +37,8 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
-      - run: python -m compileall -q app formsld_engine.py
-      - run: python formsld_engine.py --selfcheck
+      - run: python -m compileall -q app formdeck_engine.py
+      - run: python formdeck_engine.py --selfcheck
       - name: Boot the engine and probe it
         run: |
           python -m uvicorn app.main:app --host 127.0.0.1 --port 8197 &
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Shell syntax
         run: |
-          for f in formsld formsld_oc_install backend/oc_install backend/boot_backend frontend/oc_install frontend/boot_frontend setup/*; do
+          for f in formdeck formdeck_oc_install backend/oc_install backend/boot_backend frontend/oc_install frontend/boot_frontend setup/*; do
             case "$f" in *.bat|*.py) continue ;; esac
             bash -n "$f"
           done

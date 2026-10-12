@@ -1,6 +1,7 @@
 @echo off
 setlocal
-set "FORMSLD_CALLER_DIR=%cd%"
+set "FORMDECK_CALLER_DIR=%cd%"
+for %%k in (PORT HOST DATA_DIR TARGET DIST CORS_ORIGINS MCP_AUTOSTART) do call :legacy %%k
 cd /d "%~dp0"
 set "CMD=%~1"
 set "ARG=%~2"
@@ -41,16 +42,19 @@ if /i "%CMD%"=="clean" ( call setup\clean.bat %REST% & goto :eof )
 if /i "%CMD%"=="help" ( call :usage & exit /b 0 )
 if /i "%CMD%"=="-h" ( call :usage & exit /b 0 )
 if /i "%CMD%"=="--help" ( call :usage & exit /b 0 )
-echo [formsld] unknown command: %CMD%
+echo [formdeck] unknown command: %CMD%
 echo.
 call :usage
 exit /b 2
+:legacy
+if not defined FORMDECK_%1 if defined FORMSLD_%1 call set "FORMDECK_%1=%%FORMSLD_%1%%"
+exit /b 0
 :usage
 set "VER="
 for /f "tokens=2 delims='" %%v in ('findstr /b /c:"export const VERSION" frontend\src\version.ts 2^>nul') do set "VER=%%v"
-echo formsld %VER%, presentation editor
+echo formdeck %VER%, presentation editor
 echo.
-echo usage: formsld.bat [command] [options]
+echo usage: formdeck.bat [command] [options]
 echo.
 echo   (none) ^| boot       boot backend (8197) and frontend (5197) together
 echo   install [--lite]    install backend and frontend
@@ -62,7 +66,7 @@ echo   serve               serve the built frontend from the backend on 127.0.0.
 echo   freeze              freeze the backend into the Tauri sidecar binary
 echo   desktop dev^|build   run or bundle the desktop app
 echo   doctor              check the toolchain, installs and ports
-echo   mcp                 formsld over MCP's stdio transport, for Claude Desktop and other MCP clients
+echo   mcp                 formdeck over MCP's stdio transport, for Claude Desktop and other MCP clients
 echo   agents install^|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
 echo   build-deck [args]   build a deck from files headlessly, without the window
 echo   templates export [dir]  write the built-in templates as .pptx files

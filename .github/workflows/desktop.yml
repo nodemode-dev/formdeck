@@ -43,8 +43,8 @@ jobs:
       - name: Install both sides and the desktop toolchain
         shell: bash
         run: |
-          ./formsld install
-          ./formsld install-desktop
+          ./formdeck install
+          ./formdeck install-desktop
       - name: Build the desktop bundle
         shell: bash
         env:
@@ -60,14 +60,14 @@ jobs:
           [ -n "$APPLE_CERTIFICATE" ] || unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY
           [ -n "$APPLE_ID" ] || unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            ./formsld desktop build --config '{"bundle":{"createUpdaterArtifacts":true}}'
+            ./formdeck desktop build --config '{"bundle":{"createUpdaterArtifacts":true}}'
           else
             unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-            ./formsld desktop build
+            ./formdeck desktop build
           fi
       - uses: actions/upload-artifact@v4
         with:
-          name: formsld-${{ matrix.name }}
+          name: formdeck-${{ matrix.name }}
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/dmg/*.dmg
@@ -103,7 +103,7 @@ jobs:
                       platforms[key] = {'signature': open(f + '.sig').read().strip(), 'url': base + os.path.basename(f)}
                       break
           if platforms:
-              feed = {'version': tag.lstrip('v'), 'notes': f'formsld {tag}', 'platforms': platforms,
+              feed = {'version': tag.lstrip('v'), 'notes': f'FormDeck {tag}', 'platforms': platforms,
                       'pub_date': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}
               json.dump(feed, open('bundles/latest.json', 'w'), indent=2)
               print('latest.json written for', ', '.join(platforms))

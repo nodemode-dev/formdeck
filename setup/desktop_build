@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 source "$(dirname "$0")/lib.sh"
-"$FORMSLD_ROOT/setup/build_frontend"
-"$FORMSLD_ROOT/setup/freeze_backend"
-cd "$FORMSLD_ROOT"
-[ -f src-tauri/icons/icon.icns ] || frontend/node_modules/.bin/tauri icon assets/formsld_icon.png
+"$FORMDECK_ROOT/setup/build_frontend"
+"$FORMDECK_ROOT/setup/freeze_backend"
+cd "$FORMDECK_ROOT"
+[ -f src-tauri/icons/icon.icns ] || frontend/node_modules/.bin/tauri icon assets/formdeck_icon.png
 frontend/node_modules/.bin/tauri build "$@"
-fs_say "bundles are in src-tauri/target/release/bundle"
+fd_say "bundles are in src-tauri/target/release/bundle"
