@@ -136,6 +136,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'export-pdf', label: 'Export as PDF', icon: 'filePdf', enabled: has, run: () => h.exportAs('pdf') },
     { id: 'export-png', label: 'Export Slides as Pictures', icon: 'fileImage', enabled: has, run: () => h.exportAs('png') },
     { id: 'export-fdec', label: 'Download FormDeck File (.fdec)', icon: 'download', enabled: has, run: () => h.exportAs('fdec') },
+    { id: 'export-web', label: 'Publish as Web Page (.html)...', icon: 'link', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-publish').then((m) => m.publishDialog(ed)); } },
     { id: 'print', label: 'Print or Save as PDF...', keys: ['Mod+P'], enabled: has, run: () => h.print() },
     { id: 'undo', label: 'Undo', keys: ['Mod+Z'], icon: 'undo', enabled: () => !!E()?.doc.canUndo, run: () => { const ed = E(); if (!ed) return; ed.stage.endEdit(); ed.live.undo(ed.doc.id); } },
     { id: 'redo', label: 'Redo', keys: ['Shift+Mod+Z', 'Mod+Y'], icon: 'redo', enabled: () => !!E()?.doc.canRedo, run: () => { const ed = E(); if (ed) ed.live.redo(ed.doc.id); } },
