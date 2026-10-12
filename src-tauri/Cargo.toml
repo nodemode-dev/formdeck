@@ -1,6 +1,6 @@
 [package]
 name = "formdeck"
-version = "0.8.10"
+version = "0.9.1"
 description = "FormDeck desktop shell"
 authors = ["nodemode-ai"]
 license = "Apache-2.0"

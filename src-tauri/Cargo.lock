@@ -1115,7 +1115,7 @@ dependencies = [
 
 [[package]]
 name = "formdeck"
-version = "0.8.10"
+version = "0.9.1"
 dependencies = [
  "fontdb",
  "regex",
