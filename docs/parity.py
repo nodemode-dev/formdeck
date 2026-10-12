@@ -163,8 +163,8 @@ row(a, "MCP server for outside agents (HTTP and stdio)", 0, 0, 0, F, "`backend/a
 row(a, "Agent edits land live in the open window, undone per turn", 0, 0, 0, F, "`services/store.py step(turn)`, `commands.ts undo-agent`")
 row(a, "Agent sees and measures its own slides", 0, 0, 0, F, "`agent-bridge.ts` render_slides, measure; `services/lint.py`")
 row(a, "Agent consent and on/off switch", 0, 0, 0, F, "`agent-bridge.ts` consent, Preferences and Agent tab")
-row(a, "Skills shipped for Claude Code, Codex and Cursor", 0, 0, 0, F, "`.claude/skills/formsld-harness`, `setup/agents.py install`")
-row(a, "Headless build from files on the command line", 0, 0, 0, F, "`setup/cli.py` (`./formsld build-deck`)")
+row(a, "Skills shipped for Claude Code, Codex and Cursor", 0, 0, 0, F, "`.claude/skills/formdeck-harness`, `setup/agents.py install`")
+row(a, "Headless build from files on the command line", 0, 0, 0, F, "`setup/cli.py` (`./formdeck build-deck`)")
 row(a, "Scripting and macros", 1, 0, 1, P, "raw ops through `mcp.py apply_ops` and `/api/decks/{id}/steps`; no in-app script editor")
 row(a, "Add-in marketplace", 1, 0, 1, N, "nothing found")
 
@@ -208,7 +208,7 @@ if __name__ == "__main__":
         for area in AREAS:
             rows = [r for r in R if r["area"] == area]
             lines.append(f"### {area}\n")
-            lines.append("| Capability | PowerPoint | Keynote | Slides | formsld | Evidence |")
+            lines.append("| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |")
             lines.append("| --- | --- | --- | --- | --- | --- |")
             for r in rows:
                 lines.append(f"| {r['cap']} | {mark(r['ppt'])} | {mark(r['kn'])} | {mark(r['gs'])} | {word[r['st']]} | {r['ev']} |")

@@ -1,6 +1,6 @@
-# formsld parity
+# FormDeck parity
 
-How much of Microsoft PowerPoint, Apple Keynote and Google Slides formsld 0.6.0 covers, measured row by row against its own code. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
+How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.7.2 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2; no row moved in 0.7.1 or 0.7.2). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
 
 ## Method
 
@@ -261,8 +261,8 @@ Not on the list and not offered by formsld: PowerPoint Designer and Keynote Slid
 | Agent edits land live in the open window, undone per turn | no | no | no | Full | `services/store.py step(turn)`, `commands.ts undo-agent` |
 | Agent sees and measures its own slides | no | no | no | Full | `agent-bridge.ts` render_slides, measure; `services/lint.py` |
 | Agent consent and on/off switch | no | no | no | Full | `agent-bridge.ts` consent, Preferences and Agent tab |
-| Skills shipped for Claude Code, Codex and Cursor | no | no | no | Full | `.claude/skills/formsld-harness`, `setup/agents.py install` |
-| Headless build from files on the command line | no | no | no | Full | `setup/cli.py` (`./formsld build-deck`) |
+| Skills shipped for Claude Code, Codex and Cursor | no | no | no | Full | `.claude/skills/formdeck-harness`, `setup/agents.py install` |
+| Headless build from files on the command line | no | no | no | Full | `setup/cli.py` (`./formdeck build-deck`) |
 | Scripting and macros | yes | no | yes | Partial | raw ops through `mcp.py apply_ops` and `/api/decks/{id}/steps`; no in-app script editor |
 | Add-in marketplace | yes | no | yes | None | nothing found |
 
