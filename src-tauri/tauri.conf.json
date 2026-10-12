@@ -37,6 +37,18 @@
       "hardenedRuntime": true,
       "entitlements": "entitlements.plist"
     },
+    "linux": {
+      "deb": {
+        "section": "office",
+        "recommends": ["gstreamer1.0-plugins-base", "gstreamer1.0-plugins-good"]
+      },
+      "rpm": {
+        "recommends": ["gstreamer1-plugins-base", "gstreamer1-plugins-good"]
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
     "fileAssociations": [
       { "ext": ["fdec"], "name": "FormDeck Deck", "description": "FormDeck presentation deck", "role": "Editor", "mimeType": "application/x-formdeck" },
       { "ext": ["fsld"], "name": "FormDeck Deck (older)", "description": "FormDeck presentation deck saved by formsld", "role": "Editor", "mimeType": "application/x-formsld" },

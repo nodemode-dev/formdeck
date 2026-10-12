@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>ai.nodemode.formdeck</id>
+  <name>FormDeck</name>
+  <summary>Presentations and decks</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <developer id="ai.nodemode">
+    <name>nodemode-ai</name>
+  </developer>
+  <description>
+    <p>FormDeck is a presentation editor: slides, layouts, masters and templates in its own .fdec decks, PowerPoint, Keynote and Google Slides exchange through .pptx, PDF export, a Presenter View, and agent automation that builds and edits decks in plain language.</p>
+  </description>
+  <launchable type="desktop-id">ai.nodemode.formdeck.desktop</launchable>
+  <url type="homepage">https://github.com/nodemode-ai/formdeck</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.8.7" date="2026-10-12"/>
+  </releases>
+</component>

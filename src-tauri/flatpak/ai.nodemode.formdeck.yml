@@ -1,0 +1,32 @@
+id: ai.nodemode.formdeck
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
+command: formdeck
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  - --socket=pulseaudio
+  - --share=network
+  - --filesystem=home
+modules:
+  - name: formdeck
+    buildsystem: simple
+    sources:
+      - type: file
+        path: formdeck.deb
+      - type: file
+        path: ai.nodemode.formdeck.metainfo.xml
+    build-commands:
+      - ar -x formdeck.deb
+      - tar -xf data.tar.gz
+      - install -Dm755 usr/bin/formdeck /app/bin/formdeck
+      - install -Dm755 usr/bin/formdeck-engine /app/bin/formdeck-engine
+      - install -Dm644 usr/share/applications/FormDeck.desktop /app/share/applications/ai.nodemode.formdeck.desktop
+      - desktop-file-edit --set-icon=ai.nodemode.formdeck /app/share/applications/ai.nodemode.formdeck.desktop
+      - install -Dm644 usr/share/icons/hicolor/32x32/apps/formdeck.png /app/share/icons/hicolor/32x32/apps/ai.nodemode.formdeck.png
+      - install -Dm644 usr/share/icons/hicolor/128x128/apps/formdeck.png /app/share/icons/hicolor/128x128/apps/ai.nodemode.formdeck.png
+      - install -Dm644 usr/share/icons/hicolor/256x256@2/apps/formdeck.png /app/share/icons/hicolor/256x256/apps/ai.nodemode.formdeck.png
+      - install -Dm644 ai.nodemode.formdeck.metainfo.xml /app/share/metainfo/ai.nodemode.formdeck.metainfo.xml

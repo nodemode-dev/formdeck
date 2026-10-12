@@ -16,8 +16,12 @@ jobs:
         include:
           - name: macos-arm64
             os: macos-latest
+          - name: macos-x64
+            os: macos-15-intel
           - name: linux-x64
             os: ubuntu-22.04
+          - name: linux-arm64
+            os: ubuntu-22.04-arm
           - name: windows-x64
             os: windows-latest
     runs-on: ${{ matrix.os }}
@@ -39,7 +43,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf rpm gstreamer1.0-plugins-base gstreamer1.0-plugins-good
       - name: Install both sides and the desktop toolchain
         shell: bash
         run: |
@@ -65,6 +69,16 @@ jobs:
             unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
             ./formdeck desktop build
           fi
+      - name: Name the macOS updater archive by architecture
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          arch=$([ "$(uname -m)" = arm64 ] && echo aarch64 || echo x64)
+          cd src-tauri/target/release/bundle/macos
+          for f in *.app.tar.gz *.app.tar.gz.sig; do
+            [ -e "$f" ] && mv "$f" "${f/.app.tar.gz/_$arch.app.tar.gz}"
+          done
+          ls
       - uses: actions/upload-artifact@v4
         with:
           name: formdeck-${{ matrix.name }}
@@ -79,9 +93,36 @@ jobs:
             src-tauri/target/release/bundle/macos/*.app.tar.gz
             src-tauri/target/release/bundle/**/*.sig
 
-  release:
+  flatpak:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-47
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: formdeck-linux-x64
+          path: linux-x64
+      - name: Stage the deb for the manifest
+        shell: bash
+        run: cp "$(ls linux-x64/deb/*.deb | head -1)" src-tauri/flatpak/formdeck.deb
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: FormDeck.flatpak
+          manifest-path: src-tauri/flatpak/ai.nodemode.formdeck.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formdeck-flatpak
+          if-no-files-found: error
+          path: FormDeck.flatpak
+
+  release:
+    needs: [build, flatpak]
+    if: always() && startsWith(github.ref, 'refs/tags/v') && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -95,7 +136,9 @@ jobs:
           import datetime, glob, json, os
           tag = os.environ['GITHUB_REF_NAME']
           base = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{tag}/"
-          targets = {'darwin-aarch64': '*.app.tar.gz', 'linux-x86_64': '*.AppImage', 'windows-x86_64': '*-setup.exe'}
+          targets = {'darwin-aarch64': '*aarch64.app.tar.gz', 'darwin-x86_64': '*x64.app.tar.gz',
+                     'linux-x86_64': '*amd64.AppImage', 'linux-aarch64': '*aarch64.AppImage',
+                     'windows-x86_64': '*-setup.exe'}
           platforms = {}
           for key, pattern in targets.items():
               for f in sorted(glob.glob('bundles/**/' + pattern, recursive=True)):
