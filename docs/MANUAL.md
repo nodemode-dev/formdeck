@@ -29,6 +29,18 @@ Other commands from `./formdeck help`:
 
 `FORMDECK_PORT` moves the engine off 8197 and `FORMDECK_DATA_DIR` moves the library off `~/FormDeck`.
 
+### The desktop app
+
+The desktop app needs no Python or Node: the engine travels inside it and starts on a free local port when the window opens. Install the package for your system:
+
+- **macOS**: open the .dmg and drag FormDeck to Applications. If the build is not notarised, macOS blocks the first start; allow it in System Settings > Privacy & Security > Open Anyway.
+- **Windows**: run the setup .exe or the .msi.
+- **Debian and Ubuntu**: `sudo apt install ./FormDeck_<version>_amd64.deb` (apt also pulls the GStreamer plugins that play video).
+- **Fedora and openSUSE**: `sudo dnf install ./FormDeck-<version>-1.x86_64.rpm`.
+- **Any Linux**: make the .AppImage executable and run it, or `flatpak install --user FormDeck.flatpak`. The Flatpak can read and write your home folder, where the library lives, and reach the network for agent chat.
+
+The package registers .fdec, .fsld, .pptx and .odp files with FormDeck. Uninstalling leaves the library in `~/FormDeck`.
+
 ## Home
 
 Home opens when no deck is open, and from the FormDeck mark in the title bar or File > Home (Alt+Mod+H).

@@ -48,10 +48,19 @@ Without the window: `./formdeck build-deck notes.md q3.pdf shots/ --template aur
 ```
 ./formdeck install-desktop   # PyInstaller and the Rust and Tauri toolchain check
 ./formdeck desktop dev
-./formdeck desktop build     # freezes the engine sidecar, bundles .app/.dmg, .msi/.exe, .deb/.AppImage
+./formdeck desktop build     # freezes the engine sidecar, then bundles for the platform it runs on
 ```
 
-CI builds all three platforms in `.github/workflows/desktop.yml`.
+| Platform | Packages | Built by |
+| --- | --- | --- |
+| macOS 12+ (Apple silicon and Intel) | .app, .dmg | CI, or `desktop build` on a Mac |
+| Windows 10+ (x64) | .msi, setup .exe (NSIS) | CI, or `desktop build` on Windows |
+| Linux (x64 and arm64) | .deb, .rpm, .AppImage | CI, or `desktop build` on Linux |
+| Linux, any distribution | .flatpak (GNOME 47 runtime) | CI, from the .deb with `src-tauri/flatpak/ai.nodemode.formdeck.yml` |
+
+Each package carries the engine as a frozen sidecar, so nothing else needs installing. Linux builds need `libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, `libxdo-dev`, `libssl-dev`, `patchelf` and `rpm`; video playback needs the GStreamer base and good plugins, which the .deb and .rpm recommend and the AppImage carries. Signing and notarising are optional and switch on when the Apple and updater secrets are set. FreeBSD has no desktop package because Tauri does not support it; the browser build needs only Python and Node, but it has not been tested there.
+
+CI builds every row above in `.github/workflows/desktop.yml` on each version tag.
 
 ## Layout
 
@@ -68,11 +77,11 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps in 0.8.0
 
 - Co-authoring across machines, share links and publishing to the web are not built.
-- No stock or AI pictures, share links or live publishing, caption translation, or validated PDF/UA export yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.8.6: 93.8%, 95.5% and 92.6%).
+- No stock or AI pictures, share links or live publishing, caption translation, or validated PDF/UA export yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.8.7: 93.8%, 95.5% and 92.6%).
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in FormDeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in FormDeck; in .pptx they round-trip as native charts for the common kinds.
-- Embedded fonts in .pptx are written on request (File > Export > Fonts) and read back, except fonts PowerPoint stored with MicroType Express compression; without embedding, PowerPoint substitutes the template's bundled open fonts when missing.
+- Embedded fonts in .pptx are written on request (File > Export > Fonts) and read back, including fonts PowerPoint stored with MicroType Express compression; without embedding, PowerPoint substitutes the template's bundled open fonts when missing.
 
 ## Credits
 
