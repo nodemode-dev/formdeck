@@ -6,10 +6,10 @@ import { iconOf, plainLabel, type Qat } from './qat';
 
 export const RIBBON_KEY = 'formdeck.ribbon';
 
-export interface Item { k: 'cmd' | 'act' | 'menu' | 'slot'; id: string; label?: string; icon?: string; text?: boolean; swatch?: boolean; items?: MenuItem[]; title?: string }
+export interface Item { k: 'cmd' | 'act' | 'menu' | 'slot'; id: string; label?: string; icon?: string; text?: boolean; swatch?: boolean; items?: MenuItem[]; title?: string; keep?: boolean }
 export interface Rows { rows: Item[][] }
 export type Unit = Item | Rows;
-export interface GroupDef { id: string; label: string; units: Unit[] }
+export interface GroupDef { id: string; label: string; units: Unit[]; icon?: string; rank?: number }
 export interface TabDef { id: string; label: string; groups: GroupDef[]; ctx?: boolean; custom?: boolean }
 export interface CustomGroup { id: string; label: string; cmds: string[] }
 export interface CustomTab { id: string; label: string; groups: CustomGroup[] }
@@ -23,6 +23,9 @@ export interface RibbonOpts {
   fileItems: () => MenuItem[];
   customize: (what: 'ribbon' | 'qat') => void;
 }
+
+interface Step { lv: number; gal: number }
+interface Meas { rev: number; steps: Step[]; w: number[] }
 
 export interface MenuRow { label: string; run?: () => void; checked?: boolean; disabled?: boolean; sep?: boolean }
 
@@ -105,6 +108,13 @@ export class Ribbon {
   private readonly simpleBtn: HTMLButtonElement;
   private readonly fileBtn: HTMLButtonElement;
   private mark = '';
+  private readonly gpop: HTMLElement;
+  private popGroup: HTMLElement | null = null;
+  private readonly meas = new WeakMap<HTMLElement, Meas>();
+  private rev = 0;
+  private fitKey = '';
+  private fitRaf = 0;
+  private look = '';
 
   constructor(host: HTMLElement, private readonly commands: Commands, readonly qat: Qat, private readonly opts: RibbonOpts) {
     const s = readJson<Saved>(RIBBON_KEY);
@@ -122,6 +132,8 @@ export class Ribbon {
     this.fileBtn = this.root.querySelector('.fd-rb-file') as HTMLButtonElement;
     this.collapseBtn = this.root.querySelector('[data-tool="collapse"]') as HTMLButtonElement;
     this.simpleBtn = this.root.querySelector('[data-tool="simplified"]') as HTMLButtonElement;
+    this.gpop = el('<div class="fd-rb-gpop" role="toolbar" hidden></div>');
+    this.root.appendChild(this.gpop);
     this.root.insertBefore(qat.node, this.tabsEl);
     host.append(this.root, opts.simple);
     for (const t of opts.tabs) this.buildTab(t);
@@ -133,6 +145,27 @@ export class Ribbon {
     if (!this.defs.has(this.tab) || this.tabHidden(this.tab)) this.tab = 'home';
     this.showTab(this.tab);
     this.applyMode();
+    this.watchLayout();
+  }
+
+  private watchLayout(): void {
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => this.fit()).observe(this.body);
+    const bump = (): void => { this.rev++; this.queueFit(); };
+    document.fonts?.addEventListener?.('loadingdone', bump);
+    this.look = this.lookKey();
+    new MutationObserver(() => { const k = this.lookKey(); if (k !== this.look) { this.look = k; bump(); } }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
+    new MutationObserver(() => { const k = this.lookKey(); if (k !== this.look) { this.look = k; bump(); } }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  private lookKey(): string {
+    const cs = getComputedStyle(document.body);
+    return `${document.body.className}|${document.documentElement.className}|${cs.fontFamily}|${cs.fontSize}|${getComputedStyle(document.documentElement).getPropertyValue('--ctl-sm')}`;
+  }
+
+  private watchSlot(n: HTMLElement): void {
+    const bump = (): void => { this.rev++; this.queueFit(); };
+    new MutationObserver(bump).observe(n, { childList: true, subtree: true });
+    new MutationObserver(bump).observe(n, { attributes: true, attributeFilter: ['hidden', 'class'] });
   }
 
   private wire(): void {
@@ -155,7 +188,10 @@ export class Ribbon {
       const sc = (e.target as HTMLElement).closest<HTMLElement>('.fd-rb-body');
       if (sc && Math.abs(e.deltaY) > Math.abs(e.deltaX)) sc.scrollLeft += e.deltaY;
     }, { passive: true });
-    document.addEventListener('pointerdown', (e) => { if (this.float && !this.root.contains(e.target as Node) && !(e.target as HTMLElement).closest?.('.fd-menu, .fd-dd-pop, .fd-pop, .fd-flyout, .fd-scrim')) this.setFloat(false); }, true);
+    const keepOpen = '.fd-menu, .fd-dd-pop, .fd-pop, .fd-flyout, .fd-scrim';
+    document.addEventListener('pointerdown', (e) => { const t = e.target as HTMLElement; if (this.popGroup && !this.gpop.contains(t) && !t.closest?.(`.fd-rb-gbtn, ${keepOpen}`)) this.closePop(false); }, true);
+    this.root.addEventListener('focusout', (e) => { const to = e.relatedTarget as HTMLElement | null; if (this.popGroup && to && !this.gpop.contains(to) && !to.closest(`.fd-rb-gbtn, ${keepOpen}`)) this.closePop(false); });
+    document.addEventListener('pointerdown', (e) => { if (this.float &&!this.root.contains(e.target as Node) && !(e.target as HTMLElement).closest?.('.fd-menu, .fd-dd-pop, .fd-pop, .fd-flyout, .fd-scrim')) this.setFloat(false); }, true);
   }
 
   private buildTab(def: TabDef): void {
@@ -176,8 +212,10 @@ export class Ribbon {
   }
 
   private buildGroup(tab: TabDef, g: GroupDef): HTMLElement | null {
-    const node = el(`<div class="fd-rb-group" role="toolbar" aria-label="${escapeHtml(g.label)}" data-g="${tab.id}.${g.id}"><div class="fd-rb-gbody"></div><div class="fd-rb-glabel" aria-hidden="true">${escapeHtml(g.label)}</div></div>`);
-    const body = node.firstElementChild as HTMLElement;
+    const label = escapeHtml(g.label);
+    const node = el(`<div class="fd-rb-group" role="toolbar" aria-label="${label}" data-g="${tab.id}.${g.id}"><button class="fd-rb-btn fd-rb-gbtn is-large" type="button" data-group="1" aria-haspopup="true" aria-expanded="false" aria-label="${label}" title="${label}"><span class="fd-rb-ic">${icon(g.icon ?? this.groupIcon(g), 28)}</span><span class="fd-rb-lbl"><span>${label}</span>${icon('chevronDown', 10)}</span></button><div class="fd-rb-gbody"></div><div class="fd-rb-glabel" aria-hidden="true">${label}</div></div>`);
+    if (g.rank) node.dataset.rank = String(g.rank);
+    const body = node.querySelector('.fd-rb-gbody') as HTMLElement;
     for (const u of g.units) {
       if ('rows' in u) {
         const col = el('<div class="fd-rb-stack"></div>');
@@ -192,13 +230,27 @@ export class Ribbon {
         if (n) body.appendChild(n);
       }
     }
+    if (body.querySelector(':scope > .is-large')) node.dataset.big = '1';
     return body.childElementCount ? node : null;
+  }
+
+  private groupIcon(g: GroupDef): string {
+    for (const u of g.units) {
+      for (const it of 'rows' in u ? u.rows.flat() : [u]) {
+        if (it.k === 'slot') continue;
+        if (it.icon) return it.icon;
+        if (it.k === 'cmd') return iconOf(this.commands.get(it.id), it.id);
+      }
+    }
+    return 'dots';
   }
 
   private item(it: Item, large: boolean): HTMLElement | null {
     if (it.k === 'slot') {
       const make = this.opts.slots[it.id];
-      return make ? make() : null;
+      const n = make ? make() : null;
+      if (n) this.watchSlot(n);
+      return n;
     }
     const cmd = it.k === 'cmd' ? this.commands.get(it.id) : undefined;
     if (it.k === 'cmd' && !cmd) return null;
@@ -209,8 +261,8 @@ export class Ribbon {
     if (it.k === 'menu') { this.menuItems.set(it.id, it.items ?? []); }
     const cls = `fd-rb-btn${large ? ' is-large' : ' is-small'}${it.text ? ' has-text' : ''}${it.swatch ? ' fd-rb-color' : ''}`;
     const title = escapeHtml(it.title ?? label);
-    if (large) return el(`<button class="${cls}" type="button" ${attrs} title="${title}"><span class="fd-rb-ic">${icon(ic, 28)}</span><span class="fd-rb-lbl"><span>${escapeHtml(label)}</span>${drop ? icon('chevronDown', 10) : ''}</span></button>`);
-    return el(`<button class="${cls}" type="button" ${attrs} title="${title}" aria-label="${escapeHtml(label)}">${icon(ic, 16)}${it.text ? `<span class="fd-rb-t">${escapeHtml(label)}</span>` : ''}${drop && it.text ? icon('chevronDown', 10) : ''}</button>`);
+    if (large) return el(`<button class="${cls}" type="button" ${attrs}${it.keep ? ' data-keep="1"' : ''} title="${title}" aria-label="${escapeHtml(label)}"><span class="fd-rb-ic">${icon(ic, 28)}</span><span class="fd-rb-lbl"><span>${escapeHtml(label)}</span>${drop ? icon('chevronDown', 10) : ''}</span></button>`);
+    return el(`<button class="${cls}" type="button" ${attrs}${it.keep ? ' data-keep="1"' : ''} title="${title}" aria-label="${escapeHtml(label)}">${icon(ic, 16)}${it.text ? `<span class="fd-rb-t">${escapeHtml(label)}</span>` : ''}${drop && it.text ? icon('chevronDown', 10) : ''}</button>`);
   }
 
   private buildCustom(): void {
@@ -238,16 +290,20 @@ export class Ribbon {
     if (tool) { if (tool.dataset.tool === 'collapse') this.setCollapsed(!this.collapsed); else this.setSimplified(!this.simplified); return; }
     const b = t.closest<HTMLButtonElement>('.fd-rb-btn');
     if (!b || b.disabled) return;
+    if (b.dataset.group) { this.openPop(b.closest('.fd-rb-group') as HTMLElement); return; }
     if (b.dataset.cmd) this.commands.run(b.dataset.cmd);
     else if (b.dataset.act) this.opts.act(b.dataset.act, b);
     else if (b.dataset.menu) { this.openMenu(b); return; }
+    if (this.popGroup && b.dataset.cmd && this.gpop.contains(b)) this.closePop(false);
     if (this.float) this.setFloat(false);
     this.opts.after();
   }
 
   private onKey(e: KeyboardEvent): void {
     const t = e.target as HTMLElement;
+    if (e.key === 'Escape' && this.popGroup) { e.preventDefault(); e.stopPropagation(); this.closePop(true); return; }
     if (t.closest('.fd-rb-tablist')) this.tabKey(e);
+    else if (t.closest('.fd-rb-gpop')) this.popKey(e);
     else if (t.closest('.fd-rb-panel')) this.panelKey(e);
     if (e.key === 'Escape' && this.float) { this.setFloat(false); this.tabBtns.get(this.tab)?.focus(); }
     if (!e.ctrlKey && !e.metaKey && !e.altKey) e.stopPropagation();
@@ -281,6 +337,7 @@ export class Ribbon {
   private panelKey(e: KeyboardEvent): void {
     const t = e.target as HTMLElement;
     const panel = t.closest('.fd-rb-panel') as HTMLElement;
+    if (e.key === 'ArrowDown' && t.dataset.group) { e.preventDefault(); this.openPop(t.closest('.fd-rb-group') as HTMLElement); return; }
     if (e.key === 'ArrowUp' && !(t instanceof HTMLInputElement)) { e.preventDefault(); this.tabBtns.get(this.tab)?.focus(); return; }
     if (!(t instanceof HTMLButtonElement) || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
     const all = this.controls(panel);
@@ -292,7 +349,57 @@ export class Ribbon {
   }
 
   private controls(panel: HTMLElement): HTMLElement[] {
-    return Array.from(panel.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)')).filter((n) => !n.closest('[hidden]'));
+    return Array.from(panel.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)')).filter((n) => !n.closest('[hidden]') && (panel === this.gpop ? !n.dataset.group : n.dataset.group ? n.closest('.fd-rb-group')?.getAttribute('data-lv') === '3' : !n.closest('.fd-rb-group[data-lv="3"]')));
+  }
+
+  private popKey(e: KeyboardEvent): void {
+    const t = e.target as HTMLElement;
+    const vertical = e.key === 'ArrowUp' || e.key === 'ArrowDown';
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key) || t instanceof HTMLInputElement || (vertical && t.closest('.fd-dd-btn'))) return;
+    const all = this.controls(this.gpop);
+    const at = all.indexOf(t);
+    if (at < 0) return;
+    e.preventDefault();
+    const fwd = e.key === 'ArrowRight' || e.key === 'ArrowDown';
+    all[e.key === 'Home' ? 0 : e.key === 'End' ? all.length - 1 : (at + (fwd ? 1 : all.length - 1)) % all.length].focus();
+  }
+
+  private openPop(g: HTMLElement): void {
+    if (this.popGroup === g) { this.closePop(true); return; }
+    this.closePop(false);
+    const gbtn = g.querySelector('.fd-rb-gbtn') as HTMLElement;
+    const body = g.querySelector('.fd-rb-gbody') as HTMLElement;
+    this.popGroup = g;
+    this.gpop.setAttribute('aria-label', g.getAttribute('aria-label') ?? '');
+    this.gpop.appendChild(body);
+    gbtn.setAttribute('aria-expanded', 'true');
+    setHidden(this.gpop, false);
+    this.placePop();
+    this.sync();
+    this.controls(this.gpop)[0]?.focus();
+  }
+
+  private placePop(): void {
+    const g = this.popGroup;
+    if (!g) return;
+    const r = g.getBoundingClientRect();
+    const w = this.gpop.offsetWidth;
+    this.gpop.style.left = `${Math.round(Math.max(4, Math.min(r.left, window.innerWidth - w - 4)))}px`;
+    this.gpop.style.top = `${Math.round(r.bottom)}px`;
+    this.gpop.tabIndex = this.gpop.scrollWidth > this.gpop.clientWidth ? 0 : -1;
+  }
+
+  private closePop(focusBtn: boolean): void {
+    const g = this.popGroup;
+    if (!g) return;
+    const body = this.gpop.firstElementChild as HTMLElement | null;
+    const had = this.gpop.contains(document.activeElement);
+    if (body) g.insertBefore(body, g.querySelector('.fd-rb-glabel'));
+    this.popGroup = null;
+    setHidden(this.gpop, true);
+    const gbtn = g.querySelector<HTMLElement>('.fd-rb-gbtn');
+    gbtn?.setAttribute('aria-expanded', 'false');
+    if ((focusBtn || had) && gbtn && g.dataset.lv === '3') gbtn.focus();
   }
 
   private setRove(panel: HTMLElement, t: HTMLElement): void {
@@ -399,6 +506,7 @@ export class Ribbon {
   }
 
   private showTab(id: string): void {
+    if (this.tab !== id) this.closePop(false);
     this.tab = id;
     for (const [tid, btn] of this.tabBtns) {
       const on = tid === id;
@@ -408,6 +516,7 @@ export class Ribbon {
       setClass(btn, 'is-on', on);
       setHidden(this.panels.get(tid) as HTMLElement, !on);
     }
+    this.fit();
   }
 
   setCollapsed(on: boolean): void {
@@ -445,7 +554,9 @@ export class Ribbon {
     const lbl = this.collapsed ? 'Expand the ribbon (Ctrl+F1)' : 'Collapse the ribbon (Ctrl+F1)';
     if (this.collapseBtn.title !== lbl) { this.collapseBtn.title = lbl; this.collapseBtn.setAttribute('aria-label', lbl); }
     setHidden(this.body, this.collapsed && !this.float);
-    const v = this.simplified ? 'var(--rb-simple-h)' : this.collapsed ? 'calc(var(--rb-tabs-h) + var(--rb-qat-h))' : 'calc(var(--rb-tabs-h) + var(--rb-qat-h) + var(--rb-body-h))';
+    if (this.simplified || this.body.hidden) this.closePop(false);
+    this.fit();
+    const v =this.simplified ? 'var(--rb-simple-h)' : this.collapsed ? 'calc(var(--rb-tabs-h) + var(--rb-qat-h))' : 'calc(var(--rb-tabs-h) + var(--rb-qat-h) + var(--rb-body-h))';
     setStyleVar(document.documentElement, '--fd-options-h', v);
   }
 
@@ -456,7 +567,9 @@ export class Ribbon {
     if (this.simplified) return;
     const panel = this.panels.get(this.tab);
     if (!panel || panel.hidden || this.body.hidden) return;
-    for (const b of Array.from(panel.querySelectorAll<HTMLButtonElement>('button[data-cmd]'))) {
+    const live = Array.from(panel.querySelectorAll<HTMLButtonElement>('button[data-cmd]'));
+    if (this.popGroup) live.push(...Array.from(this.gpop.querySelectorAll<HTMLButtonElement>('button[data-cmd]')));
+    for (const b of live) {
       const cmd = this.commands.get(b.dataset.cmd as string);
       if (!cmd) continue;
       setDisabled(b, !this.commands.enabled(cmd));
@@ -468,16 +581,93 @@ export class Ribbon {
     this.ensureRove(panel);
   }
 
+  private queueFit(): void {
+    if (this.fitRaf) return;
+    this.fitRaf = requestAnimationFrame(() => { this.fitRaf = 0; this.fit(); });
+  }
+
+  private fit(): void {
+    if (this.simplified || this.root.hidden || this.body.hidden) return;
+    const panel = this.panels.get(this.tab);
+    const cw = this.body.clientWidth;
+    if (!panel || panel.hidden || cw <= 0) return;
+    const cs = getComputedStyle(panel);
+    const avail = cw - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 1;
+    const groups = Array.from(panel.children).filter((n): n is HTMLElement => n.classList.contains('fd-rb-group') && !(n as HTMLElement).hidden);
+    const key = `${this.tab}|${this.rev}|${Math.round(avail)}|${groups.map((g) => g.dataset.g).join(',')}`;
+    if (!groups.length || key === this.fitKey) return;
+    this.measure(groups);
+    const ms = groups.map((g) => this.meas.get(g) as Meas);
+    const pick = ms.map(() => 0);
+    let total = ms.reduce((s, m) => s + m.w[0], 0);
+    if (total > avail) {
+      const order = groups.map((_, i) => i).sort((a, b) => Number(groups[b].dataset.rank ?? 0) - Number(groups[a].dataset.rank ?? 0) || b - a);
+      const most = Math.max(...ms.map((m) => m.steps.length));
+      done: for (let p = 1; p < most; p++) {
+        for (const i of order) {
+          const to = Math.min(p, ms[i].steps.length - 1);
+          if (to <= pick[i]) continue;
+          total += ms[i].w[to] - ms[i].w[pick[i]];
+          pick[i] = to;
+          if (total <= avail) break done;
+        }
+      }
+    }
+    const ae = document.activeElement as HTMLElement | null;
+    groups.forEach((g, i) => this.setStep(g, ms[i].steps[pick[i]]));
+    if (this.popGroup && this.popGroup.dataset.lv !== '3') this.closePop(false);
+    else if (this.popGroup) this.placePop();
+    const lost = ae?.closest?.('.fd-rb-group[data-lv="3"]');
+    if (lost && ae?.closest('.fd-rb-gbody')) lost.querySelector<HTMLElement>('.fd-rb-gbtn')?.focus();
+    this.fitKey = key;
+  }
+
+  private candidates(g: HTMLElement): Step[] {
+    const gal = g.querySelector('.fd-gal') ? 2 : 0;
+    const out: Step[] = [{ lv: 0, gal: 0 }];
+    if (gal) out.push({ lv: 0, gal: 4 }, { lv: 0, gal: 3 }, { lv: 0, gal: 2 });
+    out.push({ lv: 1, gal }, { lv: 2, gal }, { lv: 3, gal: 0 });
+    return out;
+  }
+
+  private setStep(g: HTMLElement, s: Step): void {
+    const lv = String(s.lv);
+    if (g.dataset.lv !== lv) g.dataset.lv = lv;
+    setStyleVar(g, '--gal-n', s.gal ? String(s.gal) : '');
+  }
+
+  private measure(groups: HTMLElement[]): void {
+    const todo = groups.filter((g) => this.meas.get(g)?.rev !== this.rev);
+    if (!todo.length) return;
+    this.closePop(false);
+    const cand = todo.map((g) => this.candidates(g));
+    const w = todo.map(() => [] as number[]);
+    const most = Math.max(...cand.map((c) => c.length));
+    for (let k = 0; k < most; k++) {
+      todo.forEach((g, i) => { if (k < cand[i].length) this.setStep(g, cand[i][k]); });
+      todo.forEach((g, i) => { if (k < cand[i].length) w[i][k] = g.getBoundingClientRect().width; });
+    }
+    todo.forEach((g, i) => {
+      const steps: Step[] = [];
+      const ws: number[] = [];
+      cand[i].forEach((s, k) => { if (!ws.length || w[i][k] < ws[ws.length - 1] - 0.5) { steps.push(s); ws.push(w[i][k]); } });
+      this.meas.set(g, { rev: this.rev, steps, w: ws });
+    });
+  }
+
   catalog(): Array<{ id: string; label: string; ctx: boolean; custom: boolean; groups: Array<{ id: string; label: string; key: string }> }> {
     return Array.from(this.defs.values()).map((d) => ({ id: d.id, label: d.label, ctx: !!d.ctx, custom: !!d.custom, groups: d.groups.map((g) => ({ id: g.id, label: g.label, key: `${d.id}.${g.id}` })) }));
   }
 
   applyConfig(cfg: RibbonConfig): void {
     this.config = cfg;
+    this.closePop(false);
+    this.rev++;
     this.buildCustom();
     this.mark = '';
     this.applyVisibility();
     if (this.tabBtns.get(this.tab)?.hidden || !this.defs.has(this.tab)) this.showTab('home');
+    this.fit();
     this.persist();
     this.sync();
   }

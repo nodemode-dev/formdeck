@@ -111,7 +111,7 @@ function ribbonTabs(): TabDef[] {
     ] },
     { id: 'addins', label: 'Add-ins', groups: [
       G('manage', 'Manage', L('addins-store', 'Get Add-ins'), L('addins-mine', 'My Add-ins')),
-      G('commands', 'Add-in Commands', S('addins-bar')),
+      { ...G('commands', 'Add-in Commands', S('addins-bar')), icon: 'addins' },
     ] },
     { id: 'master', label: 'Slide Master', ctx: true, groups: [
       G('edit', 'Edit Master', L('master-insert-master', 'Insert Slide Master'), L('master-insert-layout', 'Insert Layout'), R([T('master-duplicate-layout', 'Duplicate Layout')], [T('master-delete-layout', 'Delete Layout')], [T('master-rename-layout', 'Rename')])),
