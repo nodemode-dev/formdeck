@@ -40,6 +40,7 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 18. The Animate tab · editor/animation-pane.ts
 19. Links, spacing, effects, picture adjustments, theme editing, replies · ui/link-dialog.ts, editor/inspector.ts
 40. formsld becomes FormDeck · main.ts, app.ts, present/show.ts
+41. The fd- prefix and .fdec files · all styles and ui modules, editor/commands.ts, ui/dialogs-file.ts, app.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -208,3 +209,7 @@ Clips in the click sequence become empty steps appended after the slide's animat
 ## 40. formsld becomes FormDeck · _v0.7.1 (main.ts LEGACY_PREFIX loop; app.ts __formdeckOpen; present/show.ts BroadcastChannel and audience window names)
 
 UI preferences were stored under `formsld.*` keys; `main.ts` copies each one to `formdeck.*` (only when the new key is empty) and removes the old one before the app starts, so panel layout, rulers, captions and recents survive the rename in the browser. The pre-paint theme reads `nodemode_ui_settings`, a family key, so first paint is unaffected. The desktop app's new identifier `ai.nodemode.formdeck` gives its webview a new storage origin, so desktop preferences start fresh once. The open-file hook is now `window.__formdeckOpen`, renamed in `src-tauri/src/main.rs` in the same commit; the presenter channel and audience window are `formdeck-show-*` and `formdeck-audience`, so a show and its audience must run the same version.
+
+## 41. The fd- prefix and .fdec files · _v0.7.2 (every file under src that used fs-; editor/commands.ts export-fdec; ui/dialogs-file.ts ExportFormat, SaveAsDialog fmt; app.ts open filters)
+
+The family convention is one two-letter prefix per app, so FormDeck's classes, custom properties (`--fd-12`, `--fd-pasteboard`), data attributes and SVG id prefixes moved from `fs-` to `fd-` in one release. No `fd-` existed before and every `fs-` followed a non-word character, so the swap had one meaning; each file was checked to equal its previous version with `fd-` mapped back, and the built app was screenshotted against 0.7.1 (Home, editor, a selection, an open menu) with identical pixels. Deck files are `.fdec`; the format key in the window is `fdec`, and every file picker and drop filter still takes `.fsld`. A deck linked to an older `.fsld` keeps saving to that path, because the save format follows the linked path's extension.

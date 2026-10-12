@@ -43,6 +43,7 @@ app/services/package.py      .fsld pack and unpack
 16. The animate MCP tool · routers/mcp.py
 17. Covered merged cells read as span 1 · services/pptx/read_table.py
 35. formsld becomes FormDeck, old installs keep working · core/config.py, formdeck_engine.py, services/model.py, services/odp, routers/mcp.py
+36. .fdec deck files · services/package.py, routers/decks.py, routers/mcp.py, setup/cli.py, setup/agents.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -195,3 +196,7 @@ The writer bakes the effective run and paragraph properties so any ODF reader re
 ## 35. formsld becomes FormDeck, old installs keep working · _v0.7.1 (core/config.py env, _default_data_dir; formdeck_engine.py main; services/model.py normalize; services/odp/writer.py MATH_TAGS, reader.py math_tag; routers/mcp.py read_resource)
 
 Every engine setting is read through `config.env(key)`, which takes `FORMDECK_<key>` and falls back to `FORMSLD_<key>`, so an old `.env` or desktop shell still boots the engine; `formdeck_engine.py` reads both for the port and then publishes `FORMDECK_PORT`. With no data folder set, `~/Formsld` is renamed to `~/FormDeck` once, when the new folder does not exist yet; if the rename fails (a file is held open on Windows) the old folder is used as is. Decks keep their bytes: `normalize` upgrades the format id `formsld/deck` to `formdeck/deck`, and `.fsld` packages are recognised by `deck.json`, never by their mimetype entry, so packages written before the rename open unchanged. `.odp` files exported by formsld carry `formsld-math:` in an automatic style name; the reader accepts both prefixes. MCP clients holding the old resource URIs get `formsld://guide` and `formsld://templates` mapped to `formdeck://`. The compatibility reads are removed in 0.9.0.
+
+## 36. .fdec deck files · _v0.7.2 (services/package.py EXT, FORMATS; routers/decks.py export_bytes, import_bytes, save, download; routers/mcp.py export_deck, open_file; setup/cli.py; setup/agents.py LEGACY_SERVERS, LEGACY_SKILLS)
+
+`package.EXT` is `fdec` and `package.FORMATS` is `("fdec", "fsld")`: every writer names files `.fdec`, every reader and format check accepts both, and agents asking for format `fsld` get an `.fdec`. Saving a deck linked to an older `.fsld` path keeps that path and its extension, because the save format comes from the path. `agents install` and `sync` remove the `formsld` and `formsld-stdio` MCP entries, a Codex `[mcp_servers.formsld]` table and installed `formsld-*` skill folders (only when their SKILL.md names them so), leaving every other entry as it was. The 0.7.1 rename also lost the space after "FormDeck" in 24 agent-facing messages in mcp.py: the editing tool trims trailing whitespace from a replacement, so a replacement must never end in a space.
