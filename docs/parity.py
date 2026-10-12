@@ -171,7 +171,7 @@ row(a, "Add-in marketplace", 1, 0, 1, P, "Home > Add-ins and the Add-ins tab (`u
 a = "Platform"
 row(a, "Desktop app", 1, 1, 0, F, "Tauri 2 app in `src-tauri/` with the engine as a frozen sidecar: .deb, .rpm and .AppImage built, installed and run on Linux (Home, a new deck, typing, video playback, saving); .dmg and .app for Apple silicon and Intel, .msi and NSIS for Windows, arm64 Linux and a Flatpak (`src-tauri/flatpak/`) from `.github/workflows/desktop.yml`, those not run here; signing optional; no FreeBSD build")
 row(a, "Runs in a browser", 1, 1, 1, P, "Vite app on 5197 against a local engine; no hosted service")
-row(a, "Phone and tablet", 1, 1, 1, N, "nothing found")
+row(a, "Phone and tablet", 1, 1, 1, P, "touch editing (tap, double-tap to type, drag, 44 px handle targets, pinch zoom, long-press menu) and layouts for tablets and phones (`ui/responsive.ts`, `ui/touch.ts`, `styles/responsive.css`), a phone viewer with swipe, notes and Present, swipe in the show; checked in device emulation, not on real devices; a phone or tablet cannot reach the engine yet, which listens only on the computer it runs on, and there is no mobile app")
 
 
 def score(rows, key):
