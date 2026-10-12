@@ -1,4 +1,4 @@
-[mcp_servers.formsld]
+[mcp_servers.formdeck]
 command = "sh"
 args = ["-c", "exec python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/setup/mcp_stdio.py\""]
 startup_timeout_sec = 30

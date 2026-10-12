@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "formsld": {
+    "formdeck": {
       "command": "python3",
       "args": [
         "${workspaceFolder}/setup/mcp_stdio.py"

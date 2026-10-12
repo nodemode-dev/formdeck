@@ -9,10 +9,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ["formdeck-harness", "formdeck-skillset"]
+LEGACY_SKILLS = ["formsld-harness", "formsld-skillset"]
+LEGACY_SERVERS = ("formsld", "formsld-stdio")
 PORT = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 8197)
 PY = "python" if os.name == "nt" else "python3"
 USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
-       ./formdeck agents sync [--check]       copy the formdeck skills again (and mirror .claude/skills to .agents/skills)"""
+       ./formdeck agents sync [--check]       copy the FormDeck skills again (and mirror .claude/skills to .agents/skills)"""
 
 
 def home() -> Path:
@@ -68,12 +70,19 @@ def merge_json(path: Path, servers: dict, dry: bool, said: list) -> None:
         said.append(f"  {path} is not a JSON object; left as it is")
         return
     have = data.get("mcpServers") if isinstance(data.get("mcpServers"), dict) else {}
-    data["mcpServers"] = {**have, **servers}
+    stale = [k for k in LEGACY_SERVERS if k in have]
+    if stale:
+        said.append(f"  {path}: removing the old {', '.join(stale)} entries")
+    data["mcpServers"] = {**{k: v for k, v in have.items() if k not in LEGACY_SERVERS}, **servers}
     _write(path, json.dumps(data, indent=2) + "\n", dry, said)
 
 
 def merge_toml(path: Path, block: str, dry: bool, said: list) -> None:
     text = path.read_text(encoding="utf-8") if path.exists() else ""
+    old = re.search(r"(?ms)^\[mcp_servers\.formsld\]\s*\n.*?(?=^\[|\Z)", text)
+    if old:
+        said.append(f"  {path}: removing the old [mcp_servers.formsld] table")
+        text = text[:old.start()] + text[old.end():]
     found = re.search(r"(?ms)^\[mcp_servers\.formdeck\]\s*\n.*?(?=^\[|\Z)", text)
     if found:
         new = text[:found.start()] + block + ("\n" if text[found.end():].strip() else "") + text[found.end():]
@@ -121,6 +130,14 @@ def skills(dry: bool, said: list) -> int:
             continue
         for t in targets:
             changed += copy_skill(src, t / name, dry, said)
+    for t in targets:
+        for name in LEGACY_SKILLS:
+            old = t / name
+            if (old / "SKILL.md").is_file() and f"name: {name}" in (old / "SKILL.md").read_text(encoding="utf-8", errors="ignore"):
+                said.append(f"  remove the old skill {old}")
+                changed += 1
+                if not dry:
+                    shutil.rmtree(old, ignore_errors=True)
     return changed
 
 
@@ -135,10 +152,10 @@ def install(dry: bool) -> int:
         where = caller()
         print(f"""
 Next:
-  1. Start formdeck: ./formdeck (the window at http://localhost:5197; the engine at http://127.0.0.1:{PORT}).
+  1. Start FormDeck: ./formdeck (the window at http://localhost:5197; the engine at http://127.0.0.1:{PORT}).
   2. Open Claude Code, Codex or Cursor in {where} and approve the formdeck MCP server
      (Claude Code: /mcp; the formdeck-stdio entry starts the engine itself when it is not running).
-  3. Ask: "Build a 10 slide deck from ./notes in the studio template". The first edit asks you once, in the formdeck window, to allow agents.""")
+  3. Ask: "Build a 10 slide deck from ./notes in the studio template". The first edit asks you once, in the FormDeck window, to allow agents.""")
     return 0
 
 
