@@ -33,7 +33,7 @@ export function dismissToast(node: Element): void {
 
 function stack(root: HTMLElement): void {
   let y = 0;
-  for (const n of Array.from(root.children).reverse() as HTMLElement[]) {
+  for (const n of Array.from(root.children) as HTMLElement[]) {
     n.style.setProperty('--toast-y', `${-y}px`);
     y += n.offsetHeight + 8;
   }
