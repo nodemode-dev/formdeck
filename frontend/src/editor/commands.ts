@@ -46,6 +46,12 @@ export interface AppHooks {
 }
 
 const isText = (e: SlideElement): e is ShapeElement => e.type === 'shape';
+type ParaOf = NonNullable<ShapeElement['text']>['paras'][number];
+const styledRuns = (e: ShapeElement): Array<{ r: ParaOf['runs'][number]; p: ParaOf }> => {
+  const all = (e.text?.paras ?? []).flatMap((p) => p.runs.map((r) => ({ r, p })));
+  const filled = all.filter(({ r }) => r.t !== '');
+  return filled.length ? filled : all;
+};
 
 export function registerCommands(cmds: Commands, h: AppHooks): void {
   const E = (): Editor | null => h.editor();
@@ -62,7 +68,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     if (!ed || !s) return;
     if (ed.stage.editing && ed.stage.editFormat(exec)) return;
     const els = textSel();
-    const allOn = els.every((e) => (e.text?.paras ?? []).every((p) => p.runs.every((r) => r.t === '' || !!(r[key] ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0)[key as 'b' | 'i']))));
+    const allOn = els.every((e) => styledRuns(e).every(({ r, p }) => !!(r[key] ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0)[key as 'b' | 'i'])));
     apply(runStyleOps(ed.doc.deck, s, els, { [key]: allOn ? false : true }), label);
   };
   const scriptToggle = (key: 'sup' | 'sub', label: string): void => {
@@ -71,7 +77,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     if (!ed || !s) return;
     if (ed.stage.editing && ed.stage.editFormat(key === 'sup' ? 'superscript' : 'subscript')) return;
     const els = textSel();
-    const allOn = els.length > 0 && els.every((e) => (e.text?.paras ?? []).every((p) => p.runs.every((r) => r.t === '' || !!r[key])));
+    const allOn = els.length > 0 && els.every((e) => styledRuns(e).every(({ r }) => !!r[key]));
     apply(runStyleOps(ed.doc.deck, s, els, allOn ? { [key]: undefined } : { [key]: true, [key === 'sup' ? 'sub' : 'sup']: undefined }), label);
   };
   const capsToggle = (mode: 'all' | 'small'): void => {
@@ -80,7 +86,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     if (!ed || !s) return;
     if (ed.stage.editing) ed.stage.endEdit();
     const els = textSel();
-    const allOn = els.length > 0 && els.every((e) => (e.text?.paras ?? []).every((p) => p.runs.every((r) => r.t === '' || (r.caps ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0).caps) === mode)));
+    const allOn = els.length > 0 && els.every((e) => styledRuns(e).every(({ r, p }) => (r.caps ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0).caps) === mode));
     apply(runStyleOps(ed.doc.deck, s, els, { caps: allOn ? undefined : mode }), mode === 'all' ? 'All caps' : 'Small caps');
   };
   const runOn = (key: 'b' | 'i' | 'u' | 's'): boolean => {
@@ -88,7 +94,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     const s = slide();
     if (!ed || !s) return false;
     const els = textSel().filter((e) => e.text?.paras.length);
-    return els.length > 0 && els.every((e) => (e.text?.paras ?? []).every((p) => p.runs.every((r) => r.t === '' || !!(r[key] ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0)[key as 'b' | 'i']))));
+    return els.length > 0 && els.every((e) => styledRuns(e).every(({ r, p }) => !!(r[key] ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0)[key as 'b' | 'i'])));
   };
   const paraAlign = (a: 'l' | 'c' | 'r' | 'j'): Command => ({
     id: `text-align-${a}`, label: { l: 'Align Left', c: 'Center', r: 'Align Right', j: 'Justify' }[a], keys: [`Mod+${{ l: 'L', c: 'E', r: 'R', j: 'J' }[a]}`],
