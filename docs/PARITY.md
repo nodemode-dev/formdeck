@@ -23,21 +23,21 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.4
 | Pictures and media | 6.5 of 8 · 81% | 6.5 of 8 · 81% | 6.5 of 8 · 81% |
 | Tables | 3 of 3 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
 | Charts | 5 of 5 · 100% | 3 of 3 · 100% | 5 of 5 · 100% |
-| Diagrams and SmartArt | 1.5 of 2 · 75% | 0.5 of 1 · 50% | 1 of 1 · 100% |
+| Diagrams and SmartArt | 2 of 2 · 100% | 1 of 1 · 100% | 1 of 1 · 100% |
 | Arrange and align | 7 of 7 · 100% | 7 of 7 · 100% | 5 of 5 · 100% |
 | Transitions | 3 of 3 · 100% | 3 of 3 · 100% | 2 of 2 · 100% |
 | Animations | 4 of 4 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
 | Slideshow and presenter | 7.5 of 9 · 83% | 7 of 7 · 100% | 7.5 of 9 · 83% |
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
-| Collaboration and sharing | 1.5 of 4 · 38% | 1.5 of 4 · 38% | 0.5 of 3 · 17% |
+| Collaboration and sharing | 2 of 4 · 50% | 2 of 4 · 50% | 1 of 3 · 33% |
 | Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
 | Import and export | 7.5 of 8 · 94% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Automation and agents | 1.5 of 3 · 50% | 1 of 1 · 100% | 1.5 of 3 · 50% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **95.5 of 104 · 91.8%** | **83 of 88 · 94.3%** | **80.5 of 88 · 91.5%** |
+| **Overall** | **96.5 of 104 · 92.8%** | **84 of 88 · 95.5%** | **81 of 88 · 92.0%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 100 full, 7 partial and 5 none: 103.5 of 112 points, 92.4%.
+Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 101 full, 7 partial and 4 none: 104.5 of 112 points, 93.3%.
 
 ## Where FormDeck leads
 
@@ -160,7 +160,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Diagram layouts (process, timeline, cycle, hierarchy) | yes | no | yes | Full | `frontend/src/editor/diagram.ts` (12 layouts in 8 categories, colour schemes, styles), `editor/diagram-sync.ts` (regeneration by id, typing writes back to items), `ui/dialogs-diagram.ts` (gallery, text pane, change layout, reset, convert to shapes), `pptx/read_diagram.py` (SmartArt data model to `diagram`), script layouts still drawn by `backend/app/services/compiler/compile.py` |
-| Icons and 3D models | yes | yes | no | Partial | `ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; no 3D models |
+| Icons and 3D models | yes | yes | no | Full | `ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; Insert > 3D Models (`ui/dialogs-model3d.ts`) places .glb or .gltf models drawn live with three.js (`render/model3d.ts`), orbited with the centre handle, 14 view presets, Pan & Zoom and Reset (`editor/model3d-handle.ts`, `model3d-commands.ts`), a poster for thumbnails and exports, and `am3d:model3d` with a fallback picture in .pptx (`services/pptx/write_model3d.py`, `read_model3d.py`) |
 
 ### Arrange and align
 
@@ -221,7 +221,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Real-time co-editing | yes | yes | yes | Partial | several windows and agents edit one deck live with presence (`editor.ts setPeer`, `routers/live.py`); one computer only |
 | Share by link with permissions | yes | yes | yes | None | nothing found |
 | Works offline, files stay local | yes | yes | no | Full | local engine, library in `core/config.py data_dir` |
-| Publish to the web or embed | yes | yes | yes | None | nothing found |
+| Publish to the web or embed | yes | yes | yes | Partial | `ui/dialogs-publish.ts` File > Export > Publish as Web Page writes one self-contained .html player (keyboard, click, full screen, auto-advance, slide text for screen readers) and gives iframe embed code; no hosted link, since live publishing on the network is not built yet |
 
 ### Accessibility
 

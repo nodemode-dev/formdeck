@@ -92,7 +92,7 @@ row(a, "Charts stay native charts in .pptx", 1, 0, 1, F, "`backend/app/services/
 
 a = "Diagrams and SmartArt"
 row(a, "Diagram layouts (process, timeline, cycle, hierarchy)", 1, 0, 1, F, "`frontend/src/editor/diagram.ts` (12 layouts in 8 categories, colour schemes, styles), `editor/diagram-sync.ts` (regeneration by id, typing writes back to items), `ui/dialogs-diagram.ts` (gallery, text pane, change layout, reset, convert to shapes), `pptx/read_diagram.py` (SmartArt data model to `diagram`), script layouts still drawn by `backend/app/services/compiler/compile.py`")
-row(a, "Icons and 3D models", 1, 1, 0, P, "`ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; no 3D models")
+row(a, "Icons and 3D models", 1, 1, 0, F, "`ui/dialogs-icons.ts IconsDlg` inserts 5,817 Tabler icons as editable custGeom freeforms; Insert > 3D Models (`ui/dialogs-model3d.ts`) places .glb or .gltf models drawn live with three.js (`render/model3d.ts`), orbited with the centre handle, 14 view presets, Pan & Zoom and Reset (`editor/model3d-handle.ts`, `model3d-commands.ts`), a poster for thumbnails and exports, and `am3d:model3d` with a fallback picture in .pptx (`services/pptx/write_model3d.py`, `read_model3d.py`)")
 
 a = "Arrange and align"
 row(a, "Order: bring forward, send backward, to front, to back", 1, 1, 1, F, "`commands.ts bring-front..send-back`, `actions.ts zOrderOps`")
@@ -135,7 +135,7 @@ a = "Collaboration and sharing"
 row(a, "Real-time co-editing", 1, 1, 1, P, "several windows and agents edit one deck live with presence (`editor.ts setPeer`, `routers/live.py`); one computer only")
 row(a, "Share by link with permissions", 1, 1, 1, N, "nothing found")
 row(a, "Works offline, files stay local", 1, 1, 0, F, "local engine, library in `core/config.py data_dir`")
-row(a, "Publish to the web or embed", 1, 1, 1, N, "nothing found")
+row(a, "Publish to the web or embed", 1, 1, 1, P, "`ui/dialogs-publish.ts` File > Export > Publish as Web Page writes one self-contained .html player (keyboard, click, full screen, auto-advance, slide text for screen readers) and gives iframe embed code; no hosted link, since live publishing on the network is not built yet")
 
 a = "Accessibility"
 row(a, "Accessibility checker", 1, 0, 0, F, "`backend/app/services/lint.py` checks alt text, contrast, tiny text and overflow measured in the window; Review > Check Deck (`frontend/src/ui/check-dialog.ts`, `decks.py check`) and agents (`lint_deck`)")
