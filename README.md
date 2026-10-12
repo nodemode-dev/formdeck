@@ -4,7 +4,7 @@ Presentations and pitch decks in the form family. An open alternative to PowerPo
 
 The PDF workbench that shipped with FormDeck up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In FormDeck a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
-Version 0.8.4 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.8.5 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
@@ -68,7 +68,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps in 0.8.0
 
 - Co-authoring across machines, share links and publishing to the web are not built.
-- No 3-D models, stock or AI pictures, 3-D controls for shapes in the Format pane, or validated PDF/UA export yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.8.4: 91.8%, 94.3% and 91.5%).
+- No stock or AI pictures, 3-D controls for shapes in the Format pane, share links or live publishing, or validated PDF/UA export yet; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.8.5: 92.8%, 95.5% and 92.0%).
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in FormDeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in FormDeck; in .pptx they round-trip as native charts for the common kinds.
