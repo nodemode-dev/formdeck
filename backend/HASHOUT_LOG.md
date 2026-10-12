@@ -209,3 +209,23 @@ Every engine setting is read through `config.env(key)`, which takes `FORMDECK_<k
 ## 38. Id steps reach group children · _v0.8.2 (services/ops.py _find_by_id, _step)
 
 An `{ "id": ... }` path step looks at the list's own items first, then inside the `children` of groups in that list, depth first, so agent and window ops can edit an element that sits in a group with the same path shape as a top-level one. The list's own items are checked first, so every path that resolved before resolves to the same item now; only paths that used to fail can reach a child. `del`, `ins` and `move` still act only on the list the path names.
+
+## 39. Run language in .pptx · _v0.8.3 (services/pptx/read_text.py, write_text.py)
+
+`lang` and `noProof` map one to one between `a:rPr` attributes and run keys; a false `noProof` is omitted both ways. Imported decks carry `lang="en-US"` on nearly every run, which then overrides the person's default proofing language, as in PowerPoint. ODP is unchanged.
+
+## 40. Tagged PDF by post-processing · _v0.8.3 (services/pdf_tags.py, routers/exports.py _pdf)
+
+reportlab still draws the pages, with each page's content wrapped in marked content: `/Artifact BMC` for the slide picture, `/P <</MCID n>> BDC` for each invisible text run and a `/Figure` sequence for figures. `pdf_tags.py` then builds the structure tree from the per-slide `struct` the window sends and adds `StructTreeRoot`, `ParentTree`, `MarkInfo`, `Lang`, `ViewerPreferences`, `Tabs` and XMP with pypdf (BSD-3) rather than patching reportlab internals, and rather than pikepdf (MPL-2.0). `pdfuaid:part` is claimed only with no notes page and alt on every figure, because notes pages draw visible non-embedded Helvetica. Without pypdf the untagged file is returned. The language comes from `deck.meta.lang`, default `en-US`.
+
+## 41. One provider interface, one tool loop · _v0.8.3 (services/chat/providers.py, engine.py, tools.py)
+
+`Provider.complete(system, history, tools, on_text)` returns text and tool calls for Anthropic, OpenAI-compatible and Ollama; each class maps one canonical history to its own wire format, so the loop is written once and stops after 20 steps. Tool calls go through `mcp.call_tool` with one `Agent` per conversation, so edits are attributed, grouped into one turn per message, undoable and subject to `_consent` with no second code path (the mcp import is lazy to avoid a cycle). An Ollama model that answers 400 "does not support tools" gets a note and plain chat, remembered for the session.
+
+## 42. Chat keys outside settings · _v0.8.3 (services/chat/keys.py)
+
+GET /api/settings returns the whole settings file, so keys live in `<data>/chat-keys.json`, created with mode 0600 and replaced atomically. The API reports only `hasKey`; keys travel only in the provider's request header, never a URL, and error text is passed through `redact`.
+
+## 43. Chat over its own event stream, and the agent inbox · _v0.8.3 (routers/chat.py, services/chat/convo.py, routers/mcp.py chat_inbox, chat_reply)
+
+`live.py` carries deck sync, so the chat streams over server-sent events whose first event is the full state, built and subscribed in one synchronous block so reconnects neither miss nor repeat; events are serialised when emitted because streaming messages keep changing. Panel messages move queued, seen, answered. `chat_inbox` can wait up to 55 s on an `asyncio.Event` that a send wakes, so a connected agent long-polls without spinning, and non-final `chat_reply` calls append to one open reply.

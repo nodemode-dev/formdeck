@@ -82,7 +82,7 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 | Format | Bold, Italic, Underline, Strikethrough, Superscript, Subscript, All Caps, Small Caps, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Text Effects, Transform Text, Clear Text Effects, Alt Text, Edit Points, Merge Shapes (Union, Combine, Fragment, Intersect, Subtract), media Playback (Trim, Poster Frame), Table Style, Table Borders |
 | Slide | New, Duplicate, Delete, Hide Slide, Layout (grouped by master), Reset Slide, Format Background, Change Template, Slide Size, Add Section, Rename Section; in Master view also Insert Slide Master, Insert Slide Master from Template, Duplicate, Delete and Preserve Master |
 | Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock, Selection Pane |
-| Review | Check Deck, Activity, Compare, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
+| Review | Spelling, Language, Check Deck, Activity, Compare, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
 | Present | From Beginning, From Current Slide, Presenter View, Custom Shows, Set Up Show, Record, Clear timings and narration |
 | Help | FormDeck Help, Keyboard Shortcuts, Preferences |
 
@@ -209,6 +209,12 @@ Review > Activity lists every change by day with who made it (you, another windo
 
 Review > Check Deck runs the same checks agents use: text that overflows (measured on the rendered slides), text too small or too low in contrast, pictures without alt text or too low in resolution, elements off the slide or overlapping, empty placeholders and wordy slides. It gives a score and one line per issue with a fix; click a line to go to that slide and element.
 
+### Spelling and language
+
+Review > Spelling (F7) checks every slide, table cell and speaker note, starting from the current slide. For each word it does not know it shows the sentence, suggestions and a Change to box: Change, Change All (every occurrence in the deck, one undo step), Ignore Once, Ignore All, or Add to Dictionary. Pick the dictionary language at the top; English (United States and United Kingdom), Spanish and French are built in and work offline. Your dictionary is kept on this computer, not in the deck.
+
+Review > Language sets the language of the selected text, the selected objects or the selected slides, or turns on Do not check spelling for them; Set as Default changes the language used for text that has none. The language travels with the text in .pptx files. The browser's own red underlines while typing follow the same language.
+
 ### Saving and versions
 
 Decks save to the library as you work; the status bar says Saving or Saved. Save (Mod+S) also writes the deck back to the file it came from, if it was opened from one. Save As saves a copy as a .fdec or .pptx file (the browser downloads it; the desktop app asks for a path) or as a separate deck in your library. File > Save Version names a snapshot; Version history lists them and Restore puts one back. Delete Deck moves a deck to the trash folder in the library.
@@ -250,6 +256,7 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | | Bring Forward, Send Backward | Mod+], Mod+[ |
 | | Group, Ungroup | Mod+G, Shift+Mod+G |
 | | Selection Pane | Alt+F10 |
+| Review | Spelling | F7 |
 | Review | Approve Slide | Alt+Mod+A |
 | | New Comment | Alt+Mod+M |
 | Present | From Beginning | F5 |
@@ -317,7 +324,7 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
   - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts are not embedded; the computer that opens it needs the template's fonts or substitutes similar ones.
   - Template (.potx): the masters, layouts, colours and fonts.
   - OpenDocument Presentation (.odp): for LibreOffice Impress and other OpenDocument apps. It keeps masters and layouts (as master pages), text formatting, bullets and numbering, shapes, freeforms, lines and connectors, pictures with cropping, tables, charts, speaker notes, transitions, hidden slides and comments; equations become formula objects, or readable linear text inside sentences. OpenDocument cannot carry text transparency, soft edges or gradients with more than two colours. In this release an .odp also flattens several masters into one, leaves out WordArt transforms, glow and text outlines, and leaves out media trim, fades and poster frames; the slides still look right, and .pptx keeps all of it.
-  - PDF: one page per slide with searchable text and an outline of slide titles. Choose All, Current, Selected or Custom slides (`1-3, 5, 8-`), Standard or High quality, and whether to include hidden slides.
+  - PDF: one page per slide with searchable text and an outline of slide titles. Choose All, Current, Selected or Custom slides (`1-3, 5, 8-`), Standard or High quality, and whether to include hidden slides. The PDF is tagged for screen readers: each slide is a section in its reading order (the order in the selection pane's Reading order view), titles are headings, bullets are lists, tables keep header cells, and pictures and charts are figures with their alt text; decorative pictures, footers and slide numbers are skipped. Add alt text to every picture before exporting. The slide itself is a picture with an invisible text layer and the fonts are not embedded, so a strict PDF/UA checker may still report issues.
   - PNG or JPEG: the current slide or all slides at 1x, 2x or 3x; several slides arrive as a .zip.
   - FormDeck (.fdec): one file with every slide, picture and the template.
   - Video (MP4 where the browser can record it, otherwise WebM; 720p or 1080p) and Animated GIF (480, 720 or 960 px wide): seconds per slide for slides without a timing, recorded timings and narration, animations as build steps and transitions as fades. A video records in real time, so keep the window open; Cancel stops it. Hidden slides are skipped.
@@ -352,6 +359,16 @@ Ask in plain language, for example: "Use FormDeck. Build an investor update from
 - Agent edits show in the Agent tab's Activity list, and other windows and agents on the same deck show where they are working.
 - **Edit > Undo Agent Turn** takes back the agent's whole last turn (every change it made within 90 seconds of the one before) in one step. Plain Undo steps back one change at a time.
 - Comments you leave on a slide reach the agent; it can reply, resolve and set review status, but it never approves a slide for you.
+
+### Chat
+
+The Agent tab has a chat. The assistant it talks to is your choice, shown at the top of the chat (the gear opens the settings):
+
+- **Connected agent** (the default, no key): connect Claude Code, Codex or Cursor as in Setup (Copy a prompt for your agent or Copy MCP command), then ask it to check the FormDeck chat. It reads your messages with `chat_inbox` and answers with `chat_reply`; the chat shows when it last read.
+- **API key**: paste an Anthropic key, or an OpenAI-compatible service's base URL, model and key. The key is stored only on this computer, is never shown again and is sent only to that service. Local OpenAI-compatible servers may need no key.
+- **Local model**: set the Ollama address (default `http://127.0.0.1:11434`) and pick an installed model. Nothing leaves your computer. Models without tool support can chat but not edit.
+
+Every edit the assistant makes is an agent turn: it follows the Allow switch, shows in Activity and Undo Agent Turn takes it back. Enter sends, Shift+Enter starts a new line, Stop cancels a reply and the bin clears the conversation. Conversations are kept per deck on this computer, not in the deck file.
 
 ### The skills
 
@@ -405,7 +422,9 @@ Templates/<template id>/template.json  imported and saved templates
 Media/<media id>.<ext>           every picture, video, audio and font, named by content hash, with a .json beside it
 Intake/<intake id>/intake.json   material read for drafting
 Exports/                         files written by Export and by agents
-settings.json                    preferences
+settings.json                    preferences, your dictionary and chat settings
+chat-keys.json                   chat API keys, readable only by you
+Chat/<deck id>.json              chat conversations
 engine.json                      the running engine's port and process, removed when it stops
 ```
 
