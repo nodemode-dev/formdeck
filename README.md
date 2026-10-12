@@ -50,7 +50,10 @@ Without the window: `./formdeck build-deck notes.md q3.pdf shots/ --template aur
 ./formdeck install-desktop   # PyInstaller and the Rust and Tauri toolchain check
 ./formdeck desktop dev
 ./formdeck desktop build     # freezes the engine sidecar, then bundles for the platform it runs on
+./formdeck desktop check     # what is wrong with the Rust and Tauri toolchain, if anything
 ```
+
+Rust must come from rustup (https://rustup.rs), and on a Mac the Xcode Command Line Tools must be installed (`xcode-select --install`). `desktop check` runs before every build and stops on the usual causes of a failed build: a second Rust install such as Homebrew's (`brew uninstall rust`), rustc and cargo from different installs, an Intel rustc on an Apple silicon Mac, missing Xcode tools, and a Tauri CLI that does not match the tauri crate. If Rust reports E0463 (it cannot load a crate it has just built), `desktop build` clears `src-tauri/target` and builds once more.
 
 | Platform | Packages | Built by |
 | --- | --- | --- |

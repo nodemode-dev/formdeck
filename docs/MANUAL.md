@@ -19,7 +19,7 @@ Other commands from `./formdeck help`:
 | --- | --- |
 | `./formdeck backend`, `./formdeck frontend` | boot one half only |
 | `./formdeck build`, `./formdeck serve` | build the frontend into `frontend/dist`, then serve it from the engine on 127.0.0.1:8197 |
-| `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop build` | the Tauri desktop app (checks Rust and PyInstaller, runs it, bundles it) |
+| `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop build`, `./formdeck desktop check` | the Tauri desktop app (installs PyInstaller, runs it, bundles it, and checks the Rust and Tauri toolchain, which every build does first) |
 | `./formdeck freeze` | freeze the engine into the desktop sidecar |
 | `./formdeck mcp` | the MCP server over stdio, for Claude Desktop and other stdio clients |
 | `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex and Cursor; refresh the skills |
