@@ -1,6 +1,6 @@
 # FormDeck parity
 
-How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.8 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
+How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.9 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8, 0.8.9; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8 and one at 0.8.9). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
 
 ## Method
 
@@ -33,11 +33,11 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.8.8
 | Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
 | Import and export | 8 of 8 · 100% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
-| Automation and agents | 2 of 3 · 67% | 1 of 1 · 100% | 2 of 3 · 67% |
+| Automation and agents | 2.5 of 3 · 83% | 1 of 1 · 100% | 2.5 of 3 · 83% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **99.5 of 104 · 95.7%** | **85.5 of 88 · 97.2%** | **83.5 of 88 · 94.9%** |
+| **Overall** | **100 of 104 · 96.2%** | **85.5 of 88 · 97.2%** | **84 of 88 · 95.5%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 106 full, 3 partial and 3 none: 107.5 of 112 points, 96.0%.
+Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 106 full, 4 partial and 2 none: 108 of 112 points, 96.4%.
 
 ## Where FormDeck leads
 
@@ -53,7 +53,7 @@ Rows FormDeck implements that the product does not offer:
 - **Collaboration and sharing, 2 of 4 against PowerPoint.** Windows and agents co-edit live on one computer and Publish as Web Page writes a self-contained player, but there are no share links, no hosted publishing and no co-editing across machines. All three need the engine to accept connections from other computers, which waits on the owner's approval.
 - **Slideshow and presenter, 8 of 9.** Presenting to a remote audience with Q&A is missing, for the same reason.
 - **Accessibility, 3.5 of 4 against PowerPoint.** Exported PDFs are tagged with a structure tree, but the text is an invisible layer over the slide picture and has not been checked with a PDF/UA validator.
-- **Automation, 2 of 3.** Macros and agents cover scripting; there is no add-in marketplace.
+- **Automation, 2.5 of 3.** Macros and agents cover scripting, and add-ins install from a Store with permissions and checksums, but the catalog is FormDeck's own three add-ins, with no third-party publishing, reviews or update notices.
 - **Smaller limits.** Subtitles need Chrome or Edge; stock images are pictures only (no video or stickers); AI pictures need an OpenAI key or a compatible image server.
 
 Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Slide Clean Up layout suggestions, PowerPoint Speaker Coach, a live camera on slides (PowerPoint Cameo, Keynote live video), nonlinear zoom and linked navigation (PowerPoint Zoom, Keynote linked objects), and Keynote's multipresenter and FaceTime presenting.
@@ -265,7 +265,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Skills shipped for Claude Code, Codex and Cursor | no | no | no | Full | `.claude/skills/formdeck-harness`, `setup/agents.py install` |
 | Headless build from files on the command line | no | no | no | Full | `setup/cli.py` (`./formdeck build-deck`) |
 | Scripting and macros | yes | no | yes | Full | View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run |
-| Add-in marketplace | yes | no | yes | None | nothing found |
+| Add-in marketplace | yes | no | yes | Partial | Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; the catalog holds three first-party add-ins and has no third-party publishing, reviews or update notices yet |
 
 ### Platform (shown, not scored)
 

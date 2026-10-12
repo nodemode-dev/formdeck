@@ -166,7 +166,7 @@ row(a, "Agent consent and on/off switch", 0, 0, 0, F, "`agent-bridge.ts` consent
 row(a, "Skills shipped for Claude Code, Codex and Cursor", 0, 0, 0, F, "`.claude/skills/formdeck-harness`, `setup/agents.py install`")
 row(a, "Headless build from files on the command line", 0, 0, 0, F, "`setup/cli.py` (`./formdeck build-deck`)")
 row(a, "Scripting and macros", 1, 0, 1, F, "View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run")
-row(a, "Add-in marketplace", 1, 0, 1, N, "nothing found")
+row(a, "Add-in marketplace", 1, 0, 1, P, "Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; the catalog holds three first-party add-ins and has no third-party publishing, reviews or update notices yet")
 
 a = "Platform"
 row(a, "Desktop app", 1, 1, 0, F, "Tauri 2 app in `src-tauri/` with the engine as a frozen sidecar: .deb, .rpm and .AppImage built, installed and run on Linux (Home, a new deck, typing, video playback, saving); .dmg and .app for Apple silicon and Intel, .msi and NSIS for Windows, arm64 Linux and a Flatpak (`src-tauri/flatpak/`) from `.github/workflows/desktop.yml`, those not run here; signing optional; no FreeBSD build")
