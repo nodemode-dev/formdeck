@@ -11,6 +11,7 @@ from pptx.opc.package import Part
 from pptx.parts.slide import SlideLayoutPart, SlideMasterPart
 
 from .colors import SLOTS, solid_hex
+from .embed_fonts import embed as embed_fonts
 from .ooxml import NS, find, findall, make, parse, pt_emu, sub
 from .write_context import WriteContext
 from .write_elements import ElementWriter
@@ -30,8 +31,8 @@ TEXT_STYLE_TAGS = (("title", "p:titleStyle"), ("body", "p:bodyStyle"), ("other",
 THUMBNAIL_RT = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail"
 
 
-def write_pptx(deck: dict, media, out: str | Path | BinaryIO, *, template: bool = False, font_scales: dict | None = None) -> list[str]:
-    exporter = _Exporter(deck, media, font_scales or {})
+def write_pptx(deck: dict, media, out: str | Path | BinaryIO, *, template: bool = False, font_scales: dict | None = None, embed_fonts: str | None = None) -> list[str]:
+    exporter = _Exporter(deck, media, font_scales or {}, embed_fonts if embed_fonts in ("used", "all") else None)
     prs = exporter.build(template)
     prs.save(str(out) if isinstance(out, (str, Path)) else out)
     return list(exporter.ctx.warnings)
@@ -74,8 +75,9 @@ def _merge_scales(imported, given: dict) -> dict:
 
 
 class _Exporter:
-    def __init__(self, deck: dict, media, font_scales: dict):
+    def __init__(self, deck: dict, media, font_scales: dict, embed_fonts: str | None = None):
         self.deck = deck
+        self.embed_fonts = embed_fonts
         self.ctx = WriteContext(media=media, font_scales=_merge_scales((deck.get("meta") or {}).get("fontScales"), font_scales))
         self.ctx.theme_colors = dict((deck.get("theme") or {}).get("colors") or {})
         self.layout_parts: dict[str, SlideLayoutPart] = {}
@@ -114,6 +116,8 @@ class _Exporter:
         write_guides(self.prs.part, self.deck)
         write_show(self.prs.part, self.deck, {str(s.get("id")): self.prs.part.relate_to(p.part, RT.SLIDE) for s, p in slides})
         self._core_properties()
+        if self.embed_fonts:
+            embed_fonts(self.prs.part, self.deck, self.ctx.media, self.embed_fonts, self.ctx.warn)
         if template:
             prs.part._content_type = CT.PML_TEMPLATE_MAIN
             prs.part.__dict__["content_type"] = CT.PML_TEMPLATE_MAIN

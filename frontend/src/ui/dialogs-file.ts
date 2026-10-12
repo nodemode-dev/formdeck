@@ -798,6 +798,8 @@ class ExportDialog extends Dialog {
   private touched = false;
   private running = false;
   private res = 720;
+  private embed: 'off' | 'used' | 'all' = 'off';
+  private fontList = '';
   private gifW = 720;
   private abort: AbortController | null = null;
   private readonly secs: HTMLInputElement;
@@ -822,7 +824,10 @@ class ExportDialog extends Dialog {
     const ids = Object.keys(EXPORTS) as ExportFormat[];
     this.formats = el(`<div class="fd-seg fd-dlg-formats" role="group" aria-label="Format">${ids.map((f) => `<button type="button" data-v="${f}">${EXPORTS[f].label}</button>`).join('')}</div>`);
     this.sub = el('<p class="fd-note fd-dlg-format-sub"></p>');
-    const office = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. Fonts are not embedded, so the computer that opens the file needs <span class="fd-dlg-fonts"></span> installed or it substitutes a similar font.</div></div>`);
+    const office = el(`<div class="fd-dlg-stack">
+<div class="fd-field"><span>Fonts</span><div class="fd-seg is-quiet" data-seg="embed"><button type="button" data-v="off">Do not embed</button><button type="button" data-v="used">Only characters used</button><button type="button" data-v="all">All characters</button></div></div>
+<div class="fd-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. <span class="fd-dlg-fonts"></span></div></div>
+</div>`);
     const fdec = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in FormDeck. Agents can read it too.</div></div>`);
     const pdf = el(`<div class="fd-dlg-stack">
 <div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
@@ -868,6 +873,7 @@ class ExportDialog extends Dialog {
     segOn(q(pdf, '[data-seg="range"]'), (v) => { this.range = v; this.sync(); if (v === 'custom') this.custom.focus(); });
     segOn(q(raster, '[data-seg="which"]'), (v) => { this.which = v; this.sync(); });
     segOn(q(raster, '[data-seg="scale"]'), (v) => { this.scale = Number(v); this.sync(); });
+    segOn(q(office, '[data-seg="embed"]'), (v) => { this.embed = v === 'used' || v === 'all' ? v : 'off'; this.sync(); });
     this.custom.addEventListener('input', () => this.status.reset());
     this.path.addEventListener('input', () => { this.touched = true; });
     for (const input of [this.custom, this.path]) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
@@ -883,7 +889,7 @@ class ExportDialog extends Dialog {
     this.status.reset();
     const deck = ed.doc.deck;
     const { major, minor } = deck.theme.fonts;
-    setText(this.fonts, major === minor ? major : `${major} and ${minor}`);
+    this.fontList = major === minor ? major : `${major} and ${minor}`;
     this.path.value = '';
     if (!this.secs.value) this.secs.value = this.fmt === 'gif' ? '3' : '5';
     if (isTauri()) void exportPath(deck.title, this.ext()).then((p) => { if (this.ed === ed && !this.touched) this.path.value = withExt(p, this.ext()); });
@@ -896,6 +902,10 @@ class ExportDialog extends Dialog {
     if ((f === 'png' || f === 'jpeg') && this.which === 'all' && (this.ed?.doc.deck.slides.length ?? 0) > 1) return 'zip';
     if (f === 'video') return typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4') ? 'mp4' : 'webm';
     return EXPORTS[f].ext;
+  }
+
+  private embedArg(): string | undefined {
+    return (this.fmt === 'pptx' || this.fmt === 'potx') && this.embed !== 'off' ? this.embed : undefined;
   }
 
   private motionOpts(): { secs: number; timings: boolean; builds: boolean; fades: boolean } {
@@ -937,6 +947,9 @@ class ExportDialog extends Dialog {
     segSet(q(this.groups.pdf, '[data-seg="range"]'), this.range);
     segSet(q(this.groups.raster, '[data-seg="which"]'), this.which);
     segSet(q(this.groups.raster, '[data-seg="scale"]'), String(this.scale));
+    segSet(q(this.groups.office, '[data-seg="embed"]'), this.embed);
+    setText(this.fonts, this.embed === 'off' ? `Fonts are not embedded, so the computer that opens the file needs ${this.fontList} installed or it substitutes a similar font.`
+      : 'Fonts are embedded as PowerPoint embeds them. PowerPoint and LibreOffice use them; Google Slides and Keynote may still substitute.');
     setHidden(q(this.groups.pdf, '.fd-dlg-custom'), this.range !== 'custom');
     const size = this.ed?.doc.deck.size ?? { w: 960, h: 540 };
     setText(this.px, `About ${Math.round(size.w * this.scale)} × ${Math.round(size.h * this.scale)} pixels per slide`);
@@ -996,12 +1009,13 @@ class ExportDialog extends Dialog {
         else { download(r.url); toast(`Exported ${plural(slides.length, 'slide')} as ${EXPORTS[f].label}`); }
       } else if (tauri) {
         this.status.busy(f === 'fdec' ? 'Packing the deck' : f === 'odp' ? 'Writing the OpenDocument file' : 'Writing the PowerPoint file');
-        const r = await api.export(deck.id, f, path);
+        const r = await api.export(deck.id, f, path, undefined, this.embedArg());
         this.status.done();
         this.close();
         savedToast('Exported to', r.path);
+        if (r.warnings?.length) toast(r.warnings.slice(0, 3).join(' '));
       } else {
-        download(api.downloadUrl(deck.id, f));
+        download(api.downloadUrl(deck.id, f, this.embedArg()));
         this.close();
         toast(`Downloading ${safeName(deck.title)}.${EXPORTS[f].ext}`);
       }

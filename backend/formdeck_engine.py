@@ -2,7 +2,7 @@ import json
 import os
 import sys
 
-MODULES = ("PIL", "fastapi", "uvicorn", "pptx", "pypdfium2", "pdfplumber", "docx", "openpyxl", "reportlab", "pypdf")
+MODULES = ("PIL", "fastapi", "uvicorn", "pptx", "pypdfium2", "pdfplumber", "docx", "openpyxl", "reportlab", "pypdf", "fontTools", "brotli")
 
 
 def resource_dir() -> str:

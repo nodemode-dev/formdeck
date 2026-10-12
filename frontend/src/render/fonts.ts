@@ -51,7 +51,21 @@ export function ensureFonts(families: Iterable<string>, timeoutMs = 2500): Promi
   return Promise.race([all, new Promise<void>((ok) => window.setTimeout(ok, timeoutMs))]);
 }
 
-export function fontsOfDeck(deck: { theme: { fonts: { major: string; minor: string } }; masters: unknown[]; layouts: unknown[]; slides: unknown[] }): Set<string> {
+const mediaFaces = new Set<string>();
+
+function registerMediaFonts(media: Record<string, { mime?: string; family?: string; style?: string }> | undefined): void {
+  if (!media || typeof FontFace === 'undefined') return;
+  for (const [id, m] of Object.entries(media)) {
+    if (!m.family || !m.mime?.startsWith('font/') || mediaFaces.has(id) || FAMILIES[m.family]) continue;
+    mediaFaces.add(id);
+    const face = new FontFace(m.family, `url(/api/media/${id})`, { weight: m.style?.startsWith('bold') ? '700' : '400', style: m.style?.endsWith('talic') ? 'italic' : 'normal' });
+    document.fonts.add(face);
+    face.load().catch(() => undefined);
+  }
+}
+
+export function fontsOfDeck(deck: { theme: { fonts: { major: string; minor: string } }; masters: unknown[]; layouts: unknown[]; slides: unknown[]; media?: Record<string, { mime?: string; family?: string; style?: string }> }): Set<string> {
+  registerMediaFonts(deck.media);
   const out = new Set<string>([deck.theme.fonts.major, deck.theme.fonts.minor]);
   const walk = (v: unknown): void => {
     if (Array.isArray(v)) { for (const x of v) walk(x); return; }

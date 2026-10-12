@@ -12,3 +12,5 @@ pdfplumber
 reportlab
 pypdf
 latex2mathml
+fonttools
+brotli

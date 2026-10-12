@@ -13,6 +13,7 @@ from pptx.parts.presentation import PresentationPart
 from app.core import ids
 
 from .colors import SLOTS, base_hex, color_child
+from .embed_fonts import import_embedded
 from .ooxml import NS, emu_pt, find, findall, int_attr, parse, slugify
 from .read_context import ReadContext, ThemeStyles
 from .read_elements import read_shape_tree
@@ -295,9 +296,7 @@ class _Importer:
         return kept
 
     def _deck_warnings(self, slide_entries: list) -> None:
-        fonts = [f.get("typeface") for f in findall(self.prs_el, "p:embeddedFontLst/p:embeddedFont/p:font") if f.get("typeface")]
-        if fonts:
-            self.ctx.warn("embedded fonts not imported: " + ", ".join(dict.fromkeys(fonts)))
+        import_embedded(self.prs_part, self.ctx.media, self.ctx.deck_media, self.ctx.warn)
 
     def _title(self, slides: list) -> str:
         try:

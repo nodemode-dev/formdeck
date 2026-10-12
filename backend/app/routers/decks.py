@@ -167,14 +167,16 @@ def get_thumb(deck_id: str):
     return FileResponse(p, media_type="image/webp", headers={"Cache-Control": "no-cache"})
 
 
-def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None) -> tuple[bytes, str, str]:
+def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None, embed_fonts: str | None = None, warnings: list | None = None) -> tuple[bytes, str, str]:
     title = _safe_name(deck.get("title", "deck"))
     if fmt in package.FORMATS:
         return package.pack(deck, media_store()), f"{title}.{package.EXT}", package.MIMETYPE
     if fmt in ("pptx", "potx"):
         from app.services.pptx import write_pptx
         buf = io.BytesIO()
-        write_pptx(deck, media_store(), buf, template=fmt == "potx", font_scales=font_scales)
+        notes = write_pptx(deck, media_store(), buf, template=fmt == "potx", font_scales=font_scales, embed_fonts=embed_fonts)
+        if warnings is not None:
+            warnings.extend(notes)
         return buf.getvalue(), f"{title}.{fmt}", PPTX_MIME if fmt == "pptx" else POTX_MIME
     if fmt in ("odp", "otp"):
         from app.services.odp import odp_bytes
@@ -185,9 +187,9 @@ def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None) -> tuple
 
 
 @router.get("/decks/{deck_id}/download")
-async def download(deck_id: str, format: str = "fdec"):
+async def download(deck_id: str, format: str = "fdec", embedFonts: str | None = None):
     s = _session_or_404(deck_id)
-    data, name, mime = await asyncio.to_thread(export_bytes, s.deck, format)
+    data, name, mime = await asyncio.to_thread(export_bytes, s.deck, format, None, embedFonts)
     return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
@@ -195,13 +197,14 @@ async def download(deck_id: str, format: str = "fdec"):
 async def export(deck_id: str, body: dict = Body(default={})) -> dict:
     s = _session_or_404(deck_id)
     fmt = body.get("format") or "pptx"
-    data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"))
+    notes: list[str] = []
+    data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
     target = body.get("path")
     path = Path(target).expanduser() if target else config.exports_dir() / name
     if not path.parent.is_dir():
         raise HTTPException(400, f"The folder {path.parent} does not exist.")
     await asyncio.to_thread(path.write_bytes, data)
-    return {"path": str(path), "bytes": len(data)}
+    return {"path": str(path), "bytes": len(data), "warnings": notes}
 
 
 def import_bytes(data: bytes, name: str, as_template: bool = False) -> dict:
@@ -268,7 +271,7 @@ async def save(deck_id: str, body: dict = Body(default={})) -> dict:
     fmt = body.get("format") or path.suffix.lower().lstrip(".") or package.EXT
     if fmt not in (*package.FORMATS, "pptx", "potx", "odp", "otp"):
         fmt = package.EXT
-    data, _, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"))
+    data, _, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"))
     await asyncio.to_thread(path.write_bytes, data)
     if body.get("path"):
         await STORE.step(deck_id, [{"op": "set", "path": ["meta", "file"], "value": {"path": str(path), "format": fmt}}], "Save As", "user")

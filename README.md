@@ -72,7 +72,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in FormDeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
 - Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in FormDeck; in .pptx they round-trip as native charts for the common kinds.
-- Embedded fonts in .pptx are not written; templates use bundled open fonts that PowerPoint substitutes when missing.
+- Embedded fonts in .pptx are written on request (File > Export > Fonts) and read back, except fonts PowerPoint stored with MicroType Express compression; without embedding, PowerPoint substitutes the template's bundled open fonts when missing.
 
 ## Credits
 

@@ -35,6 +35,8 @@ The 67 built-in templates, their layouts, motifs and sample text are original wo
 | dictionary-es 4.0.0 (Hunspell data from the RLA-ES project) | GPL-3.0 OR LGPL-3.0 OR MPL-1.1, used under MPL-1.1 | app, Spanish dictionary, unmodified data files; source at https://github.com/wooorm/dictionaries |
 | dictionary-fr 3.0.0 (Hunspell data from Dicollecte / Grammalecte) | MPL-2.0 | app, French dictionary, unmodified data files; source at https://github.com/wooorm/dictionaries |
 | pypdf | BSD-3-Clause | engine, tags exported PDFs for accessibility |
+| fontTools | MIT | engine, subsets and converts fonts embedded in .pptx |
+| Brotli | MIT | engine, lets fontTools read the bundled woff2 fonts |
 
 ## Build tools, not distributed
 

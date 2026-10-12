@@ -135,6 +135,9 @@ def media_ids(deck: dict) -> set[str]:
             for x in v:
                 walk(x)
     walk(deck)
+    for mid, info in (deck.get("media") or {}).items():
+        if isinstance(info, dict) and str(info.get("mime", "")).startswith("font/"):
+            found.add(mid)
     return found
 
 

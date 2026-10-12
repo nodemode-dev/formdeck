@@ -196,7 +196,9 @@ TOOLS = [
     _tool("export_deck", "Writes a deck as pptx, potx, fdec (FormDeck's own file; fsld is accepted as an older name), odp (OpenDocument for LibreOffice Impress), pdf, png, gif (animated, one frame per slide, slide timings or 3 s each), txt or rtf (the outline: "
           "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
           {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fdec", "fsld", "odp", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
-           "notes": {"type": "boolean"}, "width": _INT}, ["deck", "format"]),
+           "notes": {"type": "boolean"}, "width": _INT,
+           "embedFonts": {"type": "string", "enum": ["used", "all"], "description": "pptx and potx: embed the deck's fonts like PowerPoint's Embed fonts in the file; used embeds only the characters in the deck, all embeds every character"}},
+          ["deck", "format"]),
     _tool("open_file", "Opens a .pptx, .potx, .odp, .fdec or older .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
     _tool("comments", "Lists, adds, replies to or resolves review comments, with @mentions and assignees. list shows each comment's mentions and assignee; "
           "filter mine lists the open comments that mention you or are assigned to you. add and reply read @Name in the text and take mentions and assignee.",
@@ -1452,7 +1454,9 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
     fmt = str(args.get("format") or "pptx").lower()
     if fmt in ("pptx", "potx", "fdec", "fsld", "odp"):
         from app.routers.decks import export_bytes
-        data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt)
+        embed = args.get("embedFonts") if args.get("embedFonts") in ("used", "all") else None
+        notes: list[str] = []
+        data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, None, embed, notes)
         if args.get("path"):
             p = _abs(args["path"], must_exist=False)
             if p.is_dir():
@@ -1462,7 +1466,8 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
         else:
             p = config.exports_dir() / name
         await asyncio.to_thread(p.write_bytes, data)
-        return _ok(f"Wrote {p} ({len(data) // 1024:,} KB, {len(deck['slides'])} slides).", {"path": str(p), "bytes": len(data)})
+        extra = [n for n in notes if "font" in n]
+        return _ok(f"Wrote {p} ({len(data) // 1024:,} KB, {len(deck['slides'])} slides)." + ("".join(f"\n{n}" for n in extra)), {"path": str(p), "bytes": len(data)})
     if fmt in ("pdf", "png", "jpeg", "jpg"):
         if not bridge.window_connected():
             return _fail(f"{fmt} export renders the slides in the FormDeck window, and none is open. Ask the person to open FormDeck (./formdeck), then retry; pptx and fdec export work without it.")
