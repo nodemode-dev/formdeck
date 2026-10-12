@@ -210,9 +210,10 @@ def import_embedded(prs_part, store, deck_media: dict, warn) -> int:
             continue
         for variant in src.VARIANTS:
             el = find(item, f"p:{variant}")
-            rel = prs_part.rels.get(el.get(R_ID)) if el is not None else None
+            if el is None:
+                continue
             try:
-                blob = rel.target_part.blob
+                blob = prs_part.rels[el.get(R_ID)].target_part.blob
             except Exception:
                 unreadable.append(family)
                 continue

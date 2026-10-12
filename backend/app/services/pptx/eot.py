@@ -3,6 +3,8 @@ import struct
 
 from fontTools.ttLib import TTFont
 
+from . import mtx
+
 VERSION = 0x00020002
 MAGIC = 0x504C
 FLAG_SUBSET = 0x1
@@ -56,13 +58,16 @@ def unpack(raw: bytes) -> bytes:
         raise EotError(f"unknown EOT version {version:#x}")
     if struct.unpack_from("<H", raw, 34)[0] != MAGIC:
         raise EotError("bad EOT magic number")
-    if flags & FLAG_COMPRESSED:
-        raise EotError("MicroType Express compressed")
     if size > len(raw) or data_size > size:
         raise EotError("EOT sizes do not fit the file")
     data = raw[size - data_size:size]
     if flags & FLAG_XOR:
         data = bytes(b ^ XOR_KEY for b in data)
+    if flags & FLAG_COMPRESSED:
+        try:
+            data = mtx.decode(data)
+        except mtx.MtxError as exc:
+            raise EotError(f"MicroType Express data does not decode: {exc}") from exc
     if data[:4] not in (b"\x00\x01\x00\x00", b"true", b"OTTO", b"ttcf"):
         raise EotError("font data is not an sfnt")
     return data
