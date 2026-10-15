@@ -1,7 +1,7 @@
 {
   "name": "formdeck",
   "private": true,
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "FormDeck · presentations and decks in the form family",
   "license": "Apache-2.0",
   "type": "module",
