@@ -21,7 +21,8 @@ def local_origin(origin: str | None) -> bool:
 
 @router.websocket("/api/live")
 async def live(ws: WebSocket) -> None:
-    if not local_origin(ws.headers.get("origin")):
+    guest = ws.scope.get("fd_share")
+    if not guest and not local_origin(ws.headers.get("origin")):
         await ws.close(code=4403)
         return
     await ws.accept()
@@ -32,6 +33,8 @@ async def live(ws: WebSocket) -> None:
             await ws.send_text(json.dumps(message, separators=(",", ":")))
 
     client = Client(ids.short("c", 8), send)
+    client.share = guest
+    client.kick = lambda: ws.close(code=4401)
     STORE.clients[client.id] = client
     await send({"t": "hello", "client": client.id, "version": config.VERSION, "agents": STORE.agent_names()})
     try:
@@ -54,9 +57,47 @@ def snapshot_message(deck_id: str, snap: dict) -> dict:
     return {"t": "snapshot", "deck": deck_id, "data": snap["deck"], "rev": snap["rev"], "canUndo": snap["canUndo"], "canRedo": snap["canRedo"]}
 
 
+def guest_refusal(share: dict, t: str, deck_id, msg: dict) -> str:
+    if t in ("hello", "ping"):
+        return ""
+    if t == "toolResult":
+        return "A shared window does not run agent tools."
+    if deck_id != share["deck"]:
+        return "This share link opens one deck only."
+    if t in ("sub", "unsub", "presence"):
+        return ""
+    role = share["role"]
+    if t == "step":
+        if role == "edit":
+            return ""
+        ops = msg.get("ops") or []
+        if role == "comment" and ops and all(isinstance(o, dict) and (o.get("path") or [None])[0] == "comments" for o in ops):
+            return ""
+        return "This share link can view only." if role == "view" else "This share link can add comments only."
+    if t in ("undo", "redo"):
+        return "" if role == "edit" else "This share link cannot undo changes."
+    return "Not available through a share link."
+
+
 async def handle(client: Client, msg: dict) -> None:
     t = msg.get("t")
     deck_id = msg.get("deck")
+    share = getattr(client, "share", None)
+    if share:
+        refusal = guest_refusal(share, str(t), deck_id, msg)
+        if refusal:
+            await client.send({"t": "reject", "deck": deck_id, "id": msg.get("id"), "error": refusal} if t == "step" else {"t": "notice", "kind": "error", "text": refusal})
+            if t == "step":
+                try:
+                    await client.send(snapshot_message(deck_id, STORE.snapshot(deck_id)))
+                except KeyError:
+                    pass
+            return
+        if t == "hello":
+            client.kind = "guest"
+            client.name = str(msg.get("name") or "Guest")[:40]
+            client.agents = False
+            return
     if t == "hello":
         client.kind = msg.get("kind") or client.kind
         client.name = msg.get("name") or client.name

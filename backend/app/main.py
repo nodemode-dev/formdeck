@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core import config
-from app.routers import addins, ai_images, captions, chat, commands, decks, exports, intake, live, mcp, media, stock, system, terminal, workbooks
+from app.routers import addins, ai_images, captions, chat, commands, decks, exports, intake, live, mcp, media, share, stock, system, terminal, workbooks
+from app.services import share as sharing
 from app.services import terminal as terminals
 
 
@@ -32,16 +33,23 @@ def _clear_discovery() -> None:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(this: FastAPI):
     _write_discovery()
     terminals.bind(asyncio.get_running_loop())
+    try:
+        await sharing.apply(this)
+    except OSError:
+        pass
     yield
+    await sharing.stop()
     terminals.close_all()
     _clear_discovery()
 
 
 app = FastAPI(title=config.APP_NAME, version=config.VERSION, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins(), allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(share.ShareGate)
+app.include_router(share.router)
 app.include_router(system.router, prefix="/api")
 app.include_router(decks.router, prefix="/api")
 app.include_router(media.router, prefix="/api")
