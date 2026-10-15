@@ -15,6 +15,12 @@ import { canvasSpec, hydrateModels, modelLive, viewOf } from './model3d';
 export type RenderMode = 'edit' | 'thumb' | 'show' | 'print';
 export const mediaUrl = (id: string): string => `/api/media/${id}`;
 
+function slideBackground(fill: Fill, theme: Deck['theme']): string {
+  if (fill.type === 'none') return '#ffffff';
+  const css = cssBackground(fill, theme, mediaUrl);
+  return fill.type === 'image' ? `${css}, #ffffff` : css;
+}
+
 const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
 
 interface Ctx { deck: Deck; slide: Slide | null; holder: 'slide' | 'layout' | 'master'; layout?: Layout; mode: RenderMode; number: number }
@@ -287,7 +293,7 @@ export class SlideView {
     const bgKey = JSON.stringify([backgroundOf(deck, slide), themeKey]);
     if (bgKey !== this.bgKey) {
       this.bgKey = bgKey;
-      this.bg.style.background = cssBackground(backgroundOf(deck, slide), deck.theme, mediaUrl);
+      this.bg.style.background = slideBackground(backgroundOf(deck, slide), deck.theme);
     }
     const decoKey = JSON.stringify([themeKey, layout?.id, slide.hideMasterShapes, number, master.elements.filter((e) => !e.ph), layout?.elements.filter((e) => !e.ph), layout?.hideMasterShapes, deck.size, master.textStyles.other]);
     if (decoKey !== this.decoKey) {
@@ -325,7 +331,7 @@ export class SlideView {
     const bgKey = JSON.stringify([bg, themeKey]);
     if (bgKey !== this.bgKey) {
       this.bgKey = bgKey;
-      this.bg.style.background = cssBackground(bg, deck.theme, mediaUrl);
+      this.bg.style.background = slideBackground(bg, deck.theme);
     }
     const showMaster = !!layout && !layout.hideMasterShapes;
     const decoKey = JSON.stringify([themeKey, showMaster ? master.elements.filter((e) => !e.ph) : null, master.textStyles.other, deck.size]);

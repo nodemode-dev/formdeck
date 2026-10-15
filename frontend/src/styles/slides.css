@@ -1,4 +1,4 @@
-.fd-slide { position: relative; flex: none; overflow: hidden; contain: layout paint; background: var(--cta-bg); }
+.fd-slide { position: relative; flex: none; overflow: hidden; contain: layout paint; background: transparent; }
 .fd-slide-inner { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; }
 .fd-slide-bg, .fd-layer { position: absolute; inset: 0; }
 .fd-layer { pointer-events: none; }
