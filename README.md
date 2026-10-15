@@ -86,7 +86,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 
 ## Known gaps
 
-- Sharing is off by default. Beyond the local network it needs a relay that you run yourself (relay/); FormDeck does not operate one, and the relay has been tested on one computer, not yet across the internet behind HTTPS.
+- Sharing is off by default. Beyond the local network it needs a relay that you run yourself (relay/); FormDeck does not operate one. The relay has been tested over HTTPS and wss on one computer (relay/README.md lists what), not yet on a public server with guests on other networks.
 - FormDeck's own catalog lists three add-ins; other publishers' catalogs can be added, and FormDeck does not review them. PDF export writes slides as live, embedded text and passes PDF/UA-1 in veraPDF (`./formdeck pdf-check`); when the slide's font lacks a character (often Chinese, Japanese or Korean) an installed TrueType font that has it is used, as browsers do; text with effects or rotation, or with no embeddable font at all, stays a picture on that page, still searchable. docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.12.0: 99.1%, 99.5% and 98.9%, no row left at None; 31 rows where FormDeck goes past Google Slides, 29 past Keynote, 13 past PowerPoint).
 - The 25 translations were made by language models and have not been reviewed by native speakers yet; the terminal dock has not been run on Windows.
 - The window works with touch and on tablet- and phone-sized screens, but a phone or tablet cannot reach the engine yet: it accepts connections only from the computer it runs on.
