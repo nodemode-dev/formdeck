@@ -1,6 +1,6 @@
 # FormDeck parity
 
-How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.11.2 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8, 0.8.9, 0.8.10, 0.9.1, 0.9.2; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8, one at 0.8.9, at 0.8.10 only the unscored Phone and tablet row, none to partial, and none at 0.9.1 and 0.9.2, desktop build fixes). At 0.10.5 nine rows were added for the 0.10 work (named text and colour styles, components, your own fonts, SVG as shapes, finding a command by name, commands for agents with exact values, the terminal with Claude Code, and the interface languages, which is a Platform row and not scored); no existing row moved. At 0.11.0 two moved with opt-in sharing on the local network: real-time co-editing partial to full, share by link none to partial. At 0.11.1 presenting to a remote audience with Q&A moved none to partial, so no scored row is None any more. At 0.11.2 tagged accessible PDF export moved partial to full: slides export as live, embedded text and still pass PDF/UA-1. At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
+How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.12.0 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8, 0.8.9, 0.8.10, 0.9.1, 0.9.2; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8, one at 0.8.9, at 0.8.10 only the unscored Phone and tablet row, none to partial, and none at 0.9.1 and 0.9.2, desktop build fixes). At 0.10.5 nine rows were added for the 0.10 work (named text and colour styles, components, your own fonts, SVG as shapes, finding a command by name, commands for agents with exact values, the terminal with Claude Code, and the interface languages, which is a Platform row and not scored); no existing row moved. At 0.11.0 two moved with opt-in sharing on the local network: real-time co-editing partial to full, share by link none to partial. At 0.11.1 presenting to a remote audience with Q&A moved none to partial, so no scored row is None any more. At 0.11.2 tagged accessible PDF export moved partial to full: slides export as live, embedded text and still pass PDF/UA-1. At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
 
 ## Method
 
@@ -28,17 +28,17 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.11.
 | Arrange and align | 7 of 7 · 100% | 7 of 7 · 100% | 5 of 5 · 100% |
 | Transitions | 3 of 3 · 100% | 3 of 3 · 100% | 2 of 2 · 100% |
 | Animations | 4 of 4 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
-| Slideshow and presenter | 8.5 of 9 · 94% | 7 of 7 · 100% | 8.5 of 9 · 94% |
+| Slideshow and presenter | 9 of 9 · 100% | 7 of 7 · 100% | 9 of 9 · 100% |
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
-| Collaboration and sharing | 3 of 4 · 75% | 3 of 4 · 75% | 2 of 3 · 67% |
+| Collaboration and sharing | 3.5 of 4 · 88% | 3.5 of 4 · 88% | 2.5 of 3 · 83% |
 | Accessibility | 4 of 4 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Import and export | 8 of 8 · 100% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Automation and agents | 3.5 of 4 · 88% | 1 of 1 · 100% | 3.5 of 4 · 88% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **105 of 107 · 98.1%** | **90 of 91 · 98.9%** | **87 of 89 · 97.8%** |
+| **Overall** | **106 of 107 · 99.1%** | **90.5 of 91 · 99.5%** | **88 of 89 · 98.9%** |
 
-Across all 120 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 116 full, 4 partial and 0 none: 118 of 120 points, 98.3%.
+Across all 120 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 118 full, 2 partial and 0 none: 119 of 120 points, 99.2%.
 
 ## Where FormDeck leads
 
@@ -51,9 +51,9 @@ Rows FormDeck implements that the product does not offer:
 
 ## Where FormDeck trails most
 
-- **Collaboration and sharing, 3 of 4 against PowerPoint.** Since 0.11.0 other computers on the same network open a deck from a share link (view, comment or edit, off by default) and co-edit it live with presence; links work only on the local network, and there is no hosted publishing, so share links and publishing to the web stay Partial.
-- **Slideshow and presenter, 8.5 of 9.** Since 0.11.1 people with a share link follow the show and send questions to Presenter View, but only on the local network; PowerPoint and Google Slides reach an audience anywhere through their own services.
-- **Automation, 3.5 of 4.** Macros and agents cover scripting, and add-ins install from a Store with permissions and checksums, but the catalog is FormDeck's own three add-ins, with no third-party publishing, reviews or update notices.
+- **Collaboration and sharing, 3.5 of 4 against PowerPoint.** Share links (view, comment or edit, off by default) work on the local network and, since 0.12.0, from anywhere through a relay that the person runs; publishing to the web is still a self-contained file rather than a hosted page, so that row stays Partial.
+- **Slideshow and presenter, 9 of 9.** People with a share link follow the show and send questions to Presenter View, on the local network or through the relay; unlike PowerPoint and Google Slides, there is no relay run by FormDeck itself.
+- **Automation, 3.5 of 4.** Macros and agents cover scripting, and add-ins install from FormDeck's catalog and, since 0.12.0, from other publishers' catalogs a person adds, all with permissions and checksums; there are no reviews or ratings.
 - **Smaller limits.** Subtitles need Chrome or Edge; stock images are pictures only (no video or stickers); AI pictures need an OpenAI key or a compatible image server.
 
 Not on the list and not offered by FormDeck: Keynote Slide Clean Up, PowerPoint Designer's generated designs beyond layouts (since 0.11.6 Design Ideas suggests the master's layouts that fit the slide), PowerPoint's Summary and Section Zoom (since 0.11.4 FormDeck has Slide Zoom: a slide picture that jumps to its slide in the show and returns after it; since 0.11.5 it has Rehearse with Coach, the counterpart of PowerPoint Speaker Coach, and since 0.11.6 a live camera on slides, like PowerPoint Cameo and Keynote live video), and Keynote's multipresenter and FaceTime presenting.
@@ -209,7 +209,7 @@ Not on the list and not offered by FormDeck: Keynote Slide Clean Up, PowerPoint 
 | Record the show with narration | yes | yes | yes | Full | `present/recorder.ts Recorder` (per-slide narration, timings, retake), `pptx/write_media.py write_audio`, `write_anim.py _media_entries` (autoplay audio) |
 | Live captions and subtitles | yes | no | yes | Full | `present/captions.ts Captions` (Web Speech, Chrome and Edge only), `show.ts toggleCaptions` synced to the audience window; Subtitle Settings (`ui/dialogs-captions.ts`): spoken and subtitle language, four positions, size, always on; translation per phrase by Chrome's on-device Translator or the chat model (`present/caption-translate.ts`, `routers/captions.py`), checked with stubbed speech, translator and model |
 | Loop until Esc and custom shows | yes | yes | yes | Full | `present/show-dialogs.ts SetupShowDialog, CustomShowsDialog`, `show.ts playlist`, `pptx/show_props.py write_show, read_show` |
-| Present to a remote audience with Q&A | yes | no | yes | Partial | people with a share link follow the show live and ask questions that appear in Presenter View (`present/show.ts followShow, mountAsk, addQuestion`, `routers/live.py` show and question); local network only, no hosted audience link |
+| Present to a remote audience with Q&A | yes | no | yes | Full | people with a share link follow the show live and ask questions that appear in Presenter View (`present/show.ts followShow, mountAsk, addQuestion`, `routers/live.py` show and question); on the local network, or from anywhere through a relay you run (`relay/formdeck_relay.py`, `services/relay.py`) |
 
 ### Review and comments
 
@@ -225,7 +225,7 @@ Not on the list and not offered by FormDeck: Keynote Slide Clean Up, PowerPoint 
 | Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Real-time co-editing | yes | yes | yes | Full | windows, agents and other computers on the network edit one deck live with presence (`editor.ts setPeer`, `routers/live.py`, `routers/share.py ShareGate`); across the internet only through a network the computers share |
-| Share by link with permissions | yes | yes | yes | Partial | File > Share on This Network (`ui/dialogs-share.ts`, `services/share.py`): links that can view, comment or edit one deck, removable, enforced by the engine (`routers/live.py guest_refusal`); off by default and limited to the local network, with no hosted links |
+| Share by link with permissions | yes | yes | yes | Full | File > Share Deck (`ui/dialogs-share.ts`, `services/share.py`): links that can view, comment or edit one deck, removable, enforced by the engine (`routers/live.py guest_refusal`); off by default, on the local network or from anywhere through a self-run relay (`relay/formdeck_relay.py`, `services/relay.py`) |
 | Works offline, files stay local | yes | yes | no | Full | local engine, library in `core/config.py data_dir` |
 | Publish to the web or embed | yes | yes | yes | Partial | `ui/dialogs-publish.ts` File > Export > Publish as Web Page writes one self-contained .html player (keyboard, click, full screen, auto-advance, slide text for screen readers) and gives iframe embed code; no hosted link, since live publishing on the network is not built yet |
 
@@ -270,7 +270,7 @@ Not on the list and not offered by FormDeck: Keynote Slide Clean Up, PowerPoint 
 | Skills shipped for Claude Code, Codex and Cursor | no | no | no | Full | `.claude/skills/formdeck-harness`, `setup/agents.py install` |
 | Headless build from files on the command line | no | no | no | Full | `setup/cli.py` (`./formdeck build-deck`) |
 | Scripting and macros | yes | no | yes | Full | View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run |
-| Add-in marketplace | yes | no | yes | Partial | Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; the catalog holds three first-party add-ins and has no third-party publishing, reviews or update notices yet |
+| Add-in marketplace | yes | no | yes | Partial | Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; FormDeck's catalog plus catalogs from other publishers that a person adds (`services/addins.py third_party_urls`); no reviews or ratings |
 | Find and run any command by name | yes | no | yes | Full | Find a Command, Shift+Ctrl or Cmd+P (`ui/command-palette.ts`), over the catalogue of every ribbon, menu and shortcut command (`automation/catalogue.ts`) |
 | Every command callable by agents and scripts, with exact values | no | no | no | Full | MCP list_commands and run_command, `/api/commands`, `./formdeck cli` (`routers/commands.py`, `automation/catalogue.ts checkParams`, `editor/param-commands.ts`) |
 | Terminal in the window with Claude Code attached | no | no | no | Full | the dock, Ctrl or Cmd+` (`ui/terminal-dock.ts`, `services/terminal.py`, `services/claude_code.py`): shell and Claude Code tabs with FormDeck's tools; the chat hands its conversation to a tab and takes one back (`routers/chat.py adopt`) |

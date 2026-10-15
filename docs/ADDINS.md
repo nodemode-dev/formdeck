@@ -107,6 +107,10 @@ The Store reads a JSON index. The address is the engine setting `addins.indexUrl
 
 `download` is an address or a path relative to the index. `sha256` is the hash of the `.zip`. The engine downloads at most 2 MB, checks the hash, then validates the package and refuses it if its `id`, `version` or `permissions` differ from the entry. `addins/build.py` rebuilds the packages in `addins/zips` deterministically and `addins/build.py --check` compares them with `index.json`.
 
+### Publishing your own catalog
+
+Anyone can publish a catalog in the same format at any `https://` address (a static file host is enough). People add its address in Add-ins > Catalogs...; the engine keeps the list in the setting `addins.catalogs` (at most ten) and `PUT /api/addins/catalogs {"urls": [...]}` replaces it. Entries from other catalogs are marked with the catalog's host, never replace an add-in id that FormDeck's catalog lists, and are installed with the source `publisher:<host>`. Downloads are checked exactly as above, so publish the `sha256` of each `.zip` and keep `id`, `version` and `permissions` identical in the entry and the package.
+
 ## Where add-ins are stored
 
 Each add-in lives in `FormDeck/AddIns/[id]/`. The engine pins the SHA-256 of every file at install time (`.addin.json`). A file that is changed, added or removed on disk afterwards marks the add-in as modified: it is switched off and its files are no longer served until it is removed and added again.
