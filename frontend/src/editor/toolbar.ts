@@ -71,7 +71,7 @@ function ribbonTabs(): TabDef[] {
       G('comments', 'Comments', L('add-comment', 'Comment')),
       G('text', 'Text', L('insert-text', 'Text Box'), L('header-footer', 'Header & Footer'), L('insert-wordart', 'WordArt')),
       G('symbols', 'Symbols', L('insert-equation', 'Equation')),
-      G('media', 'Media', L('insert-media', 'Video or Audio')),
+      G('media', 'Media', L('insert-media', 'Video or Audio'), L('insert-camera', 'Camera')),
     ] },
     { id: 'design', label: 'Design', groups: [
       G('themes', 'Themes', L('apply-template', 'Template')),
@@ -128,6 +128,7 @@ function ribbonTabs(): TabDef[] {
       G('wordart', 'WordArt Styles', L('text-effects', 'Text Effects'), L('text-transform', 'Transform'), R([A('text-color', 'textColor', 'Text Fill', { text: true, swatch: true })], [A('highlight', 'highlight', 'Highlight', { text: true, swatch: true })], [T('clear-text-effects', 'Clear Effects')])),
       G('textbox', 'Text Box', R([I('anchor-t'), I('anchor-m'), I('anchor-b')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('bullets'), I('numbering')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
+      G('camera', 'Camera', L('camera-toggle', 'Live Camera')),
       arrangeGroup(),
     ] },
     { id: 'picfmt', label: 'Picture Format', ctx: true, groups: [

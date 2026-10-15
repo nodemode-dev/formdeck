@@ -1,5 +1,5 @@
 import type { DeckDoc, DocEvent } from '../engine/doc';
-import type { MediaElement, ShowSettings, Slide, SlideElement } from '../engine/model';
+import type { MediaElement, ShapeElement, ShowSettings, Slide, SlideElement } from '../engine/model';
 import { slidePath, type Op, type Touched } from '../engine/ops';
 import { LiveClient } from '../live/socket';
 import { ensureFonts, fontsOfDeck } from '../render/fonts';
@@ -9,6 +9,7 @@ import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
 import { Captions, CaptionView, bindCaptionFields, captionFields, captionsSupported, type CapLine, type CaptionPrefs } from './captions';
 import { SpeechCoach, coachSummary } from './coach';
+import { camerasOf } from '../editor/camera';
 import { plainText } from '../engine/resolve';
 import { effectFx, morph, transitionPlan, type Box, type Dir } from './effects';
 import { mutedOf, preparePlayback, seekBookmark } from './media-play';
@@ -307,6 +308,7 @@ class Show {
   private rehearseAt = 0;
   private coach: SpeechCoach | null = null;
   private coachCc = false;
+  private camStream: Promise<MediaStream | null> | null = null;
   private asked = false;
   private drawing: Stroke | null = null;
   private readonly set: ShowSettings;
@@ -1329,6 +1331,33 @@ class Show {
       v.addEventListener('pause', () => this.post({ type: 'media', slide: sid, id: m.id, play: false, t: v.currentTime }));
       if (isCur && m.autoplay) this.playMedia(v);
     }
+    if (!this.opts.remote) for (const c of camerasOf(slide.elements)) this.cameraIn(view, c);
+  }
+
+  private cameraStream(): Promise<MediaStream | null> {
+    this.camStream ??= navigator.mediaDevices?.getUserMedia
+      ? navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }).catch(() => { this.flash('The camera could not be opened. Check the camera permission.', 4000); return null; })
+      : Promise.resolve(null);
+    return this.camStream;
+  }
+
+  private cameraIn(view: SlideView, e: ShapeElement): void {
+    const node = this.nodeOf(view, e.id);
+    if (!node || node.querySelector('.fd-show-cam')) return;
+    const v = document.createElement('video');
+    v.className = 'fd-show-cam';
+    v.muted = true;
+    v.playsInline = true;
+    v.hidden = true;
+    if (e.geom === 'ellipse') v.classList.add('is-round');
+    else if (e.geom === 'roundRect') v.classList.add('is-rounded');
+    node.appendChild(v);
+    void this.cameraStream().then((s) => {
+      if (!s || this.closed) return;
+      v.srcObject = s;
+      v.addEventListener('loadeddata', () => setHidden(v, false), { once: true });
+      void v.play().catch(() => undefined);
+    });
   }
 
   private prep(a: HTMLMediaElement, m: MediaElement, node: HTMLElement | null = null, reset = true): void {
@@ -1818,6 +1847,7 @@ class Show {
     for (const h of this.holds) h.anim.cancel();
     for (const v of this.views.values()) for (const m of Array.from(v.el.querySelectorAll('video'))) m.pause();
     for (const a of this.audio.values()) { a.pause(); a.removeAttribute('src'); a.load(); }
+    void this.camStream?.then((s) => s?.getTracks().forEach((t) => t.stop()));
     this.grid?.dispose();
     this.cc?.stop();
     this.chan?.close();

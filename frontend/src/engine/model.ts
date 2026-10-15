@@ -62,7 +62,7 @@ export interface ConnEnd { id: string; site: number }
 export interface Connection { kind: ConnKind; start?: ConnEnd; end?: ConnEnd }
 export interface ShapeElement extends ElementBase {
   type: 'shape'; geom?: string; adj?: Record<string, number>; path?: string; pathSize?: [number, number]; conn?: Connection; fill?: Fill | null; line?: Line | null; effects?: Effects; text?: TextBody;
-  sp3d?: Sp3d; scene3d?: Scene3d; textStyle?: string; fillStyle?: string;
+  sp3d?: Sp3d; scene3d?: Scene3d; textStyle?: string; fillStyle?: string; camera?: boolean;
 }
 export interface Model3d { src: string; rot?: [number, number, number]; zoom?: number; pan?: [number, number] }
 export interface ImageElement extends ElementBase {
