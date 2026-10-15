@@ -85,7 +85,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps
 
 - Co-authoring across machines, share links, hosted publishing and presenting to a remote audience are not built; they need the engine to accept connections from other computers.
-- The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export is not yet validated as PDF/UA; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.10.5: 96.3%, 97.3% and 95.5%, with nine rows added for the 0.10 work; 31 rows where FormDeck goes past Google Slides, 28 past Keynote, 13 past PowerPoint).
+- The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export passes PDF/UA-1 in veraPDF (`./formdeck pdf-check`) but shows each slide as a picture over an invisible text layer rather than live text; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.10.5: 96.3%, 97.3% and 95.5%, with nine rows added for the 0.10 work; 31 rows where FormDeck goes past Google Slides, 28 past Keynote, 13 past PowerPoint).
 - The 25 translations were made by language models and have not been reviewed by native speakers yet; the terminal dock has not been run on Windows.
 - The window works with touch and on tablet- and phone-sized screens, but a phone or tablet cannot reach the engine yet: it accepts connections only from the computer it runs on.
 - Stock Images and AI pictures need an internet connection; AI pictures also need an OpenAI key or a compatible image server, and subtitle translation needs Chrome's built-in translator or a chat model.

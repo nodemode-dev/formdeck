@@ -53,7 +53,7 @@ Rows FormDeck implements that the product does not offer:
 
 - **Collaboration and sharing, 2 of 4 against PowerPoint.** Windows and agents co-edit live on one computer and Publish as Web Page writes a self-contained player, but there are no share links, no hosted publishing and no co-editing across machines. All three need the engine to accept connections from other computers, which waits on the owner's approval.
 - **Slideshow and presenter, 8 of 9.** Presenting to a remote audience with Q&A is missing, for the same reason.
-- **Accessibility, 3.5 of 4 against PowerPoint.** Exported PDFs are tagged with a structure tree, but the text is an invisible layer over the slide picture and has not been checked with a PDF/UA validator.
+- **Accessibility, 3.5 of 4 against PowerPoint.** Exported PDFs pass veraPDF's PDF/UA-1 profile (checked at 0.10.6 with tables, charts, pictures, notes pages and Japanese, Russian and Greek text), but each slide is still shown as a picture with the text in an invisible layer, so zooming a page enlarges pixels rather than type; PowerPoint exports live text. The row stays Partial until slides export as real text.
 - **Automation, 3.5 of 4.** Macros and agents cover scripting, and add-ins install from a Store with permissions and checksums, but the catalog is FormDeck's own three add-ins, with no third-party publishing, reviews or update notices.
 - **Smaller limits.** Subtitles need Chrome or Edge; stock images are pictures only (no video or stickers); AI pictures need an OpenAI key or a compatible image server.
 
@@ -237,7 +237,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Accessibility checker | yes | no | no | Full | `backend/app/services/lint.py` checks alt text, contrast, tiny text and overflow measured in the window; Review > Check Deck (`frontend/src/ui/check-dialog.ts`, `decks.py check`) and agents (`lint_deck`) |
 | Reading order | yes | no | no | Full | `editor/selection-pane.ts` Reading order view (missing alt text flagged, drag reorders the shape tree); exported PDFs follow it as their structure order (`render/pdf-struct.ts`, `services/pdf_tags.py`) |
 | Screen reader labels in the app | yes | yes | yes | Full | ARIA roles and labels on dialogs, lists, menus and the show (`show.ts` aria-roledescription); axe-core 4.10 WCAG 2.1 A and AA audit at 0.8.3 of Home and the editor in all 15 UI themes, every menu, Spelling, the Agent tab and the show: no violations in the app's own interface |
-| Tagged accessible PDF export | yes | yes | yes | Partial | `services/pdf_tags.py`, `routers/exports.py _pdf`: Tagged PDF with a structure tree (headings, paragraphs, nested lists, tables with header cells, figures with alt, artifacts), Lang, title and XMP; text is an invisible layer over a slide picture with non-embedded fonts and no PDF/UA validator run |
+| Tagged accessible PDF export | yes | yes | yes | Partial | `services/pdf_tags.py`, `routers/exports.py _pdf`: Tagged PDF with a structure tree (headings, paragraphs, nested lists, tables with header cells, figures with alt, artifacts), Lang, title and XMP; PDF/UA-1 compliant in veraPDF 1.28.2 (`./formdeck pdf-check`), every language searchable through an embedded text-layer font (`services/pdf_fonts.py`); the visible slide is still a picture of the text, not live text |
 
 ### Import and export
 

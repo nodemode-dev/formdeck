@@ -381,3 +381,7 @@ formvis's action entries take values; FormDeck's commands were all click-only, s
 ## 82. From Claude Code... in the chat · _v0.10.5 (ui/chat-panel.ts adopt)
 
 The other half of the chat and terminal handoff. The button sits beside Continue in the terminal in the Claude Code settings; it lists the engine's sessions in the shared ListDialog (pickFrom, exported from editor/components.ts for this) with date and message count, and the engine's single state event repaints the log through the same reconcile as a reload. If the assistant is not set to Claude Code the conversation is still loaded, with a toast saying to switch, since a different provider cannot resume it. The engine's note and error strings were added to keys part16 by hand, because the extractor reads only the frontend.
+
+## 83. Chart alt text from data · _v0.10.6 (render/pdf-struct.ts chartAlt)
+
+A chart with no alt text and no title went into the PDF as a Figure with an empty Alt, which fails PDF/UA 7.3 and stops the file declaring PDF/UA at all. The fallback now describes the chart from its own data: title if any, kind, and up to six series of up to twelve values with their categories, capped at 600 characters. An alt of exactly "" still marks the chart decorative (an artifact), as for pictures.
