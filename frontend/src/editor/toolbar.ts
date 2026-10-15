@@ -12,6 +12,7 @@ import type { Editor } from './editor';
 import { runStyleOps } from './actions';
 import { addinBar } from './addins';
 import { DIAGRAM_MENU } from './diagram-commands';
+import { deckFontFamilies } from './font-commands';
 import { MODEL3D_VIEW_IDS } from './model3d-commands';
 import { MASTER_PLACEHOLDER_IDS, editorTheme } from './master-view';
 import { MERGE_MENU } from './merge-shapes';
@@ -364,9 +365,27 @@ export class Toolbar {
     const ed = this.ed;
     if (!ed) return;
     const th = editorTheme(ed);
+    const own = deckFontFamilies(ed.doc.deck).filter((f) => !BUNDLED_FONTS.includes(f));
     for (const font of this.fonts) {
       setText(font.querySelector('option[value="+mj"]'), `${th.fonts.major} (Headings)`);
       setText(font.querySelector('option[value="+mn"]'), `${th.fonts.minor} (Body)`);
+      let group = font.querySelector<HTMLOptGroupElement>('optgroup[data-g="deck"]');
+      if (!group && own.length) {
+        group = document.createElement('optgroup');
+        group.label = 'In this deck';
+        group.dataset.g = 'deck';
+        font.querySelector('optgroup[label="All fonts"]')?.before(group);
+      }
+      if (!group) continue;
+      for (const o of Array.from(group.querySelectorAll('option'))) if (!own.includes(o.value)) o.remove();
+      for (const f of own) {
+        if (Array.from(group.querySelectorAll('option')).some((o) => o.value === f)) continue;
+        const o = document.createElement('option');
+        o.value = f;
+        o.textContent = f;
+        group.append(o);
+      }
+      if (!own.length) group.remove();
     }
   }
 

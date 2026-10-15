@@ -37,7 +37,13 @@ async def upload(files: list[UploadFile]) -> dict:
         data = await f.read()
         if len(data) > config.MAX_UPLOAD_BYTES:
             raise HTTPException(413, f"{f.filename} is larger than 1 GB")
-        out.append(mediamod.store().put(data, f.filename or "file", None))
+        mime = mediamod.sniff_mime(data, f.filename or "file")
+        if mime.startswith("font/"):
+            try:
+                mediamod.reject_font(data, f.filename or "file")
+            except mediamod.FontRejected as e:
+                raise HTTPException(422, str(e)) from None
+        out.append(mediamod.store().put(data, f.filename or "file", mime))
     return {"media": out}
 
 

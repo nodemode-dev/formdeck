@@ -10,6 +10,7 @@ import { PanelGroup } from '../ui/panel-group';
 import type { Editor } from './editor';
 import { dirtyOp, holderNameOps, paraStyleOps, runStyleOps, setFrameOps } from './actions';
 import { AnimationPane } from './animation-pane';
+import { deckFontFamilies } from './font-commands';
 import { editorMaster, editorTheme, themeOps } from './master-view';
 import { TablePanel } from './table-panel';
 import { TextFxPanel } from './text-effects';
@@ -455,6 +456,25 @@ export class Inspector {
     for (const [k, font] of [['font-major', theme.fonts.major], ['font-minor', theme.fonts.minor]] as const) {
       const sel = this.design.querySelector<HTMLSelectElement>(`[data-f="${k}"]`);
       if (!sel) continue;
+      const own = deckFontFamilies(deck).filter((f) => !BUNDLED_FONTS.includes(f));
+      let group = sel.querySelector<HTMLOptGroupElement>('optgroup[data-g="deck"]');
+      if (!group && own.length) {
+        group = document.createElement('optgroup');
+        group.label = 'In this deck';
+        group.dataset.g = 'deck';
+        sel.prepend(group);
+      }
+      if (group) {
+        for (const o of Array.from(group.querySelectorAll('option'))) if (!own.includes(o.value)) o.remove();
+        for (const f of own) {
+          if (Array.from(group.querySelectorAll('option')).some((o) => o.value === f)) continue;
+          const o = document.createElement('option');
+          o.value = f;
+          o.textContent = f;
+          group.append(o);
+        }
+        if (!own.length) group.remove();
+      }
       if (!Array.from(sel.options).some((o) => o.value === font)) { const o = document.createElement('option'); o.value = font; o.textContent = font; sel.prepend(o); }
       setValue(sel, font);
     }

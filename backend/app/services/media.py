@@ -10,7 +10,7 @@ EXT_BY_MIME = {
     "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp", "image/svg+xml": ".svg", "image/bmp": ".bmp",
     "image/tiff": ".tif", "image/avif": ".avif", "image/heic": ".heic", "video/mp4": ".mp4", "video/webm": ".webm", "video/quicktime": ".mov",
     "audio/mpeg": ".mp3", "audio/mp4": ".m4a", "audio/wav": ".wav", "audio/ogg": ".ogg", "audio/flac": ".flac", "font/ttf": ".ttf",
-    "font/otf": ".otf", "font/woff2": ".woff2", "application/pdf": ".pdf", "model/gltf-binary": ".glb",
+    "font/otf": ".otf", "font/woff": ".woff", "font/woff2": ".woff2", "application/pdf": ".pdf", "model/gltf-binary": ".glb",
 }
 _PIL_MIME = {"PNG": "image/png", "JPEG": "image/jpeg", "GIF": "image/gif", "WEBP": "image/webp", "BMP": "image/bmp", "TIFF": "image/tiff", "MPO": "image/jpeg"}
 
@@ -66,6 +66,8 @@ def sniff_mime(data: bytes, name: str) -> str:
         return "model/gltf-binary"
     if head.startswith(b"wOF2"):
         return "font/woff2"
+    if head.startswith(b"wOFF"):
+        return "font/woff"
     if head[:4] in (b"\x00\x01\x00\x00", b"true"):
         return "font/ttf"
     if head.startswith(b"OTTO"):
@@ -89,8 +91,47 @@ def _svg_size(data: bytes) -> tuple[int, int] | None:
     return None
 
 
+class FontRejected(ValueError):
+    pass
+
+
+def font_info(data: bytes) -> dict:
+    from fontTools.ttLib import TTFont
+    font = TTFont(io.BytesIO(data), lazy=True)
+    names = font["name"]
+    os2 = font["OS/2"] if "OS/2" in font else None
+    family = (names.getDebugName(16) or names.getDebugName(1) or "").strip()
+    subfamily = (names.getDebugName(17) or names.getDebugName(2) or "").strip()
+    weight = int(getattr(os2, "usWeightClass", 400) or 400)
+    italic = bool(os2 is not None and os2.fsSelection & 1) or bool("head" in font and font["head"].macStyle & 2)
+    bold = weight >= 600
+    style = "boldItalic" if bold and italic else "bold" if bold else "italic" if italic else "regular"
+    return {
+        "family": family, "subfamily": subfamily, "style": style, "weight": weight, "italic": italic,
+        "fsType": int(getattr(os2, "fsType", 0) or 0),
+    }
+
+
+def reject_font(data: bytes, name: str) -> None:
+    try:
+        info = font_info(data)
+    except Exception:
+        raise FontRejected(f"{name} could not be read as a font. Choose a TTF, OTF, WOFF or WOFF2 file.") from None
+    if not info["family"]:
+        raise FontRejected(f"{name} has no font family name, so it cannot be added.")
+    if info["fsType"] & 0x0002 or info["fsType"] & 0x0200:
+        raise FontRejected(f"{info['family']} cannot be added: its license does not allow the font to be embedded in a document.")
+
+
 def probe(data: bytes, mime: str) -> dict:
     info: dict = {}
+    if mime.startswith("font/"):
+        try:
+            found = font_info(data)
+        except Exception:
+            return info
+        found.pop("fsType", None)
+        return {k: v for k, v in found.items() if v not in ("", None)} | {"italic": found["italic"]}
     if mime.startswith(("video/", "audio/")):
         from .av_probe import av_seconds, mp4_size
         secs = av_seconds(data, mime)
