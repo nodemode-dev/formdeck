@@ -17,7 +17,7 @@ import { horizontalSwipe, installInputKind, isTouchInput } from '../ui/touch';
 
 export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean; rehearse?: boolean; remote?: boolean }
 
-interface Stroke { c: string; w: number; p: number[] }
+interface Stroke { c: string; w: number; p: number[]; h?: 1 }
 type Mode = 'pointer' | 'pen' | 'eraser' | 'laser';
 type Blank = 'black' | 'white' | 'normal';
 type Msg =
@@ -59,6 +59,7 @@ const IDLE_MS = 2500;
 const NOTES_KEY = 'formdeck.notesSize';
 const SPLIT_KEY = 'formdeck.presenterSplit';
 const PEN_W = 0.0045;
+const MARKER = '#facc15';
 const INKS: Array<[string, string]> = [['#ef4444', 'Red'], ['#facc15', 'Yellow'], ['#3b82f6', 'Blue'], ['#ffffff', 'White']];
 const KEYS: Record<string, string> = {
   ArrowRight: 'next', ArrowDown: 'next', ' ': 'next', Enter: 'next', PageDown: 'next', n: 'next', N: 'next',
@@ -108,7 +109,7 @@ ${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-c
 </aside>
 </div>
 <div class="fd-show-pop fd-show-display" hidden>${item('swap', 'Swap Presenter View and Slide Show')}${item('duplicate', 'Duplicate Slide Show')}</div>
-<div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('laser', 'Laser pointer', 'L')}${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
+<div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('highlighter', 'Highlighter', 'Ctrl+I')}${item('laser', 'Laser pointer', 'L')}${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
 <div class="fd-show-pop fd-show-more" hidden>${item('presenter-on', 'Show Presenter View')}${item('presenter-off', 'Hide Presenter View')}${item('white', 'White screen', 'W')}${item('auto', 'Pause automatic advance', 'S')}${item('bar', 'Hide controls', 'Ctrl+H')}${item('fullscreen', 'Full screen', 'F')}<div class="fd-menu-sep"></div>${item('captions', 'Turn on captions', 'J')}${CC_SET}<div class="fd-menu-sep"></div>${item('end', 'End show', 'Esc')}</div>
 <div class="fd-show-grid" hidden><div class="fd-show-grid-head"><span class="fd-show-grid-title">All slides</span><span class="fd-show-grid-hint">Arrow keys to move, Enter to open, Esc to close</span>${btn('grid-close', 'Close (Esc)', icon('close', 16))}</div><div class="fd-show-grid-list"></div></div>
 <div class="fd-show-rehearse" hidden><span class="fd-show-rehearse-text"></span><button class="fd-btn fd-btn-primary fd-btn-sm" type="button" data-act="keep">Keep timings</button><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-act="discard">Discard</button></div>
@@ -271,6 +272,8 @@ class Show {
   private mode: Mode = 'pointer';
   private blank: Blank = 'normal';
   private pen = INKS[0][0];
+  private marker = false;
+  private penBefore = INKS[0][0];
   private typed = '';
   private enteredAt = 0;
   private autoTimer = 0;
@@ -789,7 +792,8 @@ class Show {
     if (this.kiosk() && !/^(Escape|-|f|F|j|J)$/.test(k)) return;
     if (mod || e.altKey) {
       const low = k.toLowerCase();
-      if (mod && low === 'p') this.setMode(this.mode === 'pen' ? 'pointer' : 'pen');
+      if (mod && low === 'p') { const was = this.marker; this.usePen(); this.setMode(this.mode === 'pen' && !was ? 'pointer' : 'pen'); }
+      else if (mod && low === 'i') { if (this.mode === 'pen' && this.marker) this.setMode('pointer'); else this.useMarker(); }
       else if (mod && low === 'e') this.clearInk();
       else if (mod && low === 'h') { this.root.classList.toggle('is-bar-off'); this.closePops(); }
       else if (mod && low === 'a') this.setMode('pointer');
@@ -866,7 +870,8 @@ class Show {
         if (anchor) this.togglePop(this.pens, anchor);
         if (this.mode !== 'pen' && this.mode !== 'eraser') this.setMode('pen');
         break;
-      case 'color': this.pen = anchor?.dataset.color ?? this.pen; this.setMode('pen'); break;
+      case 'color': this.pen = anchor?.dataset.color ?? this.pen; this.marker = false; this.setMode('pen'); break;
+      case 'highlighter': this.useMarker(); break;
       case 'clear': this.clearInk(); break;
       case 'pointer': this.setMode('pointer'); this.closePops(); break;
       case 'more': if (anchor) this.togglePop(this.more, anchor); break;
@@ -1433,6 +1438,16 @@ class Show {
 
   private popOpen(): boolean { return !this.pens.hidden || !this.more.hidden || !this.displayPop.hidden; }
 
+  private useMarker(): void {
+    if (!this.marker) { this.penBefore = this.pen; this.pen = MARKER; }
+    this.marker = true;
+    this.setMode('pen');
+  }
+
+  private usePen(): void {
+    if (this.marker) { this.pen = this.penBefore; this.marker = false; }
+  }
+
   private setMode(m: Mode): void {
     if (this.mode === 'laser' && m !== 'laser') { this.showLaser(-1, -1); this.post({ type: 'laser', x: 0, y: 0, on: false }); }
     this.mode = m;
@@ -1499,10 +1514,10 @@ class Show {
     this.canvas.setPointerCapture(e.pointerId);
     const [x, y] = this.norm(e);
     if (this.mode === 'eraser') { this.erase(x, y); return; }
-    const s: Stroke = { c: this.pen, w: PEN_W, p: [x, y, x, y] };
+    const s: Stroke = this.marker ? { c: this.pen, w: PEN_W * 5, p: [x, y, x, y], h: 1 } : { c: this.pen, w: PEN_W, p: [x, y, x, y] };
     this.strokes().push(s);
     this.drawing = s;
-    this.paintStroke(s, s.p.length - 4);
+    if (s.h) this.drawInk(); else this.paintStroke(s, s.p.length - 4);
   }
 
   private inkMove(e: PointerEvent): void {
@@ -1512,7 +1527,7 @@ class Show {
     const s = this.drawing;
     if (!s) return;
     s.p.push(x, y);
-    this.paintStroke(s, s.p.length - 4);
+    if (s.h) this.drawInk(); else this.paintStroke(s, s.p.length - 4);
     if (!this.inkPost) this.inkPost = requestAnimationFrame(() => { this.inkPost = 0; this.postInk(); });
   }
 
@@ -1557,15 +1572,18 @@ class Show {
     const ctx = this.canvas.getContext('2d');
     if (!ctx || s.p.length < 4) return;
     const W = this.canvas.width, H = this.canvas.height;
+    ctx.save();
     ctx.strokeStyle = s.c;
     ctx.lineWidth = Math.max(1, s.w * W);
-    ctx.lineCap = 'round';
+    ctx.lineCap = s.h ? 'butt' : 'round';
     ctx.lineJoin = 'round';
+    if (s.h) ctx.globalAlpha = 0.38;
     ctx.beginPath();
-    const i0 = Math.max(0, from);
+    const i0 = s.h ? 0 : Math.max(0, from);
     ctx.moveTo(s.p[i0] * W, s.p[i0 + 1] * H);
     for (let i = i0 + 2; i < s.p.length; i += 2) ctx.lineTo(s.p[i] * W, s.p[i + 1] * H);
     ctx.stroke();
+    ctx.restore();
   }
 
   private syncUi(): void {
