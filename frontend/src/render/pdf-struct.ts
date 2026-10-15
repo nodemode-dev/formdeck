@@ -38,6 +38,15 @@ function tableRows(el: Element, table: Extract<SlideElement, { type: 'table' }>)
   return out;
 }
 
+export function chartAlt(ch: Extract<SlideElement, { type: 'chart' }>['chart']): string {
+  const kind = `${ch.kind.charAt(0).toUpperCase()}${ch.kind.slice(1)} chart`;
+  const series = ch.series.slice(0, 6).map((s) => {
+    const vals = (s.values as Array<number | null | [number, number]>).slice(0, 12).map((v, i) => (Array.isArray(v) ? `${v[0]}, ${v[1]}` : `${ch.categories[i] ?? i + 1} ${v ?? 'none'}`));
+    return `${s.name || 'Series'}: ${vals.join('; ')}`;
+  });
+  return `${ch.title ? `${ch.title}. ` : ''}${kind}. ${series.join('. ')}.`.slice(0, 600);
+}
+
 export function structOf(slide: Slide, root: Element, rect: (e: Element) => PdfBox): PdfNode[] {
   const out: PdfNode[] = [];
   const layer = root.querySelector('.fd-layer-content');
@@ -51,7 +60,7 @@ export function structOf(slide: Slide, root: Element, rect: (e: Element) => PdfB
     const withAlt = (text: string): { alt?: string } => (text ? { alt: text } : {});
     if (el.type === 'table') { out.push({ id, k: 'tbl', box, rows: tableRows(dom, el) }); continue; }
     if (el.type === 'image') { out.push(el.alt === '' ? { id, k: 'art', box } : { id, k: 'fig', box, ...withAlt(alt) }); continue; }
-    if (el.type === 'chart') { out.push(el.alt === '' ? { id, k: 'art', box } : { id, k: 'fig', box, ...withAlt(alt || el.chart.title || '') }); continue; }
+    if (el.type === 'chart') { out.push(el.alt === '' ? { id, k: 'art', box } : { id, k: 'fig', box, ...withAlt(alt || chartAlt(el.chart)) }); continue; }
     if (el.type === 'media') { out.push(el.alt === '' ? { id, k: 'art', box } : { id, k: 'fig', box, ...withAlt(alt || el.name || '') }); continue; }
     if (el.ph && ARTIFACT_PH.has(el.ph.type)) { out.push({ id, k: 'art', box }); continue; }
     if (hasText(el)) { out.push({ id, k: el.ph && TITLE_KINDS.has(el.ph.type) ? 'h' : 'p', box }); continue; }

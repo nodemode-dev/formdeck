@@ -11,7 +11,7 @@ from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.core import config
-from app.services import pdf_tags
+from app.services import pdf_fonts, pdf_tags
 from app.services.store import STORE
 
 router = APIRouter()
@@ -59,6 +59,8 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
     c.setSubject(f"{title} · {len(images)} slides")
     c.setCreator(f"FormDeck {config.VERSION}")
     slides = meta.get("slides") or []
+    layer = pdf_fonts.text_layer({ch for s in slides if isinstance(s, dict) for it in s.get("text") or [] for ch in str(it.get("text") or "")})
+    note_font, notes_ok = pdf_fonts.visible({ch for v in (notes or {}).values() for ch in str(v)} | set("(no notes)")) if notes is not None else (pdf_fonts.FALLBACK, True)
     sects = []
     for i, data in enumerate(images):
         info = slides[i] if i < len(slides) and isinstance(slides[i], dict) else {}
@@ -82,8 +84,8 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
                         continue
                     t = c.beginText()
                     t.setTextRenderMode(3)
-                    t.setFont("Helvetica", sz)
-                    width = stringWidth(line, "Helvetica", sz)
+                    t.setFont(layer, sz)
+                    width = stringWidth(line, layer, sz)
                     if w > 0 and width > 0:
                         t.setHorizScale(max(20.0, min(300.0, w / width * 100)))
                     t.setTextOrigin(x, ph - (y + sz) - k * sz * 1.2)
@@ -106,10 +108,10 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
                 div.kids.append(p)
                 c._code.append(f"/P <</MCID {mc}>> BDC")
                 mc += 1
-                for line in simpleSplit(para, "Helvetica", 14 * k, pw - 96 * k) or [""]:
+                for line in simpleSplit(para, note_font, 14 * k, pw - 96 * k) or [""]:
                     if y < 24 * k:
                         break
-                    c.setFont("Helvetica", 14 * k)
+                    c.setFont(note_font, 14 * k)
                     c.drawString(48 * k, y, line)
                     y -= 14 * k * 1.35
                 c._code.append("EMC")
@@ -124,7 +126,7 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
     lang = lang if _LANG.match(lang) else "en-US"
     figs = [e for s in sects for e in s.walk() if e.role == "Figure"]
     try:
-        return pdf_tags.tag(raw, sects, title=title, author=author, creator=f"FormDeck {config.VERSION}", lang=lang, ua=notes is None and all(f.alt for f in figs))
+        return pdf_tags.tag(raw, sects, title=title, author=author, creator=f"FormDeck {config.VERSION}", lang=lang, ua=notes_ok and layer != pdf_fonts.FALLBACK and all(f.alt for f in figs))
     except ImportError:
         return raw
 
