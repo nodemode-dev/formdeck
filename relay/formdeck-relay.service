@@ -1,0 +1,19 @@
+[Unit]
+Description=FormDeck relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=formdeck-relay
+WorkingDirectory=/opt/formdeck-relay
+EnvironmentFile=/etc/formdeck-relay.env
+ExecStart=/opt/formdeck-relay/venv/bin/python -I formdeck_relay.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
