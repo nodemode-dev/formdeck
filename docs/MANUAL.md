@@ -335,6 +335,10 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | | Keyboard Shortcuts | Mod+/ |
 | | Preferences | Mod+, |
 
+Every shortcut can be changed: in Help > Keyboard Shortcuts, click a command's keys and press the new combination (Backspace clears it, Esc cancels). A combination another command had moves to the new one, and FormDeck says which. Your changes are kept for every deck; Reset All goes back to these defaults.
+
+Insert > Slide Zoom... puts a picture of another slide on the current one. In the slide show, clicking it goes to that slide, and the next advance after that slide's last build comes back; the show then carries on from where you were. In .pptx and .odp it is a picture linked to the slide.
+
 On the slide, without a modifier: arrows nudge the selection (Shift for 10 points) or, with nothing selected, change slides; Page Up and Page Down change slides; Home and End go to the first and last slide; Enter starts typing in the selected shape; Esc clears the selection. While typing, Mod+S and Mod+P still save and print.
 
 ## Presenting
@@ -351,6 +355,7 @@ Present in the title bar starts from the current slide; its arrow offers From Be
 | W or , | white screen |
 | G or - | all slides grid (arrows, Enter to open, Esc to close) |
 | Mod+P | pen (pick red, yellow, blue or white from the pen button) |
+| Mod+I | highlighter: wide, see-through strokes (Mod+P goes back to the pen and its colour) |
 | E | eraser |
 | Mod+E | clear the ink |
 | L | laser pointer |
