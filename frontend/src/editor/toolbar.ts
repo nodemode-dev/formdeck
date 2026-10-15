@@ -77,6 +77,7 @@ function ribbonTabs(): TabDef[] {
       G('themes', 'Themes', L('apply-template', 'Template')),
       G('customize', 'Customize', L('slide-size', 'Slide Size'), L('format-background', 'Format Background')),
       G('master', 'Master', L('view-master', 'Slide Master')),
+      G('designer', 'Designer', L('design-ideas', 'Design Ideas')),
     ] },
     { id: 'transitions', label: 'Transitions', groups: [
       G('transition', 'Transition to This Slide', S('tr-gallery'), M('tr-options', 'transition', 'Effect Options', ['transition-dir-0', 'transition-dir-1', 'transition-dir-2', 'transition-dir-3'])),

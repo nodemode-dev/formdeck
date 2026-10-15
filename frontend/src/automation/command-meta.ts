@@ -95,6 +95,7 @@ const ROWS: Record<string, Row> = {
   'component-detach': ['Use when one copy of a component should stop following the others.'],
   'text-style-save': ['Use when the look of this text should be saved under a name to reuse.'],
   'text-style-apply': ['Use when text should take a saved text style.'],
+  'design-ideas': ['Use when you want to see the current slide in other layouts that fit its content and pick one.'],
   'insert-slide-zoom': ['Use when a slide should show a clickable preview of another slide that jumps there in the show and comes back after it.'],
   'share-network': ['Use when people on the same network should open this deck from their own computers; makes view, comment or edit links (sharing is off until turned on).', 'v'],
   'colour-style-save': ['Use when a shape\'s fill colour should be saved under a name, such as a brand colour, to reuse.'],
