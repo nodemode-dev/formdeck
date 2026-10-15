@@ -1,4 +1,5 @@
 import { startApp } from './app';
+import { initLanguage } from './i18n';
 
 const LEGACY_PREFIX = 'formsld.';
 try {
@@ -12,5 +13,7 @@ try {
   }
 } catch { void 0; }
 
-if (new URLSearchParams(location.search).get('audience') === '1') void import('./present/show').then((m) => m.bootAudience());
-else void startApp();
+void initLanguage().catch(() => undefined).then(() => {
+  if (new URLSearchParams(location.search).get('audience') === '1') void import('./present/show').then((m) => m.bootAudience());
+  else void startApp();
+});

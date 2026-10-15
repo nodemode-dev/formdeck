@@ -6,6 +6,7 @@ import { api, type TemplateSummary } from '../io/api';
 import { ensureFonts, fontsOfDeck } from '../render/fonts';
 import { SlideView } from '../render/slide';
 import { VERSION } from '../version';
+import { LANGUAGES, setLanguage, storedLanguage } from '../i18n';
 import { brandMark } from './brand';
 import { formatKeys, type Command, type Commands } from './commands';
 import { Dialog } from './dialogs';
@@ -1675,6 +1676,7 @@ class PreferencesDialog extends Dialog {
     const box = el(`<div class="fd-dlg-stack">
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Appearance</div>
 <div class="fd-field is-top"><span>Theme</span><div><div class="nm-theme-grid fd-dlg-themes">${themeSwatchesHtml(c.theme, c.accentColor)}</div><div class="fd-note fd-dlg-theme-name"></div></div></div>
+<label class="fd-field"><span>Language</span><select class="fd-input fd-dlg-pref-lang" aria-label="Language" translate="no">${LANGUAGES.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}</select></label>
 <div class="fd-field"><span>Accent</span><div class="fd-dlg-accents">${ACCENTS.map((a) => `<button class="fd-swatch" type="button" data-accent="${a}" style="--swatch:${a}" aria-label="Accent ${a}" title="${a}"></button>`).join('')}<label class="fd-dlg-color" title="Custom accent">${icon('palette', 14)}<input type="color" aria-label="Custom accent colour"></label></div></div>
 </section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">New decks</div>
@@ -1715,6 +1717,9 @@ class PreferencesDialog extends Dialog {
     segOn(this.units, (v) => this.persist({ units: v }));
     this.autosave.addEventListener('change', () => this.persist({ autosave: this.autosave.checked }));
     this.agents.addEventListener('change', () => this.h?.setAgents(this.agents.checked));
+    const lang = q<HTMLSelectElement>(box, '.fd-dlg-pref-lang');
+    lang.value = storedLanguage();
+    lang.addEventListener('change', () => setLanguage(lang.value));
   }
 
   private persist(patch: Settings): void {
