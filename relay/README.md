@@ -34,5 +34,5 @@ Put it behind a TLS-terminating proxy (Caddy, nginx, a platform load balancer) s
 ## Limits
 
 - One relay origin serves one FormDeck per browser at a time (the relay remembers which in a cookie set by the `/h/<host>/` link); opening a second person's link in the same browser switches to theirs.
-- Responses are passed whole, up to 64 MB each; very large videos are better shared another way.
+- Responses are streamed in 512 KB pieces, and Range requests work, so videos can seek. The relay holds the pieces in memory until the guest has read them, so a very slow guest on a large video uses relay memory for that file's size.
 - Everything goes through your FormDeck's connection, so its upload speed limits how fast guests load pictures and media.
