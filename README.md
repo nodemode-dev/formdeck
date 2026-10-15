@@ -4,7 +4,7 @@ Presentations and pitch decks in the form family. An open alternative to PowerPo
 
 The PDF workbench that shipped with FormDeck up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In FormDeck a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
-Version 0.10.2 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.10.3 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
@@ -17,7 +17,7 @@ Version 0.10.2 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 | Presenting | Full-screen show, twelve transitions including morph, animation builds, pen and laser, presenter view with a separate audience window, rehearsed timings, recorded narration, live subtitles with translation (Chrome and Edge), looping, kiosk mode and custom shows |
 | Review | Comments with replies, mentions and assignees, review status per slide, an activity log, and comparing a deck with a saved version or another file |
 | Add-ins | A Store of add-ins that add ribbon commands and task panes, each installed only after you see its permissions, checked against its checksum and run in the macro sandbox; write your own with docs/ADDINS.md |
-| Claude Code inside | A terminal dock (Ctrl or Cmd+`) with shell tabs and a Claude Code tab that runs your own Claude sign-in with FormDeck's tools; the chat panel's Claude Code assistant answers from the same sign-in; the ask bar sends the deck, slide and selection along |
+| Claude Code inside | A terminal dock (Ctrl or Cmd+`) with shell tabs and a Claude Code tab that runs your own Claude sign-in with FormDeck's tools; the chat panel's Claude Code assistant answers from the same sign-in and can continue the same conversation in the terminal; Preferences > Claude Code sets the program, folder and first message; the ask bar sends the deck, slide and selection along |
 | Commands | Every ribbon, menu and shortcut command (about 640) in one catalogue: Find a Command (Shift+Ctrl or Cmd+P), MCP list_commands and run_command, `/api/commands`, and `./formdeck cli list`, `run <id>` |
 | For designers | Components (save shapes once, place copies anywhere, update every copy from one) and named text styles that restyle every use; your own fonts in the deck (TTF, OTF, WOFF, WOFF2, embedded in .pptx), SVG in as editable shapes, chart axis lines styled or hidden with labels kept, animation timing for several elements at once, a Format Painter that can copy size and position, Reset Placeholder, typed outline weight and dash, any tint or shade of a theme colour, a full report of what a .pptx import or export changed, and stock-photo credits on the slide |
 | Languages | English by default and 25 more: es, es-MX, pt-BR, fr, fr-CA, de, it, nl, da, fi, nb, sv, ru, pl, cs, hu, uk, tr, zh-Hans, zh-Hant, ja, ko, id, th, vi (Preferences > Appearance > Language) |
@@ -85,7 +85,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps
 
 - Co-authoring across machines, share links, hosted publishing and presenting to a remote audience are not built; they need the engine to accept connections from other computers.
-- The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export is not yet validated as PDF/UA; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.10.2: 96.2%, 97.2% and 95.5%).
+- The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export is not yet validated as PDF/UA; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.10.3: 96.2%, 97.2% and 95.5%).
 - The 25 translations were made by language models and have not been reviewed by native speakers yet; the terminal dock has not been run on Windows.
 - The window works with touch and on tablet- and phone-sized screens, but a phone or tablet cannot reach the engine yet: it accepts connections only from the computer it runs on.
 - Stock Images and AI pictures need an internet connection; AI pictures also need an OpenAI key or a compatible image server, and subtitle translation needs Chrome's built-in translator or a chat model.
