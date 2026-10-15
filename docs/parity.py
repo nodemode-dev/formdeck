@@ -137,8 +137,8 @@ row(a, "Compare two versions", 0, 0, 0, F, "decks against a saved version or a .
 row(a, "Activity: who changed what", 1, 1, 1, F, "every step logged per deck with who, origin, label and slides (`store.py Store._log, activity`, `Decks/[id]/activity.jsonl`, `GET /api/decks/{id}/activity`); Review > Activity grouped by day with a person filter (`ui/review-dialogs.ts ActivityDialog`); agents read it in `mcp.py t_get_context`")
 
 a = "Collaboration and sharing"
-row(a, "Real-time co-editing", 1, 1, 1, P, "several windows and agents edit one deck live with presence (`editor.ts setPeer`, `routers/live.py`); one computer only")
-row(a, "Share by link with permissions", 1, 1, 1, N, "nothing found")
+row(a, "Real-time co-editing", 1, 1, 1, F, "windows, agents and other computers on the network edit one deck live with presence (`editor.ts setPeer`, `routers/live.py`, `routers/share.py ShareGate`); across the internet only through a network the computers share")
+row(a, "Share by link with permissions", 1, 1, 1, P, "File > Share on This Network (`ui/dialogs-share.ts`, `services/share.py`): links that can view, comment or edit one deck, removable, enforced by the engine (`routers/live.py guest_refusal`); off by default and limited to the local network, with no hosted links")
 row(a, "Works offline, files stay local", 1, 1, 0, F, "local engine, library in `core/config.py data_dir`")
 row(a, "Publish to the web or embed", 1, 1, 1, P, "`ui/dialogs-publish.ts` File > Export > Publish as Web Page writes one self-contained .html player (keyboard, click, full screen, auto-advance, slide text for screen readers) and gives iframe embed code; no hosted link, since live publishing on the network is not built yet")
 

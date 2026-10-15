@@ -242,6 +242,16 @@ Every change shows on the slides at once and is one undo step. Presenting, revie
 
 Edit > Find and Replace (Mod+F) searches every text box, speaker notes included, with Match case and Whole words. Enter and Shift+Enter step through the matches; Replace changes the current one and Replace All changes them all in one undoable step.
 
+### Sharing on this network
+
+FormDeck answers only the computer it runs on, and that is the default. To work on a deck with people on the same network (an office or home Wi-Fi), open File > Share on This Network and tick **Allow other computers on this network**. FormDeck then also listens on port 8198 (set `FORMDECK_LAN_PORT` to change it) and the dialog shows this computer's address.
+
+- **Create Link** makes a link for this deck that **Can view**, **Can comment** or **Can edit**, and copies it. Send it to the person; they open it in any modern browser, with nothing to install.
+- People with an edit link change the deck with you live, and you see where they are working. A view link follows along but cannot change anything; a comment link can add and reply to comments only. The engine enforces this, whatever the other browser tries.
+- A link opens that one deck only. It never reaches your other decks, settings, the terminal, agents, files on this computer or the chat.
+- **Remove** stops a link at once and disconnects anyone using it. Unticking the switch closes port 8198 and stops every link.
+- The links work only for computers that can reach this one on the network; anyone who can reach it and has the link gets the link's access, so share links as you would a key. Your firewall may ask to allow FormDeck the first time.
+
 ### Comments and review status
 
 Every slide has a review status: Draft, Review (ready for the person), Changes (changes requested) or Approved. Set it in the Review tab, the Review menu or the toolbar; it applies to every selected slide. New Comment (Alt+Mod+M) adds a comment to the current slide; type in a comment's Reply box and press Enter to answer it; Resolve hides it. Agents read and write the same comments and statuses, and they leave their work in Review for you to approve.
