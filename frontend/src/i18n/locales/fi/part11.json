@@ -1,0 +1,21 @@
+{
+ "0": "{0} avattu. {1} {1:one=kohde ei;other=kohdetta ei} säilynyt.",
+ "1": "{0}: {1} {1:one=muutos;other=muutosta} tehty.",
+ "2": "{0} on käytössä {1} diassa. Anna ensin kohteelle {3} toinen asettelu.",
+ "3": "Käytössä {0} diassa.",
+ "4": "Master muotoilee {0} {0:one=asettelun;other=asettelua} ja {2} {2:one=dian;other=diaa}.",
+ "5": "Valmis. {0} {0:one=muutos;other=muutosta} tehty yhtenä kumottavana askeleena.",
+ "6": "{0} {0:one=dia;other=diaa} {2}. {3} vastaaviin asetteluihin: {4}.",
+ "7": "Ajoitus tyhjennetty {0} diasta.",
+ "8": "Poistettu {0} {0:one=selostustallenne;other=selostustallennetta}.",
+ "9": "Ajoitukset säilytetty {0} dialle.",
+ "10": "Harjoiteltu {0} {0:one=dia;other=diaa}, aika {2}. Säilytetäänkö nämä ajoitukset automaattista etenemistä varten?",
+ "11": "Luodaan {0} {0:one=variantti;other=varianttia}. Tämä voi kestää minuutin.",
+ "12": "Makro \"{0}\": {1} {1:one=muutos;other=muutosta} otettu käyttöön.",
+ "13": "{0} {0:one=muutos;other=muutosta} tehty.",
+ "14": "Esityksessä on vielä {0} {0:one=kirjoitusvirhe;other=kirjoitusvirhettä}.",
+ "15": "Kaikki teksti {0} valitussa objektissa.",
+ "16": "Kaikki teksti {0} diassa.",
+ "17": "Hyväksytty {0} {0:one=muutos;other=muutosta}. Kumoa peruu {0:one=sen;other=ne kaikki}.",
+ "18": "{0} {0:one=osa;other=osaa} ohitettu (teksti, liukuvärit, suodattimet, kuvat, rajaukset tai maskit)."
+}

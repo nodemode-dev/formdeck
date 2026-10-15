@@ -1,0 +1,21 @@
+[
+"{0} opened. {1} item{2} could not be kept.",
+"{0}: {1} change{2} applied.",
+"{0} is used by {1} slide{2}. Give {3} another layout first.",
+"Used by {0} slide{1}.",
+"The master styles its {0} layout{1} and {2} slide{3}.",
+"Done. {0} change{1} applied as one undoable step.",
+"{0} slide{1} {2}. {3} to matching layouts of {4}.",
+"Cleared the timing on {0} slide{1}.",
+"Removed {0} narration recording{1}.",
+"Kept timings for {0} slide{1}.",
+"Rehearsed {0} slide{1} in {2}. Keep these timings to advance automatically?",
+"Generating {0} variant{1}. This can take a minute.",
+"Macro \"{0}\": {1} change{2} applied.",
+"{0} change{1} made.",
+"{0} more misspelling{1} in the deck.",
+"All text in {0} selected object{1}.",
+"All text on {0} slide{1}.",
+"Accepted {0} change{1}. Undo takes them all back.",
+"{0} part{1} skipped (text, gradients, filters, images, clips or masks)."
+]

@@ -1,0 +1,21 @@
+{
+ "0": "{0} abierto. {1:one=No se pudo conservar;other=No se pudieron conservar} {1} {1:one=elemento;other=elementos}.",
+ "1": "{0}: {1} {1:one=cambio aplicado;other=cambios aplicados}.",
+ "2": "{0} {1:one=lo usa;other=lo usan} {1} {1:one=diapositiva;other=diapositivas}. Asigna primero otro diseño a {3}.",
+ "3": "{0:one=Lo usa;other=Lo usan} {0} {0:one=diapositiva;other=diapositivas}.",
+ "4": "El patrón da estilo a {0:one=su;other=sus} {0} {0:one=diseño;other=diseños} y a {2} {2:one=diapositiva;other=diapositivas}.",
+ "5": "Listo. {0} {0:one=cambio aplicado;other=cambios aplicados} como un solo paso que se puede deshacer.",
+ "6": "{0} {0:one=diapositiva;other=diapositivas} {2}. {3} a los diseños equivalentes de {4}.",
+ "7": "Se borró el tiempo de {0} {0:one=diapositiva;other=diapositivas}.",
+ "8": "{0:one=Se quitó;other=Se quitaron} {0} {0:one=grabación;other=grabaciones} de narración.",
+ "9": "{0:one=Se conservó el tiempo;other=Se conservaron los tiempos} de {0} {0:one=diapositiva;other=diapositivas}.",
+ "10": "{0:one=Se ensayó;other=Se ensayaron} {0} {0:one=diapositiva;other=diapositivas} en {2}. ¿Conservar estos tiempos para avanzar automáticamente?",
+ "11": "Generando {0} {0:one=variante;other=variantes}. Puede tardar un minuto.",
+ "12": "Macro “{0}”: {1} {1:one=cambio aplicado;other=cambios aplicados}.",
+ "13": "{0} {0:one=cambio realizado;other=cambios realizados}.",
+ "14": "{0} {0:one=error ortográfico más;other=errores ortográficos más} en la presentación.",
+ "15": "Todo el texto de {0} {0:one=objeto seleccionado;other=objetos seleccionados}.",
+ "16": "Todo el texto de {0} {0:one=diapositiva;other=diapositivas}.",
+ "17": "{0} {0:one=cambio aceptado;other=cambios aceptados}. {0:one=Deshacer lo revierte.;other=Deshacer los revierte todos.}",
+ "18": "{0} {0:one=parte omitida;other=partes omitidas} (texto, degradados, filtros, imágenes, recortes o máscaras)."
+}

@@ -1,0 +1,11 @@
+{
+ "0": "Tiếp tục trong terminal",
+ "1": "Đã tìm thấy",
+ "2": "Chương trình",
+ "3": "Thư mục",
+ "4": "Tin nhắn đầu tiên",
+ "5": "Tự động tìm thấy; hoặc đường dẫn đầy đủ tới claude",
+ "6": "Nơi Claude Code khởi động; mặc định là thư mục FormDeck Agent",
+ "7": "Được gửi khi Claude Code mở trong terminal, nếu đã đặt",
+ "8": "Không tìm thấy. Hãy cài đặt từ claude.com/claude-code và chạy claude một lần để đăng nhập."
+}

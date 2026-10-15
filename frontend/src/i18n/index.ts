@@ -127,7 +127,10 @@ function add(en: string, tr: string | undefined): void {
   if (!/\{\d+\}/.test(en)) { exact.set(en, tr); return; }
   const suffix = new Set([...en.matchAll(/[A-Za-z]\{(\d+)\}/g)].map((m) => m[1]));
   const fixed = suffix.size ? tr.replace(/\{(\d+)\}/g, (all, n: string) => (suffix.has(n) ? `{p${n}}` : all)) : tr;
-  patterns.push([new RegExp('^' + escape(en).replace(/\\\{\d+\\\}/g, '([\\s\\S]*?)') + '$'), fixed]);
+  const re = new RegExp('^' + escape(en).replace(/\\\{\d+\\\}/g, '([\\s\\S]*?)') + '$');
+  const had = patterns.findIndex(([r]) => r.source === re.source);
+  if (had >= 0) patterns.splice(had, 1);
+  patterns.push([re, fixed]);
 }
 
 export async function initLanguage(): Promise<void> {

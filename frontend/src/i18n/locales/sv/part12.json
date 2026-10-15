@@ -1,0 +1,11 @@
+{
+ "0": "Fortsätt i terminalen",
+ "1": "Hittades",
+ "2": "Program",
+ "3": "Mapp",
+ "4": "Första meddelandet",
+ "5": "Hittas automatiskt; eller den fullständiga sökvägen till claude",
+ "6": "Där Claude Code startar; som standard mappen FormDeck Agent",
+ "7": "Skickas när Claude Code öppnas i terminalen, om angivet",
+ "8": "Hittades inte. Installera det från claude.com/claude-code och kör claude en gång för att logga in."
+}

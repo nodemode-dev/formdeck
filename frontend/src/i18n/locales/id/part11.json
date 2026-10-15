@@ -1,0 +1,21 @@
+{
+ "0": "{0} dibuka. {1} item tidak dapat dipertahankan.",
+ "1": "{0}: {1} perubahan diterapkan.",
+ "2": "{0} dipakai oleh {1} slide. Berikan tata letak lain untuk {3} terlebih dahulu.",
+ "3": "Dipakai oleh {0} slide.",
+ "4": "Master mengatur gaya {0} tata letak dan {2} slide.",
+ "5": "Selesai. {0} perubahan diterapkan sebagai satu langkah yang dapat diurungkan.",
+ "6": "{0} slide {2}. {3} ke tata letak yang cocok dari {4}.",
+ "7": "Pengaturan waktu pada {0} slide dihapus.",
+ "8": "{0} rekaman narasi dihapus.",
+ "9": "Pengaturan waktu untuk {0} slide dipertahankan.",
+ "10": "Berlatih {0} slide dalam {2}. Pertahankan pengaturan waktu ini untuk maju otomatis?",
+ "11": "Membuat {0} varian. Ini bisa memakan waktu semenit.",
+ "12": "Makro “{0}”: {1} perubahan diterapkan.",
+ "13": "{0} perubahan dilakukan.",
+ "14": "{0} salah eja lagi di dek.",
+ "15": "Semua teks di {0} objek terpilih.",
+ "16": "Semua teks di {0} slide.",
+ "17": "{0} perubahan diterima. Urungkan akan membatalkan semuanya.",
+ "18": "{0} bagian dilewati (teks, gradien, filter, gambar, klip, atau mask)."
+}

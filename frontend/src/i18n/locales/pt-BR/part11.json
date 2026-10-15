@@ -1,0 +1,21 @@
+{
+ "0": "{0} aberto. Não foi possível manter {1} {1:one=elemento;other=elementos}.",
+ "1": "{0}: {1} {1:one=mudança aplicada;other=mudanças aplicadas}.",
+ "2": "{0} é usado por {1} {1:one=slide;other=slides}. Atribua outro layout a {3} primeiro.",
+ "3": "Usado por {0} {0:one=slide;other=slides}.",
+ "4": "O mestre define o estilo de {0} {0:one=layout;other=layouts} e {2} {2:one=slide;other=slides}.",
+ "5": "Concluído. {0} {0:one=mudança aplicada;other=mudanças aplicadas} em uma única etapa que pode ser desfeita.",
+ "6": "{0} {0:one=slide;other=slides} {2}. {3} para os layouts correspondentes de {4}.",
+ "7": "O tempo de {0} {0:one=slide;other=slides} foi limpo.",
+ "8": "{0} {0:one=faixa de narração removida;other=faixas de narração removidas}.",
+ "9": "Tempos mantidos para {0} {0:one=slide;other=slides}.",
+ "10": "{0:one=Ensaiado;other=Ensaiados} {0} {0:one=slide;other=slides} em {2}. Manter esses tempos para avançar automaticamente?",
+ "11": "Gerando {0} {0:one=variante;other=variantes}. Isso pode levar um minuto.",
+ "12": "Macro “{0}”: {1} {1:one=mudança aplicada;other=mudanças aplicadas}.",
+ "13": "{0} {0:one=mudança feita;other=mudanças feitas}.",
+ "14": "Mais {0} {0:one=erro;other=erros} de ortografia na apresentação.",
+ "15": "Todo o texto de {0} {0:one=objeto selecionado;other=objetos selecionados}.",
+ "16": "Todo o texto de {0} {0:one=slide;other=slides}.",
+ "17": "{0} {0:one=mudança aceita;other=mudanças aceitas}. {0:one=Desfazer reverte a mudança.;other=Desfazer reverte todas.}",
+ "18": "{0} {0:one=parte ignorada;other=partes ignoradas} (texto, gradientes, filtros, imagens, recortes ou máscaras)."
+}

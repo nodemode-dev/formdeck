@@ -1,0 +1,11 @@
+{
+ "0": "Fortsett i terminalen",
+ "1": "Funnet",
+ "2": "Program",
+ "3": "Mappe",
+ "4": "Første melding",
+ "5": "Finnes automatisk; eller hele banen til claude",
+ "6": "Hvor Claude Code starter; som standard mappen FormDeck Agent",
+ "7": "Sendes når Claude Code åpnes i terminalen, hvis angitt",
+ "8": "Ikke funnet. Installer det fra claude.com/claude-code og kjør claude én gang for å logge inn."
+}

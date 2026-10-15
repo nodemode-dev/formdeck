@@ -1,0 +1,21 @@
+{
+ "0": "{0} açıldı. {1} öğe korunamadı.",
+ "1": "{0}: {1} değişiklik uygulandı.",
+ "2": "{0}, {1} slayt tarafından kullanılıyor. Önce {3} için başka bir düzen verin.",
+ "3": "{0} slayt tarafından kullanılıyor.",
+ "4": "Ana düzen, {0} düzenin ve {2} slaytın stilini belirler.",
+ "5": "Bitti. {0} değişiklik tek bir geri alınabilir adım olarak uygulandı.",
+ "6": "{0} slayt {2}. {3}, {4} ana düzeninin eşleşen düzenlerine.",
+ "7": "{0} slayttaki zamanlama temizlendi.",
+ "8": "{0} anlatım kaydı kaldırıldı.",
+ "9": "{0} slayt için zamanlamalar korundu.",
+ "10": "{0} slayt için prova yapıldı, süre: {2}. Otomatik ilerleme için bu zamanlamalar korunsun mu?",
+ "11": "{0} varyant oluşturuluyor. Bu bir dakika sürebilir.",
+ "12": "“{0}” makrosu: {1} değişiklik uygulandı.",
+ "13": "{0} değişiklik yapıldı.",
+ "14": "Sunuda {0} yazım hatası daha var.",
+ "15": "{0} seçili nesnedeki tüm metin.",
+ "16": "{0} slayttaki tüm metin.",
+ "17": "{0} değişiklik kabul edildi. Geri al hepsini geri alır.",
+ "18": "{0} parça atlandı (metin, degradeler, filtreler, resimler, kırpmalar veya maskeler)."
+}

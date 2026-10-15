@@ -1,0 +1,21 @@
+{
+ "0": "{0} åpnet. {1} {1:one=element kunne;other=elementer kunne} ikke beholdes.",
+ "1": "{0}: {1} {1:one=endring;other=endringer} brukt.",
+ "2": "{0} brukes av {1} {1:one=lysbilde;other=lysbilder}. Gi {3} en annen utforming først.",
+ "3": "Brukes av {0} {0:one=lysbilde;other=lysbilder}.",
+ "4": "Masteren styler {0:one=sin;other=sine} {0} {0:one=utforming;other=utforminger} og {2} {2:one=lysbilde;other=lysbilder}.",
+ "5": "Ferdig. {0} {0:one=endring;other=endringer} brukt som ett steg som kan angres.",
+ "6": "{0} {0:one=lysbilde;other=lysbilder} {2}. {3} til tilsvarende utforminger i {4}.",
+ "7": "Fjernet tidsberegningen på {0} {0:one=lysbilde;other=lysbilder}.",
+ "8": "Fjernet {0} fortellingsopptak.",
+ "9": "Beholdt tidsberegning for {0} {0:one=lysbilde;other=lysbilder}.",
+ "10": "Øvde på {0} {0:one=lysbilde;other=lysbilder} på {2}. Beholde denne tidsberegningen for automatisk videregang?",
+ "11": "Genererer {0} {0:one=variant;other=varianter}. Dette kan ta et minutt.",
+ "12": "Makro «{0}»: {1} {1:one=endring;other=endringer} brukt.",
+ "13": "{0} {0:one=endring;other=endringer} gjort.",
+ "14": "{0} stavefeil til i presentasjonen.",
+ "15": "All tekst i {0} {0:one=merket objekt;other=merkede objekter}.",
+ "16": "All tekst på {0} {0:one=lysbilde;other=lysbilder}.",
+ "17": "Godtok {0} {0:one=endring;other=endringer}. Angre tar {0:one=den;other=dem alle} tilbake.",
+ "18": "{0} {0:one=del;other=deler} hoppet over (tekst, gradienter, filtre, bilder, beskjæringer eller masker)."
+}

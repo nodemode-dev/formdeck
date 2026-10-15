@@ -1,0 +1,11 @@
+{
+ "0": "Continua nel terminale",
+ "1": "Trovato",
+ "2": "Programma",
+ "3": "Cartella",
+ "4": "Primo messaggio",
+ "5": "Rilevato automaticamente; oppure il percorso completo di claude",
+ "6": "Dove si avvia Claude Code; per impostazione predefinita, la cartella FormDeck Agent",
+ "7": "Inviato quando Claude Code si apre nel terminale, se impostato",
+ "8": "Non trovato. Installalo da claude.com/claude-code ed esegui claude una volta per accedere."
+}

@@ -1,0 +1,21 @@
+{
+ "0": "Otevřeno: {0}. Nepodařilo se zachovat {1} {1:one=položku;few=položky;many=položky;other=položek}.",
+ "1": "{0}: {1:one=použita;few=použity;many=použito;other=použito} {1} {1:one=změna;few=změny;many=změny;other=změn}.",
+ "2": "{0} se používá na {1} {1:one=snímku;few=snímcích;many=snímku;other=snímcích}. Nejprve změňte rozvržení pro {3}.",
+ "3": "Používá se na {0} {0:one=snímku;few=snímcích;many=snímku;other=snímcích}.",
+ "4": "Předloha určuje styl pro {0} rozvržení a {2} {2:one=snímek;few=snímky;many=snímku;other=snímků}.",
+ "5": "Hotovo. {0:one=Použita;few=Použity;many=Použito;other=Použito} {0} {0:one=změna;few=změny;many=změny;other=změn} jako jeden krok, který lze vrátit zpět.",
+ "6": "{0} {0:one=snímek;few=snímky;many=snímku;other=snímků} {2}. {3} u odpovídajících rozvržení předlohy {4}.",
+ "7": "Vymazáno časování na {0} {0:one=snímku;few=snímcích;many=snímku;other=snímcích}.",
+ "8": "{0:one=Odstraněn;few=Odstraněny;many=Odstraněno;other=Odstraněno} {0} {0:one=záznam;few=záznamy;many=záznamu;other=záznamů} komentáře.",
+ "9": "Zachováno časování pro {0} {0:one=snímek;few=snímky;many=snímku;other=snímků}.",
+ "10": "{0:one=Nacvičen;few=Nacvičeny;many=Nacvičeno;other=Nacvičeno} {0} {0:one=snímek;few=snímky;many=snímku;other=snímků} za {2}. Zachovat tato časování pro automatický posun?",
+ "11": "Vytváří se {0} {0:one=varianta;few=varianty;many=varianty;other=variant}. Může to chvíli trvat.",
+ "12": "Makro „{0}“: {1:one=použita;few=použity;many=použito;other=použito} {1} {1:one=změna;few=změny;many=změny;other=změn}.",
+ "13": "{0:one=Provedena;few=Provedeny;many=Provedeno;other=Provedeno} {0} {0:one=změna;few=změny;many=změny;other=změn}.",
+ "14": "V prezentaci ještě {0:one=zbývá;few=zbývají;many=zbývá;other=zbývá} {0} {0:one=překlep;few=překlepy;many=překlepu;other=překlepů}.",
+ "15": "Veškerý text v {0} {0:one=vybraném objektu;few=vybraných objektech;many=vybraného objektu;other=vybraných objektech}.",
+ "16": "Veškerý text na {0} {0:one=snímku;few=snímcích;many=snímku;other=snímcích}.",
+ "17": "{0:one=Přijata;few=Přijaty;many=Přijato;other=Přijato} {0} {0:one=změna;few=změny;many=změny;other=změn}. {0:one=Vrácením zpět se vezme zpět.;other=Vrácením zpět se vezmou zpět všechny.}",
+ "18": "{0:one=Přeskočena;few=Přeskočeny;many=Přeskočeno;other=Přeskočeno} {0} {0:one=část;few=části;many=části;other=částí} (text, přechody, filtry, obrázky, ořezy nebo masky)."
+}

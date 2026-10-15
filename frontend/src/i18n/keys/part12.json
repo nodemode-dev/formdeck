@@ -1,0 +1,11 @@
+[
+"Continue in the terminal",
+"Found",
+"Program",
+"Folder",
+"First message",
+"Found automatically; or the full path to claude",
+"Where Claude Code starts; the FormDeck Agent folder by default",
+"Sent when Claude Code opens in the terminal, if set",
+"Not found. Install it from claude.com/claude-code and run claude once to sign in."
+]

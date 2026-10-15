@@ -1,0 +1,11 @@
+{
+ "0": "Lanjutkan di terminal",
+ "1": "Ditemukan",
+ "2": "Program",
+ "3": "Folder",
+ "4": "Pesan pertama",
+ "5": "Ditemukan otomatis; atau jalur lengkap ke claude",
+ "6": "Tempat Claude Code dimulai; secara default folder FormDeck Agent",
+ "7": "Dikirim saat Claude Code terbuka di terminal, jika diatur",
+ "8": "Tidak ditemukan. Instal dari claude.com/claude-code dan jalankan claude sekali untuk masuk."
+}

@@ -1,0 +1,21 @@
+{
+ "0": "{0} megnyitva. {1} elemet nem sikerült megtartani.",
+ "1": "{0}: {1} módosítás alkalmazva.",
+ "2": "A(z) {0} elrendezést {1} dia használja. Előbb adjon másik elrendezést ennek: {3}.",
+ "3": "{0} dia használja.",
+ "4": "A minta stílusát {0} elrendezés és {2} dia követi.",
+ "5": "Kész. {0} módosítás alkalmazva egy visszavonható lépésként.",
+ "6": "{0} dia {2}. {3} a(z) {4} egyező elrendezéseihez.",
+ "7": "Időzítés törölve {0} dián.",
+ "8": "{0} narrációfelvétel eltávolítva.",
+ "9": "Időzítések megtartva {0} dián.",
+ "10": "{0} dia gyakorolva {2} alatt. Megtartja ezeket az időzítéseket az automatikus továbbításhoz?",
+ "11": "{0} változat létrehozása. Ez eltarthat egy percig.",
+ "12": "„{0}” makró: {1} módosítás alkalmazva.",
+ "13": "{0} módosítás történt.",
+ "14": "Még {0} elírás van a bemutatóban.",
+ "15": "Az összes szöveg {0} kijelölt objektumban.",
+ "16": "Az összes szöveg {0} dián.",
+ "17": "{0} módosítás elfogadva. A visszavonás mindet visszaveszi.",
+ "18": "{0} rész kihagyva (szöveg, színátmenetek, szűrők, képek, kivágások vagy maszkok)."
+}

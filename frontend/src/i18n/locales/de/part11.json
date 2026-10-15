@@ -1,0 +1,21 @@
+{
+ "0": "{0} geöffnet. {1} {1:one=Element konnte;other=Elemente konnten} nicht übernommen werden.",
+ "1": "{0}: {1} {1:one=Änderung;other=Änderungen} angewendet.",
+ "2": "{0} wird von {1} {1:one=Folie;other=Folien} verwendet. Weisen Sie {3} zuerst ein anderes Layout zu.",
+ "3": "Wird von {0} {0:one=Folie;other=Folien} verwendet.",
+ "4": "Der Master formatiert seine {0} {0:one=Layout;other=Layouts} und {2} {2:one=Folie;other=Folien}.",
+ "5": "Fertig. {0} {0:one=Änderung;other=Änderungen} als ein rückgängig zu machender Schritt angewendet.",
+ "6": "{0} {0:one=Folie;other=Folien} {2}. {3} auf passende Layouts von {4}.",
+ "7": "Das Timing auf {0} {0:one=Folie;other=Folien} wurde gelöscht.",
+ "8": "{0} {0:one=Vertonungsaufnahme;other=Vertonungsaufnahmen} entfernt.",
+ "9": "Timings für {0} {0:one=Folie;other=Folien} beibehalten.",
+ "10": "{0} {0:one=Folie;other=Folien} in {2} geprobt. Diese Timings für automatisches Weiterschalten beibehalten?",
+ "11": "{0} {0:one=Variante wird;other=Varianten werden} generiert. Das kann eine Minute dauern.",
+ "12": "Makro „{0}“: {1} {1:one=Änderung;other=Änderungen} angewendet.",
+ "13": "{0} {0:one=Änderung;other=Änderungen} vorgenommen.",
+ "14": "{0} {0:one=weiterer Rechtschreibfehler;other=weitere Rechtschreibfehler} in der Präsentation.",
+ "15": "Der gesamte Text in {0} {0:one=ausgewähltem Objekt;other=ausgewählten Objekten}.",
+ "16": "Der gesamte Text auf {0} {0:one=Folie;other=Folien}.",
+ "17": "{0} {0:one=Änderung;other=Änderungen} angenommen. Rückgängig nimmt {0:one=sie;other=alle} zurück.",
+ "18": "{0} {0:one=Teil;other=Teile} übersprungen (Text, Verläufe, Filter, Bilder, Beschnitte oder Masken)."
+}

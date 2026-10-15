@@ -1,0 +1,21 @@
+{
+ "0": "{0} ouvert. Impossible de conserver {1} {1:one=élément;other=éléments}.",
+ "1": "{0} : {1} {1:one=modification appliquée;other=modifications appliquées}.",
+ "2": "{0} est utilisée par {1} {1:one=diapositive;other=diapositives}. Donnez d’abord une autre disposition à {3}.",
+ "3": "Utilisé par {0} {0:one=diapositive;other=diapositives}.",
+ "4": "Le masque met en forme {0:one=sa;other=ses} {0} {0:one=disposition;other=dispositions} et {2} {2:one=diapositive;other=diapositives}.",
+ "5": "Terminé. {0} {0:one=modification appliquée;other=modifications appliquées} en une seule étape annulable.",
+ "6": "{0} {0:one=diapositive;other=diapositives} {2}. {3} aux dispositions correspondantes de {4}.",
+ "7": "Minutage effacé sur {0} {0:one=diapositive;other=diapositives}.",
+ "8": "{0} {0:one=enregistrement de narration supprimé;other=enregistrements de narration supprimés}.",
+ "9": "Minutages conservés pour {0} {0:one=diapositive;other=diapositives}.",
+ "10": "{0} {0:one=diapositive;other=diapositives} {0:one=répétée;other=répétées} en {2}. Conserver ces minutages pour avancer automatiquement ?",
+ "11": "Génération de {0} {0:one=variante;other=variantes}. Cela peut prendre une minute.",
+ "12": "Macro « {0} » : {1} {1:one=modification appliquée;other=modifications appliquées}.",
+ "13": "{0} {0:one=modification effectuée;other=modifications effectuées}.",
+ "14": "Encore {0} {0:one=faute;other=fautes} d’orthographe dans la présentation.",
+ "15": "Tout le texte de {0} {0:one=objet sélectionné;other=objets sélectionnés}.",
+ "16": "Tout le texte de {0} {0:one=diapositive;other=diapositives}.",
+ "17": "{0} {0:one=modification acceptée;other=modifications acceptées}. {0:one=Annuler l’annule.;other=Annuler les annule toutes.}",
+ "18": "{0} {0:one=élément ignoré;other=éléments ignorés} (texte, dégradés, filtres, images, découpes ou masques)."
+}

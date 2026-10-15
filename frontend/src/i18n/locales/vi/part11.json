@@ -1,0 +1,21 @@
+{
+ "0": "Đã mở {0}. Không thể giữ lại {1} mục.",
+ "1": "{0}: đã áp dụng {1} thay đổi.",
+ "2": "{0} đang được {1} trang chiếu sử dụng. Hãy gán cho {3} một bố cục khác trước.",
+ "3": "Được {0} trang chiếu sử dụng.",
+ "4": "Bản cái định kiểu cho {0} bố cục và {2} trang chiếu của nó.",
+ "5": "Xong. Đã áp dụng {0} thay đổi trong một bước có thể hoàn tác.",
+ "6": "{0} trang chiếu {2}. {3} sang các bố cục tương ứng của {4}.",
+ "7": "Đã xóa thời gian trên {0} trang chiếu.",
+ "8": "Đã xóa {0} bản ghi thuyết minh.",
+ "9": "Đã giữ thời gian cho {0} trang chiếu.",
+ "10": "Đã diễn tập {0} trang chiếu trong {2}. Giữ các thời gian này để tự động chuyển tiếp?",
+ "11": "Đang tạo {0} biến thể. Việc này có thể mất một phút.",
+ "12": "Macro \"{0}\": đã áp dụng {1} thay đổi.",
+ "13": "Đã thực hiện {0} thay đổi.",
+ "14": "Còn {0} lỗi chính tả nữa trong bản trình bày.",
+ "15": "Tất cả văn bản trong {0} đối tượng đã chọn.",
+ "16": "Tất cả văn bản trên {0} trang chiếu.",
+ "17": "Đã chấp nhận {0} thay đổi. Hoàn tác sẽ lấy lại tất cả.",
+ "18": "Đã bỏ qua {0} phần (văn bản, chuyển sắc, bộ lọc, hình ảnh, vùng cắt hoặc mặt nạ)."
+}

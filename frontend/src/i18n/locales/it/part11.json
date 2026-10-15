@@ -1,0 +1,21 @@
+{
+ "0": "{0} aperto. Impossibile mantenere {1} {1:one=elemento;other=elementi}.",
+ "1": "{0}: {1} {1:one=modifica applicata;other=modifiche applicate}.",
+ "2": "{0} è usato da {1} {1:one=diapositiva;other=diapositive}. Assegna prima un altro layout a {3}.",
+ "3": "Usato da {0} {0:one=diapositiva;other=diapositive}.",
+ "4": "Lo schema definisce lo stile di {0} layout e {2} {2:one=diapositiva;other=diapositive}.",
+ "5": "Fatto. {0} {0:one=modifica applicata;other=modifiche applicate} come un unico passaggio annullabile.",
+ "6": "{0} {0:one=diapositiva;other=diapositive} {2}. {3} ai layout corrispondenti di {4}.",
+ "7": "Cancellato il tempo in {0} {0:one=diapositiva;other=diapositive}.",
+ "8": "{0:one=Rimossa;other=Rimosse} {0} {0:one=registrazione;other=registrazioni} della narrazione.",
+ "9": "Mantenuti i tempi per {0} {0:one=diapositiva;other=diapositive}.",
+ "10": "{0:one=Provata;other=Provate} {0} {0:one=diapositiva;other=diapositive} in {2}. Mantenere questi tempi per l'avanzamento automatico?",
+ "11": "Generazione di {0} {0:one=variante;other=varianti}. Può richiedere un minuto.",
+ "12": "Macro \"{0}\": {1} {1:one=modifica applicata;other=modifiche applicate}.",
+ "13": "{0} {0:one=modifica apportata;other=modifiche apportate}.",
+ "14": "{0:one=Ancora;other=Altri} {0} {0:one=errore;other=errori} di ortografia nella presentazione.",
+ "15": "Tutto il testo in {0} {0:one=oggetto selezionato;other=oggetti selezionati}.",
+ "16": "Tutto il testo in {0} {0:one=diapositiva;other=diapositive}.",
+ "17": "{0:one=Accettata;other=Accettate} {0} {0:one=modifica;other=modifiche}. {0:one=Annulla la ripristina.;other=Annulla le ripristina tutte.}",
+ "18": "{0} {0:one=parte ignorata;other=parti ignorate} (testo, sfumature, filtri, immagini, ritagli o maschere)."
+}

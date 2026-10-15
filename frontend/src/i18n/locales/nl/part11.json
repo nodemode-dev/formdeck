@@ -1,0 +1,21 @@
+{
+ "0": "{0} geopend. {1} {1:one=item kon;other=items konden} niet worden behouden.",
+ "1": "{0}: {1} {1:one=wijziging;other=wijzigingen} toegepast.",
+ "2": "{0} wordt gebruikt door {1} {1:one=dia;other=dia's}. Geef {3} eerst een andere indeling.",
+ "3": "Gebruikt door {0} {0:one=dia;other=dia's}.",
+ "4": "De master bepaalt de stijl van {0} {0:one=indeling;other=indelingen} en {2} {2:one=dia;other=dia's}.",
+ "5": "Klaar. {0} {0:one=wijziging;other=wijzigingen} toegepast als één stap die ongedaan gemaakt kan worden.",
+ "6": "{0} {0:one=dia;other=dia's} {2}. {3} naar overeenkomende indelingen van {4}.",
+ "7": "De timing op {0} {0:one=dia;other=dia's} is gewist.",
+ "8": "{0} {0:one=vertellingsopname;other=vertellingsopnamen} verwijderd.",
+ "9": "Timing behouden voor {0} {0:one=dia;other=dia's}.",
+ "10": "{0} {0:one=dia;other=dia's} geoefend in {2}. Deze timing behouden om automatisch door te gaan?",
+ "11": "{0} {0:one=variant;other=varianten} genereren. Dit kan een minuut duren.",
+ "12": "Macro \"{0}\": {1} {1:one=wijziging;other=wijzigingen} toegepast.",
+ "13": "{0} {0:one=wijziging;other=wijzigingen} aangebracht.",
+ "14": "Nog {0} {0:one=spelfout;other=spelfouten} in de presentatie.",
+ "15": "Alle tekst in {0} geselecteerd {0:one=object;other=objecten}.",
+ "16": "Alle tekst op {0} {0:one=dia;other=dia's}.",
+ "17": "{0} {0:one=wijziging;other=wijzigingen} geaccepteerd. Ongedaan maken draait {0:one=haar;other=ze allemaal} terug.",
+ "18": "{0} {0:one=onderdeel;other=onderdelen} overgeslagen (tekst, verlopen, filters, afbeeldingen, uitsneden of maskers)."
+}

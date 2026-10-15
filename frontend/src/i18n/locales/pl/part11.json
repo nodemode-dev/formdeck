@@ -1,0 +1,21 @@
+{
+ "0": "Otwarto {0}. Nie udało się zachować {1} {1:one=elementu;few=elementów;many=elementów;other=elementu}.",
+ "1": "{0}: zastosowano {1} {1:one=zmianę;few=zmiany;many=zmian;other=zmiany}.",
+ "2": "{0} jest używany przez {1} {1:one=slajd;few=slajdy;many=slajdów;other=slajdu}. Najpierw przypisz {3} inny układ.",
+ "3": "Używany przez {0} {0:one=slajd;few=slajdy;many=slajdów;other=slajdu}.",
+ "4": "Wzorzec stylizuje {0} {0:one=układ;few=układy;many=układów;other=układu} i {2} {2:one=slajd;few=slajdy;many=slajdów;other=slajdu}.",
+ "5": "Gotowe. Zastosowano {0} {0:one=zmianę;few=zmiany;many=zmian;other=zmiany} jako jeden krok, który można cofnąć.",
+ "6": "{0} {0:one=slajd;few=slajdy;many=slajdów;other=slajdu} {2}. {3} do pasujących układów wzorca {4}.",
+ "7": "Wyczyszczono czas na {0} {0:one=slajdzie;few=slajdach;many=slajdach;other=slajdach}.",
+ "8": "Usunięto {0} {0:one=nagranie;few=nagrania;many=nagrań;other=nagrania} narracji.",
+ "9": "Zachowano czasy dla {0} {0:one=slajdu;few=slajdów;many=slajdów;other=slajdu}.",
+ "10": "Przećwiczono {0} {0:one=slajd;few=slajdy;many=slajdów;other=slajdu} w czasie {2}. Zachować te czasy, aby przechodzić automatycznie?",
+ "11": "Generowanie {0} {0:one=wariantu;few=wariantów;many=wariantów;other=wariantu}. Może to potrwać minutę.",
+ "12": "Makro „{0}”: zastosowano {1} {1:one=zmianę;few=zmiany;many=zmian;other=zmiany}.",
+ "13": "Wprowadzono {0} {0:one=zmianę;few=zmiany;many=zmian;other=zmiany}.",
+ "14": "Jeszcze {0} {0:one=błąd;few=błędy;many=błędów;other=błędu} w prezentacji.",
+ "15": "Cały tekst w {0} {0:one=zaznaczonym obiekcie;few=zaznaczonych obiektach;many=zaznaczonych obiektach;other=zaznaczonych obiektach}.",
+ "16": "Cały tekst na {0} {0:one=slajdzie;few=slajdach;many=slajdach;other=slajdach}.",
+ "17": "Zaakceptowano {0} {0:one=zmianę;few=zmiany;many=zmian;other=zmiany}. {0:one=Cofnij przywraca ją.;other=Cofnij przywraca wszystkie.}",
+ "18": "Pominięto {0} {0:one=element;few=elementy;many=elementów;other=elementu} (tekst, gradienty, filtry, obrazy, przycięcia lub maski)."
+}

@@ -1,0 +1,11 @@
+{
+ "0": "Folytatás a terminálban",
+ "1": "Megtalálva",
+ "2": "Program",
+ "3": "Mappa",
+ "4": "Első üzenet",
+ "5": "Automatikusan megtalálva; vagy a claude teljes elérési útja",
+ "6": "Itt indul a Claude Code; alapértelmezés szerint a FormDeck Agent mappa",
+ "7": "Elküldésre kerül, amikor a Claude Code megnyílik a terminálban, ha be van állítva",
+ "8": "Nem található. Telepítse a claude.com/claude-code oldalról, és futtassa egyszer a claude parancsot a bejelentkezéshez."
+}

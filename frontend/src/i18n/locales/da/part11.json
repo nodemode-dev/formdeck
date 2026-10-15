@@ -1,0 +1,21 @@
+{
+ "0": "{0} åbnet. {1} {1:one=element;other=elementer} kunne ikke bevares.",
+ "1": "{0}: {1} {1:one=ændring;other=ændringer} udført.",
+ "2": "{0} bruges af {1} dias. Giv først {3} et andet layout.",
+ "3": "Bruges af {0} dias.",
+ "4": "Masteren formaterer {0:one=sit;other=sine} {0} {0:one=layout;other=layouts} og {2} dias.",
+ "5": "Færdig. {0} {0:one=ændring;other=ændringer} udført som ét trin, der kan fortrydes.",
+ "6": "{0} dias {2}. {3} til matchende layouts i {4}.",
+ "7": "Ryddede timingen på {0} dias.",
+ "8": "Fjernede {0} {0:one=fortællingsoptagelse;other=fortællingsoptagelser}.",
+ "9": "Beholdt timing for {0} dias.",
+ "10": "Øvede {0} dias på {2}. Behold denne timing til automatisk fremrykning?",
+ "11": "Genererer {0} {0:one=variant;other=varianter}. Det kan tage et minut.",
+ "12": "Makro \"{0}\": {1} {1:one=ændring;other=ændringer} udført.",
+ "13": "{0} {0:one=ændring;other=ændringer} foretaget.",
+ "14": "{0} stavefejl mere i præsentationen.",
+ "15": "Al tekst i {0} {0:one=markeret objekt;other=markerede objekter}.",
+ "16": "Al tekst på {0} dias.",
+ "17": "Accepterede {0} {0:one=ændring;other=ændringer}. Fortryd tager {0:one=den;other=dem alle} tilbage.",
+ "18": "{0} {0:one=del;other=dele} sprunget over (tekst, farveforløb, filtre, billeder, beskæringer eller masker)."
+}

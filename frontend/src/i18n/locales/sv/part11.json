@@ -1,0 +1,21 @@
+{
+ "0": "{0} öppnades. {1} objekt kunde inte behållas.",
+ "1": "{0}: {1} {1:one=ändring tillämpad;other=ändringar tillämpade}.",
+ "2": "{0} används av {1} {1:one=bild;other=bilder}. Ge {3} en annan layout först.",
+ "3": "Används av {0} {0:one=bild;other=bilder}.",
+ "4": "Mastern formaterar {0:one=sin;other=sina} {0} {0:one=layout;other=layouter} och {2} {2:one=bild;other=bilder}.",
+ "5": "Klart. {0} {0:one=ändring tillämpad;other=ändringar tillämpade} som ett ångrabart steg.",
+ "6": "{0} {0:one=bild;other=bilder} {2}. {3} till motsvarande layouter i {4}.",
+ "7": "Rensade tidsinställningen på {0} {0:one=bild;other=bilder}.",
+ "8": "Tog bort {0} {0:one=inspelning;other=inspelningar} av berättarröst.",
+ "9": "Behöll tidsinställningen för {0} {0:one=bild;other=bilder}.",
+ "10": "Repeterade {0} {0:one=bild;other=bilder} på {2}. Behålla den här tidsinställningen för automatiskt framåtgående?",
+ "11": "Genererar {0} {0:one=variant;other=varianter}. Det kan ta en minut.",
+ "12": "Makro ”{0}”: {1} {1:one=ändring tillämpad;other=ändringar tillämpade}.",
+ "13": "{0} {0:one=ändring gjord;other=ändringar gjorda}.",
+ "14": "{0} stavfel till i presentationen.",
+ "15": "All text i {0} {0:one=markerat objekt;other=markerade objekt}.",
+ "16": "All text på {0} {0:one=bild;other=bilder}.",
+ "17": "Godkände {0} {0:one=ändring;other=ändringar}. Ångra tar tillbaka {0:one=den;other=alla}.",
+ "18": "{0} {0:one=del hoppades;other=delar hoppades} över (text, toningar, filter, bilder, beskärningar eller masker)."
+}

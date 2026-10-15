@@ -1,0 +1,11 @@
+{
+ "0": "Kontynuuj w terminalu",
+ "1": "Znaleziono",
+ "2": "Program",
+ "3": "Folder",
+ "4": "Pierwsza wiadomość",
+ "5": "Znajdowany automatycznie; lub pełna ścieżka do claude",
+ "6": "Gdzie uruchamia się Claude Code; domyślnie folder FormDeck Agent",
+ "7": "Wysyłana po otwarciu Claude Code w terminalu, jeśli ustawiona",
+ "8": "Nie znaleziono. Zainstaluj z claude.com/claude-code i uruchom claude raz, aby się zalogować."
+}

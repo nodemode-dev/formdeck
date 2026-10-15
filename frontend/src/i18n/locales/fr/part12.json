@@ -1,0 +1,11 @@
+{
+ "0": "Continuer dans le terminal",
+ "1": "Trouvé",
+ "2": "Programme",
+ "3": "Dossier",
+ "4": "Premier message",
+ "5": "Détecté automatiquement ; ou le chemin complet vers claude",
+ "6": "Là où Claude Code démarre ; par défaut, le dossier FormDeck Agent",
+ "7": "Envoyé à l’ouverture de Claude Code dans le terminal, s’il est défini",
+ "8": "Introuvable. Installez-le depuis claude.com/claude-code et exécutez claude une fois pour vous connecter."
+}

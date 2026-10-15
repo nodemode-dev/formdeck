@@ -1,0 +1,11 @@
+{
+ "0": "Doorgaan in de terminal",
+ "1": "Gevonden",
+ "2": "Programma",
+ "3": "Map",
+ "4": "Eerste bericht",
+ "5": "Automatisch gevonden; of het volledige pad naar claude",
+ "6": "Waar Claude Code start; standaard de map FormDeck Agent",
+ "7": "Wordt verzonden wanneer Claude Code in de terminal opent, indien ingesteld",
+ "8": "Niet gevonden. Installeer het via claude.com/claude-code en voer claude één keer uit om in te loggen."
+}
