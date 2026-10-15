@@ -72,7 +72,7 @@ export function applyDensity(d: Density): void {
     const raw = localStorage.getItem(STORAGE_KEY);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...(raw ? JSON.parse(raw) : {}), density: d }));
   } catch (e) {
-    console.error('[theme] density save failed:', e);
+    console.error('[theme] save failed:', e);
   }
 }
 

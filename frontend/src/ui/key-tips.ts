@@ -12,17 +12,18 @@ export interface TipHost {
 
 interface Tip { code: string; node: HTMLElement; go: () => void }
 
-const TAB_KEYS: Record<string, string> = {
-  home: 'H', insert: 'N', design: 'G', transitions: 'K', animations: 'A', slideshow: 'S', review: 'R', view: 'W', addins: 'X',
-  master: 'M', shapefmt: 'JD', picfmt: 'JP', tabledesign: 'JT', tablelayout: 'JL', chartdesign: 'JC', smartart: 'JS', playback: 'JB',
-};
-const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const TAB_KEYS: Record<string, string> = Object.fromEntries(Object.entries({
+  home: 'h', insert: 'n', design: 'g', transitions: 'k', animations: 'a', slideshow: 's', review: 'r', view: 'w', addins: 'x',
+  master: 'm', shapefmt: 'jd', picfmt: 'jp', tabledesign: 'jt', tablelayout: 'jl', chartdesign: 'jc', smartart: 'js', playback: 'jb',
+}).map(([k, v]) => [k, v.toUpperCase()]));
+const ALPHA = 'abcdefghijklmnopqrstuvwxyz'.toUpperCase().split('');
 const DIGITS = '123456789'.split('');
+const NFD = 'nfd'.toUpperCase();
 
 const labelOf = (n: HTMLElement): string => n.getAttribute('aria-label') || n.getAttribute('title') || n.textContent || '';
 
 function prefsOf(label: string): string[] {
-  const plain = label.normalize('NFD').toUpperCase();
+  const plain = label.normalize(NFD).toUpperCase();
   const words = plain.split(/[^A-Z0-9]+/).filter(Boolean);
   const all = [...words.map((w) => w[0]), ...plain.replace(/[^A-Z]/g, '').split(''), ...DIGITS, ...ALPHA];
   return Array.from(new Set(all));
@@ -104,7 +105,7 @@ export class KeyTips {
       return;
     }
     if (e.key === 'Backspace') { this.typed = this.typed.slice(0, -1); this.paint(); return; }
-    const ch = e.key.length === 1 ? e.key.normalize('NFD').toUpperCase()[0] : '';
+    const ch = e.key.length === 1 ? e.key.normalize(NFD).toUpperCase()[0] : '';
     if (!/[A-Z0-9]/.test(ch)) return;
     const next = this.typed + ch;
     const hit = this.tips.find((t) => t.code === next);

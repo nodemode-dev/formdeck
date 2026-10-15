@@ -178,6 +178,7 @@ const ROWS: Record<string, Row> = {
   'clear-narration-all': ['Use when every recorded narration should be removed.', 'r'],
   'help': ['Use when you want FormDeck\'s help.', 'v'],
   'shortcuts': ['Use when you want the keyboard shortcuts.', 'v'],
+  'key-tips': ['Use when you want letters on the ribbon to reach any command from the keyboard.', 'v'],
   'macro-dialog': ['Use when you want to run a macro saved in the deck.'],
   'macro-editor': ['Use when you want to write or change a JavaScript macro.', 'v'],
   'addins-dialog': ['Use when you want to find, install or manage add-ins.', 'v'],
