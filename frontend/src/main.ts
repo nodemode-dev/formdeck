@@ -1,6 +1,6 @@
 import { startApp } from './app';
 import { initLanguage } from './i18n';
-import { detectGuest, guest, guestName, setGuestName } from './io/guest';
+import { detectGuest, guest, guestName, setGuestName, shareRefused } from './io/guest';
 import { promptName } from './ui/dialogs';
 import { toast } from './ui/toast';
 
@@ -23,6 +23,13 @@ async function nameGuest(): Promise<void> {
 }
 
 void initLanguage().catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => nameGuest().catch(() => undefined)).then(() => {
+  if (shareRefused()) {
+    const note = document.createElement('p');
+    note.className = 'fd-share-refused';
+    note.textContent = 'This share link is not valid any more, or sharing was turned off. Ask the person who shared the deck for a new link.';
+    document.body.appendChild(note);
+    return;
+  }
   if (new URLSearchParams(location.search).get('audience') === '1') void import('./present/show').then((m) => m.bootAudience());
   else void startApp();
 });

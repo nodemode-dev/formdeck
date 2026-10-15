@@ -7,7 +7,10 @@ export interface Guest { role: GuestRole; deck: string }
 let current: Guest | null = null;
 let lastNotice = 0;
 
+let refused = false;
+
 export const guest = (): Guest | null => current;
+export const shareRefused = (): boolean => refused;
 
 const NAME_KEY = 'formdeck_guest_name';
 
@@ -28,6 +31,7 @@ const ROLE_TEXT: Record<GuestRole, string> = {
 export async function detectGuest(notice: (text: string) => void): Promise<Guest | null> {
   try {
     const r = await fetch('/api/share/me', { cache: 'no-store' });
+    refused = r.status === 403 || r.status === 503;
     const j = r.ok ? await r.json() as { guest?: boolean; role?: GuestRole; deck?: string } : {};
     if (j.guest && j.role && j.deck) current = { role: j.role, deck: j.deck };
   } catch { current = null; }
