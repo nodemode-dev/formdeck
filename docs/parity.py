@@ -128,7 +128,7 @@ row(a, "Rehearse timings and automatic advance", 1, 1, 1, F, "`show.ts toggleReh
 row(a, "Record the show with narration", 1, 1, 1, F, "`present/recorder.ts Recorder` (per-slide narration, timings, retake), `pptx/write_media.py write_audio`, `write_anim.py _media_entries` (autoplay audio)")
 row(a, "Live captions and subtitles", 1, 0, 1, F, "`present/captions.ts Captions` (Web Speech, Chrome and Edge only), `show.ts toggleCaptions` synced to the audience window; Subtitle Settings (`ui/dialogs-captions.ts`): spoken and subtitle language, four positions, size, always on; translation per phrase by Chrome's on-device Translator or the chat model (`present/caption-translate.ts`, `routers/captions.py`), checked with stubbed speech, translator and model")
 row(a, "Loop until Esc and custom shows", 1, 1, 1, F, "`present/show-dialogs.ts SetupShowDialog, CustomShowsDialog`, `show.ts playlist`, `pptx/show_props.py write_show, read_show`")
-row(a, "Present to a remote audience with Q&A", 1, 0, 1, N, "nothing found")
+row(a, "Present to a remote audience with Q&A", 1, 0, 1, P, "people with a share link follow the show live and ask questions that appear in Presenter View (`present/show.ts followShow, mountAsk, addQuestion`, `routers/live.py` show and question); local network only, no hosted audience link")
 
 a = "Review and comments"
 row(a, "Comments: add, list, resolve", 1, 1, 1, F, "`inspector.ts` Review tab: add, reply, resolve, reopen, @mentions, assignees, filter (`editor/mentions.ts attachMentions`); `dialogs-insert.ts addComment`; agents through `mcp.py comments` (mentions, assignee, filter mine)")

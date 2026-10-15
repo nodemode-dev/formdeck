@@ -1,6 +1,6 @@
 # FormDeck parity
 
-How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.11.0 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8, 0.8.9, 0.8.10, 0.9.1, 0.9.2; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8, one at 0.8.9, at 0.8.10 only the unscored Phone and tablet row, none to partial, and none at 0.9.1 and 0.9.2, desktop build fixes). At 0.10.5 nine rows were added for the 0.10 work (named text and colour styles, components, your own fonts, SVG as shapes, finding a command by name, commands for agents with exact values, the terminal with Claude Code, and the interface languages, which is a Platform row and not scored); no existing row moved. At 0.11.0 two moved with opt-in sharing on the local network: real-time co-editing partial to full, share by link none to partial. At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
+How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.11.1 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8, 0.8.9, 0.8.10, 0.9.1, 0.9.2; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8, one at 0.8.9, at 0.8.10 only the unscored Phone and tablet row, none to partial, and none at 0.9.1 and 0.9.2, desktop build fixes). At 0.10.5 nine rows were added for the 0.10 work (named text and colour styles, components, your own fonts, SVG as shapes, finding a command by name, commands for agents with exact values, the terminal with Claude Code, and the interface languages, which is a Platform row and not scored); no existing row moved. At 0.11.0 two moved with opt-in sharing on the local network: real-time co-editing partial to full, share by link none to partial. At 0.11.1 presenting to a remote audience with Q&A moved none to partial, so no scored row is None any more. At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
 
 ## Method
 
@@ -28,7 +28,7 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.11.
 | Arrange and align | 7 of 7 · 100% | 7 of 7 · 100% | 5 of 5 · 100% |
 | Transitions | 3 of 3 · 100% | 3 of 3 · 100% | 2 of 2 · 100% |
 | Animations | 4 of 4 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
-| Slideshow and presenter | 8 of 9 · 89% | 7 of 7 · 100% | 8 of 9 · 89% |
+| Slideshow and presenter | 8.5 of 9 · 94% | 7 of 7 · 100% | 8.5 of 9 · 94% |
 | Review and comments | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Collaboration and sharing | 3 of 4 · 75% | 3 of 4 · 75% | 2 of 3 · 67% |
 | Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
@@ -36,9 +36,9 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.11.
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
 | Automation and agents | 3.5 of 4 · 88% | 1 of 1 · 100% | 3.5 of 4 · 88% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **104 of 107 · 97.2%** | **89.5 of 91 · 98.4%** | **86 of 89 · 96.6%** |
+| **Overall** | **104.5 of 107 · 97.7%** | **89.5 of 91 · 98.4%** | **86.5 of 89 · 97.2%** |
 
-Across all 120 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 115 full, 4 partial and 1 none: 117 of 120 points, 97.5%.
+Across all 120 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 115 full, 5 partial and 0 none: 117.5 of 120 points, 97.9%.
 
 ## Where FormDeck leads
 
@@ -52,7 +52,7 @@ Rows FormDeck implements that the product does not offer:
 ## Where FormDeck trails most
 
 - **Collaboration and sharing, 3 of 4 against PowerPoint.** Since 0.11.0 other computers on the same network open a deck from a share link (view, comment or edit, off by default) and co-edit it live with presence; links work only on the local network, and there is no hosted publishing, so share links and publishing to the web stay Partial.
-- **Slideshow and presenter, 8 of 9.** Presenting to a remote audience with Q&A is missing: the show syncs its windows on one computer and is not yet relayed to network guests.
+- **Slideshow and presenter, 8.5 of 9.** Since 0.11.1 people with a share link follow the show and send questions to Presenter View, but only on the local network; PowerPoint and Google Slides reach an audience anywhere through their own services.
 - **Accessibility, 3.5 of 4 against PowerPoint.** Exported PDFs pass veraPDF's PDF/UA-1 profile (checked at 0.10.6 with tables, charts, pictures, notes pages and Japanese, Russian and Greek text), but each slide is still shown as a picture with the text in an invisible layer, so zooming a page enlarges pixels rather than type; PowerPoint exports live text. The row stays Partial until slides export as real text.
 - **Automation, 3.5 of 4.** Macros and agents cover scripting, and add-ins install from a Store with permissions and checksums, but the catalog is FormDeck's own three add-ins, with no third-party publishing, reviews or update notices.
 - **Smaller limits.** Subtitles need Chrome or Edge; stock images are pictures only (no video or stickers); AI pictures need an OpenAI key or a compatible image server.
@@ -210,7 +210,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Record the show with narration | yes | yes | yes | Full | `present/recorder.ts Recorder` (per-slide narration, timings, retake), `pptx/write_media.py write_audio`, `write_anim.py _media_entries` (autoplay audio) |
 | Live captions and subtitles | yes | no | yes | Full | `present/captions.ts Captions` (Web Speech, Chrome and Edge only), `show.ts toggleCaptions` synced to the audience window; Subtitle Settings (`ui/dialogs-captions.ts`): spoken and subtitle language, four positions, size, always on; translation per phrase by Chrome's on-device Translator or the chat model (`present/caption-translate.ts`, `routers/captions.py`), checked with stubbed speech, translator and model |
 | Loop until Esc and custom shows | yes | yes | yes | Full | `present/show-dialogs.ts SetupShowDialog, CustomShowsDialog`, `show.ts playlist`, `pptx/show_props.py write_show, read_show` |
-| Present to a remote audience with Q&A | yes | no | yes | None | nothing found |
+| Present to a remote audience with Q&A | yes | no | yes | Partial | people with a share link follow the show live and ask questions that appear in Presenter View (`present/show.ts followShow, mountAsk, addQuestion`, `routers/live.py` show and question); local network only, no hosted audience link |
 
 ### Review and comments
 
