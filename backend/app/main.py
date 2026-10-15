@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import time
@@ -8,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core import config
-from app.routers import addins, ai_images, captions, chat, decks, exports, intake, live, mcp, media, stock, system, workbooks
+from app.routers import addins, ai_images, captions, chat, commands, decks, exports, intake, live, mcp, media, stock, system, terminal, workbooks
+from app.services import terminal as terminals
 
 
 def _write_discovery() -> None:
@@ -32,7 +34,9 @@ def _clear_discovery() -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     _write_discovery()
+    terminals.bind(asyncio.get_running_loop())
     yield
+    terminals.close_all()
     _clear_discovery()
 
 
@@ -49,6 +53,8 @@ app.include_router(captions.router, prefix="/api")
 app.include_router(stock.router, prefix="/api")
 app.include_router(workbooks.router, prefix="/api")
 app.include_router(addins.router, prefix="/api")
+app.include_router(commands.router)
+app.include_router(terminal.router)
 app.include_router(live.router)
 app.include_router(mcp.router)
 

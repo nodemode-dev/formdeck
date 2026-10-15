@@ -52,7 +52,10 @@ export class Commands {
       this.defaults.set(cmd.id, [...(cmd.keys ?? [])]);
       for (const k of cmd.keys ?? []) this.byKey.set(k, cmd);
     }
+    this.onChange?.();
   }
+
+  onChange: (() => void) | null = null;
 
   setKeys(id: string, keys: string[]): void {
     const cmd = this.map.get(id);
@@ -78,7 +81,7 @@ export class Commands {
 
   resetKeys(): void { this.byKey.clear(); for (const [id, cmd] of this.map) { cmd.keys = [...(this.defaults.get(id) ?? [])]; for (const k of cmd.keys) this.byKey.set(k, cmd); } }
 
-  remove(id: string): void { const c = this.map.get(id); if (!c) return; this.map.delete(id); for (const k of c.keys ?? []) if (this.byKey.get(k) === c) this.byKey.delete(k); }
+  remove(id: string): void { const c = this.map.get(id); if (!c) return; this.map.delete(id); for (const k of c.keys ?? []) if (this.byKey.get(k) === c) this.byKey.delete(k); this.onChange?.(); }
 
   get(id: string): Command | undefined { return this.map.get(id); }
   all(): Command[] { return [...this.map.values()]; }

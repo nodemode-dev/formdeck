@@ -3,11 +3,12 @@ import { icon } from './icons';
 import { toast } from './toast';
 
 type Role = 'user' | 'assistant' | 'tool' | 'note';
-type Mode = 'connected' | 'anthropic' | 'openai' | 'ollama';
+type Mode = 'connected' | 'claudecode' | 'anthropic' | 'openai' | 'ollama';
 
 interface Msg { id: string; role: Role; text: string; state?: string; ok?: boolean; result?: string; level?: string; by?: string; at: number }
 interface Cfg {
   provider: Mode;
+  claudecode: { model: string };
   anthropic: { model: string; baseUrl: string };
   openai: { model: string; baseUrl: string };
   ollama: { model: string; url: string };
@@ -15,15 +16,16 @@ interface Cfg {
 }
 interface Status { busy: boolean; listening: number; lastPoll: number }
 
-export interface ChatHooks { copyPrompt?: () => void; mcpCommand?: () => Promise<string> }
+export interface ChatHooks { copyPrompt?: () => void; mcpCommand?: () => Promise<string>; openClaude?: () => void }
 
 const MODES: { id: Mode; label: string }[] = [
   { id: 'connected', label: 'Connected agent (no key)' },
+  { id: 'claudecode', label: 'Claude Code (your sign-in)' },
   { id: 'anthropic', label: 'Anthropic API key' },
   { id: 'openai', label: 'OpenAI-compatible API key' },
   { id: 'ollama', label: 'Local model (Ollama)' },
 ];
-const PROVIDER_NAME: Record<Mode, string> = { connected: 'Connected agent', anthropic: 'Anthropic API', openai: 'OpenAI-compatible API', ollama: 'Local model (Ollama)' };
+const PROVIDER_NAME: Record<Mode, string> = { connected: 'Connected agent', claudecode: 'Claude Code', anthropic: 'Anthropic API', openai: 'OpenAI-compatible API', ollama: 'Local model (Ollama)' };
 
 async function call<T>(url: string, method = 'GET', body?: unknown): Promise<T> {
   const r = await fetch(url, { method, headers: body === undefined ? undefined : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -115,6 +117,7 @@ export class ChatPanel {
       else if (a === 'settings') this.toggleSettings();
       else if (a === 'copy-prompt') this.hooks.copyPrompt?.();
       else if (a === 'copy-cmd') void this.copyCommand();
+      else if (a === 'claude-terminal') this.hooks.openClaude?.();
       else if (a === 'save-key') void this.saveKey(t.closest<HTMLElement>('[data-a]')?.dataset.p as 'anthropic' | 'openai');
       else if (a === 'remove-key') void this.removeKey(t.closest<HTMLElement>('[data-a]')?.dataset.p as 'anthropic' | 'openai');
       else if (a === 'test') void this.test();
@@ -313,6 +316,9 @@ export class ChatPanel {
       if (this.status.listening > 0) { where += ' · listening'; dot = 'is-on'; }
       else if (ago >= 0 && ago < 300) { where += ` · last seen ${ago < 60 ? `${ago}s` : `${Math.round(ago / 60)} min`} ago`; dot = 'is-idle'; }
       else where += ' · no agent seen yet';
+    } else if (mode === 'claudecode') {
+      where = 'Your Claude Code sign-in, run on this computer';
+      dot = 'is-on';
     } else {
       const url = mode === 'ollama' ? c.ollama.url : c[mode].baseUrl;
       const h = hostOf(url);
@@ -368,6 +374,9 @@ export class ChatPanel {
     this.settings.innerHTML = `<div class="fd-chat-set-in"><label class="fd-chat-lab">Assistant</label><select class="fd-input" data-f="provider" aria-label="Assistant">${MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}</select>
 <div class="fd-chat-sec" data-p="connected"><div class="fd-note">Your Claude Code, Codex or Cursor session connects over MCP and answers in this panel. No key, nothing sent by FormDeck.</div>
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt</button><button class="fd-btn fd-btn-sm" type="button" data-a="copy-cmd">${icon('link', 14)}Copy MCP command</button></div></div>
+<div class="fd-chat-sec" data-p="claudecode" hidden><div class="fd-note">FormDeck runs your own Claude Code (claude -p) with FormDeck's tools only. It uses your Claude sign-in; no key is stored here. Run claude once in a terminal to sign in.</div>
+<label class="fd-chat-lab">Model</label><select class="fd-input" data-f="claudecode.model" aria-label="Claude Code model"><option value="">Claude Code default</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option><option value="haiku">Haiku</option></select>
+<div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="claude-terminal">${icon('terminal', 14)}Open Claude Code in the terminal</button></div></div>
 ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https://api.openai.com/v1')}
 <div class="fd-chat-sec" data-p="ollama" hidden><label class="fd-chat-lab">Ollama address</label><input class="fd-input" data-f="ollama.url" placeholder="http://127.0.0.1:11434" spellcheck="false" autocomplete="off">
 <label class="fd-chat-lab">Model</label><select class="fd-input" data-f="ollama.model" aria-label="Ollama model"><option value="">Test the connection to list models</option></select>
@@ -400,6 +409,7 @@ ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https
     if (!c) return;
     const set = (path: string, v: string): void => { const f = this.field(path); if (f && f.value !== v && document.activeElement !== f) f.value = v; };
     set('provider', c.provider);
+    set('claudecode.model', c.claudecode?.model ?? '');
     set('anthropic.model', c.anthropic.model);
     set('anthropic.baseUrl', c.anthropic.baseUrl);
     set('openai.model', c.openai.model);
@@ -425,7 +435,8 @@ ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https
     const v = (t as HTMLInputElement).value.trim();
     if (f === 'provider') c.provider = v as Mode;
     else {
-      const [p, k] = f.split('.') as ['anthropic' | 'openai' | 'ollama', string];
+      const [p, k] = f.split('.') as ['claudecode' | 'anthropic' | 'openai' | 'ollama', string];
+      c[p] ??= { model: '' } as never;
       (c[p] as Record<string, string>)[k] = v;
     }
     this.paintSettings();
@@ -436,7 +447,7 @@ ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https
   private async persist(): Promise<void> {
     const c = this.cfg;
     if (!c) return;
-    const chat = { provider: c.provider, anthropic: c.anthropic, openai: c.openai, ollama: c.ollama };
+    const chat = { provider: c.provider, claudecode: c.claudecode, anthropic: c.anthropic, openai: c.openai, ollama: c.ollama };
     try { await call('/api/settings', 'POST', { chat }); } catch (err) { toast((err as Error).message, 'error'); }
   }
 
@@ -471,7 +482,7 @@ ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https
         sel.replaceChildren(...want.map((m) => new Option(m || (models.length ? 'Choose a model' : 'No models installed'), m)));
         sel.value = cur;
       }
-    } else if (p !== 'connected') {
+    } else if (p !== 'connected' && p !== 'claudecode') {
       const dl = this.settings.querySelector(`#fd-chat-models-${p}`);
       if (dl) dl.replaceChildren(...models.map((m) => new Option(m, m)));
     }

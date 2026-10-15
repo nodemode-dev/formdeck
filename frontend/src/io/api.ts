@@ -18,11 +18,21 @@ async function json<T>(res: Response): Promise<T> {
 const post = <T>(url: string, body: unknown = {}): Promise<T> => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => json<T>(r));
 const get = <T>(url: string): Promise<T> => fetch(url).then((r) => json<T>(r));
 
+export interface TermInfo { id: string; title: string; cwd?: string; kind?: string; alive?: boolean }
+export interface ClaudeStatus { installed: boolean; path: string | null; version: string | null; folder: string; terminal: TermInfo | null; binNote: string; firstMessage: string }
+
 export interface WorkbookTable { sheets: string[]; sheet: string; categories: string[]; series: Array<{ name: string; values: Array<number | null> }>; mtime: number; path: string }
 
 export const api = {
   health: () => get<{ ok: boolean; version: string }>('/api/health'),
   capabilities: () => get<Record<string, unknown>>('/api/capabilities'),
+  terminals: () => get<{ terminals: TermInfo[] }>('/api/terminal'),
+  openTerminal: (body: { cols: number; rows: number; title?: string }) => post<TermInfo>('/api/terminal', body),
+  restartTerminal: (id: string) => post<TermInfo>(`/api/terminal/${encodeURIComponent(id)}/restart`),
+  closeTerminal: (id: string) => fetch(`/api/terminal/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ ok: boolean }>(r)),
+  claudeStatus: () => get<ClaudeStatus>('/api/agent/claude/status'),
+  openClaude: (body: { prompt?: string; cols: number; rows: number; fresh?: boolean; resume?: string }) => post<TermInfo>('/api/agent/claude/open', body),
+  mirrorCommands: (body: { size: number; missing: string[]; commands: unknown[] }) => post<{ ok: boolean; size: number }>('/api/commands/catalogue', body),
   settings: () => get<Record<string, unknown>>('/api/settings'),
   setSettings: (patch: Record<string, unknown>) => post<Record<string, unknown>>('/api/settings', patch),
   library: () => get<{ decks: DeckSummary[] }>('/api/decks'),

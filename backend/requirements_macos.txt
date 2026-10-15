@@ -14,3 +14,5 @@ pypdf
 latex2mathml
 fonttools
 brotli
+ptyprocess
+pywinpty; sys_platform == "win32"

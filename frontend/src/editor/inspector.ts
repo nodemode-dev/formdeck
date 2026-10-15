@@ -47,7 +47,7 @@ export class Inspector {
   readonly media = new MediaPanel();
   private docOff: (() => void) | null = null;
   private commentFilter: 'all' | 'open' | 'mine' | 'assigned' = 'open';
-  hooks: { templates: () => void; background: () => void; slideSize: () => void; comment: (text: string, assignee?: string) => void; agentsAllowed: () => boolean; setAgents: (on: boolean) => void; copyPrompt: () => void; mcpStatus: () => string } | null = null;
+  hooks: { templates: () => void; background: () => void; slideSize: () => void; comment: (text: string, assignee?: string) => void; agentsAllowed: () => boolean; setAgents: (on: boolean) => void; copyPrompt: () => void; mcpStatus: () => string; openClaude?: () => void } | null = null;
 
   constructor(host: HTMLElement) {
     this.format = el(`<div class="fd-insp">
@@ -127,7 +127,7 @@ export class Inspector {
 <div class="fd-prop-section fd-chat-host"><div class="fd-panel-head"><span class="fd-panel-title">Chat</span></div></div>
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Activity</span></div><div class="fd-activity"></div></div>
 </div>`);
-    this.chat = new ChatPanel(this.agent.querySelector('.fd-chat-host') as HTMLElement, () => this.ed?.doc.id ?? null, { copyPrompt: () => this.hooks?.copyPrompt() });
+    this.chat = new ChatPanel(this.agent.querySelector('.fd-chat-host') as HTMLElement, () => this.ed?.doc.id ?? null, { copyPrompt: () => this.hooks?.copyPrompt(), openClaude: () => this.hooks?.openClaude?.() });
     const g1 = new PanelGroup(host, 'format', [{ id: 'format', label: 'Format', body: this.format }, { id: 'slide', label: 'Slide', body: this.slidePage }, { id: 'design', label: 'Design', body: this.design }, { id: 'animate', label: 'Animate', body: this.animate.el }], 'Format');
     const g2 = new PanelGroup(host, 'review', [{ id: 'review', label: 'Review', body: this.review }, { id: 'agent', label: 'Agent', body: this.agent }], 'Review');
     void g1; void g2;

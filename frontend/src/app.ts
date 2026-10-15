@@ -34,6 +34,9 @@ import { DIAGRAM_MENU, registerDiagramCommands } from './editor/diagram-commands
 import { watchLinks } from './editor/chart-links';
 import * as dialogs from './ui/app-dialogs';
 import { AgentBridge } from './automation/agent-bridge';
+import { installCatalogue, runCatalogueCommand } from './automation/catalogue';
+import { CommandPalette } from './ui/command-palette';
+import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
 
 const SHELL = `<div class="fd-app">
@@ -44,7 +47,7 @@ const SHELL = `<div class="fd-app">
 <div class="fd-title-tools">
 <button class="fd-icon-btn" type="button" data-cmd="undo" title="Undo">${icon('undo', 16)}</button>
 <button class="fd-icon-btn" type="button" data-cmd="redo" title="Redo">${icon('redo', 16)}</button>
-<span class="fd-sep"></span><button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
+<span class="fd-sep"></span><button class="fd-tt-btn" type="button" data-cmd="command-palette" title="Find a Command">${icon('commandPalette', 16)}</button><button class="fd-tt-btn" type="button" data-cmd="view-terminal" title="Terminal and Claude Code">${icon('terminal', 16)}</button><button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
 <button class="fd-tt-btn" type="button" data-cmd="add-comment" title="Comment">${icon('comment', 16)}</button>
 <button class="fd-share-btn" type="button" data-act="share">${icon('download', 14)}<span>Export</span></button>
 <div class="fd-present-btn"><button class="fd-present-main" type="button" data-cmd="present-current">${icon('play', 14)}<span>Present</span></button><button class="fd-present-more" type="button" aria-expanded="false" aria-label="Present options" data-act="present-menu">${icon('chevronDown', 14)}</button></div>
@@ -65,6 +68,7 @@ const SHELL = `<div class="fd-app">
 <div class="fd-resizer" data-edge="props" role="separator" aria-orientation="vertical"></div>
 <aside class="fd-props-col" aria-label="Properties"></aside>
 </div>
+<section class="fd-dock" aria-label="Terminal" hidden></section>
 <footer class="fd-status">
 <div class="fd-status-left"><span class="fd-st fd-st-slide"></span><span class="fd-st fd-st-save"><span class="fd-st-dot"></span><span class="fd-st-save-text"></span></span><span class="fd-st-hint"></span><span class="fd-st fd-st-agent" hidden>${icon('agent', 12)}<span></span></span></div>
 <div class="fd-status-right">
@@ -98,7 +102,7 @@ export async function startApp(): Promise<void> {
   let editorOff: Array<() => void> = [];
   let agentsAllowed = false;
   let views: { refresh(): void; show(kind: 'sorter' | 'outline'): void; hide(): void } | null = null;
-  const bridge = new AgentBridge({ editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }) });
+  const bridge = new AgentBridge({ editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
 
   const home = new Home({
     openDeck: (id) => void openDeck(id),
@@ -280,7 +284,7 @@ export async function startApp(): Promise<void> {
   inspector.hooks = {
     templates: () => hooks.templates(), background: () => hooks.background(), slideSize: () => hooks.slideSize(),
     comment: (text, assignee) => { const ed = editor; if (ed) dialogs.addComment(ed, text, assignee); },
-    agentsAllowed: () => agentsAllowed, setAgents, copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null), mcpStatus: () => (agentsAllowed ? 'On' : 'Off'),
+    agentsAllowed: () => agentsAllowed, setAgents, copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null), mcpStatus: () => (agentsAllowed ? 'On' : 'Off'), openClaude: () => { commands.run('claude-code'); },
   };
   registerCommands(commands, hooks);
   registerTableCommands(commands, () => editor);
@@ -296,10 +300,46 @@ export async function startApp(): Promise<void> {
   registerEquationCommands(commands, () => editor);
   registerAddins(commands, () => editor, q(root, '.fd-main'));
 
+  const dockHost = q(root, '.fd-dock');
+  let dock: TerminalDock | null = null;
+  const dockOpen = (): boolean => root.classList.contains('is-dock-open');
+  const setDock = (on: boolean): void => {
+    setClass(root, 'is-dock-open', on);
+    setHidden(dockHost, !on);
+    const ed = editor;
+    if (ed) requestAnimationFrame(() => ed.stage.layout());
+    syncChrome();
+  };
+  const getDock = async (): Promise<TerminalDock> => {
+    if (dock) return dock;
+    const m = await import('./ui/terminal-dock');
+    dock ??= new m.TerminalDock(dockHost, root, () => setDock(false));
+    dock.onFail = (err) => toast(err instanceof Error ? err.message : String(err), 'error');
+    dock.context = () => {
+      const ed = editor;
+      if (!ed) return 'FormDeck window: no deck open';
+      const sel = ed.selection;
+      return `FormDeck window: deck ${ed.doc.id} "${ed.doc.deck.title ?? ''}", slide ${ed.doc.slideIndex(ed.current) + 1} (${ed.current})${sel.length ? `, selected element ids ${sel.slice(0, 40).join(', ')}` : ''}`;
+    };
+    return dock;
+  };
+  const showDock = async (): Promise<TerminalDock> => {
+    const d = await getDock();
+    if (!dockOpen()) setDock(true);
+    return d;
+  };
+  let palette: CommandPalette | null = null;
+  commands.add(
+    { id: 'view-terminal', label: 'Terminal', icon: 'terminal', keys: ['Mod+`'], checked: dockOpen, run: () => { if (dockOpen()) setDock(false); else void showDock().then((d) => d.ensure()); } },
+    { id: 'new-terminal', label: 'New Terminal', icon: 'terminal', run: () => { const was = dockOpen(); void showDock().then((d) => (was ? d.open() : d.ensure())); } },
+    { id: 'claude-code', label: 'Claude Code', icon: 'agent', keys: ['Shift+Mod+`'], run: () => void showDock().then((d) => d.claude()) },
+    { id: 'command-palette', label: 'Find a Command...', icon: 'commandPalette', keys: ['Shift+Mod+P'], run: () => { palette ??= new CommandPalette(() => catalogue.list(), (id) => { commands.run(id); syncChrome(); }); palette.show(); } },
+  );
+
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
-    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-collapse', 'ribbon-simplified', 'qat-below', '-', 'ribbon-customize', 'qat-customize'] }] },
+    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'command-palette', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-collapse', 'ribbon-simplified', 'qat-below', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-pdf-pages', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', 'format-copy', 'format-paste', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'alt-text', 'edit-points', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'reset-slide', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
@@ -310,6 +350,7 @@ export async function startApp(): Promise<void> {
   ];
   toolbar.fileItems = menus[0].items as MenuItem[];
   new MenuBar(q(root, '.fd-menubar'), commands, menus);
+  const catalogue = installCatalogue(commands, () => menus);
 
   root.addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
@@ -359,6 +400,11 @@ export async function startApp(): Promise<void> {
     const ed = editor;
     if (typing) {
       const combo = comboOf(e);
+      if (combo === 'Mod+`' || combo === 'Shift+Mod+`' || combo === 'Shift+Mod+P') {
+        e.preventDefault();
+        commands.run(combo === 'Mod+`' ? 'view-terminal' : combo === 'Shift+Mod+P' ? 'command-palette' : 'claude-code');
+        return;
+      }
       if (t.isContentEditable && ['Mod+Z', 'Shift+Mod+Z', 'Mod+S', 'Mod+P', 'Mod+K'].includes(combo)) {
         if (combo === 'Mod+Z' || combo === 'Shift+Mod+Z') return;
         e.preventDefault();

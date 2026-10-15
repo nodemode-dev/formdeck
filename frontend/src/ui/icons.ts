@@ -107,6 +107,8 @@ export const ICONS: Record<string, string> = {
   model3d: L('<path d="M12 3.5l7.5 4.2v8.6L12 20.5l-7.5-4.2V7.7z"/><path d="M12 12v8.5M12 12L4.5 7.7M12 12l7.5-4.3"/>'),
   orbit: L('<path d="M12 7.5l4 2.2v4.6l-4 2.2-4-2.2V9.7z"/><path d="M12 12v4.5M12 12L8 9.7M12 12l4-2.3"/><path d="M4.5 12a7.5 7.5 0 0 1 2-5.1M19.5 12a7.5 7.5 0 0 1-2 5.1"/><path d="M6.6 3.9v3.4H3.2M17.4 20.1v-3.4h3.4"/>'),
   code: L('<path d="M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5M13.5 5l-3 14"/>'),
+  terminal: L('<rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15H17"/>'),
+  commandPalette: L('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17M7 13h6M7 16h3.5"/>'),
   diagram: L('<rect x="9" y="3.5" width="6" height="5" rx="1"/><rect x="3.5" y="15.5" width="6" height="5" rx="1"/><rect x="14.5" y="15.5" width="6" height="5" rx="1"/><path d="M12 8.5V12M6.5 15.5V12h11v3.5"/>'),
   trim: L('<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.4L20 16.5M8.2 15.6L20 7.5"/>'),
   speaker: L('<path d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a7.6 7.6 0 0 1 0 11"/>'),

@@ -10,7 +10,7 @@ import type { SlideView } from '../render/slide';
 import { Dialog } from '../ui/dialogs';
 import { el, setText } from '../ui/dom';
 
-export interface BridgeHooks { editor: () => Editor | null; open: (id: string) => Promise<void>; live: LiveClient; notice: (t: string) => void; allow: () => void; activity: (label: string, origin: 'agent' | 'user') => void }
+export interface BridgeHooks { editor: () => Editor | null; open: (id: string) => Promise<void>; live: LiveClient; notice: (t: string) => void; allow: () => void; activity: (label: string, origin: 'agent' | 'user') => void; command?: (args: Args) => Promise<ToolResult> }
 type Content = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string };
 export interface ToolResult { content: Content[]; structuredContent?: Record<string, unknown>; isError?: boolean }
 export type IssueKind = 'overflow' | 'shrunk' | 'offslide' | 'overlap' | 'tiny' | 'empty';
@@ -126,6 +126,7 @@ export class AgentBridge {
       if (name === 'export_raster') return await this.exclusive(() => this.exportTool(args));
       if (name === 'focus') return await this.focus(args);
       if (name === 'consent') return await this.consent(args);
+      if (name === 'run_command' && this.h.command) return await this.h.command(args);
       return fail(`The FormDeck window has no tool named ${name}.`);
     } catch (e) {
       return fail(`${name} did not finish: ${errText(e)}`);

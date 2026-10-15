@@ -6,6 +6,7 @@ import urllib.parse
 import httpx
 
 from app.core import config
+from app.services import claude_code
 from app.services.chat import convo as cv
 from app.services.chat import keys, tools as ctools
 from app.services.chat.providers import Anthropic, OpenAICompat, Ollama, Provider, ProviderError, ToolsUnsupported
@@ -15,9 +16,10 @@ MAX_STEPS = 20
 HISTORY_MESSAGES = 60
 HISTORY_RESULT = 3000
 STORED_RESULT = 3000
-PROVIDERS = ("connected", "anthropic", "openai", "ollama")
+PROVIDERS = ("connected", "claudecode", "anthropic", "openai", "ollama")
 DEFAULTS = {
     "provider": "connected",
+    "claudecode": {"model": ""},
     "anthropic": {"model": "claude-sonnet-5-5", "baseUrl": "https://api.anthropic.com"},
     "openai": {"model": "gpt-4.1", "baseUrl": "https://api.openai.com/v1"},
     "ollama": {"model": "", "url": "http://127.0.0.1:11434"},
@@ -33,9 +35,9 @@ def settings() -> dict:
     raw = config.read_settings().get("chat")
     raw = raw if isinstance(raw, dict) else {}
     out = {"provider": raw.get("provider") if raw.get("provider") in PROVIDERS else DEFAULTS["provider"]}
-    for name in ("anthropic", "openai", "ollama"):
+    for name in ("claudecode", "anthropic", "openai", "ollama"):
         sub = raw.get(name) if isinstance(raw.get(name), dict) else {}
-        out[name] = {k: _text(sub.get(k), d) for k, d in DEFAULTS[name].items()}
+        out[name] = {k: sub.get(k).strip() if isinstance(sub.get(k), str) else d for k, d in DEFAULTS[name].items()} if name == "claudecode" else {k: _text(sub.get(k), d) for k, d in DEFAULTS[name].items()}
     return out
 
 
@@ -67,6 +69,8 @@ def active_label(cfg: dict | None = None) -> str:
     name = cfg["provider"]
     if name == "connected":
         return "Connected agent"
+    if name == "claudecode":
+        return "Claude Code" + (f" · {cfg['claudecode']['model']}" if cfg["claudecode"]["model"] else "")
     return {"anthropic": "Anthropic API", "openai": "OpenAI-compatible API", "ollama": "Local model (Ollama)"}[name] + (f" · {cfg[name]['model']}" if cfg[name]["model"] else "")
 
 
@@ -125,8 +129,77 @@ async def send(c: cv.Convo, text: str, deck_id: str | None) -> dict:
     msg = c.add("user", text, provider=cfg["provider"], state="sent")
     c.busy = True
     c.emit(c.status())
-    c.task = asyncio.create_task(_run(c, cfg, deck_id))
+    c.task = asyncio.create_task(_run_claude(c, cfg, deck_id, text) if cfg["provider"] == "claudecode" else _run(c, cfg, deck_id))
     return msg
+
+
+def _short_tool(name: str) -> str:
+    return name.split("__")[-1] if name.startswith("mcp__") else name
+
+
+async def _run_claude(c: cv.Convo, cfg: dict, deck_id: str | None, text: str) -> None:
+    streaming: dict | None = None
+    tools: dict[str, dict] = {}
+    result: dict | None = None
+    exit_info: dict | None = None
+    where = f"The person has deck {deck_id} open in FormDeck." if deck_id else "No deck is open in FormDeck."
+    try:
+        async for ev in claude_code.stream_chat(f"{text}\n\n({where})", getattr(c, "claude_session", None), cfg["claudecode"]["model"]):
+            t = ev.get("type")
+            if ev.get("parent_tool_use_id"):
+                continue
+            if t == "system" and ev.get("subtype") == "init":
+                c.claude_session = ev.get("session_id") or getattr(c, "claude_session", None)
+            elif t == "stream_event":
+                e = ev.get("event") or {}
+                d = e.get("delta") or {}
+                if e.get("type") == "content_block_delta" and d.get("type") == "text_delta" and d.get("text"):
+                    if streaming is None:
+                        streaming = c.add("assistant", "", state="streaming", provider="claudecode")
+                    c.delta(streaming, d["text"])
+            elif t == "assistant":
+                for b in (ev.get("message") or {}).get("content") or []:
+                    if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") != "ToolSearch":
+                        if streaming is not None:
+                            c.patch(streaming, state="done")
+                            streaming = None
+                        name, args = _short_tool(str(b.get("name") or "")), b.get("input") if isinstance(b.get("input"), dict) else {}
+                        tools[str(b.get("id"))] = c.add("tool", ctools.summary(name, args), name=name, args=args if len(json.dumps(args)) < 4000 else {}, callId=b.get("id"), state="running", ok=True)
+            elif t == "user":
+                for b in (ev.get("message") or {}).get("content") or []:
+                    if isinstance(b, dict) and b.get("type") == "tool_result" and str(b.get("tool_use_id")) in tools:
+                        msg = tools.pop(str(b.get("tool_use_id")))
+                        body = b.get("content")
+                        out = body if isinstance(body, str) else " ".join(x.get("text", "") for x in body or [] if isinstance(x, dict) and x.get("type") == "text")
+                        failed = bool(b.get("is_error"))
+                        c.patch(msg, state="done", ok=not failed, result=out[:STORED_RESULT], text=msg["text"] + (" (failed)" if failed else ""))
+            elif t == "result":
+                result = ev
+                c.claude_session = ev.get("session_id") or getattr(c, "claude_session", None)
+            elif t == "formdeck_exit":
+                exit_info = ev
+        if streaming is not None:
+            c.patch(streaming, state="done")
+            streaming = None
+        if result is not None and result.get("is_error"):
+            c.add("note", str(result.get("result") or result.get("subtype") or "Claude Code reported an error."), level="error")
+        elif result is None:
+            tail = (exit_info or {}).get("tail") or []
+            c.add("note", "Claude Code stopped before answering" + (f": {tail[-1]}" if tail else ". Run claude once in a terminal to sign in."), level="error")
+    except LookupError as exc:
+        c.add("note", str(exc), level="error")
+    except asyncio.CancelledError:
+        if streaming is not None:
+            c.patch(streaming, state="done")
+        for msg in tools.values():
+            c.patch(msg, state="stopped", ok=False, result="Stopped by the person.")
+        c.add("note", "Stopped.", level="info")
+    except OSError as exc:
+        c.add("note", f"Claude Code could not run: {exc}", level="error")
+    finally:
+        c.busy = False
+        c.task = None
+        c.emit(c.status())
 
 
 async def stop(c: cv.Convo) -> None:

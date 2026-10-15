@@ -10,7 +10,7 @@ from fastapi import APIRouter, Request, Response
 
 from app.core import config
 from app.routers.live import local_origin
-from app.services import bridge, compiler, model, templates
+from app.services import bridge, claude_code, compiler, model, templates
 from app.services import equations
 from app.services import text_effects
 from app.services import intake as intake_mod
@@ -29,6 +29,7 @@ LEGACY = ["2025-06-18", "2025-03-26", "2024-11-05"]
 TURN_GAP = 90.0
 SERVER = {"name": "formdeck", "title": "FormDeck", "version": config.VERSION}
 CAPS = {"tools": {}, "resources": {}, "prompts": {}}
+LIST_CACHE = {"ttlMs": 60_000, "cacheScope": "private"}
 INSTRUCTIONS = ("FormDeck builds and edits slide decks on this computer; the person watches and approves them in the FormDeck window. "
                 "Workflow: get_context; ingest the person's files (absolute paths) with their brief; draft_spec gives a markdown slide script, edit it; "
                 "build_deck {script, intake, template} opens the deck in the window; render_slides and lint_deck to check; fix with set_text, update_slide, "
@@ -123,6 +124,7 @@ class Agent:
         self.name = name or "agent"
         self.turn: str | None = None
         self.last = 0.0
+        self.inapp = False
 
 
 SESSIONS: dict[str, Agent] = {}
@@ -215,9 +217,16 @@ TOOLS = [
     _tool("chat_reply", "Posts a reply in the FormDeck chat panel. final true (default) completes the reply; final false streams a partial: later calls append to the same reply until one is final.",
           {"text": _S, "deck": {"type": "string", "description": "Deck id of the conversation (as chat_inbox returned; default the one you last read)"}, "final": {"type": "boolean", "default": True},
            "to": {"type": "string", "description": "Message id being answered (m...)"}}, ["text"]),
+    _tool("list_commands", "The editor's command catalogue, the same commands as the ribbon, menus and shortcuts: id, label, group, what it does and when to use it. "
+          "text narrows by words (all must match), group by one group; id returns one command with its parameters.",
+          {"text": _S, "group": _S, "id": _S, "limit": {"type": "integer", "description": "Most rows to return (default 60)"}}, read=True),
+    _tool("run_command", "Runs one editor command in the open FormDeck window, on the open deck and current selection, as one undoable step, exactly as the person's click would. "
+          "Use list_commands to find the id. A command marked risky cannot be undone; pass confirm true for it.",
+          {"id": {"type": "string", "description": "Command id from list_commands, such as align-center or format-painter"}, "params": {"type": "object", "description": "Parameters the command lists, if any"},
+           "confirm": {"type": "boolean"}}, ["id"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
-MUTATING = {"build_deck", "add_slides", "update_slide", "set_text", "edit_elements", "apply_ops", "slides", "apply_template", "set_theme", "undo", "open_file"}
+MUTATING = {"build_deck", "add_slides", "update_slide", "set_text", "edit_elements", "apply_ops", "slides", "apply_template", "set_theme", "undo", "open_file", "run_command"}
 
 
 def _ok(text: str, data: dict | None = None) -> dict:
@@ -252,6 +261,9 @@ def _agent(request: Request, params: dict) -> Agent:
     a = SESSIONS.get(key)
     if a is None:
         a = SESSIONS[key] = Agent(key, info.get("name") or "agent")
+    if request.headers.get(claude_code.INAPP_HEADER, "") == claude_code.INAPP_TOKEN:
+        a.inapp = True
+        a.name = claude_code.INAPP_NAME
     STORE.seen_agent(a.name, a.key)
     return a
 
@@ -265,7 +277,7 @@ def _turn(a: Agent) -> str:
 
 
 async def _consent(a: Agent) -> str | None:
-    if config.read_settings().get("agentsAllowed") or any(c.agents for c in bridge.windows()):
+    if a.inapp or config.read_settings().get("agentsAllowed") or any(c.agents for c in bridge.windows()):
         return None
     if not bridge.window_connected():
         return None
@@ -1671,6 +1683,39 @@ async def t_chat_reply(a: Agent, args: dict) -> dict:
     return _ok(("Posted." if final else "Partial posted; keep calling chat_reply with final true to finish.") + f" Reply id {msg['id']}.", {"id": msg["id"], "final": final})
 
 
+async def t_list_commands(a: Agent, args: dict) -> dict:
+    from app.routers import commands as cat
+    cid = str(args.get("id") or "").strip()
+    if cid:
+        found = cat.find(cid)
+        if found is None:
+            hint = cat.near(cid)
+            raise ToolError(f"No command has the id {cid}." + (f" Did you mean {', '.join(hint)}?" if hint else "") + " Search with list_commands {text}.")
+        return _ok(json.dumps(found, ensure_ascii=False), found)
+    rows = cat.search(str(args.get("group") or ""), str(args.get("text") or ""))
+    if not rows and not cat.search():
+        return _ok("The catalogue is empty: the FormDeck window has not sent it yet. Open the window, wait a few seconds, then ask again.", {"commands": []})
+    limit = max(1, min(400, int(args.get("limit") or 60)))
+    lines = [f"{c['id']} · {c.get('label', '')} · {c.get('group', '')}{' · risky' if c.get('risky') else ''}{' · off now' if c.get('enabled') is False else ''} · {c.get('when') or c.get('description', '')}" for c in rows[:limit]]
+    more = f"\n{len(rows) - limit} more; narrow with text or group." if len(rows) > limit else ""
+    return _ok(f"{len(rows)} commands:\n" + "\n".join(lines) + more, {"commands": [{k: c.get(k) for k in ("id", "label", "group", "risky", "enabled")} for c in rows[:limit]]})
+
+
+async def t_run_command(a: Agent, args: dict) -> dict:
+    from app.routers import commands as cat
+    cid = str(args.get("id") or "").strip()
+    if not cid:
+        raise ToolError("Give id, a command id from list_commands.")
+    found = cat.find(cid)
+    if found and found.get("risky") and args.get("confirm") is not True:
+        raise ToolError(f"{cid} cannot be undone. Ask the person, then call again with confirm true.")
+    out = await cat.execute(cid, args.get("params") if isinstance(args.get("params"), dict) else {})
+    if not out["ok"]:
+        return _fail(out["error"])
+    result = out.get("result")
+    return _ok(f"Ran {cid}." + (f" {result}" if isinstance(result, str) and result else ""), {"id": cid, "result": result})
+
+
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}
 
 
@@ -1741,7 +1786,7 @@ async def mcp(request: Request) -> Response:
     elif method == "ping":
         out = _res(req_id, {}, modern)
     elif method == "tools/list":
-        out = _res(req_id, {"tools": TOOLS}, modern)
+        out = _res(req_id, {"tools": TOOLS, **(LIST_CACHE if modern else {})}, modern)
     elif method == "tools/call":
         name, args = params.get("name"), params.get("arguments") or {}
         if name not in NAMES or not isinstance(args, dict):
@@ -1749,9 +1794,9 @@ async def mcp(request: Request) -> Response:
         else:
             out = _res(req_id, await call_tool(_agent(request, params), name, args), modern)
     elif method == "resources/list":
-        out = _res(req_id, {"resources": RESOURCES}, modern)
+        out = _res(req_id, {"resources": RESOURCES, **(LIST_CACHE if modern else {})}, modern)
     elif method == "resources/templates/list":
-        out = _res(req_id, {"resourceTemplates": []}, modern)
+        out = _res(req_id, {"resourceTemplates": [], **(LIST_CACHE if modern else {})}, modern)
     elif method == "resources/read":
         uri = params.get("uri")
         uri = uri.replace("formsld://", "formdeck://", 1)
@@ -1762,7 +1807,7 @@ async def mcp(request: Request) -> Response:
         else:
             out = _err(req_id, -32002, f"Resource not found: {uri}")
     elif method == "prompts/list":
-        out = _res(req_id, {"prompts": PROMPTS}, modern)
+        out = _res(req_id, {"prompts": PROMPTS, **(LIST_CACHE if modern else {})}, modern)
     elif method == "prompts/get":
         if params.get("name") == "build-deck":
             out = _res(req_id, {"description": PROMPTS[0]["description"], "messages": [{"role": "user", "content": {"type": "text", "text": prompt_text(params.get("arguments") or {})}}]}, modern)
