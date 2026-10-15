@@ -270,7 +270,7 @@ export class TextFxPanel {
     this.el = el(`<div class="fd-prop-section fd-tfx-panel" hidden>
 <div class="fd-panel-head"><span class="fd-panel-title">Text effects</span></div>
 ${row('Style', `<button class="fd-btn fd-btn-sm" type="button" data-ta="styles">${icon('wordArt', 14)}WordArt styles</button>`)}
-${row('Text fill', `<select data-xf="fill" aria-label="Text fill"><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="none">No fill</option></select>${swatch('fill1', 'Fill colour')}${swatch('fill2', 'Gradient end colour')}`)}
+${row('Text fill', `<select data-xf="fill" aria-label="Text fill"><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="none">No fill</option><option value="picture">Picture...</option></select>${swatch('fill1', 'Fill colour')}${swatch('fill2', 'Gradient end colour')}`)}
 ${row('Direction', `<select data-xf="angle" aria-label="Gradient direction"><option value="0">Left to right</option><option value="180">Right to left</option><option value="90">Top to bottom</option><option value="270">Bottom to top</option><option value="45">Diagonal down</option><option value="315">Diagonal up</option><option value="radial">From centre</option></select>`, ' data-xr="grad"')}
 ${row('Outline', `<select data-xf="ln" aria-label="Text outline"><option value="none">None</option><option value="solid">Solid</option><option value="dash">Dash</option><option value="dot">Dot</option><option value="dashDot">Dash dot</option><option value="longDash">Long dash</option></select>${swatch('lncolor', 'Outline colour')}<label class="fd-num" title="Outline width"><input type="number" min="0.25" max="20" step="0.25" data-xf="lnw" aria-label="Outline width"><span class="fd-unit">pt</span></label>`)}
 ${row('Shadow', `<select data-xf="shadow" aria-label="Text shadow"><option value="none">None</option><option value="soft">Soft</option><option value="below">Below</option><option value="hard">Hard</option><option value="long">Long</option></select>`)}
@@ -328,13 +328,13 @@ ${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="
     if (!ed || !p) return;
     const theme = editorTheme(ed);
     const r = p.run;
-    const kind = r.fill?.type === 'gradient' ? 'gradient' : r.fill?.type === 'none' ? 'none' : 'solid';
+    const kind = r.fill?.type === 'gradient' ? 'gradient' : r.fill?.type === 'none' ? 'none' : r.fill?.type === 'image' ? 'picture' : 'solid';
     setValue(this.q('[data-xf="fill"]'), kind);
     const g = r.fill?.type === 'gradient' ? r.fill : null;
     const c1 = g ? g.stops[0]?.color : r.fill?.type === 'solid' ? r.fill.color : r.color ?? 'tx1';
     setStyleVar(this.q('[data-ta="fill1"] .fd-tfx-swatch'), '--swatch', kind === 'none' ? 'transparent' : colorCss(c1 ?? 'tx1', theme));
     setStyleVar(this.q('[data-ta="fill2"] .fd-tfx-swatch'), '--swatch', g ? colorCss(g.stops[g.stops.length - 1]?.color ?? 'tx1', theme) : 'transparent');
-    setHidden(this.q('[data-ta="fill1"]'), kind === 'none');
+    setHidden(this.q('[data-ta="fill1"]'), kind === 'none' || kind === 'picture');
     setHidden(this.q('[data-ta="fill2"]'), kind !== 'gradient');
     setHidden(this.q('[data-xr="grad"]'), kind !== 'gradient');
     if (g) setValue(this.q('[data-xf="angle"]'), g.kind === 'radial' ? 'radial' : String(((Math.round(g.angle ?? 90) % 360) + 360) % 360));
@@ -428,6 +428,24 @@ ${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="
     }
   }
 
+  private async pictureFill(ed: Editor, snap: Snap | null): Promise<void> {
+    const file = await new Promise<File | null>((ok) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = () => ok(input.files?.[0] ?? null);
+      input.oncancel = () => ok(null);
+      input.click();
+    });
+    if (!file) return;
+    const { api } = await import('../io/api');
+    const [m] = await api.upload([file]);
+    if (!m || !ed.slide) return;
+    const key = `text-picture-${m.id}`;
+    if (!ed.doc.deck.media[m.id]) ed.apply([{ op: 'set', path: ['media', m.id], value: { name: m.name, mime: m.mime, w: m.w, h: m.h, bytes: m.bytes } }], 'Text fill', key);
+    applyRunFx(ed, { fill: { type: 'image', src: m.id, mode: 'cover' } }, 'Text fill', snap, key);
+  }
+
   private change(t: HTMLInputElement | HTMLSelectElement, live = false): void {
     const ed = this.ed;
     const f = t.dataset.xf;
@@ -438,6 +456,7 @@ ${row('', '<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-ta="
     if (f === 'fill') {
       if (v === 'solid') applyRunFx(ed, (r) => ({ fill: undefined, color: r.fill?.type === 'gradient' ? r.fill.stops[0]?.color ?? r.color : r.color }), 'Text fill', snap);
       else if (v === 'none') applyRunFx(ed, (r) => ({ fill: { type: 'none' }, ln: r.ln && r.ln.type !== 'none' ? r.ln : { color: r.color ?? 'tx1', width: 1 } }), 'Text fill', snap);
+      else if (v === 'picture') { this.sync(); void this.pictureFill(ed, snap); }
       else applyRunFx(ed, (r) => { const c: Color = r.color ?? 'accent1'; return { fill: { type: 'gradient', kind: 'linear', angle: 90, stops: [{ pos: 0, color: typeof c === 'string' ? { scheme: c as 'accent1', lumMod: 0.6, lumOff: 0.4 } : c }, { pos: 1, color: c }] } as Fill }; }, 'Text fill', snap);
     } else if (f === 'angle') {
       applyRunFx(ed, (r) => (r.fill?.type === 'gradient' ? { fill: v === 'radial' ? { ...r.fill, kind: 'radial', angle: undefined } : { ...r.fill, kind: 'linear', angle: Number(v) } } as Partial<Run> : {}), 'Gradient direction', snap);
