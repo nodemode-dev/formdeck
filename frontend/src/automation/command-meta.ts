@@ -172,6 +172,7 @@ const ROWS: Record<string, Row> = {
   'show-setup': ['Use when the show should loop, use timings or run as a kiosk.'],
   'subtitle-settings': ['Use when live subtitles should be on, translated or placed elsewhere.', 'v'],
   'rehearse-timings': ['Use when you want to time each slide while you rehearse.'],
+  'rehearse-coach': ['Use when you want feedback on pace, filler words and reading the slide while you rehearse out loud.'],
   'record-start': ['Use when you want to record narration and timings from the start.'],
   'record-current': ['Use when you want to record narration and timings from this slide.'],
   'clear-timing-all': ['Use when every slide timing should be removed.', 'r'],

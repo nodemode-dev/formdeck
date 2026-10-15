@@ -59,7 +59,9 @@ body.fd-showing #app { visibility: hidden; }
 .fd-show-thumb-num { font-variant-numeric: tabular-nums; }
 
 .fd-show-rehearse { position: absolute; left: 50%; bottom: var(--space-6); z-index: var(--z-modal); display: flex; align-items: center; gap: var(--space-2); max-width: calc(100% - 32px); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border: 1px solid var(--glass-border); border-radius: var(--radius-xl); background: var(--glass-bg); box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); color: var(--text-primary); font-size: var(--fd-13); transform: translateX(-50%); }
-.fd-show-rehearse-text { margin-right: var(--space-2); }
+.fd-show-rehearse-msg { display: flex; flex-direction: column; gap: var(--space-1); max-width: 560px; margin-right: var(--space-2); }
+.fd-show-coach-text { display: flex; flex-direction: column; gap: 2px; color: var(--text-secondary); font-size: var(--fd-12); }
+.fd-show-coach-text[hidden] { display: none; }
 
 .fd-show-console { display: contents; }
 .fd-show.is-presenter { grid-template-columns: minmax(320px, var(--pv-cur, 60%)) 12px minmax(260px, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto auto; grid-template-areas: "top top top" "clock split side" "cur split side" "tools split side" "nav split side"; background: var(--bg-primary); }

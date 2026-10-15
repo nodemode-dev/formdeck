@@ -95,6 +95,7 @@ export class Captions {
   private startedAt = 0;
   private warnedAt = -WARN_MS;
   private readonly tr: CaptionTranslator;
+  onHeard: ((raw: string) => void) | null = null;
 
   constructor(private readonly onLines: (lines: CapLine[]) => void, private readonly onStop: (reason: string) => void, private readonly onNotice: (text: string, ms?: number) => void = () => undefined) {
     this.tr = new CaptionTranslator({ notice: (t, ms) => this.onNotice(t, ms) });
@@ -230,6 +231,7 @@ export class Captions {
   }
 
   private commit(raw: string): void {
+    this.onHeard?.(raw);
     const line: Final = { seq: ++this.seq, raw, t: tail(raw), pending: this.tr.active };
     this.finals = [...this.finals, line].slice(-2);
     if (line.pending) this.translate(line);

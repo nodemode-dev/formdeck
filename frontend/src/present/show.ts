@@ -8,6 +8,8 @@ import { el, patchList, q, reserve, setClass, setDisabled, setHidden, setHtml, s
 import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
 import { Captions, CaptionView, bindCaptionFields, captionFields, captionsSupported, type CapLine, type CaptionPrefs } from './captions';
+import { SpeechCoach, coachSummary } from './coach';
+import { plainText } from '../engine/resolve';
 import { effectFx, morph, transitionPlan, type Box, type Dir } from './effects';
 import { mutedOf, preparePlayback, seekBookmark } from './media-play';
 import { Recorder } from './recorder';
@@ -15,7 +17,7 @@ import { buildState, buildSteps, displaced, type Item, type Step, type Unit } fr
 import { usePresenterView } from './presenter-prefs';
 import { horizontalSwipe, installInputKind, isTouchInput } from '../ui/touch';
 
-export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean; rehearse?: boolean; remote?: boolean }
+export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean; rehearse?: boolean; coach?: boolean; remote?: boolean }
 
 interface Stroke { c: string; w: number; p: number[]; h?: 1 }
 type Mode = 'pointer' | 'pen' | 'eraser' | 'laser';
@@ -112,7 +114,7 @@ ${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-c
 <div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('highlighter', 'Highlighter', 'Ctrl+I')}${item('laser', 'Laser pointer', 'L')}${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
 <div class="fd-show-pop fd-show-more" hidden>${item('presenter-on', 'Show Presenter View')}${item('presenter-off', 'Hide Presenter View')}${item('white', 'White screen', 'W')}${item('auto', 'Pause automatic advance', 'S')}${item('bar', 'Hide controls', 'Ctrl+H')}${item('fullscreen', 'Full screen', 'F')}<div class="fd-menu-sep"></div>${item('captions', 'Turn on captions', 'J')}${CC_SET}<div class="fd-menu-sep"></div>${item('end', 'End show', 'Esc')}</div>
 <div class="fd-show-grid" hidden><div class="fd-show-grid-head"><span class="fd-show-grid-title">All slides</span><span class="fd-show-grid-hint">Arrow keys to move, Enter to open, Esc to close</span>${btn('grid-close', 'Close (Esc)', icon('close', 16))}</div><div class="fd-show-grid-list"></div></div>
-<div class="fd-show-rehearse" hidden><span class="fd-show-rehearse-text"></span><button class="fd-btn fd-btn-primary fd-btn-sm" type="button" data-act="keep">Keep timings</button><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-act="discard">Discard</button></div>
+<div class="fd-show-rehearse" hidden><span class="fd-show-rehearse-msg"><span class="fd-show-rehearse-text"></span><span class="fd-show-coach-text" hidden></span></span><button class="fd-btn fd-btn-primary fd-btn-sm" type="button" data-act="keep">Keep timings</button><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-act="discard">Discard</button></div>
 </div>`;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
@@ -303,6 +305,8 @@ class Show {
   private timerPaused = 0;
   private rehearsal: Map<string, number> | null = null;
   private rehearseAt = 0;
+  private coach: SpeechCoach | null = null;
+  private coachCc = false;
   private asked = false;
   private drawing: Stroke | null = null;
   private readonly set: ShowSettings;
@@ -402,6 +406,29 @@ class Show {
     if (this.rec) void this.rec.init();
     await this.go(first.id, 'start', false, this.pos);
     if (this.opts.rehearse && !this.rehearsal) this.toggleRehearse();
+    if (this.opts.coach) this.startCoach();
+  }
+
+  private startCoach(): void {
+    if (!captionsSupported()) { this.flash('Speaker Coach needs Chrome or Edge and a microphone.', 4000); return; }
+    this.coach = new SpeechCoach(this.ccPrefs.lang);
+    this.coachCc = !this.ccOn;
+    if (!this.ccOn) this.toggleCaptions();
+    if (this.cc) this.cc.onHeard = (raw) => { const tip = this.coach?.heard(raw, this.slideWords(this.cur)); if (tip) this.flash(tip, 2500); };
+    window.setTimeout(() => { if (!this.closed) this.flash('Speaker Coach is listening: pace, filler words and reading the slide.', 3000); }, 2600);
+  }
+
+  private slideWords(id: string): string {
+    const s = this.doc.slide(id);
+    const out: string[] = [];
+    const walk = (els: SlideElement[]): void => {
+      for (const e of els) {
+        if (e.type === 'group') walk(e.children);
+        else if ('text' in e && e.text) out.push(plainText(e.text));
+      }
+    };
+    if (s) walk(s.elements);
+    return out.join('\n');
   }
 
   private fromStart(): boolean {
@@ -1766,6 +1793,10 @@ class Show {
         let total = 0;
         for (const v of this.rehearsal.values()) total += v;
         setText(q(this.rehearseEl, '.fd-show-rehearse-text'), `Rehearsed ${n} slide${n === 1 ? '' : 's'} in ${fmt(total * 1000)}. Keep these timings to advance automatically?`);
+        const coachEl = q(this.rehearseEl, '.fd-show-coach-text');
+        if (this.coach) coachEl.replaceChildren(...coachSummary(this.coach.report()).map((line) => { const s = el('<span></span>'); s.textContent = line; return s; }));
+        setHidden(coachEl, !this.coach);
+        if (this.coachCc && this.ccOn) this.toggleCaptions();
         setHidden(this.rehearseEl, false);
         if (!this.atEnd) { this.atEnd = true; setHidden(this.endEl, false); this.syncUi(); }
         return;

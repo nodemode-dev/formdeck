@@ -13,7 +13,7 @@ const narrated = (s: Slide): boolean => s.elements.some((e) => e.type === 'media
 
 export function registerShowCommands(cmds: Commands, E: () => Editor | null, live: LiveClient, bridge: AgentBridge): void {
   const inSlides = (): boolean => { const ed = E(); return !!ed && ed.holderKind === 'slide'; };
-  const start = (from: 'start' | 'current', extra: { record?: boolean; custom?: string; rehearse?: boolean } = {}): void => {
+  const start = (from: 'start' | 'current', extra: { record?: boolean; custom?: string; rehearse?: boolean; coach?: boolean } = {}): void => {
     const ed = E();
     if (!ed) return;
     const at = from === 'start' ? 0 : Math.max(0, ed.doc.slideIndex(ed.current));
@@ -52,5 +52,6 @@ export function registerShowCommands(cmds: Commands, E: () => Editor | null, liv
     { id: 'use-presenter-view', label: 'Use Presenter View', enabled: () => true, checked: () => usePresenterView(), run: () => setUsePresenterView(!usePresenterView()) },
     { id: 'subtitle-settings', label: 'Subtitle Settings...', icon: 'captions', enabled: () => true, run: () => { void import('../ui/dialogs-captions').then((m) => m.subtitleSettingsDialog()); } },
     { id: 'rehearse-timings', label: 'Rehearse Timings', icon: 'record', enabled: inSlides, run: () => start('start', { rehearse: true }) },
+    { id: 'rehearse-coach', label: 'Rehearse with Coach', icon: 'captions', enabled: inSlides, run: () => start('start', { rehearse: true, coach: true }) },
   );
 }
