@@ -1,0 +1,11 @@
+[
+"Use when the presenter's live camera should appear on the slide during the show.",
+"Use when a selected shape should show the live camera during the show, or stop showing it.",
+"Camera",
+"Live camera",
+"Insert camera",
+"Live Camera",
+"Live camera on",
+"Live camera off",
+"The camera could not be opened. Check the camera permission."
+]
