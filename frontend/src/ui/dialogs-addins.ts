@@ -1,6 +1,6 @@
 import type { Editor } from '../editor/editor';
 import {
-  fetchCatalog, installFromCatalog, inspectPackage, installPackage, installedAddins, onAddinsChange, PERMISSION_LONG, PERMISSION_SHORT, refreshAddins, removeAddin, setAddinEnabled,
+  fetchCatalog, installFromCatalog, inspectPackage, installPackage, installedAddins, onAddinsChange, PERMISSION_LONG, PERMISSION_SHORT, refreshAddins, removeAddin, setAddinEnabled, setCatalogs,
   type AddinInfo, type Catalog, type CatalogEntry, type Permission,
 } from '../editor/addins';
 import { confirmAction, Dialog } from './dialogs';
@@ -8,7 +8,7 @@ import { el, patchList, q, setClass, setDisabled, setHidden, setText } from './d
 import { icon } from './icons';
 
 type Tab = 'store' | 'mine';
-interface Subject { id: string; name: string; author: string; version: string; description: string; icon: string; permissions: Permission[] }
+interface Subject { id: string; name: string; author: string; version: string; description: string; icon: string; permissions: Permission[]; publisher?: string; official?: boolean }
 interface Card extends Subject { entry?: CatalogEntry; addin?: AddinInfo }
 
 const PERM_ICON: Record<Permission, string> = { read: 'eye', edit: 'pen', selection: 'cursor' };
@@ -21,6 +21,7 @@ class Consent extends Dialog {
   private readonly desc = el('<p class="fd-note"></p>');
   private readonly list = el('<ul class="fd-ai-consent-list"></ul>');
   private readonly swap = el('<p class="fd-note"></p>');
+  private readonly third = el('<p class="fd-note fd-ai-third" role="note"></p>');
   private readonly ok: HTMLButtonElement;
   private resolve: ((v: boolean) => void) | null = null;
 
@@ -29,7 +30,7 @@ class Consent extends Dialog {
     const head = el('<div class="fd-ai-consent-head"><div class="fd-ai-id"></div></div>');
     q(head, '.fd-ai-id').append(this.name, this.by);
     head.prepend(this.pic);
-    this.body.append(head, this.desc, el('<p class="fd-ai-lead">This add-in will be able to:</p>'), this.list, this.swap, el('<p class="fd-note">It runs in a sandbox with no network access, only when you use one of its commands. You can turn it off or remove it at any time.</p>'));
+    this.body.append(head, this.desc, this.third, el('<p class="fd-ai-lead">This add-in will be able to:</p>'), this.list, this.swap, el('<p class="fd-note">It runs in a sandbox with no network access, only when you use one of its commands. You can turn it off or remove it at any time.</p>'));
     this.button('Cancel', 'ghost', () => this.finish(false));
     this.ok = this.button('Add', 'primary', () => this.finish(true));
     this.onClose = () => this.finish(false);
@@ -41,6 +42,9 @@ class Consent extends Dialog {
     setText(this.name, s.name);
     setText(this.by, `${s.author} · version ${s.version}`);
     setText(this.desc, s.description);
+    const other = s.official === false && !!s.publisher;
+    setText(this.third, other ? `From ${s.publisher}, a catalog you added. FormDeck has not reviewed it; add it only if you trust this publisher.` : '');
+    setHidden(this.third, !other);
     this.list.textContent = '';
     for (const p of s.permissions) {
       const li = el(`<li><span class="fd-ai-pic" aria-hidden="true">${icon(PERM_ICON[p], 14)}</span><span></span></li>`);
@@ -61,6 +65,64 @@ class Consent extends Dialog {
     r?.(v);
   }
 }
+
+class CatalogsDialog extends Dialog {
+  private readonly list = el('<div class="fd-ai-cats" role="list"></div>');
+  private readonly empty = el('<p class="fd-note">No catalogs added. The Store shows FormDeck\'s own add-ins.</p>');
+  private readonly input = el<HTMLInputElement>('<input class="fd-input" type="url" spellcheck="false" placeholder="https://example.com/formdeck-addins/index.json" aria-label="Catalog address">');
+  private urls: string[] = [];
+  onSaved: (() => void) | null = null;
+
+  constructor() {
+    super('Add-in Catalogs', 520);
+    const add = el('<div class="fd-ai-cat-add"></div>');
+    const btn = el<HTMLButtonElement>('<button class="fd-btn fd-btn-sm" type="button">Add Catalog</button>');
+    add.append(this.input, btn);
+    this.body.append(el('<p class="fd-note">FormDeck\'s own catalog is always shown. Add catalogs from other publishers to list their add-ins too; each still shows its permissions, is checked against its checksum and runs in the sandbox, but FormDeck has not reviewed it.</p>'), this.list, this.empty, add);
+    btn.addEventListener('click', () => void this.add());
+    this.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.add(); } });
+    this.list.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-url]');
+      if (b) void this.save(this.urls.filter((u) => u !== b.dataset.url));
+    });
+    this.button('Done', 'primary', () => this.close());
+  }
+
+  show(urls: string[]): void {
+    this.paint(urls);
+    this.open(this.input);
+  }
+
+  private paint(urls: string[]): void {
+    this.urls = urls;
+    patchList(this.list, urls, {
+      key: (u) => u,
+      create: (u) => { const n = el('<div class="fd-ai-cat" role="listitem"><code></code><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button">Remove</button></div>'); setText(q(n, 'code'), u); q(n, 'button').dataset.url = u; return n; },
+      update: (n, u) => { setText(q(n, 'code'), u); q(n, 'button').dataset.url = u; },
+    });
+    setHidden(this.empty, urls.length > 0);
+  }
+
+  private async add(): Promise<void> {
+    const url = this.input.value.trim();
+    if (!url) return;
+    if (await this.save([...this.urls, url])) this.input.value = '';
+  }
+
+  private async save(urls: string[]): Promise<boolean> {
+    try {
+      this.paint(await setCatalogs(urls));
+      this.onSaved?.();
+      return true;
+    } catch (e) {
+      setText(this.empty, asMessage(e));
+      setHidden(this.empty, false);
+      return false;
+    }
+  }
+}
+
+let catalogsDlg: CatalogsDialog | null = null;
 
 let consent: Consent | null = null;
 const askConsent = (s: Subject, replacing: string | null, verb = 'Add'): Promise<boolean> => (consent ??= new Consent()).ask(s, replacing, verb);
@@ -93,6 +155,7 @@ class AddinsDialog extends Dialog {
     this.body.append(top, this.note, this.scroll, this.zipInput, this.dirInput);
     this.button('Upload my add-in...', 'ghost', () => this.zipInput.click()).classList.add('fd-btn-apart');
     this.button('Upload a folder...', 'ghost', () => this.dirInput.click());
+    this.button('Catalogs...', 'ghost', () => this.catalogs());
     this.button('Close', 'ghost', () => this.close());
     seg.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]'); if (b) this.setTab(b.dataset.tab as Tab, false); });
     seg.addEventListener('keydown', (e) => {
@@ -131,6 +194,12 @@ class AddinsDialog extends Dialog {
     if (focus) this.tabs[tab].focus();
     this.render();
     if (tab === 'store') void this.loadCatalog();
+  }
+
+  private catalogs(): void {
+    catalogsDlg ??= new CatalogsDialog();
+    catalogsDlg.onSaved = () => { this.catalog = null; if (this.tab === 'store') void this.loadCatalog(); else this.setTab('store', false); };
+    catalogsDlg.show(this.catalog?.catalogs ?? []);
   }
 
   private async loadCatalog(): Promise<void> {
@@ -178,10 +247,13 @@ class AddinsDialog extends Dialog {
     if (this.tab === 'mine') return 'Add-ins you have installed. Turning one off hides its commands without removing it.';
     if (this.failed) return `The catalog could not be loaded: ${this.failed}`;
     if (!this.catalog) return 'Loading the catalog...';
-    if (this.catalog.note) return this.catalog.note;
+    const extra = [...(this.catalog.notes ?? [])];
+    const more = this.catalog.catalogs?.length ?? 0;
+    if (more) extra.unshift(more === 1 ? 'Also showing 1 catalog you added; its add-ins are marked with their publisher.' : `Also showing ${more} catalogs you added; their add-ins are marked with their publisher.`);
+    if (this.catalog.note) return [this.catalog.note, ...extra].join(' ');
     let host = this.catalog.url;
     try { host = new URL(this.catalog.url).host; } catch { host = this.catalog.url; }
-    return `Catalog from ${host}. Every download is checked against its published checksum before it is installed.`;
+    return [`Catalog from ${host}. Every download is checked against its published checksum before it is installed.`, ...extra].join(' ');
   }
 
   private emptyText(): string {
@@ -198,7 +270,9 @@ class AddinsDialog extends Dialog {
     const pic = q<HTMLImageElement>(node, '.fd-ai-ic');
     if (pic.getAttribute('src') !== c.icon) pic.src = c.icon;
     setText(q(node, '.fd-ai-name'), c.name);
-    setText(q(node, '.fd-ai-by'), `${c.author} · v${c.version}`);
+    const other = c.entry?.official === false && c.entry.publisher;
+    setText(q(node, '.fd-ai-by'), other ? `${c.author} · v${c.version} · from ${c.entry?.publisher}` : `${c.author} · v${c.version}`);
+    setClass(node, 'is-third', !!other);
     setText(q(node, '.fd-ai-desc'), c.description);
     node.dataset.id = c.id;
     const perms = q(node, '.fd-ai-perms');

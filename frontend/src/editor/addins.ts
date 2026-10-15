@@ -20,8 +20,19 @@ export interface AddinInfo {
 export interface CatalogEntry {
   id: string; name: string; version: string; author: string; description: string; icon: string; permissions: Permission[];
   download: string; sha256: string; installed: { version: string; enabled: boolean; status: string } | null; updateAvailable: boolean;
+  official?: boolean; publisher?: string; catalog?: string;
 }
-export interface Catalog { source: 'remote' | 'bundled'; url: string; note: string; entries: CatalogEntry[] }
+export interface Catalog { source: 'remote' | 'bundled'; url: string; note: string; notes?: string[]; catalogs?: string[]; entries: CatalogEntry[] }
+
+export async function setCatalogs(urls: string[]): Promise<string[]> {
+  const r = await fetch('/api/addins/catalogs', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls }) });
+  if (!r.ok) {
+    let detail = '';
+    try { detail = ((await r.json()) as { detail?: string }).detail ?? ''; } catch { detail = ''; }
+    throw new Error(detail || `The engine answered ${r.status}.`);
+  }
+  return ((await r.json()) as { catalogs: string[] }).catalogs;
+}
 export interface PackageInfo {
   id: string; name: string; version: string; author: string; description: string; homepage: string; icon: string;
   permissions: Permission[]; installedVersion: string | null;

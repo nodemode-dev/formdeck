@@ -634,6 +634,51 @@ async def _get(url: str, limit: int) -> bytes:
             return bytes(data)
 
 
+MAX_CATALOGS = 10
+
+
+def third_party_urls() -> list[str]:
+    cfg = config.read_settings().get("addins")
+    raw = cfg.get("catalogs") if isinstance(cfg, dict) else None
+    out: list[str] = []
+    for u in raw if isinstance(raw, list) else []:
+        parsed = urlparse(str(u).strip())
+        if parsed.scheme in ("http", "https") and parsed.netloc and str(u).strip() not in out:
+            out.append(str(u).strip())
+    return out[:MAX_CATALOGS]
+
+
+def set_third_party(urls: list[str]) -> list[str]:
+    clean: list[str] = []
+    for u in urls[:MAX_CATALOGS]:
+        url = _http_url(str(u).strip(), "catalog address")
+        if url not in clean and url != index_url():
+            clean.append(url)
+    cfg = config.read_settings().get("addins")
+    config.write_settings({"addins": {**(cfg if isinstance(cfg, dict) else {}), "catalogs": clean}})
+    return clean
+
+
+async def _third_party(official: set[str]) -> tuple[list[dict], list[str]]:
+    entries: list[dict] = []
+    notes: list[str] = []
+    seen = set(official)
+    for url in third_party_urls():
+        host = urlparse(url).netloc
+        try:
+            items = _entries(json.loads((await _get(url, MAX_INDEX_BYTES)).decode("utf-8")), url, False)
+        except (httpx.HTTPError, AddinError, ValueError, UnicodeDecodeError, OSError) as e:
+            why = e.message if isinstance(e, AddinError) else "it could not be reached"
+            notes.append(f"Could not load the catalog from {host} ({why.rstrip('.')}).")
+            continue
+        for item in items:
+            if item["id"] in seen:
+                continue
+            seen.add(item["id"])
+            entries.append({**item, "official": False, "publisher": host, "catalog": url})
+    return entries, notes
+
+
 async def catalog() -> dict:
     url = index_url()
     note = ""
@@ -647,12 +692,16 @@ async def catalog() -> dict:
         why = e.message if isinstance(e, AddinError) else "it could not be reached"
         note = f"Could not load the catalog from {host} ({why.rstrip('.')}). Showing the copy that ships with FormDeck."
         entries = _bundled_catalog()
+    for item in entries:
+        item["official"] = True
+    others, notes = await _third_party({e["id"] for e in entries})
+    entries = entries + others
     installed = {a["id"]: a for a in list_installed()}
     for item in entries:
         cur = installed.get(item["id"])
         item["installed"] = {"version": cur["version"], "enabled": cur["enabled"], "status": cur["status"]} if cur else None
         item["updateAvailable"] = bool(cur) and _vkey(item["version"]) > _vkey(str(cur["version"]))
-    return {"source": source, "url": url, "note": note, "entries": entries, "fetchedAt": int(time.time())}
+    return {"source": source, "url": url, "note": note, "notes": notes, "catalogs": third_party_urls(), "entries": entries, "fetchedAt": int(time.time())}
 
 
 def _vkey(v: str) -> tuple:
@@ -669,7 +718,7 @@ async def install_from_catalog(ident: str, accept: list[str] | None) -> dict:
         raise AddinError(404, "That add-in is not in the catalog.")
     if accept is None or sorted(accept) != sorted(entry["permissions"]):
         raise AddinError(409, f"Permissions were not confirmed. This add-in asks for: {', '.join(entry['permissions'])}. Nothing was installed.")
-    if cat["source"] == "bundled":
+    if cat["source"] == "bundled" and entry.get("official"):
         base = bundled_dir().resolve()
         target = (base / entry["download"]).resolve()
         if base not in target.parents or not target.is_file():
@@ -689,4 +738,4 @@ async def install_from_catalog(ident: str, accept: list[str] | None) -> dict:
         raise AddinError(422, "The package does not match its catalog entry. Nothing was installed.")
     if sorted(manifest["permissions"]) != sorted(entry["permissions"]):
         raise AddinError(422, "The package asks for different permissions than the catalog lists. Nothing was installed.")
-    return install(files, accept, "catalog", digest)
+    return install(files, accept, "catalog" if entry.get("official") else f"publisher:{entry.get('publisher', '')}"[:80], digest)

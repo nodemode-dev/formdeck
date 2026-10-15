@@ -12,6 +12,13 @@
 .fd-ai-id { display: grid; min-width: 0; }
 .fd-ai-name { overflow: hidden; color: var(--text-primary); font-size: var(--fd-13); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .fd-ai-by { overflow: hidden; color: var(--text-secondary); font-size: var(--fd-12); text-overflow: ellipsis; white-space: nowrap; }
+.fd-ai-card.is-third { border-style: dashed; }
+.fd-ai-third { color: var(--warn); }
+.fd-ai-third[hidden] { display: none; }
+.fd-ai-cats { display: grid; gap: var(--space-2); margin: var(--space-2) 0; }
+.fd-ai-cat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; }
+.fd-ai-cat > code { overflow: hidden; font-family: var(--font-mono); font-size: var(--fd-12); text-overflow: ellipsis; white-space: nowrap; }
+.fd-ai-cat-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }
 .fd-ai-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; margin: 0; overflow: hidden; color: var(--text-secondary); font-size: var(--fd-12); line-height: 18px; }
 .fd-ai-perms { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; margin: 0; padding: 0; overflow: hidden; list-style: none; }
 .fd-ai-perms li { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border: 1px solid var(--line-2); border-radius: var(--radius-pill); color: var(--text-secondary); font-size: var(--fd-11); white-space: nowrap; }

@@ -18,6 +18,10 @@ class EnabledBody(BaseModel):
     enabled: bool
 
 
+class CatalogsBody(BaseModel):
+    urls: list[str]
+
+
 def _fail(e: addins.AddinError) -> HTTPException:
     return HTTPException(e.status, e.message)
 
@@ -49,6 +53,14 @@ def list_installed() -> dict:
 async def catalog() -> dict:
     try:
         return await addins.catalog()
+    except addins.AddinError as e:
+        raise _fail(e) from None
+
+
+@router.put("/addins/catalogs")
+def set_catalogs(body: CatalogsBody) -> dict:
+    try:
+        return {"catalogs": addins.set_third_party(body.urls)}
     except addins.AddinError as e:
         raise _fail(e) from None
 
