@@ -21,6 +21,8 @@ export class LiveClient {
   onPresence: ((m: { deck: string; client: string; name?: string; slide?: string; sel?: string[] }) => void) | null = null;
   onStatus: ((connected: boolean) => void) | null = null;
   onLibrary: (() => void) | null = null;
+  onShow: ((deck: string, m: Record<string, unknown>) => void) | null = null;
+  onQuestion: ((q: { deck: string; id: string; name: string; text: string; at: number }) => void) | null = null;
   agents = false;
 
   constructor(private readonly name = 'window') {}
@@ -77,6 +79,8 @@ export class LiveClient {
   undo(deckId: string, scope: 'step' | 'turn' = 'step'): void { this.raw({ t: 'undo', deck: deckId, scope }); }
   redo(deckId: string): void { this.raw({ t: 'redo', deck: deckId }); }
   presence(deckId: string, slide: string | null, sel: string[]): void { this.raw({ t: 'presence', deck: deckId, slide, sel }); }
+  show(deckId: string, m: Record<string, unknown>): void { this.raw({ t: 'show', deck: deckId, m }); }
+  ask(deckId: string, text: string, name = ''): void { this.raw({ t: 'question', deck: deckId, text, name }); }
 
   private attach(doc: DeckDoc): void {
     doc.clientId = this.clientId;
@@ -140,6 +144,14 @@ export class LiveClient {
     }
     if (t === 'library') {
       this.onLibrary?.();
+      return;
+    }
+    if (t === 'show') {
+      this.onShow?.(String(m.deck), (m.m as Record<string, unknown>) ?? {});
+      return;
+    }
+    if (t === 'question') {
+      this.onQuestion?.(m as unknown as { deck: string; id: string; name: string; text: string; at: number });
       return;
     }
     if (t === 'tool') {

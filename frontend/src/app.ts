@@ -45,6 +45,7 @@ import { registerComponentCommands } from './editor/components';
 import { registerParamCommands } from './editor/param-commands';
 import { registerColourStyleCommands } from './editor/colour-styles';
 import { registerShareCommands } from './ui/dialogs-share';
+import { guest } from './io/guest';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
 
@@ -218,6 +219,12 @@ export async function startApp(): Promise<void> {
   live.onNotice = (t, k) => toast(t, k);
   live.onStatus = () => syncChrome();
   live.onPresence = (m) => { if (editor && m.deck === editor.doc.id) editor.setPeer(m.client, m.name, m.slide, m.sel); };
+  const followShow = (deck: string, m: Record<string, unknown>, tries = 0): void => {
+    const ed = editor;
+    if (ed && deck === ed.doc.id) { void import('./present/show').then((s) => s.followShow({ doc: ed.doc, live }, m)); return; }
+    if (tries < 40) window.setTimeout(() => followShow(deck, m, tries + 1), 250);
+  };
+  if (guest()) live.onShow = (deck, m) => followShow(deck, m);
   live.onTool = (name, args) => bridge.run(name, args);
   live.connect();
 

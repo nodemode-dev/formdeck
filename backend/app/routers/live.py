@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 import urllib.parse
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -10,6 +11,9 @@ from app.services.store import STORE, Client
 
 router = APIRouter()
 TOOL_RESULTS: dict[str, asyncio.Future] = {}
+SHOWS: dict[str, dict] = {}
+QUESTIONS: dict[str, list] = {}
+SHOW_TYPES = {"goto", "end", "black", "white", "normal", "laser", "zoom", "ink", "media", "cc"}
 
 
 def local_origin(origin: str | None) -> bool:
@@ -64,7 +68,7 @@ def guest_refusal(share: dict, t: str, deck_id, msg: dict) -> str:
         return "A shared window does not run agent tools."
     if deck_id != share["deck"]:
         return "This share link opens one deck only."
-    if t in ("sub", "unsub", "presence"):
+    if t in ("sub", "unsub", "presence", "question"):
         return ""
     role = share["role"]
     if t == "step":
@@ -119,6 +123,41 @@ async def handle(client: Client, msg: dict) -> None:
             return
         client.decks.add(deck_id)
         await client.send(snapshot_message(deck_id, snap))
+        if deck_id in SHOWS:
+            await client.send({"t": "show", "deck": deck_id, "m": SHOWS[deck_id]})
+        if not getattr(client, "share", None) and QUESTIONS.get(deck_id):
+            for q in QUESTIONS[deck_id][-50:]:
+                await client.send(q)
+        return
+    if t == "show":
+        m = msg.get("m") if isinstance(msg.get("m"), dict) else {}
+        kind = m.get("type")
+        if kind not in SHOW_TYPES or len(json.dumps(m)) > 200_000:
+            return
+        if kind == "goto":
+            SHOWS[deck_id] = m
+        elif kind == "end":
+            SHOWS.pop(deck_id, None)
+        await STORE.broadcast(deck_id, {"t": "show", "deck": deck_id, "m": m}, skip=client.id)
+        return
+    if t == "question":
+        text = str(msg.get("text") or "").strip()[:500]
+        now = time.time()
+        if not text or now - getattr(client, "asked", 0) < 3:
+            await client.send({"t": "notice", "kind": "error", "text": "Write a question first." if not text else "Wait a moment before asking again."})
+            return
+        client.asked = now
+        who = str(msg.get("name") or "").strip()[:40] or ("Guest" if getattr(client, "share", None) else client.name) or "Guest"
+        q = {"t": "question", "deck": deck_id, "id": ids.short("q", 8), "name": who, "text": text, "at": now}
+        QUESTIONS.setdefault(deck_id, []).append(q)
+        del QUESTIONS[deck_id][:-200]
+        for other in list(STORE.clients.values()):
+            if deck_id in other.decks and not getattr(other, "share", None):
+                try:
+                    await other.send(q)
+                except Exception:
+                    pass
+        await client.send({"t": "notice", "kind": "info", "text": "Question sent to the presenter."})
         return
     if t == "unsub":
         client.decks.discard(deck_id)

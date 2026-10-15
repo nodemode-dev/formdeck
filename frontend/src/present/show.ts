@@ -15,7 +15,7 @@ import { buildState, buildSteps, displaced, type Item, type Step, type Unit } fr
 import { usePresenterView } from './presenter-prefs';
 import { horizontalSwipe, installInputKind, isTouchInput } from '../ui/touch';
 
-export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean; rehearse?: boolean }
+export interface ShowOptions { doc: DeckDoc; start: number; presenter: boolean; live: LiveClient; onEnd?: (slideId: string) => void; from?: 'start' | 'current'; custom?: string; record?: boolean; rehearse?: boolean; remote?: boolean }
 
 interface Stroke { c: string; w: number; p: number[] }
 type Mode = 'pointer' | 'pen' | 'eraser' | 'laser';
@@ -103,6 +103,8 @@ ${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-c
 <div class="fd-show-next"><div class="fd-show-next-slot"></div><div class="fd-show-next-end" hidden>End of slide show</div></div>
 <div class="fd-show-notes" aria-label="Speaker notes"></div>
 <div class="fd-show-notes-foot">${btn('notes-plus', 'Make the text larger', '<span class="fd-show-aa" aria-hidden="true">A<sup>+</sup></span>')}${btn('notes-minus', 'Make the text smaller', '<span class="fd-show-aa" aria-hidden="true">A<sup>-</sup></span>')}</div>
+<div class="fd-show-label fd-show-qlabel">Questions</div>
+<div class="fd-show-qa" role="log" aria-live="polite" aria-label="Questions from the audience"><p class="fd-show-q-none">People following through a share link can ask questions here.</p></div>
 </aside>
 </div>
 <div class="fd-show-pop fd-show-display" hidden>${item('swap', 'Swap Presenter View and Slide Show')}${item('duplicate', 'Duplicate Slide Show')}</div>
@@ -283,6 +285,8 @@ class Show {
   private full: 'dom' | 'tauri' | null = null;
   private wasFull = false;
   private chan: BroadcastChannel | null = null;
+  private readonly qaLabel: HTMLElement;
+  private readonly qaList: HTMLElement;
   private audienceWin: Window | null = null;
   private presenting = false;
   private muted = false;
@@ -322,6 +326,8 @@ class Show {
     this.canvas = q<HTMLCanvasElement>(r, '.fd-show-ink');
     this.laser = q(r, '.fd-show-laser');
     this.blankEl = q(r, '.fd-show-blank');
+    this.qaLabel = q(r, '.fd-show-qlabel');
+    this.qaList = q(r, '.fd-show-qa');
     this.endEl = q(r, '.fd-show-end');
     this.chip = q(r, '.fd-show-chip');
     this.bar = q(r, '.fd-show-bar');
@@ -365,10 +371,12 @@ class Show {
     (document.getElementById('overlay-root') ?? document.body).appendChild(this.root);
     this.root.focus({ preventScroll: true });
     this.listen();
-    if (this.audienceMode || this.opts.presenter) {
+    if ((this.audienceMode || this.opts.presenter) && !this.opts.remote) {
       this.chan = new BroadcastChannel(`formdeck-show-${this.doc.id}`);
       this.chan.onmessage = (e: MessageEvent<Msg>) => this.onMsg(e.data);
     }
+    if (!this.audienceMode) this.opts.live.onQuestion = (item) => this.addQuestion(item);
+    if (this.opts.remote) this.mountAsk();
     let presenter = this.opts.presenter;
     if (!presenter && !this.audienceMode && !this.opts.record && !this.opts.rehearse && usePresenterView()) presenter = (await screenLayout()).count >= 2;
     if (presenter && !this.audienceMode) void this.openAudience();
@@ -661,7 +669,41 @@ class Show {
   }
 
   private post(m: Msg): void {
-    if (!this.remote && this.chan && !this.closed) this.chan.postMessage(m.type === 'goto' && m.pos === undefined && this.list ? { ...m, pos: this.pos } : m);
+    if (this.remote || this.closed) return;
+    const out = m.type === 'goto' && m.pos === undefined && this.list ? { ...m, pos: this.pos } : m;
+    this.chan?.postMessage(out);
+    if (!this.audienceMode && !this.opts.remote) this.opts.live.show(this.doc.id, out as unknown as Record<string, unknown>);
+  }
+
+  feed(m: Record<string, unknown>): void { this.onMsg(m as unknown as Msg); }
+
+  private mountAsk(): void {
+    const form = el<HTMLFormElement>('<form class="fd-show-ask"><input class="fd-input fd-show-ask-name" type="text" maxlength="40" placeholder="Your name" aria-label="Your name" autocomplete="name"><input class="fd-input fd-show-ask-text" type="text" maxlength="500" placeholder="Ask the presenter a question" aria-label="Ask the presenter a question" autocomplete="off"><button class="fd-btn fd-btn-sm" type="submit">Ask</button></form>');
+    const input = q<HTMLInputElement>(form, '.fd-show-ask-text');
+    const name = q<HTMLInputElement>(form, '.fd-show-ask-name');
+    try { name.value = localStorage.getItem('formdeck_guest_name') ?? ''; } catch { name.value = ''; }
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      try { localStorage.setItem('formdeck_guest_name', name.value.trim()); } catch { void 0; }
+      this.opts.live.ask(this.doc.id, text, name.value.trim());
+      input.value = '';
+      input.blur();
+    });
+    this.root.appendChild(form);
+  }
+
+  private addQuestion(item: { deck: string; id: string; name: string; text: string; at: number }): void {
+    if (item.deck !== this.doc.id || this.qaList.querySelector(`[data-q="${CSS.escape(item.id)}"]`)) return;
+    const row = el('<div class="fd-show-q"><span class="fd-show-q-by"></span><span class="fd-show-q-text"></span></div>');
+    row.dataset.q = item.id;
+    setText(q(row, '.fd-show-q-by'), item.name);
+    setText(q(row, '.fd-show-q-text'), item.text);
+    this.qaList.querySelector('.fd-show-q-none')?.remove();
+    this.qaList.appendChild(row);
+    this.qaList.scrollTop = this.qaList.scrollHeight;
+    setText(this.qaLabel, `Questions: ${this.qaList.children.length}`);
   }
 
   private onMsg(m: Msg): void {
@@ -734,6 +776,7 @@ class Show {
   private onKey(e: KeyboardEvent): void {
     if (this.closed) return;
     e.stopPropagation();
+    if ((e.target as Element | null)?.closest?.('.fd-show-ask')) { if (e.key === 'Escape') (e.target as HTMLElement).blur(); return; }
     const k = e.key, mod = e.ctrlKey || e.metaKey;
     if ((e.target as Element | null)?.classList?.contains('fd-show-split') && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); this.nudgeSplit(k === 'ArrowLeft' ? -2 : 2); return; }
     if ((e.target as Element | null)?.closest?.('.fd-show-ccset')) { if (k === 'Escape') { e.preventDefault(); this.closePops(); this.root.focus({ preventScroll: true }); } return; }
@@ -1721,6 +1764,7 @@ class Show {
     this.grid?.dispose();
     this.cc?.stop();
     this.chan?.close();
+    if (!this.audienceMode && this.opts.live.onQuestion) this.opts.live.onQuestion = null;
     this.rec?.leave();
     const restore = this.fullscreen(false);
     this.root.remove();
@@ -1730,11 +1774,20 @@ class Show {
     if (this.cur) this.opts.onEnd?.(this.cur);
     if (this.rec) void this.rec.save();
     await restore;
-    if (this.audienceMode) {
+    if (this.audienceMode && !this.opts.remote) {
       if (TAURI) await import('@tauri-apps/api/window').then((m) => m.getCurrentWindow().close()).catch(() => window.close());
       else window.close();
     }
   }
+}
+
+export function followShow(o: Omit<ShowOptions, 'start' | 'presenter'>, m: Record<string, unknown>): void {
+  if (active) { active.feed(m); return; }
+  if (m.type !== 'goto') return;
+  const start = Math.max(0, o.doc.deck.slides.findIndex((s) => s.id === m.slide));
+  const show = new Show({ ...o, start, presenter: false, remote: true }, true);
+  active = show;
+  void show.start().then(() => show.feed(m));
 }
 
 export function startShow(o: ShowOptions): void {
