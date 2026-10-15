@@ -1,11 +1,12 @@
 # FormDeck parity
 
-How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.9.2 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8, 0.8.9, 0.8.10, 0.9.1, 0.9.2; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8, one at 0.8.9, at 0.8.10 only the unscored Phone and tablet row, none to partial, and none at 0.9.1 and 0.9.2, desktop build fixes). At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
+How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.10.5 covers, measured row by row against its own code. FormDeck was called formsld through 0.7.0. Compiled 8 October 2026 from the tree at 0.2.1 and re-scored at each release since (0.2.2, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.8.0, 0.8.1, 0.8.2, 0.8.3, 0.8.4, 0.8.5, 0.8.6, 0.8.7, 0.8.8, 0.8.9, 0.8.10, 0.9.1, 0.9.2; no row moved from 0.7.1 to 0.8.2, five moved at 0.8.3, four at 0.8.4, two at 0.8.5 and two at 0.8.6; at 0.8.7 only the unscored Desktop app row moved, partial to full; three moved at 0.8.8, one at 0.8.9, at 0.8.10 only the unscored Phone and tablet row, none to partial, and none at 0.9.1 and 0.9.2, desktop build fixes). At 0.10.5 nine rows were added for the 0.10 work (named text and colour styles, components, your own fonts, SVG as shapes, finding a command by name, commands for agents with exact values, the terminal with Claude Code, and the interface languages, which is a Platform row and not scored); no existing row moved. At 0.6.0 the PDF workbench moved out to its own app, formpdf (github.com/nodemode-ai/formpdf), so its rows and the Acrobat comparison left this file, a Keynote column was added, and every reference mark was checked again against the vendors' documentation.
 
 ## Method
 
 - Every row is one capability a person would look for in a presentation editor, grouped by area. The product columns say whether PowerPoint, Keynote and Google Slides offer it. They come from each vendor's own documentation, not from a trace of their code: PowerPoint for Microsoft 365 on Windows, Mac and the web (Microsoft Support, read 8 October 2026), Keynote 15.4 for Mac (the Keynote User Guide for Mac) and Google Slides on the web (Google Docs Editors Help, read 8 October 2026).
 - Three marks changed on that check: PowerPoint no longer offers Compare, because Compare and Merge is retired from PowerPoint for Windows from version 2502; Google Slides edits offline but its files stay in Google Drive, so it does not offer local files; and Google Slides recordings save a video of the deck with narration, so it does offer video export (still no GIF).
+- Marks for the rows added at 0.10.5, read 15 October 2026: Keynote paragraph styles update every paragraph that uses them when redefined (Keynote User Guide for Mac, "Use paragraph styles"), and PowerPoint and Google Slides have no named text styles; PowerPoint (Convert to Shape, Microsoft Support "Edit SVG images in Microsoft 365") and Keynote (Keynote User Guide, break an SVG apart into shapes) break SVGs into shapes, Google Slides does not take SVG; PowerPoint's Search box looks up commands (Microsoft Support "Learn more about PowerPoint") and Google Slides has Search the menus, Alt+/ (Docs Editors Help "tool finder"), while the Keynote User Guide documents no command search, so Keynote is marked no even though the macOS Help menu searches menus; Google Slides offers Google Fonts only, with no font upload in its help, so it is marked no for your own fonts. None of the three has components or named colour styles that update every use.
 - The FormDeck column was decided only by finding the code that implements the row, from the interface through to rendering, export or the engine. The evidence column names the file and symbol where the trace ended. README and skill claims were not counted.
 - **Full** (1 point): implemented and reachable by a person in the app. **Partial** (0.5): present but narrower than the products, or present in the model and engine but reachable only through an agent or an import. **None** (0): nothing was found in `frontend/src` or `backend/app`.
 - A comparison scores only the rows that product offers. FormDeck vs PowerPoint counts the PowerPoint rows, vs Keynote the Keynote rows, vs Google Slides the Slides rows. Rows none of the three offers are where FormDeck leads; they are shown and count only in the all-rows total.
@@ -18,9 +19,9 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.9.2
 | File and templates | 8 of 8 · 100% | 8 of 8 · 100% | 8 of 8 · 100% |
 | Slides and layouts | 10 of 10 · 100% | 10 of 10 · 100% | 7 of 7 · 100% |
 | Masters and themes | 3 of 3 · 100% | 1 of 1 · 100% | 3 of 3 · 100% |
-| Text | 12 of 12 · 100% | 11 of 11 · 100% | 9 of 9 · 100% |
+| Text | 13 of 13 · 100% | 13 of 13 · 100% | 9 of 9 · 100% |
 | Shapes and drawing | 7 of 7 · 100% | 7 of 7 · 100% | 6 of 6 · 100% |
-| Pictures and media | 8 of 8 · 100% | 8 of 8 · 100% | 8 of 8 · 100% |
+| Pictures and media | 9 of 9 · 100% | 9 of 9 · 100% | 8 of 8 · 100% |
 | Tables | 3 of 3 · 100% | 3 of 3 · 100% | 3 of 3 · 100% |
 | Charts | 5 of 5 · 100% | 3 of 3 · 100% | 5 of 5 · 100% |
 | Diagrams and SmartArt | 2 of 2 · 100% | 1 of 1 · 100% | 1 of 1 · 100% |
@@ -33,19 +34,19 @@ How much of Microsoft PowerPoint, Apple Keynote and Google Slides FormDeck 0.9.2
 | Accessibility | 3.5 of 4 · 88% | 1.5 of 2 · 75% | 1.5 of 2 · 75% |
 | Import and export | 8 of 8 · 100% | 5 of 5 · 100% | 7 of 7 · 100% |
 | Print | 2 of 2 · 100% | 2 of 2 · 100% | 2 of 2 · 100% |
-| Automation and agents | 2.5 of 3 · 83% | 1 of 1 · 100% | 2.5 of 3 · 83% |
+| Automation and agents | 3.5 of 4 · 88% | 1 of 1 · 100% | 3.5 of 4 · 88% |
 | Platform | not scored | not scored | not scored |
-| **Overall** | **100 of 104 · 96.2%** | **85.5 of 88 · 97.2%** | **84 of 88 · 95.5%** |
+| **Overall** | **103 of 107 · 96.3%** | **88.5 of 91 · 97.3%** | **85 of 89 · 95.5%** |
 
-Across all 112 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 106 full, 4 partial and 2 none: 108 of 112 points, 96.4%.
+Across all 120 scored rows (the union of the three products plus the rows where FormDeck leads), FormDeck has 114 full, 4 partial and 2 none: 116 of 120 points, 96.7%.
 
 ## Where FormDeck leads
 
 Rows FormDeck implements that the product does not offer:
 
-- **Over PowerPoint (8 rows):** per-slide review status, comparing a deck with a saved version or another file, and six agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, and a headless `build-deck` command.
-- **Over Keynote (20 rows):** the same 8, plus theme colours and fonts changed deck-wide, several masters in one deck, shrink-to-fit autofit, charts and animations that stay native in .pptx, diagram layouts from a script, live captions, the Check Deck accessibility checker and reading order, OpenDocument .odp, outline export as text, and raw ops for scripting.
-- **Over Google Slides (23 rows):** the same 8, plus sections, outline view, reset slide, text columns, WordArt and text effects, equations, edit points and merge shapes, an icon library, object lock, the selection pane with reading order, morph, motion paths, local files that work offline and the Check Deck accessibility checker.
+- **Over PowerPoint (13 rows):** named text styles, components and named colour styles that update every use, per-slide review status, comparing a deck with a saved version or another file, and eight agent rows: an MCP server over HTTP and stdio, live agent edits undone per turn, contact sheets and DOM lint so the agent sees its slides, a consent switch, shipped skills for Claude Code, Codex and Cursor, a headless `build-deck` command, every command callable with exact values, and a terminal in the window with Claude Code attached.
+- **Over Keynote (28 rows):** the 13 above except named text styles, plus finding a command by name, scripting and macros, the add-in Store, embedded fonts in .pptx, charts linked to a workbook, theme colours and fonts changed deck-wide, several masters in one deck, shrink-to-fit autofit, charts and animations that stay native in .pptx, diagram layouts from a script, live captions, the Check Deck accessibility checker and reading order, OpenDocument .odp and outline export as text.
+- **Over Google Slides (31 rows):** the 13 over PowerPoint, plus your own fonts, SVG as shapes, embedded fonts in .pptx, sections, outline view, reset slide, text columns, WordArt and text effects, equations, edit points and merge shapes, an icon library, object lock, the selection pane with reading order, morph, motion paths, local files that work offline and the Check Deck accessibility checker.
 - **Drafting from material:** PowerPoint (Copilot), Keynote and Google Slides (Gemini) all draft decks, so this row scores against them, but FormDeck does it locally from md, pdf, docx, pptx, csv, xlsx, pictures and notes in one dialog (`backend/app/services/autodraft.py draft`), with no model and no account, and hands the same intake to an outside agent. A PDF opened or dropped in FormDeck lands in that dialog as material, and Insert > Slides from PDF Pages turns each page into a slide.
 
 ## Where FormDeck trails most
@@ -53,7 +54,7 @@ Rows FormDeck implements that the product does not offer:
 - **Collaboration and sharing, 2 of 4 against PowerPoint.** Windows and agents co-edit live on one computer and Publish as Web Page writes a self-contained player, but there are no share links, no hosted publishing and no co-editing across machines. All three need the engine to accept connections from other computers, which waits on the owner's approval.
 - **Slideshow and presenter, 8 of 9.** Presenting to a remote audience with Q&A is missing, for the same reason.
 - **Accessibility, 3.5 of 4 against PowerPoint.** Exported PDFs are tagged with a structure tree, but the text is an invisible layer over the slide picture and has not been checked with a PDF/UA validator.
-- **Automation, 2.5 of 3.** Macros and agents cover scripting, and add-ins install from a Store with permissions and checksums, but the catalog is FormDeck's own three add-ins, with no third-party publishing, reviews or update notices.
+- **Automation, 3.5 of 4.** Macros and agents cover scripting, and add-ins install from a Store with permissions and checksums, but the catalog is FormDeck's own three add-ins, with no third-party publishing, reviews or update notices.
 - **Smaller limits.** Subtitles need Chrome or Edge; stock images are pictures only (no video or stickers); AI pictures need an OpenAI key or a compatible image server.
 
 Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Slide Clean Up layout suggestions, PowerPoint Speaker Coach, a live camera on slides (PowerPoint Cameo, Keynote live video), nonlinear zoom and linked navigation (PowerPoint Zoom, Keynote linked objects), and Keynote's multipresenter and FaceTime presenting.
@@ -112,6 +113,8 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Spell check | yes | yes | yes | Full | `ui/dialogs-spelling.ts` Spelling (F7: suggestions, Change, Change All, Ignore, Add to Dictionary across slides, tables and notes) and Language (per run, Do not check spelling), `editor/spelling.ts` nspell with offline en-US, en-GB, es and fr dictionaries, run `lang` and `noProof` read and written in .pptx (`pptx/read_text.py`, `write_text.py`) |
 | WordArt and text effects | yes | yes | no | Full | `render/text-fx.ts drawTextFx, paintTfx` (text fill incl. picture, outline, shadow, glow, soft edges, reflection, all 40 transforms), `render/fx3d.ts` (bevel lighting, extrusion, contour, materials, 3-D rotation, shared by text and shapes; `raster.ts` warps rotated layers), 3-D Format and 3-D Rotation sections of `editor/text-effects.ts TextFxPanel` with Bevel and 3-D rotation galleries and 3-D WordArt styles, `services/pptx/text_fx.py read_3d, append_3d` (`a:sp3d`, `a:scene3d` on `a:bodyPr` and `p:spPr`), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; the shape Format pane has no 3-D controls yet (set in the deck JSON or by MCP) |
 | Equations | yes | yes | no | Full | `editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras` |
+| Named text styles that update every use | no | yes | no | Full | Format > Save, Apply and Update Text Style (`editor/components.ts` text-style-save, text-style-apply, text-style-update; `deck.namedStyles`, shapes tagged `textStyle`) |
+| Add your own fonts to the deck | yes | yes | no | Full | Add Font (`editor/font-commands.ts`, `services/media.py font_info, reject_font`): TTF, OTF, WOFF and WOFF2 kept in the deck, listed under In this deck, embedded in .pptx; restricted-licence fonts refused |
 
 ### Shapes and drawing
 
@@ -124,6 +127,8 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Freeform and scribble drawing | yes | yes | yes | Full | `editor/draw-tool.ts DrawTool` (freeform, scribble), `engine/geometry/path.ts fitCurve`; `pathSize` keeps outlines through resizing; `pptx/geom.py svg_to_cust_geom` |
 | Edit points and merge shapes | yes | yes | no | Full | `editor/points-edit.ts PointsEdit` (move, add, delete, smooth, straight, corner, open and close path); `editor/merge-shapes.ts mergeShapes` (Union, Combine, Fragment, Intersect, Subtract over `engine/geometry/boolean.ts mergeRegions`) |
 | Smart guides and snapping | yes | yes | yes | Full | `editor/stage.ts snap`: smart guides, guides and the grid; Alt-drag skips snapping |
+| Reusable components that update every copy | no | no | no | Full | Save as Component, Insert Component, Update Component, Detach (`editor/components.ts`; `deck.components`, copies are groups tagged `component`) |
+| Named colour styles that update every use | no | no | no | Full | Format > Save, Apply and Update Colour Style (`editor/colour-styles.ts`; `deck.namedColors`, shapes tagged `fillStyle`) |
 
 ### Pictures and media
 
@@ -136,6 +141,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Stock pictures and icons library | yes | yes | yes | Full | `ui/dialogs-icons.ts IconsDlg` offline library of 5,817 icons; Insert > Stock Images (`ui/dialogs-stock.ts`, `services/stock.py`): Openverse photos and illustrations with licence, shape and kind filters, credit kept in alt text, notes and media; checked against replayed responses, the live API not called from here; no stock video or stickers |
 | Video and audio with start, end, loop and autoplay | yes | yes | yes | Full | `editor/media-panel.ts MediaPanel`, `ui/dialogs-media.ts MediaDlg` (trim, frame stepping, poster frame, bookmarks), `present/media-play.ts preparePlayback` (fades, volume, mute, rewind, hide, full screen), `show.ts stepsFor` (click sequence), `pptx/write_media.py media_settings` and `read_media.py` (p14:trim, p14:fade, p14:bmkLst, vol, mute, repeatCount, fill, fullScrn) |
 | Animated GIFs | yes | yes | yes | Full | rendered as images; `pptx/write_context.py NATIVE_IMAGE_MIMES` keeps GIF bytes |
+| SVG pictures broken apart into editable shapes | yes | yes | no | Full | Insert > SVG as Shapes and Convert to Shapes (`editor/svg-import.ts`): paths, rectangles, circles, ellipses, lines and polygons become a group of shapes with fill and outline; unsupported parts are counted and skipped |
 | Alt text | yes | yes | yes | Full | `dialogs-insert.ts AltDlg`, `inspector.ts` Alt text |
 
 ### Tables
@@ -266,6 +272,9 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Headless build from files on the command line | no | no | no | Full | `setup/cli.py` (`./formdeck build-deck`) |
 | Scripting and macros | yes | no | yes | Full | View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run |
 | Add-in marketplace | yes | no | yes | Partial | Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; the catalog holds three first-party add-ins and has no third-party publishing, reviews or update notices yet |
+| Find and run any command by name | yes | no | yes | Full | Find a Command, Shift+Ctrl or Cmd+P (`ui/command-palette.ts`), over the catalogue of every ribbon, menu and shortcut command (`automation/catalogue.ts`) |
+| Every command callable by agents and scripts, with exact values | no | no | no | Full | MCP list_commands and run_command, `/api/commands`, `./formdeck cli` (`routers/commands.py`, `automation/catalogue.ts checkParams`, `editor/param-commands.ts`) |
+| Terminal in the window with Claude Code attached | no | no | no | Full | the dock, Ctrl or Cmd+` (`ui/terminal-dock.ts`, `services/terminal.py`, `services/claude_code.py`): shell and Claude Code tabs with FormDeck's tools; the chat hands its conversation to a tab and takes one back (`routers/chat.py adopt`) |
 
 ### Platform (shown, not scored)
 
@@ -274,6 +283,7 @@ Not on the list and not offered by FormDeck: PowerPoint Designer and Keynote Sli
 | Desktop app | yes | yes | no | Full | Tauri 2 app in `src-tauri/` with the engine as a frozen sidecar: .deb, .rpm and .AppImage built, installed and run on Linux (Home, a new deck, typing, video playback, saving); .dmg and .app for Apple silicon and Intel, .msi and NSIS for Windows, arm64 Linux and a Flatpak (`src-tauri/flatpak/`) from `.github/workflows/desktop.yml`, those not run here; signing optional; no FreeBSD build |
 | Runs in a browser | yes | yes | yes | Partial | Vite app on 5197 against a local engine; no hosted service |
 | Phone and tablet | yes | yes | yes | Partial | touch editing (tap, double-tap to type, drag, 44 px handle targets, pinch zoom, long-press menu) and layouts for tablets and phones (`ui/responsive.ts`, `ui/touch.ts`, `styles/responsive.css`), a phone viewer with swipe, notes and Present, swipe in the show; checked in device emulation, not on real devices; a phone or tablet cannot reach the engine yet, which listens only on the computer it runs on, and there is no mobile app |
+| Interface in many languages | yes | yes | yes | Full | English and 25 more (`i18n/index.ts`, Preferences > Appearance > Language), plural forms by the language's rules; machine-translated, not yet reviewed by native speakers |
 
 ## How to re-score
 

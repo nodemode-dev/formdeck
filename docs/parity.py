@@ -58,6 +58,8 @@ row(a, "Find and replace", 1, 1, 1, F, "`dialogs-insert.ts FindPanel` (match cas
 row(a, "Spell check", 1, 1, 1, F, "`ui/dialogs-spelling.ts` Spelling (F7: suggestions, Change, Change All, Ignore, Add to Dictionary across slides, tables and notes) and Language (per run, Do not check spelling), `editor/spelling.ts` nspell with offline en-US, en-GB, es and fr dictionaries, run `lang` and `noProof` read and written in .pptx (`pptx/read_text.py`, `write_text.py`)")
 row(a, "WordArt and text effects", 1, 1, 0, F, "`render/text-fx.ts drawTextFx, paintTfx` (text fill incl. picture, outline, shadow, glow, soft edges, reflection, all 40 transforms), `render/fx3d.ts` (bevel lighting, extrusion, contour, materials, 3-D rotation, shared by text and shapes; `raster.ts` warps rotated layers), 3-D Format and 3-D Rotation sections of `editor/text-effects.ts TextFxPanel` with Bevel and 3-D rotation galleries and 3-D WordArt styles, `services/pptx/text_fx.py read_3d, append_3d` (`a:sp3d`, `a:scene3d` on `a:bodyPr` and `p:spPr`), `editor/text-effects.ts TextFxPanel, WarpHandles`, `ui/wordart-gallery.ts WORDART_STYLES`, `services/pptx/text_fx.py read_warp, warp_element, append_run_fx`; the shape Format pane has no 3-D controls yet (set in the deck JSON or by MCP)")
 row(a, "Equations", 1, 1, 0, F, "`editor/equation-editor.ts askEquation` (LaTeX and linear format, structure palette), `editor/equation-commands.ts registerEquationCommands`, `render/math.ts mathHtml`, `services/pptx/omml.py mathml_to_omml, omml_to_tex, wrap_math_shape`, `routers/mcp.py _paras`")
+row(a, "Named text styles that update every use", 0, 1, 0, F, "Format > Save, Apply and Update Text Style (`editor/components.ts` text-style-save, text-style-apply, text-style-update; `deck.namedStyles`, shapes tagged `textStyle`)")
+row(a, "Add your own fonts to the deck", 1, 1, 0, F, "Add Font (`editor/font-commands.ts`, `services/media.py font_info, reject_font`): TTF, OTF, WOFF and WOFF2 kept in the deck, listed under In this deck, embedded in .pptx; restricted-licence fonts refused")
 
 a = "Shapes and drawing"
 row(a, "Preset shapes gallery", 1, 1, 1, F, "`frontend/src/engine/geometry/presets.ts PRESET_GROUPS`, `dialogs-insert.ts ShapesPop`")
@@ -67,6 +69,8 @@ row(a, "Shape effects: shadow, glow, soft edge, reflection", 1, 1, 1, F, "`inspe
 row(a, "Freeform and scribble drawing", 1, 1, 1, F, "`editor/draw-tool.ts DrawTool` (freeform, scribble), `engine/geometry/path.ts fitCurve`; `pathSize` keeps outlines through resizing; `pptx/geom.py svg_to_cust_geom`")
 row(a, "Edit points and merge shapes", 1, 1, 0, F, "`editor/points-edit.ts PointsEdit` (move, add, delete, smooth, straight, corner, open and close path); `editor/merge-shapes.ts mergeShapes` (Union, Combine, Fragment, Intersect, Subtract over `engine/geometry/boolean.ts mergeRegions`)")
 row(a, "Smart guides and snapping", 1, 1, 1, F, "`editor/stage.ts snap`: smart guides, guides and the grid; Alt-drag skips snapping")
+row(a, "Reusable components that update every copy", 0, 0, 0, F, "Save as Component, Insert Component, Update Component, Detach (`editor/components.ts`; `deck.components`, copies are groups tagged `component`)")
+row(a, "Named colour styles that update every use", 0, 0, 0, F, "Format > Save, Apply and Update Colour Style (`editor/colour-styles.ts`; `deck.namedColors`, shapes tagged `fillStyle`)")
 
 a = "Pictures and media"
 row(a, "Insert pictures by file, drop or paste", 1, 1, 1, F, "`editor/editor.ts pickImage, insertFiles`, `app.ts` paste and drop")
@@ -76,6 +80,7 @@ row(a, "Generate or edit pictures with AI", 1, 1, 1, F, "Insert > Generate with 
 row(a, "Stock pictures and icons library", 1, 1, 1, F, "`ui/dialogs-icons.ts IconsDlg` offline library of 5,817 icons; Insert > Stock Images (`ui/dialogs-stock.ts`, `services/stock.py`): Openverse photos and illustrations with licence, shape and kind filters, credit kept in alt text, notes and media; checked against replayed responses, the live API not called from here; no stock video or stickers")
 row(a, "Video and audio with start, end, loop and autoplay", 1, 1, 1, F, "`editor/media-panel.ts MediaPanel`, `ui/dialogs-media.ts MediaDlg` (trim, frame stepping, poster frame, bookmarks), `present/media-play.ts preparePlayback` (fades, volume, mute, rewind, hide, full screen), `show.ts stepsFor` (click sequence), `pptx/write_media.py media_settings` and `read_media.py` (p14:trim, p14:fade, p14:bmkLst, vol, mute, repeatCount, fill, fullScrn)")
 row(a, "Animated GIFs", 1, 1, 1, F, "rendered as images; `pptx/write_context.py NATIVE_IMAGE_MIMES` keeps GIF bytes")
+row(a, "SVG pictures broken apart into editable shapes", 1, 1, 0, F, "Insert > SVG as Shapes and Convert to Shapes (`editor/svg-import.ts`): paths, rectangles, circles, ellipses, lines and polygons become a group of shapes with fill and outline; unsupported parts are counted and skipped")
 row(a, "Alt text", 1, 1, 1, F, "`dialogs-insert.ts AltDlg`, `inspector.ts` Alt text")
 
 a = "Tables"
@@ -167,11 +172,15 @@ row(a, "Skills shipped for Claude Code, Codex and Cursor", 0, 0, 0, F, "`.claude
 row(a, "Headless build from files on the command line", 0, 0, 0, F, "`setup/cli.py` (`./formdeck build-deck`)")
 row(a, "Scripting and macros", 1, 0, 1, F, "View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run")
 row(a, "Add-in marketplace", 1, 0, 1, P, "Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; the catalog holds three first-party add-ins and has no third-party publishing, reviews or update notices yet")
+row(a, "Find and run any command by name", 1, 0, 1, F, "Find a Command, Shift+Ctrl or Cmd+P (`ui/command-palette.ts`), over the catalogue of every ribbon, menu and shortcut command (`automation/catalogue.ts`)")
+row(a, "Every command callable by agents and scripts, with exact values", 0, 0, 0, F, "MCP list_commands and run_command, `/api/commands`, `./formdeck cli` (`routers/commands.py`, `automation/catalogue.ts checkParams`, `editor/param-commands.ts`)")
+row(a, "Terminal in the window with Claude Code attached", 0, 0, 0, F, "the dock, Ctrl or Cmd+` (`ui/terminal-dock.ts`, `services/terminal.py`, `services/claude_code.py`): shell and Claude Code tabs with FormDeck's tools; the chat hands its conversation to a tab and takes one back (`routers/chat.py adopt`)")
 
 a = "Platform"
 row(a, "Desktop app", 1, 1, 0, F, "Tauri 2 app in `src-tauri/` with the engine as a frozen sidecar: .deb, .rpm and .AppImage built, installed and run on Linux (Home, a new deck, typing, video playback, saving); .dmg and .app for Apple silicon and Intel, .msi and NSIS for Windows, arm64 Linux and a Flatpak (`src-tauri/flatpak/`) from `.github/workflows/desktop.yml`, those not run here; signing optional; no FreeBSD build")
 row(a, "Runs in a browser", 1, 1, 1, P, "Vite app on 5197 against a local engine; no hosted service")
 row(a, "Phone and tablet", 1, 1, 1, P, "touch editing (tap, double-tap to type, drag, 44 px handle targets, pinch zoom, long-press menu) and layouts for tablets and phones (`ui/responsive.ts`, `ui/touch.ts`, `styles/responsive.css`), a phone viewer with swipe, notes and Present, swipe in the show; checked in device emulation, not on real devices; a phone or tablet cannot reach the engine yet, which listens only on the computer it runs on, and there is no mobile app")
+row(a, "Interface in many languages", 1, 1, 1, F, "English and 25 more (`i18n/index.ts`, Preferences > Appearance > Language), plural forms by the language's rules; machine-translated, not yet reviewed by native speakers")
 
 
 def score(rows, key):
