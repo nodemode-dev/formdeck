@@ -91,7 +91,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 - The window works with touch and on tablet- and phone-sized screens, but a phone or tablet cannot reach the engine yet: it accepts connections only from the computer it runs on.
 - Stock Images and AI pictures need an internet connection; AI pictures also need an OpenAI key or a compatible image server, and subtitle translation needs Chrome's built-in translator or a chat model.
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in FormDeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
-- Recording narration and captions in the desktop app need microphone permission from the operating system; captions use the browser's speech service, available in Chrome and Edge.
+- Recording narration, captions, Speaker Coach and the live camera in the desktop app need microphone or camera permission from the operating system (the macOS build declares both; not yet tried on a Mac); captions and the coach use the browser's speech service, available in Chrome and Edge.
 - Charts are native and editable in FormDeck; in .pptx they round-trip as native charts for the common kinds.
 - Embedded fonts in .pptx are written on request (File > Export > Fonts) and read back, including fonts PowerPoint stored with MicroType Express compression; without embedding, PowerPoint substitutes the template's bundled open fonts when missing.
 
