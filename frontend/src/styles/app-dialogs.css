@@ -96,7 +96,9 @@
 .fd-dlg-key-row.is-unbound { color: var(--text-secondary); }
 .fd-dlg-key-icon { display: inline-grid; place-items: center; color: var(--text-muted); }
 .fd-dlg-key-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fd-dlg-key-combos { display: flex; gap: 4px; }
+.fd-dlg-key-combos { display: flex; gap: 4px; justify-content: flex-end; min-width: 96px; min-height: 22px; align-items: center; padding: 0 4px; border-radius: var(--radius-xs); cursor: pointer; }
+.fd-dlg-key-combos:hover, .fd-dlg-key-combos:focus-visible { background: var(--surface-2); outline: none; }
+.fd-dlg-key-row.is-recording .fd-dlg-key-combos { color: var(--accent-color); font-size: var(--fd-12); background: var(--surface-2); }
 .fd-dlg-key-combos .fd-key + .fd-key { margin-left: 0; }
 .fd-dlg-keys-empty { padding: 4px 8px; }
 

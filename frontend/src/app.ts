@@ -549,6 +549,8 @@ export async function startApp(): Promise<void> {
     const settings = await api.settings();
     agentsAllowed = !!settings.agentsAllowed;
     live.setAgents(agentsAllowed);
+    const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
+    for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));
   } catch { toast('The FormDeck engine is not answering yet; retrying.', 'error'); }
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');

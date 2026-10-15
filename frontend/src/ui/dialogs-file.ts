@@ -8,7 +8,7 @@ import { SlideView } from '../render/slide';
 import { VERSION } from '../version';
 import { LANGUAGES, setLanguage, storedLanguage } from '../i18n';
 import { brandMark } from './brand';
-import { formatKeys, type Command, type Commands } from './commands';
+import { comboOf, formatKeys, type Command, type Commands } from './commands';
 import { Dialog } from './dialogs';
 import { delayedIndicator, el, escapeHtml, patchList, q, setChecked, setClass, setDisabled, setHidden, setHtml, setText, setValue, type Disposer } from './dom';
 import { mountDeckPreview, templatePreview } from './home';
@@ -1968,7 +1968,70 @@ class ShortcutsDialog extends Dialog {
     this.body.append(bar, this.table, this.empty);
     this.search = q<HTMLInputElement>(bar, 'input');
     this.search.addEventListener('input', () => this.filter());
-    this.button('Close', 'primary', () => this.close());
+    this.table.addEventListener('click', (e) => { const c = (e.target as HTMLElement).closest<HTMLElement>('.fd-dlg-key-combos'); if (c) this.record(c.closest<HTMLElement>('.fd-dlg-key-row')); });
+    this.table.addEventListener('keydown', (e) => { const c = (e.target as HTMLElement).closest<HTMLElement>('.fd-dlg-key-combos'); if (c && !this.recording && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this.record(c.closest<HTMLElement>('.fd-dlg-key-row')); } });
+    window.addEventListener('keydown', (e) => this.onRecordKey(e), true);
+    this.button('Reset All', 'ghost', () => this.resetAll()).classList.add('fd-btn-apart');
+    this.button('Close', 'primary', () => { this.stopRecording(); this.close(); });
+  }
+
+  private recording: { id: string; node: HTMLElement } | null = null;
+
+  private record(row: HTMLElement | null): void {
+    const id = row?.dataset.key?.slice(2);
+    if (!row || !id || !this.commands?.get(id)) return;
+    this.stopRecording();
+    this.recording = { id, node: row };
+    row.classList.add('is-recording');
+    setText(q(row, '.fd-dlg-key-combos'), 'Press keys, Backspace to clear, Esc to cancel');
+  }
+
+  private stopRecording(): void {
+    const r = this.recording;
+    this.recording = null;
+    if (!r) return;
+    r.node.classList.remove('is-recording');
+    const cmd = this.commands?.get(r.id);
+    if (cmd) this.fillRow(r.node, { key: `c:${r.id}`, group: r.node.dataset.group ?? '', cmd });
+  }
+
+  private onRecordKey(e: KeyboardEvent): void {
+    const r = this.recording;
+    const cmds = this.commands;
+    if (!r || !cmds) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock'].includes(e.key)) return;
+    if (e.key === 'Escape') { this.stopRecording(); return; }
+    const plain = !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
+    if (plain && (e.key === 'Backspace' || e.key === 'Delete')) { cmds.setKeys(r.id, []); this.stopRecording(); void this.save(); return; }
+    const combo = comboOf(e);
+    const other = cmds.forCombo(combo);
+    cmds.setKeys(r.id, [combo]);
+    this.stopRecording();
+    if (other && other.id !== r.id) {
+      toast(`${formatKeys(combo)} moved from ${cmds.label(other).replace(/\.\.\.$/, '')}.`);
+      const row = Array.from(this.table.children).find((n) => (n as HTMLElement).dataset.key === `c:${other.id}`) as HTMLElement | undefined;
+      if (row) this.fillRow(row, { key: `c:${other.id}`, group: row.dataset.group ?? '', cmd: other });
+    }
+    void this.save();
+  }
+
+  private async save(): Promise<void> {
+    if (!this.commands) return;
+    try { await api.setSettings({ keys: this.commands.overrides() }); } catch (err) { toast((err as Error).message, 'error'); }
+  }
+
+  private resetAll(): void {
+    if (!this.commands) return;
+    this.stopRecording();
+    this.commands.resetKeys();
+    for (const n of Array.from(this.table.children) as HTMLElement[]) {
+      const cmd = n.dataset.key?.startsWith('c:') ? this.commands.get(n.dataset.key.slice(2)) : undefined;
+      if (cmd) this.fillRow(n, { key: `c:${cmd.id}`, group: n.dataset.group ?? '', cmd });
+    }
+    void this.save();
+    toast('Keyboard shortcuts reset to the defaults.');
   }
 
   show(commands: Commands): void {
@@ -1985,7 +2048,7 @@ class ShortcutsDialog extends Dialog {
     patchList(this.table, items, {
       key: (i) => i.key,
       create: (i) => {
-        const n = i.cmd ? el('<div class="fd-dlg-key-row" role="row"><span class="fd-dlg-key-icon" role="cell"></span><span class="fd-dlg-key-label" role="cell"></span><span class="fd-dlg-key-combos" role="cell"></span></div>') : el('<div class="fd-dlg-key-head" role="row"></div>');
+        const n = i.cmd ? el('<div class="fd-dlg-key-row" role="row"><span class="fd-dlg-key-icon" role="cell"></span><span class="fd-dlg-key-label" role="cell"></span><span class="fd-dlg-key-combos" role="cell" tabindex="0" title="Click to change"></span></div>') : el('<div class="fd-dlg-key-head" role="row"></div>');
         this.fillRow(n, i);
         return n;
       },
