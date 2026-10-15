@@ -126,7 +126,7 @@ Click a thumbnail to go to a slide; Shift or Mod click to select several; drag t
 
 ### On the slide
 
-- Click to select, Shift-click to add, drag on empty space for a marquee. Drag to move; smart guides snap to other objects and the slide edges, and Alt-drag skips snapping. Drag a handle to resize (Shift keeps proportions) and the round handle to rotate. Arrow keys nudge by 1 point, Shift-arrow by 10.
+- Click to select, Shift-click to add, drag on empty space for a marquee (it selects every object it touches; Preferences > Editing > Drag box can make it select only objects it fully encloses). Drag to move; smart guides snap to other objects and the slide edges, and Alt-drag skips snapping. Drag a handle to resize (Shift keeps proportions) and the round handle to rotate. Arrow keys nudge by 1 point, Shift-arrow by 10.
 - Double-click a placeholder or shape to type (Enter does the same for a selected shape). Esc finishes typing; Tab indents a list item while typing. Double-click a chart to edit its data and a picture to replace it.
 - Esc with nothing being typed clears the selection.
 
