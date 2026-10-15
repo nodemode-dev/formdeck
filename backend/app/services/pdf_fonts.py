@@ -10,7 +10,7 @@ from fontTools.ttLib import TTFont
 from app.services.pptx import font_sources
 
 FALLBACK = "Helvetica"
-PREFERRED = ("noto sans", "dejavu sans", "arial unicode ms", "segoe ui", "arial", "liberation sans", "freesans", "noto sans cjk jp", "ms gothic", "microsoft yahei")
+PREFERRED = ("noto sans", "dejavu sans", "arial unicode ms", "segoe ui", "arial", "liberation sans", "freesans", "noto sans jp", "noto sans sc", "noto sans kr", "microsoft yahei", "microsoft jhenghei", "yu gothic", "meiryo", "ms gothic", "malgun gothic", "pingfang sc", "apple sd gothic neo", "droid sans fallback", "wenquanyi zen hei", "simsun")
 
 
 def _usable(chars: set[str]) -> list[int]:
@@ -114,6 +114,11 @@ class LiveFonts:
             if name and codes <= cmap:
                 hit = name
                 break
+        if hit is None and word.get("w"):
+            found = _system_for(tuple(sorted(codes)))
+            if found:
+                name, cmap = self._load(f"sys:{found[0]}:{found[1]}", found)
+                hit = name if name and codes <= cmap else None
         self.picked[cache] = hit
         return hit
 

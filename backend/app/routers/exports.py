@@ -95,7 +95,11 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
                             t.setFillColor(HexColor(str(wd.get("color") or "#000000")))
                         except ValueError:
                             t.setFillColorRGB(0, 0, 0)
-                        t.setFont(live.font(wd), max(1.0, float(wd.get("size") or 12)))
+                        face, size = live.font(wd), max(1.0, float(wd.get("size") or 12))
+                        t.setFont(face, size)
+                        natural = stringWidth(str(wd.get("s") or ""), face, size)
+                        want = float(wd.get("w") or 0)
+                        t.setHorizScale(max(50.0, min(200.0, want / natural * 100)) if want > 0 and natural > 0 and abs(want / natural - 1) > 0.01 else 100)
                         t.setTextOrigin(float(wd.get("x") or 0), ph - float(wd.get("y") or 0))
                         same = n + 1 < len(ws) and abs(float(ws[n + 1].get("y") or 0) - float(wd.get("y") or 0)) < 0.5
                         t.textOut(str(wd.get("s") or "") + (" " if same else ""))

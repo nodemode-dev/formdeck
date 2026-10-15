@@ -6,7 +6,7 @@ import { loadFxImage, paintTfx, tfxData, tfxLines } from './text-fx';
 import { warpMesh } from './fx3d';
 import { structOf, type PdfNode } from './pdf-struct';
 
-export interface LiveWord { s: string; x: number; y: number; size: number; font: string; weight: number; italic: boolean; color: string }
+export interface LiveWord { s: string; x: number; y: number; w: number; size: number; font: string; weight: number; italic: boolean; color: string }
 export interface TextItem { x: number; y: number; w: number; h: number; text: string; size: number; font?: string; e?: string; p?: number; r?: number; c?: number; b?: number; lv?: number; words?: LiveWord[] }
 export interface Raster { canvas: HTMLCanvasElement; text: TextItem[]; w: number; h: number; struct: PdfNode[]; bare?: HTMLCanvasElement }
 
@@ -536,7 +536,7 @@ function textNode(t: Text, cs: CSSStyleDeclaration, steps: Step[], out: Op[], w:
     const pts = [new DOMPoint(l.x, l.y), new DOMPoint(l.r, l.y), new DOMPoint(l.x, l.y + l.h), new DOMPoint(l.r, l.y + l.h)].map((p) => m2.transformPoint(p));
     const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
     const x0 = Math.min(...xs), y0 = Math.min(...ys);
-    const words = live ? l.fr.map((f) => { const p = m2.transformPoint(new DOMPoint(f.x, f.b ?? f.y)); return { s: f.s, x: rd(p.x), y: rd(p.y), size: rd(size * k), font: family, weight, italic, color: hex }; }) : undefined;
+    const words = live ? l.fr.map((f) => { const p = m2.transformPoint(new DOMPoint(f.x, f.b ?? f.y)); return { s: f.s, x: rd(p.x), y: rd(p.y), w: rd(f.w * k), size: rd(size * k), font: family, weight, italic, color: hex }; }) : undefined;
     w.text.push({ x: x0, y: y0, w: Math.max(...xs) - x0, h: Math.max(...ys) - y0, text: l.text, size: size * k, font: family, gap: l.gap, ...(words ? { words } : {}) });
   }
   out.push({ k: 'd', steps, alpha: 1, shadows: [], filter: '', live, run: (c) => {
