@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from app.core import config
 from app.routers.terminal import require_local
-from app.services import share
+from app.services import relay, share
 from app.services.store import STORE
 
 router = APIRouter(prefix="/api/share", tags=["share"])
@@ -20,6 +20,12 @@ GUEST_GET = {"/api/share/me"}
 
 class Settings(BaseModel):
     lan: bool
+
+
+class RelaySettings(BaseModel):
+    on: bool
+    url: str = ""
+    token: str | None = None
 
 
 class Link(BaseModel):
@@ -76,7 +82,10 @@ class ShareGate:
             return
         path, kind = scope.get("path") or "/", scope["type"]
         method = scope.get("method", "GET")
-        if not share.enabled():
+        if scope.get("fd_relay") and not relay.enabled():
+            await self._deny(scope, send, 503, "Sharing through the relay is off.")
+            return
+        if not scope.get("fd_relay") and not share.enabled():
             await self._deny(scope, send, 503, "Sharing on this network is off.")
             return
         if kind == "http" and path.startswith("/s/"):
@@ -135,17 +144,31 @@ def me(request: Request) -> dict:
 @router.get("")
 def overview(request: Request, deck: str = "") -> dict:
     require_local(request)
-    return {**share.status(), "links": share.listing(deck or None)}
+    return {**share.status(), "relay": relay.status(), "links": share.listing(deck or None)}
+
+
+@router.put("/relay")
+async def put_relay(body: RelaySettings, request: Request) -> dict:
+    require_local(request)
+    url = body.url.strip().rstrip("/")
+    if body.on and not re.match(r"^https?://[^\s/]+", url):
+        raise HTTPException(400, "The relay address starts with https:// (or http:// for a test relay on your own network).")
+    patch: dict = {"on": body.on, "url": url[:300]}
+    if body.token is not None:
+        patch["token"] = body.token.strip()[:300]
+    relay.save(patch)
+    relay.host_id()
+    return await relay.apply(request.app)
 
 
 @router.put("/settings")
 async def put_settings(body: Settings, request: Request) -> dict:
     require_local(request)
-    config.write_settings({"share": {"lan": body.lan}})
+    config.write_settings({"share": {**(config.read_settings().get("share") or {}), "lan": body.lan}})
     try:
         return await share.apply(request.app)
     except OSError as exc:
-        config.write_settings({"share": {"lan": False}})
+        config.write_settings({"share": {**(config.read_settings().get("share") or {}), "lan": False}})
         raise HTTPException(409, f"Could not listen on port {share.lan_port()}: {exc}")
 
 

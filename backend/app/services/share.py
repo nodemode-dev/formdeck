@@ -94,7 +94,10 @@ def addresses() -> list[str]:
 
 
 def urls(token: str) -> list[str]:
-    return [f"http://{ip}:{lan_port()}/s/{urllib.parse.quote(token)}" for ip in addresses()]
+    from app.services import relay
+    out = [f"http://{ip}:{lan_port()}/s/{urllib.parse.quote(token)}" for ip in addresses()] if enabled() else []
+    far = relay.link(token)
+    return ([far] if far else []) + out
 
 
 def status() -> dict:
@@ -142,5 +145,7 @@ async def apply(app) -> dict:
 
 
 def is_lan(scope: dict) -> bool:
+    if scope.get("fd_relay"):
+        return True
     server = scope.get("server") or ("", 0)
     return bool(server) and int(server[1] or 0) == lan_port()

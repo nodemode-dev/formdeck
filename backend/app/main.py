@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core import config
 from app.routers import addins, ai_images, captions, chat, commands, decks, exports, intake, live, mcp, media, share, stock, system, terminal, workbooks
+from app.services import relay
 from app.services import share as sharing
 from app.services import terminal as terminals
 
@@ -40,7 +41,9 @@ async def lifespan(this: FastAPI):
         await sharing.apply(this)
     except OSError:
         pass
+    await relay.apply(this)
     yield
+    await relay.stop()
     await sharing.stop()
     terminals.close_all()
     _clear_discovery()
