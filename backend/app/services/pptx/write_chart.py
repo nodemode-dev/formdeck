@@ -3,6 +3,7 @@ from pathlib import Path
 from pptx.chart.data import CategoryChartData, XyChartData
 from pptx.enum.chart import XL_CHART_TYPE as XL
 from pptx.enum.chart import XL_LEGEND_POSITION as LEGEND
+from pptx.enum.chart import XL_TICK_LABEL_POSITION
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.parts.chart import ChartPart
 
@@ -190,6 +191,11 @@ def _style_axes(pp_chart, chart: dict, kind: str) -> None:
         value_axis = pp_chart.value_axis
     except Exception:
         return
+    _axis_style(value_axis, y_axis)
+    try:
+        _axis_style(pp_chart.category_axis, axes.get("x") or {})
+    except Exception:
+        pass
     if _number(y_axis.get("min")) is not None:
         value_axis.minimum_scale = _number(y_axis["min"])
     if _number(y_axis.get("max")) is not None:
@@ -209,6 +215,26 @@ def _style_axes(pp_chart, chart: dict, kind: str) -> None:
             pp_chart.category_axis.axis_title.text_frame.text = str(x_title)
         except Exception:
             pass
+
+
+def _axis_style(axis, cfg: dict) -> None:
+    if not isinstance(cfg, dict):
+        return
+    line = cfg.get("line")
+    if line is False or isinstance(line, dict):
+        ln = axis.format.line._get_or_add_ln()
+        for child in list(ln):
+            ln.remove(child)
+        if line is False:
+            sub(ln, "a:noFill")
+        else:
+            width = _number(line.get("width"))
+            if width is not None and width >= 0:
+                ln.set("w", str(int(round(width * 12700))))
+            if line.get("color") is not None:
+                sub(ln, "a:solidFill").append(color_element(line["color"]))
+    if cfg.get("labels") is False:
+        axis.tick_label_position = XL_TICK_LABEL_POSITION.NONE
 
 
 def _series_colors(pp_chart, chart: dict, kind: str) -> None:

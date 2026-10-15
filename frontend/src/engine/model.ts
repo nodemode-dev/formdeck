@@ -81,7 +81,7 @@ export interface TableElement extends ElementBase { type: 'table'; table: TableD
 
 export type ChartKind = 'column' | 'bar' | 'line' | 'area' | 'pie' | 'doughnut' | 'scatter' | 'radar' | 'combo';
 export interface ChartSeries { name: string; values: Array<number | null> | Array<[number, number]>; color?: Color | null; kind?: 'column' | 'line' }
-export interface ChartAxis { min?: number | null; max?: number | null; format?: string; title?: string }
+export interface ChartAxis { min?: number | null; max?: number | null; format?: string; title?: string; line?: { color?: Color; width?: number } | false; labels?: boolean }
 export interface ChartData {
   kind: ChartKind; categories: string[]; series: ChartSeries[]; title?: string; legend?: 'none' | 'top' | 'bottom' | 'left' | 'right';
   labels?: boolean; stacked?: boolean; percent?: boolean; axes?: { x?: ChartAxis; y?: ChartAxis }; gridlines?: boolean; style?: number; hole?: number;

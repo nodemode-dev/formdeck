@@ -85,7 +85,7 @@ def _build_chart(chart, plots: list, ctx) -> dict:
     hole = find(first_plot._element, "c:holeSize")
     if hole is not None:
         data["hole"] = round(int(hole.get("val", "50")) / 100, 2)
-    _read_axes(chart, data)
+    _read_axes(chart, data, ctx)
     return data
 
 
@@ -169,7 +169,35 @@ def _title(chart) -> str:
     return ""
 
 
-def _read_axes(chart, data: dict) -> None:
+def _axis_look(axis_el, ctx) -> dict:
+    look = {}
+    gone = find(axis_el, "c:delete")
+    if gone is not None and gone.get("val", "1") in ("1", "true"):
+        return {"line": False, "labels": False}
+    ln = find(find(axis_el, "c:spPr"), "a:ln")
+    if ln is not None:
+        fill = read_fill(fill_element(ln), ctx)
+        if fill and fill.get("type") == "none":
+            look["line"] = False
+        else:
+            line = {}
+            if fill and fill.get("type") == "solid" and fill.get("color") is not None:
+                line["color"] = fill["color"]
+            try:
+                width = int(ln.get("w", ""))
+            except ValueError:
+                width = None
+            if width is not None and width >= 0:
+                line["width"] = round(width / 12700, 3)
+            if line:
+                look["line"] = line
+    pos = find(axis_el, "c:tickLblPos")
+    if pos is not None and pos.get("val") == "none":
+        look["labels"] = False
+    return look
+
+
+def _read_axes(chart, data: dict, ctx) -> None:
     axes = {}
     try:
         value_axis = chart.value_axis
@@ -185,12 +213,16 @@ def _read_axes(chart, data: dict) -> None:
         title = _axis_title(value_axis)
         if title:
             y["title"] = title
+        y.update(_axis_look(value_axis._element, ctx))
         axes["y"] = y
         data["gridlines"] = bool(value_axis.has_major_gridlines)
     try:
+        x = _axis_look(chart.category_axis._element, ctx)
         title = _axis_title(chart.category_axis)
         if title:
-            axes["x"] = {"title": title}
+            x["title"] = title
+        if x:
+            axes["x"] = x
     except Exception:
         pass
     if axes:

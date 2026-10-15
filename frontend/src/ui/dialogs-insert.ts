@@ -3,7 +3,7 @@ import { clone, dirtyOp, resolvedFrame, setProp } from '../editor/actions';
 import { PRESET_GROUPS, presetGeometry } from '../engine/geometry/presets';
 import { parsePath } from '../engine/geometry/path';
 import { LINE_TOOLS, type LineTool } from '../editor/draw-commands';
-import { SLIDE_SIZES, type ChartData, type ChartElement, type ChartKind, type ChartSeries, type Color, type Comment, type Deck, type Fill, type Para, type PhType, type Placeholder, type Slide, type SlideElement, type TableData, type TableElement, type TableStyle, type Theme } from '../engine/model';
+import { SLIDE_SIZES, type ChartAxis, type ChartData, type ChartElement, type ChartKind, type ChartSeries, type Color, type Comment, type Deck, type Fill, type Para, type PhType, type Placeholder, type Slide, type SlideElement, type TableData, type TableElement, type TableStyle, type Theme } from '../engine/model';
 import { elPath, slidePath, type Op, type PathKey } from '../engine/ops';
 import { backgroundOf, chain, colorCss, colorHex, fontStack, frameOf, layoutOf, plainText, themeFont, type Frame } from '../engine/resolve';
 import { api } from '../io/api';
@@ -239,7 +239,11 @@ function numOf(text: string): number | null {
   return Number.isFinite(n) ? (pct ? n / 100 : n) : null;
 }
 
+interface AxisState { line: boolean; color: Color | undefined; width: number | null; labels: boolean }
+const axisState = (): AxisState => ({ line: true, color: undefined, width: null, labels: true });
+
 class ChartDlg extends Modal {
+  private ax: Record<'x' | 'y', AxisState> = { x: axisState(), y: axisState() };
   private kind: ChartKind = 'column';
   private base: ChartData = clone(SAMPLE);
   private cats: string[] = [];
@@ -266,6 +270,7 @@ class ChartDlg extends Modal {
     super('Insert Chart', 880);
     const sm = (act: string, ic: string, label: string, title: string): string => `<button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-act="${act}" title="${title}">${ic ? icon(ic, 14) : ''}${label}</button>`;
     const chk = (f: string, label: string): string => `<label class="fd-check"><input type="checkbox" data-f="${f}">${label}</label>`;
+    const axisBlock = (k: string, label: string): string => `<div class="fd-chartdlg-axis" data-axis="${k}"><p class="fd-note">${label}</p><div class="fd-ins-checks">${chk(`${k}-line`, 'Axis line')}${chk(`${k}-labels`, 'Labels')}</div><div class="fd-field"><span>Line colour</span><button class="fd-btn fd-ins-color" type="button" data-axcolor="${k}"><span class="fd-swatch"></span><span class="fd-ins-color-name"></span>${icon('chevronDown', 12)}</button></div><label class="fd-field"><span>Line width (pt)</span><input class="fd-input" type="number" min="0" max="20" step="0.25" data-f="${k}-width" aria-label="${label} line width in points"></label></div>`;
     this.root = el(`<div class="fd-chartdlg">
 <div class="fd-seg fd-chartdlg-kinds" role="tablist" aria-label="Chart type">${CHART_KINDS.map(([k, l]) => `<button type="button" role="tab" data-kind="${k}">${l}</button>`).join('')}</div>
 <div class="fd-chartdlg-main">
@@ -282,6 +287,7 @@ class ChartDlg extends Modal {
 <label class="fd-field"><span>Legend</span><select data-f="legend" aria-label="Legend"><option value="auto">Automatic</option><option value="none">None</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select></label>
 <label class="fd-field"><span>Number format</span><select data-f="format" aria-label="Number format">${FORMATS.map((f) => `<option value="${escapeHtml(f)}">${f ? escapeHtml(f) : 'General'}</option>`).join('')}</select></label>
 <div class="fd-ins-checks">${chk('labels', 'Data labels')}${chk('grid', 'Gridlines')}${chk('stacked', 'Stacked')}${chk('percent', '100% stacked')}</div>
+${axisBlock('x', 'Category axis (X)')}${axisBlock('y', 'Value axis (Y)')}
 </section>
 </div>
 </div>`);
@@ -341,6 +347,34 @@ class ChartDlg extends Modal {
       n.addEventListener('change', () => this.schedule());
     }
     this.checks.percent.addEventListener('change', () => { if (this.checks.percent.checked) setChecked(this.checks.stacked, true); });
+    for (const k of ['x', 'y'] as const) {
+      const box = q(this.root, `[data-axis="${k}"]`);
+      const line = q<HTMLInputElement>(box, `[data-f="${k}-line"]`);
+      const labels = q<HTMLInputElement>(box, `[data-f="${k}-labels"]`);
+      const width = q<HTMLInputElement>(box, `[data-f="${k}-width"]`);
+      const read = (): void => {
+        const a = this.ax[k];
+        a.line = line.checked;
+        a.labels = labels.checked;
+        const w = width.value.trim() === '' ? NaN : Number(width.value);
+        a.width = Number.isFinite(w) ? clampN(w, 0, 20) : null;
+        this.syncAxes();
+        this.schedule();
+      };
+      line.addEventListener('change', read);
+      labels.addEventListener('change', read);
+      width.addEventListener('input', read);
+      width.addEventListener('change', () => { read(); setValue(width, this.ax[k].width === null ? '' : String(this.ax[k].width)); });
+      q<HTMLButtonElement>(box, '[data-axcolor]').addEventListener('click', (e) => {
+        const b = e.currentTarget as HTMLButtonElement;
+        void pickColor(b, editorTheme(this.ed), { none: 'Automatic', current: this.ax[k].color ?? null }).then((c) => {
+          if (c === undefined) return;
+          this.ax[k].color = c ?? undefined;
+          this.syncAxes();
+          this.schedule();
+        });
+      });
+    }
     this.lpath = q<HTMLInputElement>(this.root, '[data-f="lpath"]');
     this.lsheet = q<HTMLSelectElement>(this.root, '[data-f="lsheet"]');
     this.lrange = q<HTMLInputElement>(this.root, '[data-f="lrange"]');
@@ -419,6 +453,11 @@ class ChartDlg extends Modal {
     setChecked(this.checks.stacked, c.stacked === true || c.percent === true);
     setChecked(this.checks.percent, c.percent === true);
     setChecked(this.checks.grid, c.gridlines !== false);
+    for (const k of ['x', 'y'] as const) {
+      const ln = c.axes?.[k]?.line;
+      const on = ln && typeof ln === 'object' ? ln : null;
+      this.ax[k] = { line: ln !== false, color: on?.color, width: on && typeof on.width === 'number' ? on.width : null, labels: c.axes?.[k]?.labels !== false };
+    }
     this.lastCell = [1, 1];
     this.syncKind();
     this.sync();
@@ -437,6 +476,46 @@ class ChartDlg extends Modal {
     setDisabled(this.checks.percent, !pct);
     setDisabled(this.checks.grid, !axes);
     for (const inp of [this.checks.stacked, this.checks.percent, this.checks.grid]) setClass(inp.parentElement, 'is-off', inp.disabled);
+    this.syncAxes();
+  }
+
+  private syncAxes(): void {
+    const theme = editorTheme(this.ed);
+    const round = this.kind === 'pie' || this.kind === 'doughnut';
+    for (const k of ['x', 'y'] as const) {
+      const a = this.ax[k];
+      const box = q(this.root, `[data-axis="${k}"]`);
+      const line = q<HTMLInputElement>(box, `[data-f="${k}-line"]`);
+      const labels = q<HTMLInputElement>(box, `[data-f="${k}-labels"]`);
+      const width = q<HTMLInputElement>(box, `[data-f="${k}-width"]`);
+      const cb = q<HTMLButtonElement>(box, '[data-axcolor]');
+      setChecked(line, a.line);
+      setChecked(labels, a.labels);
+      setValue(width, a.width === null ? '' : String(a.width));
+      setStyleVar(q(cb, '.fd-swatch'), '--swatch', colorCss(a.color ?? 'tx1', theme));
+      setText(q(cb, '.fd-ins-color-name'), a.color === undefined ? 'Automatic' : colorName(a.color, theme));
+      setDisabled(line, round);
+      setDisabled(labels, round);
+      setDisabled(width, round || !a.line);
+      setDisabled(cb, round || !a.line);
+      setClass(box, 'is-off', round);
+    }
+  }
+
+  private styleAxis(out: ChartAxis, k: 'x' | 'y'): void {
+    const a = this.ax[k];
+    const round = this.kind === 'pie' || this.kind === 'doughnut';
+    delete out.line;
+    delete out.labels;
+    if (round) return;
+    if (!a.line) out.line = false;
+    else if (a.color !== undefined || a.width !== null) {
+      const ln: { color?: Color; width?: number } = {};
+      if (a.color !== undefined) ln.color = a.color;
+      if (a.width !== null) ln.width = a.width;
+      out.line = ln;
+    }
+    if (!a.labels) out.labels = false;
   }
 
   private get(r: number, c: number): string {
@@ -598,6 +677,10 @@ class ChartDlg extends Modal {
     const axes = { ...(c.axes ?? {}) };
     const y = { ...(axes.y ?? {}) };
     if (this.format.value) y.format = this.format.value; else delete y.format;
+    const x = { ...(axes.x ?? {}) };
+    this.styleAxis(x, 'x');
+    this.styleAxis(y, 'y');
+    if (Object.keys(x).length) axes.x = x; else delete axes.x;
     if (Object.keys(y).length) axes.y = y; else delete axes.y;
     if (Object.keys(axes).length) c.axes = axes; else delete c.axes;
     return c;

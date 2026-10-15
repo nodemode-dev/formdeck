@@ -531,20 +531,36 @@ function drawGrid(r: Ctx, f: Frame, grid: boolean): void {
   if (d.length) r.out.push(`<path d="${d.join('')}" fill="none" stroke="${esc(r.grid)}" stroke-width="1"/>`);
 }
 
-function drawAxes(r: Ctx, f: Frame): void {
+function axisLine(r: Ctx, cfg: ChartAxis | undefined, d: string, plain: boolean): void {
+  const ln = cfg?.line;
+  if (ln === false) return;
+  if (ln && typeof ln === 'object') {
+    const w = fin(ln.width) && ln.width >= 0 ? ln.width : 1;
+    if (w <= 0) return;
+    const col = ln.color === undefined || ln.color === null ? '' : safeColor(r.th, ln.color, 0);
+    r.out.push(`<path d="${d}" fill="none" stroke="${esc(col || r.muted)}"${col ? '' : ' stroke-opacity="0.5"'} stroke-width="${n(w)}" stroke-linecap="square"/>`);
+    return;
+  }
+  if (plain) r.out.push(`<path d="${d}" fill="none" stroke="${esc(r.muted)}" stroke-opacity="0.5" stroke-width="1"/>`);
+}
+
+function drawAxes(r: Ctx, f: Frame, la?: ChartAxis, ba?: ChartAxis): void {
   const fs = r.fs;
   const p = f.plot;
   const m = r.muted;
-  let base = '';
-  if (f.lv) { const y = yOf(p, f.lv, clamp(0, f.lv.min, f.lv.max)); base = `M${n(p.x)},${n(y)}H${n(p.x + p.w)}`; }
-  else if (f.bv) { const x = xOf(p, f.bv, clamp(0, f.bv.min, f.bv.max)); base = `M${n(x)},${n(p.y)}V${n(p.y + p.h)}`; }
-  if (base) r.out.push(`<path d="${base}" fill="none" stroke="${esc(m)}" stroke-opacity="0.5" stroke-width="1"/>`);
+  const vertBase = !f.lv && !!f.bv;
+  const bd = f.lv ? `M${n(p.x)},${n(yOf(p, f.lv, clamp(0, f.lv.min, f.lv.max)))}H${n(p.x + p.w)}` : `M${n(p.x)},${n(p.y + p.h)}H${n(p.x + p.w)}`;
+  const ld = f.bv && vertBase ? `M${n(xOf(p, f.bv, clamp(0, f.bv.min, f.bv.max)))},${n(p.y)}V${n(p.y + p.h)}` : `M${n(p.x)},${n(p.y)}V${n(p.y + p.h)}`;
+  axisLine(r, ba, bd, !!f.lv);
+  axisLine(r, la, ld, vertBase);
   if (!f.showLab) return;
-  const lv = f.lv;
-  const bv = f.bv;
+  const hl = la?.labels === false;
+  const hb = ba?.labels === false;
+  const lv = hl ? null : f.lv;
+  const bv = hb ? null : f.bv;
   if (lv) lv.ticks.forEach((t, i) => text(r, p.x - fs * 0.55, yOf(p, lv, t) + fs * 0.35, lv.labels[i] ?? '', fs, m, 'end'));
   if (bv) bv.ticks.forEach((t, i) => text(r, xOf(p, bv, t), p.y + p.h + fs * 1.3, bv.labels[i] ?? '', fs, m, 'middle'));
-  const bc = f.bc;
+  const bc = hb ? null : f.bc;
   if (bc) {
     bc.lines.forEach((ls, i) => {
       if (i % bc.step) return;
@@ -553,7 +569,7 @@ function drawAxes(r: Ctx, f: Frame): void {
       else ls.forEach((l, j) => text(r, x, p.y + p.h + fs * 1.3 + j * fs * 1.15, l, fs, m, 'middle'));
     });
   }
-  const lc = f.lc;
+  const lc = hl ? null : f.lc;
   if (lc) lc.lines.forEach((ls, i) => { if (!(i % lc.step)) text(r, p.x - fs * 0.55, (f.centers[i] ?? 0) + fs * 0.35, ls[0] ?? '', fs, m, 'end'); });
   if (f.showTit && f.L.title) text(r, f.box.x + fs * 0.95, p.y + p.h / 2, fit(f.L.title, p.h, fs), fs, m, 'middle', 0, -90);
   if (f.showTit && f.B.title) text(r, p.x + p.w / 2, f.box.y + f.box.h - fs * 0.3, fit(f.B.title, p.w, fs), fs, m, 'middle');
@@ -753,7 +769,7 @@ function cartesian(r: Ctx, box: Box, c: ChartData, kind: Kind, ser: Ser[], cats:
   if (areas.length) drawAreas(r, f, areas, as, stacked, lab);
   if (lines.length) drawLines(r, f, lines, lab);
   if (clip) r.out.push('</g>');
-  drawAxes(r, f);
+  drawAxes(r, f, horiz ? xc : yc, horiz ? yc : xc);
 }
 
 function scatter(r: Ctx, box: Box, c: ChartData, ser: Ser[]): void {
@@ -793,7 +809,7 @@ function scatter(r: Ctx, box: Box, c: ChartData, ser: Ser[]): void {
     }
   }
   if (clip) r.out.push('</g>');
-  drawAxes(r, f);
+  drawAxes(r, f, yc, xc);
 }
 
 function radar(r: Ctx, box: Box, c: ChartData, ser: Ser[], cats: string[]): void {
