@@ -48,6 +48,7 @@ import { registerShareCommands } from './ui/dialogs-share';
 import { registerSlideZoomCommands } from './editor/slide-zoom';
 import { registerDesignIdeas } from './editor/design-ideas';
 import { registerCameraCommands } from './editor/camera';
+import { setMarqueeRule } from './editor/stage';
 import { guest, guestName } from './io/guest';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
@@ -558,6 +559,7 @@ export async function startApp(): Promise<void> {
     live.setAgents(agentsAllowed);
     const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
     for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));
+    setMarqueeRule(settings.marquee);
   } catch { toast('The FormDeck engine is not answering yet; retrying.', 'error'); }
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');

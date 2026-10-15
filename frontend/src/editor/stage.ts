@@ -32,6 +32,10 @@ type Drag =
   | { kind: 'end'; id: string; which: 0 | 1; ck: ConnKind; fixed: Pt; fixedDir: Pt | null; fixedEnd?: ConnEnd }
   | { kind: 'mid'; id: string };
 
+export type MarqueeRule = 'touch' | 'enclose';
+let marqueeRule: MarqueeRule = 'touch';
+export function setMarqueeRule(rule: unknown): void { marqueeRule = rule === 'enclose' ? 'enclose' : 'touch'; }
+
 export interface CellSel { el: string; r0: number; c0: number; r1: number; c1: number; ar: number; ac: number; fr: number; fc: number; active: boolean; one: boolean }
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
@@ -681,6 +685,7 @@ export class Stage {
       const hits = slide.elements.filter((el) => {
         if (el.locked) return false;
         const f = this.frameOf(el);
+        if (marqueeRule === 'enclose') return f.x >= m.x && f.x + f.w <= m.x + m.w && f.y >= m.y && f.y + f.h <= m.y + m.h;
         return f.x < m.x + m.w && f.x + f.w > m.x && f.y < m.y + m.h && f.y + f.h > m.y;
       }).map((el) => el.id);
       this.ed.select(Array.from(new Set([...d.base, ...hits])), false);

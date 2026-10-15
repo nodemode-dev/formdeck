@@ -4,6 +4,7 @@ import { addMaster } from '../editor/master-view';
 import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
 import { api, type TemplateSummary } from '../io/api';
 import { BUNDLED_FONTS, ensureFonts, fontsOfDeck } from '../render/fonts';
+import { setMarqueeRule } from '../editor/stage';
 import { SlideView } from '../render/slide';
 import { VERSION } from '../version';
 import { LANGUAGES, setLanguage, storedLanguage } from '../i18n';
@@ -1668,6 +1669,7 @@ class PreferencesDialog extends Dialog {
   private readonly tpl: HTMLSelectElement;
   private readonly author: HTMLInputElement;
   private readonly units: HTMLElement;
+  private readonly marquee: HTMLElement;
   private readonly size: HTMLSelectElement;
   private readonly fonts: HTMLSelectElement[];
   private readonly autosave: HTMLInputElement;
@@ -1691,6 +1693,7 @@ class PreferencesDialog extends Dialog {
 </section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Editing</div>
 <div class="fd-field"><span>Units</span><div class="fd-seg is-quiet" data-seg="units"><button type="button" data-v="pt">Points</button><button type="button" data-v="in">Inches</button><button type="button" data-v="cm">Centimetres</button><button type="button" data-v="px">Pixels</button></div></div>
+<div class="fd-field"><span>Drag box</span><div class="fd-seg is-quiet" data-seg="marquee"><button type="button" data-v="touch">Selects what it touches</button><button type="button" data-v="enclose">Selects what it encloses</button></div></div>
 <div class="fd-field"><span>Saving</span><label class="fd-check"><input type="checkbox" data-f="autosave"><span>Save to the library as you work</span></label></div>
 </section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Agents</div>
@@ -1731,6 +1734,8 @@ class PreferencesDialog extends Dialog {
     for (const f of this.fonts) f.addEventListener('change', () => this.persist({ defaultFonts: Object.fromEntries(this.fonts.map((x) => [x.dataset.font as string, x.value])) }));
     this.author.addEventListener('change', () => this.persist({ author: this.author.value.trim() }));
     segOn(this.units, (v) => this.persist({ units: v }));
+    this.marquee = q(box, '[data-seg="marquee"]');
+    segOn(this.marquee, (v) => { setMarqueeRule(v); segSet(this.marquee, v); this.persist({ marquee: v }); });
     this.autosave.addEventListener('change', () => this.persist({ autosave: this.autosave.checked }));
     this.agents.addEventListener('change', () => this.h?.setAgents(this.agents.checked));
     this.claudeStatus = q(box, '.fd-dlg-claude-status');
@@ -1794,6 +1799,7 @@ class PreferencesDialog extends Dialog {
       for (const f of this.fonts) setValue(f, str(df[f.dataset.font ?? '']));
       setValue(this.author, str(s.author));
       segSet(this.units, str(s.units) || 'pt');
+      segSet(this.marquee, str(s.marquee) === 'enclose' ? 'enclose' : 'touch');
       setChecked(this.autosave, s.autosave !== false);
       const cl = (s.claude && typeof s.claude === 'object' ? s.claude : {}) as Record<string, unknown>;
       for (const f of this.claudeFields) setValue(f, str(cl[f.dataset.c ?? '']));

@@ -49,7 +49,9 @@ def get_settings() -> dict:
 
 @router.post("/settings")
 def set_settings(patch: dict) -> dict:
-    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
+    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts", "marquee"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
+    if "marquee" in allowed:
+        allowed["marquee"] = "enclose" if allowed["marquee"] == "enclose" else "touch"
     if "defaultSize" in allowed:
         allowed["defaultSize"] = str(allowed["defaultSize"] or "")[:20]
     if "defaultFonts" in allowed:
