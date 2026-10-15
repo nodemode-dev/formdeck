@@ -1,6 +1,7 @@
 import { el, patchList, setClass, setHidden, setText } from './dom';
 import { icon } from './icons';
 import { toast } from './toast';
+import { pickFrom } from '../editor/components';
 
 type Role = 'user' | 'assistant' | 'tool' | 'note';
 type Mode = 'connected' | 'claudecode' | 'anthropic' | 'openai' | 'ollama';
@@ -118,6 +119,7 @@ export class ChatPanel {
       else if (a === 'copy-prompt') this.hooks.copyPrompt?.();
       else if (a === 'copy-cmd') void this.copyCommand();
       else if (a === 'claude-terminal') void this.toTerminal();
+      else if (a === 'claude-adopt') void this.adopt();
       else if (a === 'save-key') void this.saveKey(t.closest<HTMLElement>('[data-a]')?.dataset.p as 'anthropic' | 'openai');
       else if (a === 'remove-key') void this.removeKey(t.closest<HTMLElement>('[data-a]')?.dataset.p as 'anthropic' | 'openai');
       else if (a === 'test') void this.test();
@@ -358,6 +360,18 @@ export class ChatPanel {
     this.hooks.openClaude?.(session || undefined);
   }
 
+  private async adopt(): Promise<void> {
+    try {
+      const r = await call<{ sessions: Array<{ id: string; title: string; modified: number; messages: number }> }>('/api/chat/claude/sessions');
+      if (!r.sessions.length) { toast('No Claude Code conversation in FormDeck yet. Open one in the terminal dock (Shift+Ctrl or Cmd+`) first.', 'error'); return; }
+      const when = (s: number): string => new Date(s * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const got = await pickFrom('Continue a Claude Code Conversation', r.sessions.map((s) => ({ id: s.id, label: s.title || 'Untitled', note: `${when(s.modified)} · ${s.messages}` })), 'No Claude Code conversation in FormDeck yet.');
+      if (!got) return;
+      await call(`/api/chat/${encodeURIComponent(this.cid)}/adopt`, 'POST', { session: got });
+      if (this.cfg && this.cfg.provider !== 'claudecode') toast('Switch Assistant to Claude Code (your sign-in) to continue it here.');
+    } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
+  }
+
   private async copyCommand(): Promise<void> {
     try {
       const cmd = this.hooks.mcpCommand ? await this.hooks.mcpCommand() : await this.defaultCommand();
@@ -382,7 +396,7 @@ export class ChatPanel {
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt</button><button class="fd-btn fd-btn-sm" type="button" data-a="copy-cmd">${icon('link', 14)}Copy MCP command</button></div></div>
 <div class="fd-chat-sec" data-p="claudecode" hidden><div class="fd-note">FormDeck runs your own Claude Code (claude -p) with FormDeck's tools only. It uses your Claude sign-in; no key is stored here. Run claude once in a terminal to sign in.</div>
 <label class="fd-chat-lab">Model</label><select class="fd-input" data-f="claudecode.model" aria-label="Claude Code model"><option value="">Claude Code default</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option><option value="haiku">Haiku</option></select>
-<div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="claude-terminal">${icon('terminal', 14)}Continue in the terminal</button></div></div>
+<div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="claude-terminal">${icon('terminal', 14)}Continue in the terminal</button><button class="fd-btn fd-btn-sm" type="button" data-a="claude-adopt" title="Bring a conversation you had in a Claude Code tab into this chat">From Claude Code...</button></div></div>
 ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https://api.openai.com/v1')}
 <div class="fd-chat-sec" data-p="ollama" hidden><label class="fd-chat-lab">Ollama address</label><input class="fd-input" data-f="ollama.url" placeholder="http://127.0.0.1:11434" spellcheck="false" autocomplete="off">
 <label class="fd-chat-lab">Model</label><select class="fd-input" data-f="ollama.model" aria-label="Ollama model"><option value="">Test the connection to list models</option></select>

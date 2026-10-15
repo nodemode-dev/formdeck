@@ -37,9 +37,11 @@ class Convo:
         self.task: asyncio.Task | None = None
         self.busy = False
         self.agent = None
+        self.claude_session: str | None = None
         try:
             data = json.loads((_dir() / f"{cid}.json").read_text(encoding="utf-8"))
             self.messages = [m for m in data.get("messages", []) if isinstance(m, dict)]
+            self.claude_session = data.get("claudeSession") if isinstance(data.get("claudeSession"), str) else None
         except (OSError, ValueError):
             pass
         for m in self.messages:
@@ -50,7 +52,7 @@ class Convo:
         path = _dir() / f"{self.id}.json"
         tmp = path.with_suffix(".tmp")
         try:
-            tmp.write_text(json.dumps({"messages": self.messages[-MAX_MESSAGES:]}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+            tmp.write_text(json.dumps({"messages": self.messages[-MAX_MESSAGES:], **({"claudeSession": self.claude_session} if self.claude_session else {})}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
             tmp.replace(path)
         except OSError:
             pass
@@ -91,6 +93,7 @@ class Convo:
 
     def clear(self) -> None:
         self.messages.clear()
+        self.claude_session = None
         self.emit({"t": "clear"})
         self.save()
 

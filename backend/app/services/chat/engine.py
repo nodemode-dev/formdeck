@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import time
 import urllib.parse
 
 import httpx
@@ -135,6 +136,32 @@ async def send(c: cv.Convo, text: str, deck_id: str | None) -> dict:
 
 def _short_tool(name: str) -> str:
     return name.split("__")[-1] if name.startswith("mcp__") else name
+
+
+def adopt(c: cv.Convo, sid: str) -> int:
+    if c.busy:
+        raise ProviderError("The assistant is still working. Stop it first, or wait for it to finish.")
+    listed = claude_code.sessions()
+    pick = next((s for s in listed if s["id"] == sid), None) if sid else (listed[0] if listed else None)
+    if pick is None:
+        raise LookupError("No Claude Code conversation was found in FormDeck's agent folder. Open one with Claude Code in the terminal dock first.")
+    now = time.time()
+    msgs: list[dict] = []
+    for i, m in enumerate(claude_code.transcript(pick["id"])):
+        base = {"id": cv.new_id(), "at": now + i / 1000, "provider": "claudecode"}
+        if m["role"] == "tool":
+            name = _short_tool(m["name"])
+            msgs.append({**base, "role": "tool", "text": ctools.summary(name, m["args"]), "name": name, "args": m["args"] if len(json.dumps(m["args"])) < 4000 else {}, "state": "done", "ok": True})
+        elif m["role"] == "user":
+            msgs.append({**base, "role": "user", "text": m["text"].split("\n\n(The person has deck")[0].split("\n\n(No deck is open")[0][:cv.MAX_TEXT], "state": "sent"})
+        else:
+            msgs.append({**base, "role": "assistant", "text": m["text"][:cv.MAX_TEXT], "state": "done"})
+    msgs.append({"id": cv.new_id(), "at": now + 1, "role": "note", "text": "Continued from Claude Code. Your next message carries on this conversation.", "level": "info"})
+    c.messages = msgs[-cv.MAX_MESSAGES:]
+    c.claude_session = pick["id"]
+    c.save()
+    c.emit(c.snapshot())
+    return len(msgs) - 1
 
 
 async def _run_claude(c: cv.Convo, cfg: dict, deck_id: str | None, text: str) -> None:

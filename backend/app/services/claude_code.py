@@ -99,6 +99,52 @@ def workdir() -> Path:
     return folder
 
 
+def project_dir() -> Path:
+    root = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude").expanduser()
+    return root / "projects" / "".join(ch if ch.isalnum() else "-" for ch in str(workdir().resolve()))
+
+
+def transcript(sid: str) -> list[dict]:
+    if not sid or not all(ch.isalnum() or ch == "-" for ch in sid):
+        return []
+    try:
+        lines = (project_dir() / f"{sid}.jsonl").read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    out: list[dict] = []
+    for line in lines:
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(ev, dict) or ev.get("type") not in ("user", "assistant") or ev.get("isSidechain") or ev.get("isMeta"):
+            continue
+        content = (ev.get("message") or {}).get("content")
+        blocks = content if isinstance(content, list) else [{"type": "text", "text": content}] if isinstance(content, str) else []
+        for b in blocks:
+            if not isinstance(b, dict):
+                continue
+            if b.get("type") == "text" and str(b.get("text") or "").strip() and not str(b["text"]).lstrip().startswith("<"):
+                out.append({"role": ev["type"], "text": str(b["text"]).strip()})
+            elif b.get("type") == "tool_use" and ev["type"] == "assistant" and b.get("name") != "ToolSearch":
+                out.append({"role": "tool", "name": str(b.get("name") or ""), "args": b.get("input") if isinstance(b.get("input"), dict) else {}})
+    return out
+
+
+def sessions(limit: int = 20) -> list[dict]:
+    folder = project_dir()
+    try:
+        files = sorted(folder.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    except OSError:
+        return []
+    items = []
+    for f in files:
+        msgs = transcript(f.stem)
+        first = next((m["text"] for m in msgs if m["role"] == "user"), "")
+        items.append({"id": f.stem, "modified": f.stat().st_mtime, "title": first.split("\n\n(The person has deck")[0].split("\n\n(No deck is open")[0][:90], "messages": len(msgs)})
+    return items
+
+
 def _wrap(cmd: list[str]) -> list[str]:
     return cmd if os.name == "nt" else terminal.login_shell() + ["-c", "exec " + shlex.join(cmd)]
 

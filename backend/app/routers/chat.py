@@ -55,6 +55,23 @@ async def test(body: dict) -> dict:
     return await prov.test()
 
 
+@router.get("/claude/sessions")
+def claude_sessions() -> dict:
+    return {"sessions": claude_code.sessions(), "folder": str(claude_code.workdir())}
+
+
+@router.post("/{cid}/adopt")
+async def adopt(cid: str, body: dict) -> dict:
+    c = _convo(cid)
+    try:
+        count = engine.adopt(c, str(body.get("session") or "").strip())
+    except ProviderError as exc:
+        raise HTTPException(409, str(exc))
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
+    return {"session": c.claude_session, "messages": count}
+
+
 @router.get("/{cid}")
 def snapshot(cid: str) -> dict:
     c = _convo(cid)
