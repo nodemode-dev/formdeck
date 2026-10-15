@@ -1,0 +1,14 @@
+{
+ "0": "Use quando a cor de preenchimento de uma forma deve ser salva com um nome, como uma cor da marca, para reutilizar.",
+ "1": "Use quando as formas devem receber um estilo de cor salvo.",
+ "2": "Use quando você alterou o preenchimento de uma forma com estilo de cor e todas as formas com esse estilo devem acompanhar.",
+ "3": "Salvar estilo de cor...",
+ "4": "Salvar estilo de cor",
+ "5": "Marca",
+ "6": "Estilo de cor salvo: {0}.",
+ "7": "Aplicar estilo de cor...",
+ "8": "Aplicar estilo de cor",
+ "9": "Excluir estilo de cor",
+ "10": "Atualizar estilo de cor a partir da seleção",
+ "11": "{0} atualizado. Formas alteradas: {1}."
+}

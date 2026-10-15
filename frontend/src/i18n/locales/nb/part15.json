@@ -1,0 +1,14 @@
+{
+ "0": "Bruk når en figurs fyllfarge skal lagres under et navn, som en merkevarefarge, for å gjenbrukes.",
+ "1": "Bruk når figurer skal få en lagret fargestil.",
+ "2": "Bruk når du har endret fyllet på en figur med fargestil, og alle figurer med den stilen skal følge med.",
+ "3": "Lagre fargestil...",
+ "4": "Lagre fargestil",
+ "5": "Merkevare",
+ "6": "Fargestil lagret: {0}.",
+ "7": "Bruk fargestil...",
+ "8": "Bruk fargestil",
+ "9": "Slett fargestil",
+ "10": "Oppdater fargestil fra utvalget",
+ "11": "{0} oppdatert. Endrede figurer: {1}."
+}

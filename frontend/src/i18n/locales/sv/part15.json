@@ -1,0 +1,14 @@
+{
+ "0": "Använd när en forms fyllningsfärg ska sparas under ett namn, som en varumärkesfärg, för att återanvändas.",
+ "1": "Använd när former ska få en sparad färgstil.",
+ "2": "Använd när du har ändrat fyllningen på en form med färgstil och alla former med den stilen ska följa med.",
+ "3": "Spara färgstil...",
+ "4": "Spara färgstil",
+ "5": "Varumärke",
+ "6": "Färgstil sparad: {0}.",
+ "7": "Använd färgstil...",
+ "8": "Använd färgstil",
+ "9": "Ta bort färgstil",
+ "10": "Uppdatera färgstil från markeringen",
+ "11": "{0} uppdaterad. Ändrade former: {1}."
+}

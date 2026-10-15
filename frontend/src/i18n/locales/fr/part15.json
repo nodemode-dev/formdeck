@@ -1,0 +1,14 @@
+{
+ "0": "À utiliser quand la couleur de remplissage d'une forme doit être enregistrée sous un nom, comme une couleur de marque, pour la réutiliser.",
+ "1": "À utiliser quand des formes doivent prendre un style de couleur enregistré.",
+ "2": "À utiliser quand vous avez modifié le remplissage d'une forme dotée d'un style de couleur et que toutes les formes ayant ce style doivent s'y aligner.",
+ "3": "Enregistrer le style de couleur...",
+ "4": "Enregistrer le style de couleur",
+ "5": "Marque",
+ "6": "Style de couleur enregistré : {0}.",
+ "7": "Appliquer un style de couleur...",
+ "8": "Appliquer un style de couleur",
+ "9": "Supprimer le style de couleur",
+ "10": "Mettre à jour le style de couleur depuis la sélection",
+ "11": "{0} mis à jour. Formes modifiées : {1}."
+}

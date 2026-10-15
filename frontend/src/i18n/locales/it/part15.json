@@ -1,0 +1,14 @@
+{
+ "0": "Da usare quando il colore di riempimento di una forma deve essere salvato con un nome, come un colore del brand, per riutilizzarlo.",
+ "1": "Da usare quando le forme devono assumere uno stile colore salvato.",
+ "2": "Da usare quando hai cambiato il riempimento di una forma con uno stile colore e tutte le forme con quello stile devono allinearsi.",
+ "3": "Salva stile colore...",
+ "4": "Salva stile colore",
+ "5": "Brand",
+ "6": "Stile colore salvato: {0}.",
+ "7": "Applica stile colore...",
+ "8": "Applica stile colore",
+ "9": "Elimina stile colore",
+ "10": "Aggiorna stile colore dalla selezione",
+ "11": "{0} aggiornato. Forme modificate: {1}."
+}

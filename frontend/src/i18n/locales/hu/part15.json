@@ -1,0 +1,14 @@
+{
+ "0": "Akkor használd, ha egy alakzat kitöltőszínét névvel, például márkaszínként kell elmenteni az újrafelhasználáshoz.",
+ "1": "Akkor használd, ha az alakzatoknak egy mentett színstílust kell felvenniük.",
+ "2": "Akkor használd, ha módosítottad egy színstílussal rendelkező alakzat kitöltését, és az összes azonos stílusú alakzatnak igazodnia kell hozzá.",
+ "3": "Színstílus mentése...",
+ "4": "Színstílus mentése",
+ "5": "Márka",
+ "6": "Színstílus mentve: {0}.",
+ "7": "Színstílus alkalmazása...",
+ "8": "Színstílus alkalmazása",
+ "9": "Színstílus törlése",
+ "10": "Színstílus frissítése a kijelölésből",
+ "11": "{0} frissítve. Módosított alakzatok: {1}."
+}

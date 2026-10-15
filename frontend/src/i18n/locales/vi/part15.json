@@ -1,0 +1,14 @@
+{
+ "0": "Dùng khi màu tô của hình dạng cần được lưu dưới một tên, như màu thương hiệu, để dùng lại.",
+ "1": "Dùng khi các hình dạng cần áp dụng một kiểu màu đã lưu.",
+ "2": "Dùng khi bạn đã đổi màu tô của một hình dạng có kiểu màu và mọi hình dạng cùng kiểu đó cần khớp theo.",
+ "3": "Lưu kiểu màu...",
+ "4": "Lưu kiểu màu",
+ "5": "Thương hiệu",
+ "6": "Đã lưu kiểu màu: {0}.",
+ "7": "Áp dụng kiểu màu...",
+ "8": "Áp dụng kiểu màu",
+ "9": "Xóa kiểu màu",
+ "10": "Cập nhật kiểu màu từ vùng chọn",
+ "11": "Đã cập nhật {0}. Hình dạng đã thay đổi: {1}."
+}

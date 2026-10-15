@@ -62,7 +62,7 @@ class ListDialog extends Dialog {
 }
 
 let listDlg: ListDialog | null = null;
-const pickFrom = (title: string, rows: Row[], emptyText: string, deletable = false): Promise<string | null> => { listDlg ??= new ListDialog(); return listDlg.ask(title, rows, emptyText, deletable); };
+export const pickFrom = (title: string, rows: Row[], emptyText: string, deletable = false): Promise<string | null> => { listDlg ??= new ListDialog(); return listDlg.ask(title, rows, emptyText, deletable); };
 
 function moveTree(e: SlideElement, sx: number, sy: number, fx: (x: number) => number, fy: (y: number) => number, fresh: () => string): SlideElement {
   const c = clone(e) as SlideElement & { component?: string };

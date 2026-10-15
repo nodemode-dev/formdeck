@@ -1,0 +1,14 @@
+{
+ "0": "Brug, når en figurs fyldfarve skal gemmes under et navn, som en brandfarve, så den kan genbruges.",
+ "1": "Brug, når figurer skal have en gemt farvetypografi.",
+ "2": "Brug, når du har ændret fyldet på en figur med en farvetypografi, og alle figurer med den typografi skal følge med.",
+ "3": "Gem farvetypografi...",
+ "4": "Gem farvetypografi",
+ "5": "Brand",
+ "6": "Farvetypografi gemt: {0}.",
+ "7": "Anvend farvetypografi...",
+ "8": "Anvend farvetypografi",
+ "9": "Slet farvetypografi",
+ "10": "Opdater farvetypografi fra markering",
+ "11": "{0} opdateret. Ændrede figurer: {1}."
+}

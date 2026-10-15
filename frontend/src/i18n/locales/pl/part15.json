@@ -1,0 +1,14 @@
+{
+ "0": "Użyj, gdy kolor wypełnienia kształtu ma zostać zapisany pod nazwą, na przykład jako kolor marki, do ponownego użycia.",
+ "1": "Użyj, gdy kształty mają przyjąć zapisany styl koloru.",
+ "2": "Użyj, gdy zmieniono wypełnienie kształtu ze stylem koloru i wszystkie kształty z tym stylem mają się z nim zgadzać.",
+ "3": "Zapisz styl koloru...",
+ "4": "Zapisz styl koloru",
+ "5": "Marka",
+ "6": "Zapisano styl koloru: {0}.",
+ "7": "Zastosuj styl koloru...",
+ "8": "Zastosuj styl koloru",
+ "9": "Usuń styl koloru",
+ "10": "Zaktualizuj styl koloru na podstawie zaznaczenia",
+ "11": "Zaktualizowano: {0}. Zmienione kształty: {1}."
+}

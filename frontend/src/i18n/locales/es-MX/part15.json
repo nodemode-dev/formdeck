@@ -1,0 +1,14 @@
+{
+ "0": "Úsalo cuando el color de relleno de una forma deba guardarse con un nombre, como un color de marca, para reutilizarlo.",
+ "1": "Úsalo cuando las formas deban tomar un estilo de color guardado.",
+ "2": "Úsalo cuando hayas cambiado el relleno de una forma con estilo de color y todas las formas con ese estilo deban coincidir.",
+ "3": "Guardar estilo de color...",
+ "4": "Guardar estilo de color",
+ "5": "Marca",
+ "6": "Se guardó el estilo de color: {0}.",
+ "7": "Aplicar estilo de color...",
+ "8": "Aplicar estilo de color",
+ "9": "Eliminar estilo de color",
+ "10": "Actualizar estilo de color desde la selección",
+ "11": "Se actualizó {0}. Formas modificadas: {1}."
+}

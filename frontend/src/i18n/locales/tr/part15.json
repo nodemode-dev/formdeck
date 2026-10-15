@@ -1,0 +1,14 @@
+{
+ "0": "Bir şeklin dolgu renginin, marka rengi gibi bir adla kaydedilip yeniden kullanılması gerektiğinde kullanın.",
+ "1": "Şekillerin kaydedilmiş bir renk stilini alması gerektiğinde kullanın.",
+ "2": "Renk stili olan bir şeklin dolgusunu değiştirdiğinizde ve bu stile sahip tüm şekillerin buna uyması gerektiğinde kullanın.",
+ "3": "Renk Stilini Kaydet...",
+ "4": "Renk Stilini Kaydet",
+ "5": "Marka",
+ "6": "Renk stili kaydedildi: {0}.",
+ "7": "Renk Stilini Uygula...",
+ "8": "Renk Stilini Uygula",
+ "9": "Renk stilini sil",
+ "10": "Renk Stilini Seçimden Güncelle",
+ "11": "{0} güncellendi. Değiştirilen şekiller: {1}."
+}

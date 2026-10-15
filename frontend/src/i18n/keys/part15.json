@@ -1,0 +1,14 @@
+[
+"Use when a shape's fill colour should be saved under a name, such as a brand colour, to reuse.",
+"Use when shapes should take a saved colour style.",
+"Use when you changed the fill of a shape that has a colour style and every shape with that style should match.",
+"Save Colour Style...",
+"Save Colour Style",
+"Brand",
+"Colour style saved: {0}.",
+"Apply Colour Style...",
+"Apply Colour Style",
+"Delete colour style",
+"Update Colour Style from Selection",
+"{0} updated. Shapes changed: {1}."
+]

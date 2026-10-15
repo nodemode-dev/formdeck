@@ -1,0 +1,14 @@
+{
+ "0": "Použijte, když se má barva výplně tvaru uložit pod názvem, například jako barva značky, pro opakované použití.",
+ "1": "Použijte, když mají tvary převzít uložený styl barvy.",
+ "2": "Použijte, když jste změnili výplň tvaru se stylem barvy a všechny tvary s tímto stylem se mají přizpůsobit.",
+ "3": "Uložit styl barvy...",
+ "4": "Uložit styl barvy",
+ "5": "Značka",
+ "6": "Styl barvy uložen: {0}.",
+ "7": "Použít styl barvy...",
+ "8": "Použít styl barvy",
+ "9": "Odstranit styl barvy",
+ "10": "Aktualizovat styl barvy z výběru",
+ "11": "Aktualizováno: {0}. Změněné tvary: {1}."
+}

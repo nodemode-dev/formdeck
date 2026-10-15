@@ -1,0 +1,14 @@
+{
+ "0": "Käytä, kun muodon täyttöväri pitää tallentaa nimellä, esimerkiksi brändivärinä, uudelleenkäyttöä varten.",
+ "1": "Käytä, kun muotojen pitää saada tallennettu värityyli.",
+ "2": "Käytä, kun olet muuttanut värityylillä varustetun muodon täyttöä ja kaikkien saman tyylin muotojen pitää vastata sitä.",
+ "3": "Tallenna värityyli...",
+ "4": "Tallenna värityyli",
+ "5": "Brändi",
+ "6": "Värityyli tallennettu: {0}.",
+ "7": "Käytä värityyliä...",
+ "8": "Käytä värityyliä",
+ "9": "Poista värityyli",
+ "10": "Päivitä värityyli valinnasta",
+ "11": "{0} päivitetty. Muutettuja muotoja: {1}."
+}
