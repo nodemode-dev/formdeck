@@ -45,7 +45,7 @@ import { registerComponentCommands } from './editor/components';
 import { registerParamCommands } from './editor/param-commands';
 import { registerColourStyleCommands } from './editor/colour-styles';
 import { registerShareCommands } from './ui/dialogs-share';
-import { guest } from './io/guest';
+import { guest, guestName } from './io/guest';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
 
@@ -98,7 +98,7 @@ export async function startApp(): Promise<void> {
   mountOnce(host, SHELL);
   const root = q(host, '.fd-app');
   const commands = new Commands();
-  const live = new LiveClient(navigator.platform || 'window');
+  const live = new LiveClient(guest() ? guestName() || 'Guest' : navigator.platform || 'window');
   const contextMenu = new PopupMenu(commands, null, true);
   const presentMenu = new PopupMenu(commands, null, true);
   const toolbar = new Toolbar(q(root, '.fd-options'), commands);

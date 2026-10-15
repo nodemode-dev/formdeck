@@ -9,6 +9,16 @@ let lastNotice = 0;
 
 export const guest = (): Guest | null => current;
 
+const NAME_KEY = 'formdeck_guest_name';
+
+export function guestName(): string {
+  try { return (localStorage.getItem(NAME_KEY) ?? '').trim().slice(0, 40); } catch { return ''; }
+}
+
+export function setGuestName(name: string): void {
+  try { localStorage.setItem(NAME_KEY, name.trim().slice(0, 40)); } catch { void 0; }
+}
+
 const ROLE_TEXT: Record<GuestRole, string> = {
   view: 'View only: this share link cannot change the deck.',
   comment: 'Comments only: this share link can add and reply to comments.',

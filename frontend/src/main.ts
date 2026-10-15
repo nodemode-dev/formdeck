@@ -1,6 +1,7 @@
 import { startApp } from './app';
 import { initLanguage } from './i18n';
-import { detectGuest } from './io/guest';
+import { detectGuest, guest, guestName, setGuestName } from './io/guest';
+import { promptName } from './ui/dialogs';
 import { toast } from './ui/toast';
 
 const LEGACY_PREFIX = 'formsld.';
@@ -15,7 +16,13 @@ try {
   }
 } catch { void 0; }
 
-void initLanguage().catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => {
+async function nameGuest(): Promise<void> {
+  if (!guest() || guestName()) return;
+  const name = await promptName('Your name, as others will see it', '', 'Join');
+  setGuestName(name?.trim() || 'Guest');
+}
+
+void initLanguage().catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => nameGuest().catch(() => undefined)).then(() => {
   if (new URLSearchParams(location.search).get('audience') === '1') void import('./present/show').then((m) => m.bootAudience());
   else void startApp();
 });
