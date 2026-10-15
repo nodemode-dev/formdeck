@@ -4,7 +4,7 @@ Presentations and pitch decks in the form family. An open alternative to PowerPo
 
 The PDF workbench that shipped with FormDeck up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In FormDeck a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
-Version 0.9.2 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.10.0 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
@@ -17,7 +17,10 @@ Version 0.9.2 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 | Presenting | Full-screen show, twelve transitions including morph, animation builds, pen and laser, presenter view with a separate audience window, rehearsed timings, recorded narration, live subtitles with translation (Chrome and Edge), looping, kiosk mode and custom shows |
 | Review | Comments with replies, mentions and assignees, review status per slide, an activity log, and comparing a deck with a saved version or another file |
 | Add-ins | A Store of add-ins that add ribbon commands and task panes, each installed only after you see its permissions, checked against its checksum and run in the macro sandbox; write your own with docs/ADDINS.md |
-| Agents | MCP server (25 tools, including masters, WordArt and equations in set_text and edit_elements, and .odp export) over HTTP at /mcp or stdio, live edits attributed per agent turn and undone as one step, contact-sheet rendering and real DOM lint so the agent can see and fix its own slides |
+| Claude Code inside | A terminal dock (Ctrl or Cmd+`) with shell tabs and a Claude Code tab that runs your own Claude sign-in with FormDeck's tools; the chat panel's Claude Code assistant answers from the same sign-in; the ask bar sends the deck, slide and selection along |
+| Commands | Every ribbon, menu and shortcut command (about 640) in one catalogue: Find a Command (Shift+Ctrl or Cmd+P), MCP list_commands and run_command, `/api/commands`, and `./formdeck cli list`, `run <id>` |
+| Languages | English by default and 25 more: es, es-MX, pt-BR, fr, fr-CA, de, it, nl, da, fi, nb, sv, ru, pl, cs, hu, uk, tr, zh-Hans, zh-Hant, ja, ko, id, th, vi (Preferences > Appearance > Language) |
+| Agents | MCP server (29 tools, including masters, WordArt and equations in set_text and edit_elements, and .odp export) over HTTP at /mcp or stdio, live edits attributed per agent turn and undone as one step, contact-sheet rendering and real DOM lint so the agent can see and fix its own slides |
 
 ## Quick start
 
@@ -49,10 +52,10 @@ Without the window: `./formdeck build-deck notes.md q3.pdf shots/ --template aur
 One command builds the desktop app from a fresh checkout on macOS or Linux:
 
 ```
-./build
+./build_app
 ```
 
-It checks the system (Python 3.12+, Node 20.19+, the Xcode Command Line Tools on a Mac, WebKitGTK on Linux), installs Rust with rustup if it is missing (it asks first; `./build --yes` does not), uses rustup's Rust ahead of any other install and the native Apple silicon toolchain on an M-series Mac, creates the engine's Python environment and the window's npm packages (only again when their lists change), builds the window, freezes the engine into the app, and bundles it: `FormDeck.app` and a `.dmg` on macOS, `.deb`, `.rpm` and `.AppImage` on Linux, in `src-tauri/target/release/bundle`. Options: `--debug`, `--bundles app` (or `deb`, `appimage` and so on), `--clean`, `--reinstall`. If Rust reports E0463 (it cannot load a crate it has just built), the script clears the Rust build cache and tries once more. `./formdeck desktop build` runs the same script; `./formdeck desktop dev` runs the app from source, and `./formdeck desktop check` explains toolchain problems. On Windows use `formdeck.bat install` and `formdeck.bat desktop build`.
+On Windows: `build_app.bat`. It checks the system (Python 3.12+, Node 20.19+, the Xcode Command Line Tools on a Mac, WebKitGTK on Linux), installs Rust with rustup if it is missing (it asks first; `./build_app --yes` does not), uses rustup's Rust ahead of any other install and the native Apple silicon toolchain on an M-series Mac, creates the engine's Python environment and the window's npm packages (only again when their lists change), builds the window, freezes the engine into the app, and bundles it: `FormDeck.app` and a `.dmg` on macOS, `.deb`, `.rpm` and `.AppImage` on Linux, in `src-tauri/target/release/bundle`. Options: `--debug`, `--bundles app` (or `deb`, `appimage` and so on), `--clean`, `--reinstall`. If Rust reports E0463 (it cannot load a crate it has just built), the script clears the Rust build cache and tries once more. `./formdeck desktop build` runs the same script; `./formdeck desktop dev` runs the app from source, and `./formdeck desktop check` explains toolchain problems. On Windows use `formdeck.bat install` and `formdeck.bat desktop build`.
 
 | Platform | Packages | Built by |
 | --- | --- | --- |
@@ -81,7 +84,8 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Known gaps
 
 - Co-authoring across machines, share links, hosted publishing and presenting to a remote audience are not built; they need the engine to accept connections from other computers.
-- The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export is not yet validated as PDF/UA; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.9.2: 96.2%, 97.2% and 95.5%).
+- The add-in Store lists FormDeck's own three add-ins, with no third-party publishing yet, and PDF export is not yet validated as PDF/UA; docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.10.0: 96.2%, 97.2% and 95.5%).
+- The 25 translations were made by language models and have not been reviewed by native speakers yet; the terminal dock has not been run on Windows.
 - The window works with touch and on tablet- and phone-sized screens, but a phone or tablet cannot reach the engine yet: it accepts connections only from the computer it runs on.
 - Stock Images and AI pictures need an internet connection; AI pictures also need an OpenAI key or a compatible image server, and subtitle translation needs Chrome's built-in translator or a chat model.
 - PDF editing (annotate, fill and sign, organize, redact, convert) is not in FormDeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
