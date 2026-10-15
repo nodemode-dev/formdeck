@@ -2001,7 +2001,7 @@ class ShortcutsDialog extends Dialog {
     if (!r || !cmds) return;
     e.preventDefault();
     e.stopPropagation();
-    if (['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock'].includes(e.key)) return;
+    if (['shift', 'control', 'alt', 'meta', 'altgraph', 'capslock'].includes(e.key.toLowerCase())) return;
     if (e.key === 'Escape') { this.stopRecording(); return; }
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
     if (plain && (e.key === 'Backspace' || e.key === 'Delete')) { cmds.setKeys(r.id, []); this.stopRecording(); void this.save(); return; }
