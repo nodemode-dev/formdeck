@@ -7,11 +7,11 @@ import os
 import re
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 
 HOST_RE = re.compile(r"^[\w-]{4,40}$")
 COOKIE = "fd_relay_host"
-HOP = {"connection", "keep-alive", "transfer-encoding", "upgrade", "content-length", "proxy-connection", "te", "trailer"}
+HOP = {"connection", "keep-alive", "transfer-encoding", "upgrade", "proxy-connection", "te", "trailer"}
 MAX_BODY = 64 * 1024 * 1024
 WAIT = float(os.environ.get("FORMDECK_RELAY_TIMEOUT", "60"))
 
@@ -27,6 +27,7 @@ class Host:
         self.sockets: dict[int, WebSocket] = {}
         self.opened: dict[int, asyncio.Future] = {}
         self.early: dict[int, list[dict]] = {}
+        self.streams: dict[int, asyncio.Queue] = {}
         self.lock = asyncio.Lock()
 
     async def send(self, msg: dict) -> None:
@@ -64,6 +65,10 @@ async def tunnel(ws: WebSocket) -> None:
             sid, kind = msg.get("id"), msg.get("t")
             if kind == "res" and sid in host.pending:
                 host.pending.pop(sid).set_result(msg)
+            elif kind == "body" and sid in host.streams:
+                host.streams[sid].put_nowait(base64.b64decode(msg.get("body") or ""))
+            elif kind == "end" and sid in host.streams:
+                host.streams.pop(sid).put_nowait(None)
             elif kind == "wsa" and sid in host.opened:
                 host.opened.pop(sid).set_result(True)
             elif kind == "wsc":
@@ -86,6 +91,9 @@ async def tunnel(ws: WebSocket) -> None:
                 f.cancel()
         for guest in host.sockets.values():
             asyncio.create_task(guest.close(code=1001))
+        for q in host.streams.values():
+            q.put_nowait(None)
+        host.streams.clear()
 
 
 async def deliver(guest: WebSocket, msg: dict) -> None:
@@ -122,17 +130,26 @@ async def forward(request: Request, rest: str) -> Response:
     sid = next(ids)
     fut = asyncio.get_running_loop().create_future()
     host.pending[sid] = fut
+    queue: asyncio.Queue = asyncio.Queue()
+    host.streams[sid] = queue
     await host.send({"t": "req", "id": sid, "method": request.method, "path": path, "query": request.url.query,
                      "headers": [[k, v] for k, v in request.headers.items()], "body": base64.b64encode(body).decode()})
     try:
         msg = await asyncio.wait_for(fut, WAIT)
     except (asyncio.TimeoutError, asyncio.CancelledError):
         host.pending.pop(sid, None)
+        host.streams.pop(sid, None)
         return page(504, "FormDeck did not answer in time.")
-    data = base64.b64decode(msg.get("body") or "")
-    out = Response(content=b"" if request.method == "HEAD" else data, status_code=int(msg.get("status") or 502))
+
+    async def chunks():
+        while True:
+            part = await queue.get()
+            if part is None:
+                return
+            yield part
+
+    out = StreamingResponse(chunks(), status_code=int(msg.get("status") or 502))
     raw = [(k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in msg.get("headers") or [] if k.lower() not in HOP]
-    raw.append((b"content-length", str(len(data)).encode()))
     if entry:
         raw.append((b"set-cookie", f"{COOKIE}={name}; Path=/; HttpOnly; SameSite=Lax; Secure".encode() if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else f"{COOKIE}={name}; Path=/; HttpOnly; SameSite=Lax".encode()))
     out.raw_headers = raw

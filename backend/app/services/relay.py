@@ -8,6 +8,7 @@ import urllib.parse
 from app.core import config
 
 MAX_BODY = 64 * 1024 * 1024
+CHUNK = 512 * 1024
 _state: dict = {"task": None, "app": None, "connected": False, "error": "", "ws": None, "sockets": {}}
 
 
@@ -152,7 +153,6 @@ async def _send(ws, payload: dict) -> None:
 async def _http(ws, msg: dict) -> None:
     body = base64.b64decode(msg.get("body") or "")
     sent = {"done": False}
-    out = {"status": 500, "headers": [], "chunks": []}
 
     async def receive():
         if sent["done"]:
@@ -161,21 +161,26 @@ async def _http(ws, msg: dict) -> None:
         sent["done"] = True
         return {"type": "http.request", "body": body, "more_body": False}
 
+    sid = msg.get("id")
+    started = {"on": False}
+
     async def send(event):
         if event["type"] == "http.response.start":
-            out["status"] = event["status"]
-            out["headers"] = [[k.decode("latin-1"), v.decode("latin-1")] for k, v in event.get("headers") or []]
+            started["on"] = True
+            headers = [[k.decode("latin-1"), v.decode("latin-1")] for k, v in event.get("headers") or []]
+            await _send(ws, {"t": "res", "id": sid, "status": event["status"], "headers": headers, "stream": True})
         elif event["type"] == "http.response.body":
-            out["chunks"].append(event.get("body") or b"")
+            data = event.get("body") or b""
+            for i in range(0, len(data), CHUNK):
+                await _send(ws, {"t": "body", "id": sid, "body": base64.b64encode(data[i:i + CHUNK]).decode()})
 
     try:
         await _state["app"](_scope("http", msg), receive, send)
     except Exception:
-        out["status"], out["headers"], out["chunks"] = 502, [["content-type", "text/plain"]], [b"FormDeck could not answer this request."]
-    data = b"".join(out["chunks"])
-    if len(data) > MAX_BODY:
-        out["status"], out["headers"], data = 413, [["content-type", "text/plain"]], b"Too large to send through the relay."
-    await _send(ws, {"t": "res", "id": msg.get("id"), "status": out["status"], "headers": out["headers"], "body": base64.b64encode(data).decode()})
+        if not started["on"]:
+            await _send(ws, {"t": "res", "id": sid, "status": 502, "headers": [["content-type", "text/plain"]], "stream": True})
+            await _send(ws, {"t": "body", "id": sid, "body": base64.b64encode(b"FormDeck could not answer this request.").decode()})
+    await _send(ws, {"t": "end", "id": sid})
 
 
 async def _socket(ws, msg: dict) -> None:
