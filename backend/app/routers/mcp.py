@@ -1683,6 +1683,17 @@ async def t_chat_reply(a: Agent, args: dict) -> dict:
     return _ok(("Posted." if final else "Partial posted; keep calling chat_reply with final true to finish.") + f" Reply id {msg['id']}.", {"id": msg["id"], "final": final})
 
 
+def _param_line(c: dict) -> str:
+    ps = c.get("params") or []
+    if not ps:
+        return ""
+    def one(p: dict) -> str:
+        kind = "|".join(p.get("values") or []) if p.get("type") == "enum" else p.get("type", "string")
+        rng = f" {p['min']}..{p['max']}" if p.get("min") is not None and p.get("max") is not None else ""
+        return f"{p.get('name')}{'' if p.get('required') else '?'}: {kind}{rng}"
+    return " · params {" + ", ".join(one(p) for p in ps) + "}"
+
+
 async def t_list_commands(a: Agent, args: dict) -> dict:
     from app.routers import commands as cat
     cid = str(args.get("id") or "").strip()
@@ -1696,9 +1707,9 @@ async def t_list_commands(a: Agent, args: dict) -> dict:
     if not rows and not cat.search():
         return _ok("The catalogue is empty: the FormDeck window has not sent it yet. Open the window, wait a few seconds, then ask again.", {"commands": []})
     limit = max(1, min(400, int(args.get("limit") or 60)))
-    lines = [f"{c['id']} · {c.get('label', '')} · {c.get('group', '')}{' · risky' if c.get('risky') else ''}{' · off now' if c.get('enabled') is False else ''} · {c.get('when') or c.get('description', '')}" for c in rows[:limit]]
+    lines = [f"{c['id']} · {c.get('label', '')} · {c.get('group', '')}{' · risky' if c.get('risky') else ''}{' · off now' if c.get('enabled') is False else ''} · {c.get('when') or c.get('description', '')}{_param_line(c)}" for c in rows[:limit]]
     more = f"\n{len(rows) - limit} more; narrow with text or group." if len(rows) > limit else ""
-    return _ok(f"{len(rows)} commands:\n" + "\n".join(lines) + more, {"commands": [{k: c.get(k) for k in ("id", "label", "group", "risky", "enabled")} for c in rows[:limit]]})
+    return _ok(f"{len(rows)} commands:\n" + "\n".join(lines) + more, {"commands": [{k: c.get(k) for k in ("id", "label", "group", "risky", "enabled", "params") if k != "params" or c.get("params")} for c in rows[:limit]]})
 
 
 async def t_run_command(a: Agent, args: dict) -> dict:

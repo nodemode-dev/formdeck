@@ -3,6 +3,7 @@
 
   list [text] [--group NAME]          every command: id, label, group, when to use it
   groups                              the groups
+  counts                              commands per group, how many take params, and any without a use-when line (exit 1)
   describe <id>                       one command in full
   run <id> [key=value ...] [--yes]    runs it in the open window as one undoable step
   <id> [key=value ...] [--yes]        the same, without the word run
@@ -56,7 +57,7 @@ def show_list(text: str, group: str) -> int:
     if body.get("hint"):
         print(body["hint"], file=sys.stderr)
     for c in body.get("commands", []):
-        flags = (" risky" if c.get("risky") else "") + ("" if c.get("mutates") else " read-only")
+        flags = (" risky" if c.get("risky") else "") + ("" if c.get("mutates") else " read-only") + (" params " + ",".join(p.get("name", "") for p in c["params"]) if c.get("params") else "")
         print(f"{c['id']:<34} {c.get('label', ''):<36} {c.get('group', '')}{flags}")
     print(f"\n{body.get('shown', 0)} of {body.get('size', 0)} commands" + ("" if body.get("live") else " (no window is open now; run needs one)"))
     return 0
@@ -93,6 +94,19 @@ def main(argv: list[str]) -> int:
         _, body = call("GET", "/api/commands")
         print("\n".join(body.get("groups", [])))
         return 0
+    if argv[0] == "counts":
+        _, body = call("GET", "/api/commands")
+        rows = body.get("commands", [])
+        by: dict[str, int] = {}
+        for c in rows:
+            by[c.get("group", "")] = by.get(c.get("group", ""), 0) + 1
+        for g in sorted(by):
+            print(f"{g:<24} {by[g]}")
+        missing = body.get("missing", [])
+        print(f"\n{len(rows)} commands, {sum(1 for c in rows if c.get('params'))} take params, {len(missing)} without a use-when line")
+        for cid in missing[:40]:
+            print("  missing:", cid)
+        return 1 if missing or not rows else 0
     if argv[0] == "describe" and len(argv) > 1:
         status, body = call("GET", f"/api/commands/{urllib.parse.quote(argv[1])}")
         print(json.dumps(body, indent=2) if status == 200 else body.get("detail", body))

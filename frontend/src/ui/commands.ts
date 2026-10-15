@@ -8,6 +8,19 @@ export interface Command {
   run: () => void;
   enabled?: () => boolean;
   checked?: () => boolean;
+  params?: ParamSpec[];
+  runWith?: (p: Record<string, unknown>) => string;
+}
+
+export interface ParamSpec {
+  name: string;
+  type: 'number' | 'string' | 'color' | 'enum';
+  label: string;
+  required?: boolean;
+  min?: number;
+  max?: number;
+  values?: string[];
+  hint?: string;
 }
 
 const CODE_KEYS: Record<string, string> = {

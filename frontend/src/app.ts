@@ -42,6 +42,7 @@ import { registerSvgCommands } from './editor/svg-import';
 import { registerOutlineCommands } from './editor/outline-dialog';
 import { registerCreditCommands } from './editor/credit-caption';
 import { registerComponentCommands } from './editor/components';
+import { registerParamCommands } from './editor/param-commands';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
 
@@ -310,6 +311,7 @@ export async function startApp(): Promise<void> {
   registerOutlineCommands(commands, () => editor);
   registerCreditCommands(commands, () => editor);
   registerComponentCommands(commands, () => editor);
+  registerParamCommands(commands, () => editor);
 
   const dockHost = q(root, '.fd-dock');
   let dock: TerminalDock | null = null;
