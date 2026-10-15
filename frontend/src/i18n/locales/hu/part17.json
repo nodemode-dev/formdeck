@@ -1,0 +1,22 @@
+{
+ "0": "Akkor használd, ha az azonos hálózaton lévők a saját számítógépükön nyitnák meg ezt a prezentációt; megtekintési, megjegyzési vagy szerkesztési linkeket hoz létre (a megosztás kikapcsolt, amíg be nem kapcsolod).",
+ "1": "Csak megtekintés: ez a megosztási link nem módosíthatja a prezentációt.",
+ "2": "Csak megjegyzések: ez a megosztási link megjegyzéseket adhat hozzá és válaszolhat rájuk.",
+ "3": "Megtekintheti",
+ "4": "Hozzászólhat",
+ "5": "Szerkesztheti",
+ "6": "Megosztás ezen a hálózaton",
+ "7": "Más számítógépek engedélyezése ezen a hálózaton",
+ "8": "{0}Link létrehozása",
+ "9": "Ehhez a prezentációhoz még nincs link.",
+ "10": "Ki: a FormDeck csak erre a számítógépre válaszol. Kapcsold be, hogy az azonos hálózaton lévők kapjanak egy linket ehhez a prezentációhoz.",
+ "11": "Be, de a(z) {0}. portot nem sikerült megnyitni.",
+ "12": "Nem található hálózati cím",
+ "13": "Link másolva.",
+ "14": "Megosztás ezen a hálózaton...",
+ "15": "Be: a linkek működnek az ezen a hálózaton lévő számítógépeken ({0}{1} port). Kapcsold ki, hogy az összes link egyszerre leálljon.",
+ "16": "Ez a megosztási link csak egy prezentációt nyit meg.",
+ "17": "Ez a megosztási link csak megtekintésre jó.",
+ "18": "Ez a megosztási link csak megjegyzések hozzáadására jó.",
+ "19": "Ez a megosztási link nem vonhat vissza módosításokat."
+}

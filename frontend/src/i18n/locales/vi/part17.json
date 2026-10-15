@@ -1,0 +1,22 @@
+{
+ "0": "Dùng khi mọi người trong cùng mạng cần mở bộ trình chiếu này từ máy tính của họ; tạo liên kết xem, bình luận hoặc chỉnh sửa (chia sẻ bị tắt cho đến khi bạn bật).",
+ "1": "Chỉ xem: liên kết chia sẻ này không thể thay đổi bộ trình chiếu.",
+ "2": "Chỉ bình luận: liên kết chia sẻ này có thể thêm và trả lời bình luận.",
+ "3": "Có thể xem",
+ "4": "Có thể bình luận",
+ "5": "Có thể chỉnh sửa",
+ "6": "Chia sẻ trên mạng này",
+ "7": "Cho phép các máy tính khác trên mạng này",
+ "8": "{0}Tạo liên kết",
+ "9": "Bộ trình chiếu này chưa có liên kết nào.",
+ "10": "Tắt: FormDeck chỉ phản hồi máy tính này. Bật để cung cấp cho mọi người trong cùng mạng một liên kết đến bộ trình chiếu này.",
+ "11": "Đang bật, nhưng không thể mở cổng {0}.",
+ "12": "Không tìm thấy địa chỉ mạng",
+ "13": "Đã sao chép liên kết.",
+ "14": "Chia sẻ trên mạng này...",
+ "15": "Bật: liên kết hoạt động với các máy tính trên mạng này (cổng {0}{1}). Tắt để dừng tất cả liên kết cùng lúc.",
+ "16": "Liên kết chia sẻ này chỉ mở một bộ trình chiếu.",
+ "17": "Liên kết chia sẻ này chỉ có thể xem.",
+ "18": "Liên kết chia sẻ này chỉ có thể thêm bình luận.",
+ "19": "Liên kết chia sẻ này không thể hoàn tác thay đổi."
+}

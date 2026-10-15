@@ -1,0 +1,22 @@
+{
+ "0": "Gunakan saat orang di jaringan yang sama perlu membuka dek ini dari komputer mereka sendiri; membuat tautan lihat, komentar, atau edit (berbagi nonaktif sampai Anda mengaktifkannya).",
+ "1": "Hanya lihat: tautan berbagi ini tidak dapat mengubah dek.",
+ "2": "Hanya komentar: tautan berbagi ini dapat menambah dan membalas komentar.",
+ "3": "Dapat melihat",
+ "4": "Dapat berkomentar",
+ "5": "Dapat mengedit",
+ "6": "Bagikan di Jaringan Ini",
+ "7": "Izinkan komputer lain di jaringan ini",
+ "8": "{0}Buat Tautan",
+ "9": "Belum ada tautan untuk dek ini.",
+ "10": "Nonaktif: FormDeck hanya merespons komputer ini. Aktifkan untuk memberi orang di jaringan yang sama tautan ke dek ini.",
+ "11": "Aktif, tetapi port {0} tidak dapat dibuka.",
+ "12": "Alamat jaringan tidak ditemukan",
+ "13": "Tautan disalin.",
+ "14": "Bagikan di Jaringan Ini...",
+ "15": "Aktif: tautan berfungsi untuk komputer di jaringan ini (port {0}{1}). Nonaktifkan untuk menghentikan semua tautan sekaligus.",
+ "16": "Tautan berbagi ini hanya membuka satu dek.",
+ "17": "Tautan berbagi ini hanya dapat melihat.",
+ "18": "Tautan berbagi ini hanya dapat menambah komentar.",
+ "19": "Tautan berbagi ini tidak dapat membatalkan perubahan."
+}

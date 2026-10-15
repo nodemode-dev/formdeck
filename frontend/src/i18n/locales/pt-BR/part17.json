@@ -1,0 +1,22 @@
+{
+ "0": "Use quando pessoas na mesma rede devem abrir esta apresentação em seus próprios computadores; cria links para ver, comentar ou editar (o compartilhamento fica desativado até você ativar).",
+ "1": "Somente visualização: este link não pode alterar a apresentação.",
+ "2": "Somente comentários: este link pode adicionar e responder comentários.",
+ "3": "Pode ver",
+ "4": "Pode comentar",
+ "5": "Pode editar",
+ "6": "Compartilhar nesta rede",
+ "7": "Permitir outros computadores nesta rede",
+ "8": "{0}Criar link",
+ "9": "Ainda não há links para esta apresentação.",
+ "10": "Desativado: o FormDeck responde apenas a este computador. Ative para dar às pessoas na mesma rede um link para esta apresentação.",
+ "11": "Ativado, mas não foi possível abrir a porta {0}.",
+ "12": "Nenhum endereço de rede encontrado",
+ "13": "Link copiado.",
+ "14": "Compartilhar nesta rede...",
+ "15": "Ativado: os links funcionam para computadores desta rede (porta {0}{1}). Desative para interromper todos os links de uma vez.",
+ "16": "Este link abre apenas uma apresentação.",
+ "17": "Este link só permite visualizar.",
+ "18": "Este link só permite adicionar comentários.",
+ "19": "Este link não pode desfazer alterações."
+}

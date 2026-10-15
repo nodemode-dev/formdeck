@@ -1,0 +1,22 @@
+{
+ "0": "Använd när personer på samma nätverk ska öppna den här presentationen från sina egna datorer; skapar länkar för visning, kommentarer eller redigering (delning är avstängd tills du slår på den).",
+ "1": "Endast visning: den här delningslänken kan inte ändra presentationen.",
+ "2": "Endast kommentarer: den här delningslänken kan lägga till och besvara kommentarer.",
+ "3": "Kan visa",
+ "4": "Kan kommentera",
+ "5": "Kan redigera",
+ "6": "Dela på det här nätverket",
+ "7": "Tillåt andra datorer på det här nätverket",
+ "8": "{0}Skapa länk",
+ "9": "Inga länkar för den här presentationen ännu.",
+ "10": "Av: FormDeck svarar bara den här datorn. Slå på det för att ge personer på samma nätverk en länk till den här presentationen.",
+ "11": "På, men port {0} kunde inte öppnas.",
+ "12": "Ingen nätverksadress hittades",
+ "13": "Länk kopierad.",
+ "14": "Dela på det här nätverket...",
+ "15": "På: länkar fungerar för datorer på det här nätverket (port {0}{1}). Stäng av det för att stoppa alla länkar på en gång.",
+ "16": "Den här delningslänken öppnar bara en presentation.",
+ "17": "Den här delningslänken kan bara visa.",
+ "18": "Den här delningslänken kan bara lägga till kommentarer.",
+ "19": "Den här delningslänken kan inte ångra ändringar."
+}

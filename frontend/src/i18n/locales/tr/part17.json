@@ -1,0 +1,22 @@
+{
+ "0": "Aynı ağdaki kişilerin bu sunuyu kendi bilgisayarlarından açması gerektiğinde kullanın; görüntüleme, yorum veya düzenleme bağlantıları oluşturur (paylaşım siz açana kadar kapalıdır).",
+ "1": "Yalnızca görüntüleme: bu paylaşım bağlantısı sunuyu değiştiremez.",
+ "2": "Yalnızca yorum: bu paylaşım bağlantısı yorum ekleyebilir ve yanıtlayabilir.",
+ "3": "Görüntüleyebilir",
+ "4": "Yorum yapabilir",
+ "5": "Düzenleyebilir",
+ "6": "Bu Ağda Paylaş",
+ "7": "Bu ağdaki diğer bilgisayarlara izin ver",
+ "8": "{0}Bağlantı Oluştur",
+ "9": "Bu sunu için henüz bağlantı yok.",
+ "10": "Kapalı: FormDeck yalnızca bu bilgisayara yanıt verir. Aynı ağdaki kişilere bu sunuya bir bağlantı vermek için açın.",
+ "11": "Açık, ancak {0} numaralı bağlantı noktası açılamadı.",
+ "12": "Ağ adresi bulunamadı",
+ "13": "Bağlantı kopyalandı.",
+ "14": "Bu Ağda Paylaş...",
+ "15": "Açık: bağlantılar bu ağdaki bilgisayarlarda çalışır (bağlantı noktası {0}{1}). Tüm bağlantıları tek seferde durdurmak için kapatın.",
+ "16": "Bu paylaşım bağlantısı yalnızca tek bir sunuyu açar.",
+ "17": "Bu paylaşım bağlantısı yalnızca görüntüleyebilir.",
+ "18": "Bu paylaşım bağlantısı yalnızca yorum ekleyebilir.",
+ "19": "Bu paylaşım bağlantısı değişiklikleri geri alamaz."
+}

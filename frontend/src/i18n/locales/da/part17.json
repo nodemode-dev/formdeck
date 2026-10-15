@@ -1,0 +1,22 @@
+{
+ "0": "Brug det, når personer på det samme netværk skal åbne denne præsentation fra deres egne computere; opretter links til visning, kommentarer eller redigering (deling er slået fra, indtil du slår det til).",
+ "1": "Kun visning: dette delingslink kan ikke ændre præsentationen.",
+ "2": "Kun kommentarer: dette delingslink kan tilføje og besvare kommentarer.",
+ "3": "Kan se",
+ "4": "Kan kommentere",
+ "5": "Kan redigere",
+ "6": "Del på dette netværk",
+ "7": "Tillad andre computere på dette netværk",
+ "8": "{0}Opret link",
+ "9": "Der er endnu ingen links til denne præsentation.",
+ "10": "Fra: FormDeck svarer kun til denne computer. Slå det til for at give personer på det samme netværk et link til denne præsentation.",
+ "11": "Til, men port {0} kunne ikke åbnes.",
+ "12": "Ingen netværksadresse fundet",
+ "13": "Link kopieret.",
+ "14": "Del på dette netværk...",
+ "15": "Til: links virker for computere på dette netværk (port {0}{1}). Slå det fra for at stoppe alle links på én gang.",
+ "16": "Dette delingslink åbner kun én præsentation.",
+ "17": "Dette delingslink kan kun se.",
+ "18": "Dette delingslink kan kun tilføje kommentarer.",
+ "19": "Dette delingslink kan ikke fortryde ændringer."
+}

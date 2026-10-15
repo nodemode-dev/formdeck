@@ -1,0 +1,22 @@
+{
+ "0": "Usalo quando le persone sulla stessa rete devono aprire questa presentazione dai propri computer; crea link per visualizzare, commentare o modificare (la condivisione è disattivata finché non la attivi).",
+ "1": "Sola visualizzazione: questo link di condivisione non può modificare la presentazione.",
+ "2": "Solo commenti: questo link di condivisione può aggiungere commenti e rispondere.",
+ "3": "Può visualizzare",
+ "4": "Può commentare",
+ "5": "Può modificare",
+ "6": "Condividi su questa rete",
+ "7": "Consenti altri computer su questa rete",
+ "8": "{0}Crea link",
+ "9": "Ancora nessun link per questa presentazione.",
+ "10": "Disattivato: FormDeck risponde solo a questo computer. Attivalo per dare alle persone sulla stessa rete un link a questa presentazione.",
+ "11": "Attivato, ma non è stato possibile aprire la porta {0}.",
+ "12": "Nessun indirizzo di rete trovato",
+ "13": "Link copiato.",
+ "14": "Condividi su questa rete...",
+ "15": "Attivato: i link funzionano per i computer su questa rete (porta {0}{1}). Disattivalo per interrompere tutti i link in una volta.",
+ "16": "Questo link di condivisione apre una sola presentazione.",
+ "17": "Questo link di condivisione permette solo di visualizzare.",
+ "18": "Questo link di condivisione permette solo di aggiungere commenti.",
+ "19": "Questo link di condivisione non può annullare le modifiche."
+}

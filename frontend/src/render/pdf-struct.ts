@@ -39,7 +39,7 @@ function tableRows(el: Element, table: Extract<SlideElement, { type: 'table' }>)
 }
 
 export function chartAlt(ch: Extract<SlideElement, { type: 'chart' }>['chart']): string {
-  const kind = `${ch.kind.charAt(0).toUpperCase()}${ch.kind.slice(1)} chart`;
+  const kind = ch.kind.charAt(0).toUpperCase() + ch.kind.slice(1) + ' chart';
   const series = ch.series.slice(0, 6).map((s) => {
     const vals = (s.values as Array<number | null | [number, number]>).slice(0, 12).map((v, i) => (Array.isArray(v) ? `${v[0]}, ${v[1]}` : `${ch.categories[i] ?? i + 1} ${v ?? 'none'}`));
     return `${s.name || 'Series'}: ${vals.join('; ')}`;

@@ -1,0 +1,22 @@
+{
+ "0": "À utiliser quand des personnes du même réseau doivent ouvrir cette présentation depuis leur propre ordinateur; crée des liens en lecture, commentaire ou modification (le partage est désactivé tant que vous ne l'activez pas).",
+ "1": "Lecture seule : ce lien de partage ne peut pas modifier la présentation.",
+ "2": "Commentaires seulement : ce lien de partage peut ajouter des commentaires et y répondre.",
+ "3": "Peut lire",
+ "4": "Peut commenter",
+ "5": "Peut modifier",
+ "6": "Partager sur ce réseau",
+ "7": "Autoriser les autres ordinateurs de ce réseau",
+ "8": "{0}Créer un lien",
+ "9": "Aucun lien pour cette présentation pour le moment.",
+ "10": "Désactivé : FormDeck ne répond qu'à cet ordinateur. Activez-le pour donner aux personnes du même réseau un lien vers cette présentation.",
+ "11": "Activé, mais le port {0} n'a pas pu être ouvert.",
+ "12": "Aucune adresse réseau trouvée",
+ "13": "Lien copié.",
+ "14": "Partager sur ce réseau...",
+ "15": "Activé : les liens fonctionnent pour les ordinateurs de ce réseau (port {0}{1}). Désactivez-le pour arrêter tous les liens d'un coup.",
+ "16": "Ce lien de partage n'ouvre qu'une seule présentation.",
+ "17": "Ce lien de partage est en lecture seule.",
+ "18": "Ce lien de partage permet seulement d'ajouter des commentaires.",
+ "19": "Ce lien de partage ne peut pas annuler les modifications."
+}

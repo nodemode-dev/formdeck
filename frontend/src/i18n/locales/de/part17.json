@@ -1,0 +1,22 @@
+{
+ "0": "Nutze dies, wenn Personen im selben Netzwerk diese Präsentation auf ihren eigenen Computern öffnen sollen; erstellt Links zum Ansehen, Kommentieren oder Bearbeiten (Freigabe ist aus, bis du sie einschaltest).",
+ "1": "Nur ansehen: Dieser Freigabelink kann die Präsentation nicht ändern.",
+ "2": "Nur kommentieren: Dieser Freigabelink kann Kommentare hinzufügen und beantworten.",
+ "3": "Kann ansehen",
+ "4": "Kann kommentieren",
+ "5": "Kann bearbeiten",
+ "6": "In diesem Netzwerk freigeben",
+ "7": "Andere Computer in diesem Netzwerk zulassen",
+ "8": "{0}Link erstellen",
+ "9": "Für diese Präsentation gibt es noch keine Links.",
+ "10": "Aus: FormDeck antwortet nur diesem Computer. Schalte es ein, um Personen im selben Netzwerk einen Link zu dieser Präsentation zu geben.",
+ "11": "Ein, aber Port {0} konnte nicht geöffnet werden.",
+ "12": "Keine Netzwerkadresse gefunden",
+ "13": "Link kopiert.",
+ "14": "In diesem Netzwerk freigeben...",
+ "15": "Ein: Links funktionieren für Computer in diesem Netzwerk (Port {0}{1}). Schalte es aus, um alle Links auf einmal zu beenden.",
+ "16": "Dieser Freigabelink öffnet nur eine Präsentation.",
+ "17": "Dieser Freigabelink kann nur ansehen.",
+ "18": "Dieser Freigabelink kann nur Kommentare hinzufügen.",
+ "19": "Dieser Freigabelink kann Änderungen nicht rückgängig machen."
+}

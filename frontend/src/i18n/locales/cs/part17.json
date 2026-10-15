@@ -1,0 +1,22 @@
+{
+ "0": "Použijte, když mají lidé ve stejné síti otevřít tuto prezentaci na svých počítačích; vytvoří odkazy pro zobrazení, komentování nebo úpravy (sdílení je vypnuté, dokud ho nezapnete).",
+ "1": "Pouze zobrazení: tento odkaz nemůže prezentaci měnit.",
+ "2": "Pouze komentáře: tento odkaz může přidávat komentáře a odpovídat na ně.",
+ "3": "Může zobrazit",
+ "4": "Může komentovat",
+ "5": "Může upravovat",
+ "6": "Sdílet v této síti",
+ "7": "Povolit ostatní počítače v této síti",
+ "8": "{0}Vytvořit odkaz",
+ "9": "Tato prezentace zatím nemá žádné odkazy.",
+ "10": "Vypnuto: FormDeck odpovídá jen tomuto počítači. Zapněte ho, aby lidé ve stejné síti dostali odkaz na tuto prezentaci.",
+ "11": "Zapnuto, ale port {0} se nepodařilo otevřít.",
+ "12": "Nebyla nalezena žádná síťová adresa",
+ "13": "Odkaz zkopírován.",
+ "14": "Sdílet v této síti...",
+ "15": "Zapnuto: odkazy fungují pro počítače v této síti (port {0}{1}). Vypnutím zastavíte všechny odkazy najednou.",
+ "16": "Tento odkaz otevře jen jednu prezentaci.",
+ "17": "Tento odkaz umožňuje jen zobrazení.",
+ "18": "Tento odkaz umožňuje jen přidávat komentáře.",
+ "19": "Tento odkaz nemůže vracet změny zpět."
+}

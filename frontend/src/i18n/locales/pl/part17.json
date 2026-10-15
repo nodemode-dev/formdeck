@@ -1,0 +1,22 @@
+{
+ "0": "Użyj, gdy osoby w tej samej sieci mają otwierać tę prezentację na własnych komputerach; tworzy linki do wyświetlania, komentowania lub edycji (udostępnianie jest wyłączone, dopóki go nie włączysz).",
+ "1": "Tylko podgląd: ten link nie może zmieniać prezentacji.",
+ "2": "Tylko komentarze: ten link pozwala dodawać komentarze i odpowiadać na nie.",
+ "3": "Może wyświetlać",
+ "4": "Może komentować",
+ "5": "Może edytować",
+ "6": "Udostępnij w tej sieci",
+ "7": "Zezwalaj innym komputerom w tej sieci",
+ "8": "{0}Utwórz link",
+ "9": "Ta prezentacja nie ma jeszcze linków.",
+ "10": "Wyłączone: FormDeck odpowiada tylko temu komputerowi. Włącz, aby dać osobom w tej samej sieci link do tej prezentacji.",
+ "11": "Włączone, ale nie udało się otworzyć portu {0}.",
+ "12": "Nie znaleziono adresu sieciowego",
+ "13": "Skopiowano link.",
+ "14": "Udostępnij w tej sieci...",
+ "15": "Włączone: linki działają na komputerach w tej sieci (port {0}{1}). Wyłącz, aby od razu zatrzymać wszystkie linki.",
+ "16": "Ten link otwiera tylko jedną prezentację.",
+ "17": "Ten link pozwala tylko wyświetlać.",
+ "18": "Ten link pozwala tylko dodawać komentarze.",
+ "19": "Ten link nie może cofać zmian."
+}

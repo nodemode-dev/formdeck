@@ -1,0 +1,22 @@
+{
+ "0": "Bruk dette når personer på samme nettverk skal åpne denne presentasjonen fra sine egne datamaskiner; lager lenker for visning, kommentarer eller redigering (deling er av til du slår det på).",
+ "1": "Kun visning: denne delingslenken kan ikke endre presentasjonen.",
+ "2": "Kun kommentarer: denne delingslenken kan legge til og svare på kommentarer.",
+ "3": "Kan se",
+ "4": "Kan kommentere",
+ "5": "Kan redigere",
+ "6": "Del på dette nettverket",
+ "7": "Tillat andre datamaskiner på dette nettverket",
+ "8": "{0}Lag lenke",
+ "9": "Ingen lenker for denne presentasjonen ennå.",
+ "10": "Av: FormDeck svarer bare til denne datamaskinen. Slå det på for å gi personer på samme nettverk en lenke til denne presentasjonen.",
+ "11": "På, men port {0} kunne ikke åpnes.",
+ "12": "Fant ingen nettverksadresse",
+ "13": "Lenke kopiert.",
+ "14": "Del på dette nettverket...",
+ "15": "På: lenker fungerer for datamaskiner på dette nettverket (port {0}{1}). Slå det av for å stoppe alle lenker på én gang.",
+ "16": "Denne delingslenken åpner bare én presentasjon.",
+ "17": "Denne delingslenken kan bare se.",
+ "18": "Denne delingslenken kan bare legge til kommentarer.",
+ "19": "Denne delingslenken kan ikke angre endringer."
+}

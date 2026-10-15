@@ -1,0 +1,22 @@
+{
+ "0": "Gebruik dit wanneer mensen op hetzelfde netwerk deze presentatie op hun eigen computer moeten openen; maakt links om te bekijken, te becommentariëren of te bewerken (delen staat uit totdat je het inschakelt).",
+ "1": "Alleen bekijken: deze deellink kan de presentatie niet wijzigen.",
+ "2": "Alleen reageren: met deze deellink kun je opmerkingen toevoegen en erop antwoorden.",
+ "3": "Kan bekijken",
+ "4": "Kan reageren",
+ "5": "Kan bewerken",
+ "6": "Delen op dit netwerk",
+ "7": "Andere computers op dit netwerk toestaan",
+ "8": "{0}Link maken",
+ "9": "Nog geen links voor deze presentatie.",
+ "10": "Uit: FormDeck reageert alleen op deze computer. Schakel het in om mensen op hetzelfde netwerk een link naar deze presentatie te geven.",
+ "11": "Aan, maar poort {0} kon niet worden geopend.",
+ "12": "Geen netwerkadres gevonden",
+ "13": "Link gekopieerd.",
+ "14": "Delen op dit netwerk...",
+ "15": "Aan: links werken voor computers op dit netwerk (poort {0}{1}). Schakel het uit om alle links in één keer te stoppen.",
+ "16": "Deze deellink opent slechts één presentatie.",
+ "17": "Deze deellink kan alleen bekijken.",
+ "18": "Met deze deellink kun je alleen opmerkingen toevoegen.",
+ "19": "Deze deellink kan wijzigingen niet ongedaan maken."
+}

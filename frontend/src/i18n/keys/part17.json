@@ -1,0 +1,22 @@
+[
+"Use when people on the same network should open this deck from their own computers; makes view, comment or edit links (sharing is off until turned on).",
+"View only: this share link cannot change the deck.",
+"Comments only: this share link can add and reply to comments.",
+"Can view",
+"Can comment",
+"Can edit",
+"Share on This Network",
+"Allow other computers on this network",
+"{0}Create Link",
+"No links for this deck yet.",
+"Off: FormDeck answers only this computer. Turn it on to give people on the same network a link to this deck.",
+"On, but port {0} could not be opened.",
+"No network address found",
+"Link copied.",
+"Share on This Network...",
+"On: links work for computers on this network (port {0}{1}). Turn it off to stop every link at once.",
+"This share link opens one deck only.",
+"This share link can view only.",
+"This share link can add comments only.",
+"This share link cannot undo changes."
+]
