@@ -17,8 +17,10 @@ usage: ./formdeck [command] [options]
   build               production build of the frontend into frontend/dist
   serve               serve the built frontend from the backend on 127.0.0.1:8197
   freeze              freeze the backend into the Tauri sidecar binary
-  desktop dev|build|check  run, bundle (the same as ./build) or check the toolchain for the desktop app
+  desktop dev|build|check  run, bundle (the same as ./build_app) or check the toolchain for the desktop app
   doctor              check the toolchain, installs and ports
+  claude [args]       Claude Code in this terminal with FormDeck's MCP tools attached
+  cli list|describe|run|batch  the editor's command catalogue from a terminal: list [text], run <id> (the window must be open)
   mcp                 formdeck over MCP's stdio transport, for Claude Desktop and other MCP clients
   agents install|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
   build-deck [args]   build a deck from files headlessly, without the window
@@ -48,6 +50,8 @@ case "$cmd" in
       *) usage; exit 2 ;;
     esac ;;
   doctor) exec setup/doctor "$@" ;;
+  claude) exec python3 setup/claude_launch.py "$@" ;;
+  cli) exec python3 setup/catalogue.py "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
   agents) exec python3 setup/agents.py "$@" ;;
   build-deck) exec setup/build_deck "$@" ;;

@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-usage: ./build [options]
+usage: ./build_app [options]
 
 Builds the FormDeck desktop app from a fresh checkout in one step: checks and
 fixes the toolchain, installs the engine and window dependencies, builds the
@@ -69,7 +69,7 @@ ARCH="$(uname -m)"
 step "checking the system ($OS, $ARCH)"
 
 if [ "$OS" = macos ]; then
-  xcode-select -p >/dev/null 2>&1 || die "the Xcode Command Line Tools are missing. Run: xcode-select --install (a window opens), then run ./build again"
+  xcode-select -p >/dev/null 2>&1 || die "the Xcode Command Line Tools are missing. Run: xcode-select --install (a window opens), then run ./build_app again"
 fi
 
 if [ "$OS" = linux ] && ! pkg-config --exists webkit2gtk-4.1 2>/dev/null; then
@@ -105,7 +105,7 @@ if ! command -v cargo >/dev/null 2>&1 || ! command -v rustup >/dev/null 2>&1; th
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
     export PATH="$HOME/.cargo/bin:$PATH"
   elif ! command -v cargo >/dev/null 2>&1; then
-    die "Rust is needed. Install it from https://rustup.rs (or run ./build --yes), then run ./build again"
+    die "Rust is needed. Install it from https://rustup.rs (or run ./build_app --yes), then run ./build_app again"
   fi
 fi
 if command -v rustup >/dev/null 2>&1; then
@@ -120,7 +120,7 @@ unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS CARGO_BUILD_TARGET CARGO_TARGET_DIR RUST
 RUSTC_V="$(rustc -V | awk '{print $2}')"
 CARGO_V="$(cargo -V | awk '{print $2}')"
 TRIPLE="$(rustc -vV | awk '/^host:/ {print $2}')"
-[ "$RUSTC_V" = "$CARGO_V" ] || die "rustc $RUSTC_V ($(command -v rustc)) and cargo $CARGO_V ($(command -v cargo)) come from different Rust installs. Remove the extra one (for Homebrew: brew uninstall rust) and run ./build again"
+[ "$RUSTC_V" = "$CARGO_V" ] || die "rustc $RUSTC_V ($(command -v rustc)) and cargo $CARGO_V ($(command -v cargo)) come from different Rust installs. Remove the extra one (for Homebrew: brew uninstall rust) and run ./build_app again"
 case "$OS:$ARCH:$TRIPLE" in
   macos:arm64:aarch64-apple-darwin|macos:x86_64:x86_64-apple-darwin|linux:*) ;;
   *) die "rustc builds for $TRIPLE but this machine is $ARCH. Run: rustup default stable-$( [ "$ARCH" = arm64 ] && echo aarch64 || echo x86_64 )-apple-darwin" ;;
@@ -166,7 +166,7 @@ else
   say "up to date"
 fi
 TAURI="$ROOT/frontend/node_modules/.bin/tauri"
-[ -x "$TAURI" ] || die "the Tauri CLI did not install; run ./build --reinstall"
+[ -x "$TAURI" ] || die "the Tauri CLI did not install; run ./build_app --reinstall"
 CLI_V="$("$TAURI" --version | awk '{print $2}')"
 CRATE_V="$(awk '/^name = "tauri"$/ {getline; gsub(/"/, "", $3); print $3; exit}' src-tauri/Cargo.lock)"
 [ "${CLI_V%.*}" = "${CRATE_V%.*}" ] || die "the Tauri CLI ($CLI_V) and the tauri crate ($CRATE_V) differ; they must match before Tauri will build"
