@@ -209,6 +209,9 @@
 .fd-check-detail { color: var(--text-primary); font-size: var(--fd-13); line-height: 1.4; }
 .fd-check-fix { color: var(--text-secondary); font-size: var(--fd-12); line-height: 1.4; }
 
+.fd-dlg-pref-fonts { display: flex; gap: var(--space-2); min-width: 0; }
+.fd-dlg-pref-fonts > select { flex: 1 1 0; min-width: 0; }
+
 .fd-ideas-note { margin-bottom: var(--space-3); }
 .fd-ideas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); max-height: 60vh; overflow-y: auto; }
 .fd-ideas-grid[hidden] { display: none; }

@@ -79,7 +79,10 @@ def scale_deck(deck: dict, w: float, h: float) -> dict:
 
 
 def new_deck(title: str = "Untitled deck", template: str | None = None, size: str | dict | None = None, first_slide: bool = True) -> dict:
-    tid = template or config.read_settings().get("defaultTemplate") or DEFAULT_ID
+    prefs = config.read_settings()
+    tid = template or prefs.get("defaultTemplate") or DEFAULT_ID
+    if size is None and prefs.get("defaultSize") in model.SIZES:
+        size = prefs["defaultSize"]
     if isinstance(size, str):
         w, h = model.SIZES.get(size, (960, 540))
         size = {"w": w, "h": h}
@@ -89,6 +92,14 @@ def new_deck(title: str = "Untitled deck", template: str | None = None, size: st
     deck["layouts"] = tpl["layouts"]
     deck["template"] = tpl.get("template")
     deck["meta"]["template"] = (tpl.get("template") or {}).get("id", tid)
+    fonts = prefs.get("defaultFonts") if isinstance(prefs.get("defaultFonts"), dict) else {}
+    for slot in ("major", "minor"):
+        name = str(fonts.get(slot) or "").strip()
+        if not name:
+            continue
+        for theme in [deck.get("theme"), *[m.get("theme") for m in deck["masters"]]]:
+            if isinstance(theme, dict):
+                theme.setdefault("fonts", {})[slot] = name
     if first_slide:
         lay = model.layout_for(deck, "title") or (deck["layouts"][0] if deck["layouts"] else None)
         if lay:

@@ -3,7 +3,7 @@ import type { Editor } from '../editor/editor';
 import { addMaster } from '../editor/master-view';
 import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
 import { api, type TemplateSummary } from '../io/api';
-import { ensureFonts, fontsOfDeck } from '../render/fonts';
+import { BUNDLED_FONTS, ensureFonts, fontsOfDeck } from '../render/fonts';
 import { SlideView } from '../render/slide';
 import { VERSION } from '../version';
 import { LANGUAGES, setLanguage, storedLanguage } from '../i18n';
@@ -1668,6 +1668,8 @@ class PreferencesDialog extends Dialog {
   private readonly tpl: HTMLSelectElement;
   private readonly author: HTMLInputElement;
   private readonly units: HTMLElement;
+  private readonly size: HTMLSelectElement;
+  private readonly fonts: HTMLSelectElement[];
   private readonly autosave: HTMLInputElement;
   private readonly agents: HTMLInputElement;
 
@@ -1683,6 +1685,8 @@ class PreferencesDialog extends Dialog {
 </section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">New decks</div>
 <div class="fd-field"><span>Template</span><select class="fd-dlg-pref-tpl" aria-label="Default template"></select></div>
+<div class="fd-field"><span>Slide size</span><select class="fd-input fd-dlg-pref-size" aria-label="Default slide size"><option value="">Template's size</option>${Object.entries(SLIDE_SIZES).map(([v, s]) => `<option value="${v}">${s.label}</option>`).join('')}</select></div>
+<div class="fd-field"><span>Fonts</span><div class="fd-dlg-pref-fonts"><select class="fd-input" data-font="major" aria-label="Heading font" title="Heading font"><option value="">Template's heading font</option>${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</select><select class="fd-input" data-font="minor" aria-label="Body font" title="Body font"><option value="">Template's body font</option>${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</select></div></div>
 <label class="fd-field"><span>Author</span><input class="fd-input fd-dlg-pref-author" type="text" spellcheck="false" placeholder="Your name, written into exported files"></label>
 </section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Editing</div>
@@ -1721,6 +1725,10 @@ class PreferencesDialog extends Dialog {
     });
     this.color.addEventListener('input', () => { setAccent(this.color.value); this.syncLook(); });
     this.tpl.addEventListener('change', () => this.persist({ defaultTemplate: this.tpl.value }));
+    this.size = q<HTMLSelectElement>(box, '.fd-dlg-pref-size');
+    this.fonts = Array.from(box.querySelectorAll<HTMLSelectElement>('[data-font]'));
+    this.size.addEventListener('change', () => this.persist({ defaultSize: this.size.value }));
+    for (const f of this.fonts) f.addEventListener('change', () => this.persist({ defaultFonts: Object.fromEntries(this.fonts.map((x) => [x.dataset.font as string, x.value])) }));
     this.author.addEventListener('change', () => this.persist({ author: this.author.value.trim() }));
     segOn(this.units, (v) => this.persist({ units: v }));
     this.autosave.addEventListener('change', () => this.persist({ autosave: this.autosave.checked }));
@@ -1781,6 +1789,9 @@ class PreferencesDialog extends Dialog {
         update: (n, t) => setText(n, t.name),
       });
       setValue(this.tpl, str(s.defaultTemplate));
+      setValue(this.size, str(s.defaultSize));
+      const df = (s.defaultFonts && typeof s.defaultFonts === 'object' ? s.defaultFonts : {}) as Record<string, unknown>;
+      for (const f of this.fonts) setValue(f, str(df[f.dataset.font ?? '']));
       setValue(this.author, str(s.author));
       segSet(this.units, str(s.units) || 'pt');
       setChecked(this.autosave, s.autosave !== false);
