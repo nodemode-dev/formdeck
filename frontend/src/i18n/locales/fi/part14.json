@@ -1,0 +1,15 @@
+{
+ "0": "Käytä, kun valitun tekstin pitää näkyä isoilla kirjaimilla kirjoittamatta sitä uudelleen.",
+ "1": "Käytä, kun pienet kirjaimet pitää näyttää kapiteeleina, kuten otsikoissa tai nimissä.",
+ "2": "Käytä, kun valitun tekstin pitää olla korotettu ja pienempi, kuten alaviitemerkeissä tai eksponenteissa.",
+ "3": "Käytä, kun valitun tekstin pitää olla alennettu ja pienempi, kuten kemiallisissa kaavoissa.",
+ "4": "Käytä, kun valitun tekstin pitää saada viimeksi fontin värivalikosta valittu väri; set-text-color ottaa tarkan värin.",
+ "5": "Käytä, kun valittu teksti pitää merkitä korostusvärillä.",
+ "6": "Käytä, kun kuva pitää vaihtaa toiseen tiedostoon säilyttäen sen koko, sijainti ja tehosteet.",
+ "7": "Käytä, kun henkilön agentin pitää muuttaa kuvaa tavallisella kielellä esitetyn pyynnön perusteella.",
+ "8": "Käytä, kun haluat ruudukon, apuviivojen ja kohdistuksen asetukset.",
+ "9": "Käytä, kun tämä muoto pitää piirtää diaan; nimiö kertoo muodon.",
+ "10": "Käytä, kun valittujen diojen pitää saada tämä asettelu; niiden sisältö siirtyy asettelun paikkamerkkeihin.",
+ "11": "Käytä, kun valinta tarvitsee tarkan arvon; params kertoo, minkä.",
+ "12": "Käytä, kun ikkunan pitää näyttää dia numeron perusteella."
+}

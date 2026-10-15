@@ -1,0 +1,15 @@
+{
+ "0": "Dùng khi văn bản được chọn cần hiển thị bằng chữ hoa mà không phải gõ lại.",
+ "1": "Dùng khi chữ thường cần hiển thị dưới dạng chữ hoa nhỏ, như trong tiêu đề hoặc tên.",
+ "2": "Dùng khi văn bản được chọn cần nâng lên và nhỏ hơn, như dấu chú thích cuối trang hoặc số mũ.",
+ "3": "Dùng khi văn bản được chọn cần hạ xuống và nhỏ hơn, như trong công thức hóa học.",
+ "4": "Dùng khi văn bản được chọn cần lấy màu vừa chọn gần nhất trong menu màu phông chữ; set-text-color nhận một màu chính xác.",
+ "5": "Dùng khi văn bản được chọn cần được đánh dấu bằng màu bút dạ quang.",
+ "6": "Dùng khi cần đổi một hình ảnh sang tệp khác mà vẫn giữ kích thước, vị trí và hiệu ứng.",
+ "7": "Dùng khi tác nhân của người dùng cần thay đổi hình ảnh từ một yêu cầu bằng ngôn ngữ thông thường.",
+ "8": "Dùng khi bạn muốn mở cài đặt lưới, đường dẫn và căn bắt dính.",
+ "9": "Dùng khi cần vẽ hình dạng này trên slide; nhãn cho biết tên hình dạng.",
+ "10": "Dùng khi các slide được chọn cần dùng bố cục này; nội dung của chúng chuyển vào các phần giữ chỗ của bố cục.",
+ "11": "Dùng khi vùng chọn cần một giá trị chính xác; params cho biết giá trị nào.",
+ "12": "Dùng khi cửa sổ cần hiển thị một slide theo số thứ tự."
+}

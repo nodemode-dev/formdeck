@@ -1,0 +1,15 @@
+{
+ "0": "Verwenden, wenn der ausgewählte Text in Großbuchstaben erscheinen soll, ohne ihn neu zu tippen.",
+ "1": "Verwenden, wenn Kleinbuchstaben als Kapitälchen erscheinen sollen, etwa in Überschriften oder Namen.",
+ "2": "Verwenden, wenn der ausgewählte Text hochgestellt und kleiner sein soll, etwa bei Fußnotenzeichen oder Exponenten.",
+ "3": "Verwenden, wenn der ausgewählte Text tiefgestellt und kleiner sein soll, etwa in chemischen Formeln.",
+ "4": "Verwenden, wenn der ausgewählte Text die zuletzt im Menü für Schriftfarbe gewählte Farbe erhalten soll; set-text-color nimmt eine exakte Farbe.",
+ "5": "Verwenden, wenn der ausgewählte Text mit der Hervorhebungsfarbe markiert werden soll.",
+ "6": "Verwenden, wenn ein Bild durch eine andere Datei ersetzt werden soll, bei gleicher Größe, Position und gleichen Effekten.",
+ "7": "Verwenden, wenn ein Bild vom Agenten der Person anhand einer Anfrage in normaler Sprache geändert werden soll.",
+ "8": "Verwenden, wenn du die Einstellungen für Raster, Hilfslinien und Ausrichten brauchst.",
+ "9": "Verwenden, wenn diese Form auf der Folie gezeichnet werden soll; die Beschriftung nennt die Form.",
+ "10": "Verwenden, wenn die ausgewählten Folien dieses Layout erhalten sollen; ihr Inhalt wandert in dessen Platzhalter.",
+ "11": "Verwenden, wenn die Auswahl einen exakten Wert braucht; params gibt an, welchen.",
+ "12": "Verwenden, wenn das Fenster eine Folie anhand ihrer Nummer zeigen soll."
+}

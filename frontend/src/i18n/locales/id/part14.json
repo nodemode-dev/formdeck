@@ -1,0 +1,15 @@
+{
+ "0": "Gunakan saat teks yang dipilih harus tampil dalam huruf kapital tanpa mengetik ulang.",
+ "1": "Gunakan saat huruf kecil harus tampil sebagai kapital kecil, seperti pada judul atau nama.",
+ "2": "Gunakan saat teks yang dipilih harus naik dan lebih kecil, seperti pada tanda catatan kaki atau eksponen.",
+ "3": "Gunakan saat teks yang dipilih harus turun dan lebih kecil, seperti pada rumus kimia.",
+ "4": "Gunakan saat teks yang dipilih harus memakai warna terakhir yang dipilih di menu warna font; set-text-color menerima warna yang tepat.",
+ "5": "Gunakan saat teks yang dipilih harus ditandai dengan warna stabilo.",
+ "6": "Gunakan saat gambar harus diganti dengan file lain sambil mempertahankan ukuran, posisi, dan efeknya.",
+ "7": "Gunakan saat gambar harus diubah oleh agen pengguna berdasarkan permintaan dalam bahasa sehari-hari.",
+ "8": "Gunakan saat Anda memerlukan pengaturan kisi, pemandu, dan perekatan.",
+ "9": "Gunakan saat bentuk ini harus digambar di slide; label menyebutkan nama bentuknya.",
+ "10": "Gunakan saat slide yang dipilih harus memakai tata letak ini; kontennya pindah ke placeholder tata letak.",
+ "11": "Gunakan saat pilihan memerlukan nilai yang tepat; params menunjukkan nilai yang mana.",
+ "12": "Gunakan saat jendela harus menampilkan slide berdasarkan nomornya."
+}

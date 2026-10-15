@@ -1,0 +1,15 @@
+{
+ "0": "À utiliser quand le texte sélectionné doit s'afficher en majuscules sans être retapé.",
+ "1": "À utiliser quand les minuscules doivent s'afficher en petites capitales, comme dans les titres ou les noms.",
+ "2": "À utiliser quand le texte sélectionné doit être surélevé et plus petit, comme pour les appels de note ou les exposants.",
+ "3": "À utiliser quand le texte sélectionné doit être abaissé et plus petit, comme dans les formules chimiques.",
+ "4": "À utiliser quand le texte sélectionné doit prendre la dernière couleur choisie dans le menu de couleur de police ; set-text-color en accepte une précise.",
+ "5": "À utiliser quand le texte sélectionné doit être marqué avec la couleur de surlignage.",
+ "6": "À utiliser quand une image doit être remplacée par un autre fichier en conservant sa taille, sa position et ses effets.",
+ "7": "À utiliser quand une image doit être modifiée par l'agent de la personne à partir d'une demande en langage courant.",
+ "8": "À utiliser pour accéder aux réglages de la grille, des repères et de l'alignement.",
+ "9": "À utiliser quand cette forme doit être dessinée sur la diapositive ; l'étiquette nomme la forme.",
+ "10": "À utiliser quand les diapositives sélectionnées doivent adopter cette disposition ; leur contenu passe dans ses espaces réservés.",
+ "11": "À utiliser quand la sélection a besoin d'une valeur précise ; params indique laquelle.",
+ "12": "À utiliser quand la fenêtre doit afficher une diapositive selon son numéro."
+}

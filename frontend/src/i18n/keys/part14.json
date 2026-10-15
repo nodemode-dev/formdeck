@@ -1,0 +1,15 @@
+[
+"Use when the selected text should show in capitals without retyping it.",
+"Use when lowercase letters should show as small capitals, as in headings or names.",
+"Use when the selected text should sit raised and smaller, as in footnote marks or exponents.",
+"Use when the selected text should sit lowered and smaller, as in chemical formulas.",
+"Use when the selected text should take the colour last picked in the font colour menu; set-text-color takes an exact one.",
+"Use when the selected text should be marked with the highlighter colour.",
+"Use when a picture should be swapped for another file while keeping its size, position and effects.",
+"Use when a picture should be changed by the person's agent from a plain-language request.",
+"Use when you want the grid, guides and snapping settings.",
+"Use when this shape should be drawn on the slide; the label names the shape.",
+"Use when the selected slides should take this layout; their content moves into its placeholders.",
+"Use when the selection needs an exact value; the params say which.",
+"Use when the window should show a slide by its number."
+]

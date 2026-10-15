@@ -58,6 +58,10 @@ function lookup(en: string): string | null {
     const base = lookup(en.slice(0, -cut));
     if (base !== null) out = base + en.slice(-cut);
   }
+  if (out === null && !/[.…:]$/.test(en)) {
+    const dotted = exact.get(`${en}...`) ?? exact.get(`${en}…`);
+    if (dotted) out = dotted.replace(/\s*(\.\.\.|…)$/, '');
+  }
   const keyed = out === null ? /^([\s\S]+?) \(([^()]{1,24})\)$/.exec(en) : null;
   if (keyed && /^((Alt|Shift|Ctrl|Cmd|Mod|Option)\+)*(\S{1,9}|Left|Right|Up|Down|Space|Enter|Esc|Tab|Backspace|Delete)$/.test(keyed[2])) {
     const base = lookup(keyed[1]);

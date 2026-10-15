@@ -1,0 +1,15 @@
+{
+ "0": "Seçili metnin yeniden yazılmadan büyük harflerle görünmesi gerektiğinde kullanın.",
+ "1": "Küçük harflerin başlıklarda veya adlarda olduğu gibi küçük büyük harf olarak görünmesi gerektiğinde kullanın.",
+ "2": "Seçili metnin dipnot işaretleri veya üsler gibi yükseltilmiş ve daha küçük durması gerektiğinde kullanın.",
+ "3": "Seçili metnin kimyasal formüllerdeki gibi alçaltılmış ve daha küçük durması gerektiğinde kullanın.",
+ "4": "Seçili metnin yazı tipi rengi menüsünde en son seçilen rengi alması gerektiğinde kullanın; set-text-color tam bir renk alır.",
+ "5": "Seçili metnin vurgu rengiyle işaretlenmesi gerektiğinde kullanın.",
+ "6": "Bir resmin boyutu, konumu ve efektleri korunarak başka bir dosyayla değiştirilmesi gerektiğinde kullanın.",
+ "7": "Bir resmin kişinin aracısı tarafından düz dilde bir istekle değiştirilmesi gerektiğinde kullanın.",
+ "8": "Izgara, kılavuz ve yapıştırma ayarlarını istediğinizde kullanın.",
+ "9": "Bu şeklin slayta çizilmesi gerektiğinde kullanın; etiket şeklin adını verir.",
+ "10": "Seçili slaytların bu düzeni alması gerektiğinde kullanın; içerikleri düzenin yer tutucularına taşınır.",
+ "11": "Seçimin tam bir değere ihtiyacı olduğunda kullanın; params hangisi olduğunu belirtir.",
+ "12": "Pencerenin bir slaydı numarasına göre göstermesi gerektiğinde kullanın."
+}

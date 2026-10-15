@@ -1,0 +1,15 @@
+{
+ "0": "Använd när den markerade texten ska visas med versaler utan att skrivas om.",
+ "1": "Använd när gemener ska visas som kapitäler, som i rubriker eller namn.",
+ "2": "Använd när den markerade texten ska stå upphöjd och mindre, som vid fotnotsmarkeringar eller exponenter.",
+ "3": "Använd när den markerade texten ska stå nedsänkt och mindre, som i kemiska formler.",
+ "4": "Använd när den markerade texten ska få den färg som senast valdes i menyn för teckenfärg; set-text-color tar en exakt färg.",
+ "5": "Använd när den markerade texten ska markeras med markeringsfärgen.",
+ "6": "Använd när en bild ska bytas mot en annan fil med bibehållen storlek, position och effekter.",
+ "7": "Använd när en bild ska ändras av personens agent utifrån en begäran på vanligt språk.",
+ "8": "Använd när du vill ha inställningarna för rutnät, hjälplinjer och fästning.",
+ "9": "Använd när den här formen ska ritas på bilden; etiketten anger formen.",
+ "10": "Använd när de markerade bilderna ska få den här layouten; innehållet flyttas till layoutens platshållare.",
+ "11": "Använd när markeringen behöver ett exakt värde; params anger vilket.",
+ "12": "Använd när fönstret ska visa en bild efter dess nummer."
+}

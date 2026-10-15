@@ -1,0 +1,15 @@
+{
+ "0": "Úsalo cuando el texto seleccionado deba verse en mayúsculas sin volver a escribirlo.",
+ "1": "Úsalo cuando las minúsculas deban verse como versalitas, como en títulos o nombres.",
+ "2": "Úsalo cuando el texto seleccionado deba quedar elevado y más pequeño, como en llamadas de nota al pie o exponentes.",
+ "3": "Úsalo cuando el texto seleccionado deba quedar bajado y más pequeño, como en fórmulas químicas.",
+ "4": "Úsalo cuando el texto seleccionado deba tomar el último color elegido en el menú de color de fuente; set-text-color acepta uno exacto.",
+ "5": "Úsalo cuando el texto seleccionado deba marcarse con el color de resaltado.",
+ "6": "Úsalo cuando una imagen deba reemplazarse por otro archivo conservando su tamaño, posición y efectos.",
+ "7": "Úsalo cuando el agente de la persona deba modificar una imagen a partir de una solicitud en lenguaje natural.",
+ "8": "Úsalo cuando quieras los ajustes de cuadrícula, guías y alineación.",
+ "9": "Úsalo cuando esta forma deba dibujarse en la diapositiva; la etiqueta indica la forma.",
+ "10": "Úsalo cuando las diapositivas seleccionadas deban adoptar este diseño; su contenido pasa a sus marcadores de posición.",
+ "11": "Úsalo cuando la selección necesite un valor exacto; params indica cuál.",
+ "12": "Úsalo cuando la ventana deba mostrar una diapositiva por su número."
+}

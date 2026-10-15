@@ -1,0 +1,15 @@
+{
+ "0": "Použijte, když se má vybraný text zobrazit velkými písmeny bez nového psaní.",
+ "1": "Použijte, když se mají malá písmena zobrazit jako kapitálky, například v nadpisech nebo jménech.",
+ "2": "Použijte, když má být vybraný text zvýšený a menší, například u odkazů na poznámky pod čarou nebo exponentů.",
+ "3": "Použijte, když má být vybraný text snížený a menší, například v chemických vzorcích.",
+ "4": "Použijte, když má vybraný text převzít barvu naposledy zvolenou v nabídce barvy písma; set-text-color přijímá přesnou barvu.",
+ "5": "Použijte, když se má vybraný text označit barvou zvýraznění.",
+ "6": "Použijte, když se má obrázek nahradit jiným souborem při zachování velikosti, pozice a efektů.",
+ "7": "Použijte, když má obrázek upravit agent uživatele na základě požadavku v běžném jazyce.",
+ "8": "Použijte, když chcete nastavení mřížky, vodítek a přichytávání.",
+ "9": "Použijte, když se má tento tvar nakreslit na snímek; popisek uvádí název tvaru.",
+ "10": "Použijte, když mají vybrané snímky převzít toto rozložení; jejich obsah se přesune do jeho zástupných symbolů.",
+ "11": "Použijte, když výběr potřebuje přesnou hodnotu; params říká, jakou.",
+ "12": "Použijte, když má okno zobrazit snímek podle jeho čísla."
+}

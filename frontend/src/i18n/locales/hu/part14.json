@@ -1,0 +1,15 @@
+{
+ "0": "Akkor használd, ha a kijelölt szövegnek nagybetűsen kell megjelennie újragépelés nélkül.",
+ "1": "Akkor használd, ha a kisbetűknek kiskapitálisként kell megjelenniük, például címsorokban vagy nevekben.",
+ "2": "Akkor használd, ha a kijelölt szövegnek megemelve és kisebben kell állnia, például lábjegyzetjelekben vagy kitevőkben.",
+ "3": "Akkor használd, ha a kijelölt szövegnek lesüllyesztve és kisebben kell állnia, például kémiai képletekben.",
+ "4": "Akkor használd, ha a kijelölt szövegnek a betűszín menüben utoljára választott színt kell felvennie; a set-text-color pontos színt fogad el.",
+ "5": "Akkor használd, ha a kijelölt szöveget kiemelőszínnel kell megjelölni.",
+ "6": "Akkor használd, ha egy képet másik fájlra kell cserélni a méret, a pozíció és a hatások megtartásával.",
+ "7": "Akkor használd, ha egy képet a személy ügynökének kell módosítania egy hétköznapi nyelven megfogalmazott kérés alapján.",
+ "8": "Akkor használd, ha a rács, a segédvonalak és az illesztés beállításaira van szükséged.",
+ "9": "Akkor használd, ha ezt az alakzatot a diára kell rajzolni; a felirat megnevezi az alakzatot.",
+ "10": "Akkor használd, ha a kijelölt diáknak ezt az elrendezést kell felvenniük; a tartalmuk az elrendezés helyőrzőibe kerül.",
+ "11": "Akkor használd, ha a kijelölésnek pontos értékre van szüksége; a params megmondja, melyikre.",
+ "12": "Akkor használd, ha az ablaknak egy diát a száma alapján kell megjelenítenie."
+}

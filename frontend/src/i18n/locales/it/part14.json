@@ -1,0 +1,15 @@
+{
+ "0": "Da usare quando il testo selezionato deve apparire in maiuscolo senza riscriverlo.",
+ "1": "Da usare quando le minuscole devono apparire come maiuscoletto, come in titoli o nomi.",
+ "2": "Da usare quando il testo selezionato deve essere sollevato e più piccolo, come nei richiami di nota o negli esponenti.",
+ "3": "Da usare quando il testo selezionato deve essere abbassato e più piccolo, come nelle formule chimiche.",
+ "4": "Da usare quando il testo selezionato deve assumere l'ultimo colore scelto nel menu del colore carattere; set-text-color ne accetta uno esatto.",
+ "5": "Da usare quando il testo selezionato deve essere evidenziato con il colore evidenziatore.",
+ "6": "Da usare quando un'immagine deve essere sostituita con un altro file mantenendone dimensioni, posizione ed effetti.",
+ "7": "Da usare quando un'immagine deve essere modificata dall'agente della persona a partire da una richiesta in linguaggio naturale.",
+ "8": "Da usare per le impostazioni di griglia, guide e aggancio.",
+ "9": "Da usare quando questa forma deve essere disegnata sulla diapositiva; l'etichetta indica la forma.",
+ "10": "Da usare quando le diapositive selezionate devono assumere questo layout; il loro contenuto passa nei relativi segnaposto.",
+ "11": "Da usare quando la selezione richiede un valore esatto; params indica quale.",
+ "12": "Da usare quando la finestra deve mostrare una diapositiva in base al suo numero."
+}

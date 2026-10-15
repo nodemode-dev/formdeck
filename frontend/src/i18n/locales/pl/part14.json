@@ -1,0 +1,15 @@
+{
+ "0": "Użyj, gdy zaznaczony tekst ma być wyświetlany wielkimi literami bez ponownego pisania.",
+ "1": "Użyj, gdy małe litery mają być wyświetlane jako kapitaliki, jak w nagłówkach lub nazwach.",
+ "2": "Użyj, gdy zaznaczony tekst ma być podniesiony i mniejszy, jak w odnośnikach do przypisów lub wykładnikach.",
+ "3": "Użyj, gdy zaznaczony tekst ma być obniżony i mniejszy, jak we wzorach chemicznych.",
+ "4": "Użyj, gdy zaznaczony tekst ma przyjąć kolor ostatnio wybrany w menu koloru czcionki; set-text-color przyjmuje dokładny kolor.",
+ "5": "Użyj, gdy zaznaczony tekst ma zostać oznaczony kolorem zakreślacza.",
+ "6": "Użyj, gdy obraz ma zostać zastąpiony innym plikiem z zachowaniem rozmiaru, położenia i efektów.",
+ "7": "Użyj, gdy obraz ma zostać zmieniony przez agenta użytkownika na podstawie prośby w zwykłym języku.",
+ "8": "Użyj, gdy chcesz otworzyć ustawienia siatki, prowadnic i przyciągania.",
+ "9": "Użyj, gdy ten kształt ma zostać narysowany na slajdzie; etykieta podaje nazwę kształtu.",
+ "10": "Użyj, gdy zaznaczone slajdy mają przyjąć ten układ; ich zawartość trafia do jego symboli zastępczych.",
+ "11": "Użyj, gdy zaznaczenie wymaga dokładnej wartości; params wskazuje, jakiej.",
+ "12": "Użyj, gdy okno ma pokazać slajd według numeru."
+}

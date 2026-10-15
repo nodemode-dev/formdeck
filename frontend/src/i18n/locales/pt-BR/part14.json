@@ -1,0 +1,15 @@
+{
+ "0": "Use quando o texto selecionado deve aparecer em maiúsculas sem precisar digitá-lo de novo.",
+ "1": "Use quando as letras minúsculas devem aparecer como versaletes, como em títulos ou nomes.",
+ "2": "Use quando o texto selecionado deve ficar elevado e menor, como em chamadas de nota de rodapé ou expoentes.",
+ "3": "Use quando o texto selecionado deve ficar abaixado e menor, como em fórmulas químicas.",
+ "4": "Use quando o texto selecionado deve receber a última cor escolhida no menu de cor da fonte; set-text-color aceita uma cor exata.",
+ "5": "Use quando o texto selecionado deve ser marcado com a cor de destaque.",
+ "6": "Use quando uma imagem deve ser trocada por outro arquivo mantendo tamanho, posição e efeitos.",
+ "7": "Use quando uma imagem deve ser alterada pelo agente da pessoa a partir de um pedido em linguagem natural.",
+ "8": "Use quando quiser as configurações de grade, guias e alinhamento.",
+ "9": "Use quando esta forma deve ser desenhada no slide; o rótulo indica a forma.",
+ "10": "Use quando os slides selecionados devem adotar este layout; o conteúdo passa para os espaços reservados dele.",
+ "11": "Use quando a seleção precisa de um valor exato; params indica qual.",
+ "12": "Use quando a janela deve mostrar um slide pelo número."
+}

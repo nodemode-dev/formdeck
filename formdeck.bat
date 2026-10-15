@@ -36,6 +36,7 @@ if /i "%CMD%"=="desktop" (
 if /i "%CMD%"=="doctor" ( call setup\doctor.bat %REST% & goto :eof )
 if /i "%CMD%"=="claude" ( python setup\claude_launch.py %REST% & goto :eof )
 if /i "%CMD%"=="cli" ( python setup\catalogue.py %REST% & goto :eof )
+if /i "%CMD%"=="i18n" ( python setup\i18n_tool.py %REST% & goto :eof )
 if /i "%CMD%"=="mcp" ( python setup\mcp_stdio.py %REST% & goto :eof )
 if /i "%CMD%"=="agents" ( python setup\agents.py %REST% & goto :eof )
 if /i "%CMD%"=="build-deck" ( call setup\build_deck.bat %REST% & goto :eof )
@@ -70,6 +71,7 @@ echo   desktop dev^|build   run or bundle the desktop app
 echo   doctor              check the toolchain, installs and ports
 echo   claude [args]       Claude Code in this terminal with FormDeck's MCP tools attached
 echo   cli list^|describe^|run^|batch  the editor's command catalogue from a terminal (the window must be open)
+echo   i18n check^|scan^|export^|import  the translations: check for gaps, find new strings, or a language as CSV for a native reviewer and back
 echo   mcp                formdeck over MCP's stdio transport, for Claude Desktop and other MCP clients
 echo   agents install^|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
 echo   build-deck [args]   build a deck from files headlessly, without the window

@@ -1,0 +1,15 @@
+{
+ "0": "Bruk når den valgte teksten skal vises med store bokstaver uten å skrive den på nytt.",
+ "1": "Bruk når små bokstaver skal vises som kapitéler, som i overskrifter eller navn.",
+ "2": "Bruk når den valgte teksten skal stå hevet og mindre, som ved fotnotehenvisninger eller eksponenter.",
+ "3": "Bruk når den valgte teksten skal stå senket og mindre, som i kjemiske formler.",
+ "4": "Bruk når den valgte teksten skal få fargen som sist ble valgt i menyen for skriftfarge; set-text-color tar en nøyaktig farge.",
+ "5": "Bruk når den valgte teksten skal merkes med uthevingsfargen.",
+ "6": "Bruk når et bilde skal byttes ut med en annen fil med samme størrelse, posisjon og effekter.",
+ "7": "Bruk når et bilde skal endres av personens agent ut fra en forespørsel i vanlig språk.",
+ "8": "Bruk når du vil ha innstillingene for rutenett, hjelpelinjer og justering.",
+ "9": "Bruk når denne figuren skal tegnes på lysbildet; etiketten navngir figuren.",
+ "10": "Bruk når de valgte lysbildene skal få denne layouten; innholdet flyttes til plassholderne.",
+ "11": "Bruk når utvalget trenger en nøyaktig verdi; params sier hvilken.",
+ "12": "Bruk når vinduet skal vise et lysbilde etter nummer."
+}

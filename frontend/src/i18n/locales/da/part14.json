@@ -1,0 +1,15 @@
+{
+ "0": "Brug, når den markerede tekst skal vises med versaler uden at skrive den igen.",
+ "1": "Brug, når små bogstaver skal vises som kapitæler, som i overskrifter eller navne.",
+ "2": "Brug, når den markerede tekst skal stå hævet og mindre, som ved fodnotehenvisninger eller eksponenter.",
+ "3": "Brug, når den markerede tekst skal stå sænket og mindre, som i kemiske formler.",
+ "4": "Brug, når den markerede tekst skal have den sidst valgte farve i menuen til skriftfarve; set-text-color tager en nøjagtig farve.",
+ "5": "Brug, når den markerede tekst skal markeres med overstregningsfarven.",
+ "6": "Brug, når et billede skal udskiftes med en anden fil med bevarelse af størrelse, position og effekter.",
+ "7": "Brug, når et billede skal ændres af personens agent ud fra en anmodning i almindeligt sprog.",
+ "8": "Brug, når du vil have indstillingerne for gitter, hjælpelinjer og justering.",
+ "9": "Brug, når denne figur skal tegnes på sliden; etiketten navngiver figuren.",
+ "10": "Brug, når de markerede slides skal have dette layout; deres indhold flyttes til layoutets pladsholdere.",
+ "11": "Brug, når markeringen skal have en nøjagtig værdi; params angiver hvilken.",
+ "12": "Brug, når vinduet skal vise et slide efter nummer."
+}
