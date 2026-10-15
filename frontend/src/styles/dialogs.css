@@ -110,7 +110,13 @@ textarea.fd-input { height: auto; min-height: 88px; padding: 8px 10px; line-heig
 .fd-share-make[hidden], .fd-share .fd-note[hidden] { display: none; }
 .fd-share-make .fd-input { width: 160px; }
 .fd-share-list { display: grid; gap: var(--space-2); }
-.fd-share-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto auto; gap: var(--space-2); align-items: center; }
+.fd-share-row { display: grid; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--line-1); border-radius: var(--radius-md); }
+.fd-share-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.fd-share-urls { display: grid; gap: var(--space-1); }
+.fd-share-u { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; }
+.fd-share-where { color: var(--text-muted); font-size: var(--fd-12); }
+.fd-share-relay { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; }
+.fd-share-relay[hidden] { display: none; }
 .fd-share-role { color: var(--text-muted); font-size: var(--fd-12); }
 .fd-share-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: var(--fd-12); }
 html.is-guest [data-cmd="view-terminal"], html.is-guest [data-act="share"], html.is-guest .fd-chat-host { display: none; }
