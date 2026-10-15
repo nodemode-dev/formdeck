@@ -68,7 +68,7 @@ class Consent extends Dialog {
 
 class CatalogsDialog extends Dialog {
   private readonly list = el('<div class="fd-ai-cats" role="list"></div>');
-  private readonly empty = el('<p class="fd-note">No catalogs added. The Store shows FormDeck\'s own add-ins.</p>');
+  private readonly empty = el(`<p class="fd-note">No catalogs added. The Store shows FormDeck's own add-ins.</p>`);
   private readonly input = el<HTMLInputElement>('<input class="fd-input" type="url" spellcheck="false" placeholder="https://example.com/formdeck-addins/index.json" aria-label="Catalog address">');
   private urls: string[] = [];
   onSaved: (() => void) | null = null;
@@ -76,9 +76,9 @@ class CatalogsDialog extends Dialog {
   constructor() {
     super('Add-in Catalogs', 520);
     const add = el('<div class="fd-ai-cat-add"></div>');
-    const btn = el<HTMLButtonElement>('<button class="fd-btn fd-btn-sm" type="button">Add Catalog</button>');
+    const btn = el<HTMLButtonElement>(`<button class="fd-btn fd-btn-sm" type="button">Add Catalog</button>`);
     add.append(this.input, btn);
-    this.body.append(el('<p class="fd-note">FormDeck\'s own catalog is always shown. Add catalogs from other publishers to list their add-ins too; each still shows its permissions, is checked against its checksum and runs in the sandbox, but FormDeck has not reviewed it.</p>'), this.list, this.empty, add);
+    this.body.append(el(`<p class="fd-note">FormDeck's own catalog is always shown. Add catalogs from other publishers to list their add-ins too; each still shows its permissions, is checked against its checksum and runs in the sandbox, but FormDeck has not reviewed it.</p>`), this.list, this.empty, add);
     btn.addEventListener('click', () => void this.add());
     this.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.add(); } });
     this.list.addEventListener('click', (e) => {
