@@ -89,7 +89,7 @@ export function fxCss(r: Run, spec: FxSpec | null, theme: Theme): string {
   const parts: string[] = [];
   if (spec.f?.k === 'n') parts.push('-webkit-text-fill-color:transparent');
   else if (spec.f?.k === 's') parts.push(`-webkit-text-fill-color:${spec.f.c}`);
-  else if (spec.f && r.fill) parts.push(`background-image:${cssBackground(r.fill, theme, () => '')}`, '-webkit-background-clip:text', 'background-clip:text', '-webkit-text-fill-color:transparent', '-webkit-box-decoration-break:clone', 'box-decoration-break:clone');
+  else if (spec.f && r.fill) parts.push(`background:${cssBackground(r.fill, theme, (id) => MEDIA + id).replace(/"/g, "'")}`, '-webkit-background-clip:text', 'background-clip:text', '-webkit-text-fill-color:transparent', '-webkit-box-decoration-break:clone', 'box-decoration-break:clone');
   if (spec.l) parts.push(`-webkit-text-stroke:${rnd(spec.l.w)}px ${spec.l.c}`, 'paint-order:stroke fill');
   if (spec.sh?.length) parts.push(`text-shadow:${spec.sh.map((s) => `${s.x}px ${s.y}px ${s.blur}px ${s.color}`).join(',')}`);
   return parts.join(';');
