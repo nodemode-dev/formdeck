@@ -4,7 +4,7 @@ Presentations and pitch decks in the form family. An open alternative to PowerPo
 
 The PDF workbench that shipped with FormDeck up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In FormDeck a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
-Version 0.12.1 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.12.2 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 ## What it does
 
