@@ -62,7 +62,7 @@ export interface ConnEnd { id: string; site: number }
 export interface Connection { kind: ConnKind; start?: ConnEnd; end?: ConnEnd }
 export interface ShapeElement extends ElementBase {
   type: 'shape'; geom?: string; adj?: Record<string, number>; path?: string; pathSize?: [number, number]; conn?: Connection; fill?: Fill | null; line?: Line | null; effects?: Effects; text?: TextBody;
-  sp3d?: Sp3d; scene3d?: Scene3d;
+  sp3d?: Sp3d; scene3d?: Scene3d; textStyle?: string;
 }
 export interface Model3d { src: string; rot?: [number, number, number]; zoom?: number; pan?: [number, number] }
 export interface ImageElement extends ElementBase {
@@ -91,7 +91,9 @@ export interface ChartLink { path: string; sheet?: string; range?: string; mtime
 export interface ChartElement extends ElementBase { type: 'chart'; chart: ChartData }
 export interface DiagramItem { id: string; text: string; children?: DiagramItem[] }
 export interface Diagram { layout: string; items: DiagramItem[]; style?: string; colors?: string }
-export interface GroupElement extends ElementBase { type: 'group'; children: SlideElement[]; diagram?: Diagram }
+export interface GroupElement extends ElementBase { type: 'group'; children: SlideElement[]; diagram?: Diagram; component?: string }
+export interface Component { id: string; name: string; w: number; h: number; children: SlideElement[] }
+export interface NamedTextStyle { name: string; run: Partial<Run>; para: Partial<Para> }
 export interface MediaElement extends ElementBase {
   type: 'media'; src: string; kind: 'video' | 'audio'; poster?: string; autoplay?: boolean; loop?: boolean; start?: number; end?: number; volume?: number;
   hideInShow?: boolean; narration?: boolean; sequence?: boolean; fadeIn?: number; fadeOut?: number; muted?: boolean; fullScreen?: boolean; rewind?: boolean;
@@ -134,6 +136,7 @@ export interface Deck {
   format: 'formdeck/deck'; formatVersion: 1; id: string; title: string; size: { w: number; h: number }; theme: Theme;
   masters: Master[]; layouts: Layout[]; slides: Slide[]; sections?: Section[]; comments?: Comment[]; media: Record<string, MediaInfo>; meta: DeckMeta;
   show?: ShowSettings | null; customShows?: CustomShow[]; guides?: Guide[]; macros?: Macro[];
+  components?: Record<string, Component>; namedStyles?: Record<string, NamedTextStyle>;
   template?: { id: string; name: string; category?: string; tags?: string[]; source?: string; license?: string; description?: string } | null;
 }
 
