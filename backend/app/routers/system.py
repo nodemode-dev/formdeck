@@ -49,5 +49,7 @@ def get_settings() -> dict:
 
 @router.post("/settings")
 def set_settings(patch: dict) -> dict:
-    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins"}}
+    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude"} and (k != "claude" or isinstance(v, dict))}
+    if "claude" in allowed:
+        allowed["claude"] = {f: str(allowed["claude"].get(f) or "").strip()[:4000] for f in ("bin", "folder", "firstMessage")}
     return config.write_settings(allowed)

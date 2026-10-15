@@ -16,7 +16,7 @@ interface Cfg {
 }
 interface Status { busy: boolean; listening: number; lastPoll: number }
 
-export interface ChatHooks { copyPrompt?: () => void; mcpCommand?: () => Promise<string>; openClaude?: () => void }
+export interface ChatHooks { copyPrompt?: () => void; mcpCommand?: () => Promise<string>; openClaude?: (resume?: string) => void }
 
 const MODES: { id: Mode; label: string }[] = [
   { id: 'connected', label: 'Connected agent (no key)' },
@@ -117,7 +117,7 @@ export class ChatPanel {
       else if (a === 'settings') this.toggleSettings();
       else if (a === 'copy-prompt') this.hooks.copyPrompt?.();
       else if (a === 'copy-cmd') void this.copyCommand();
-      else if (a === 'claude-terminal') this.hooks.openClaude?.();
+      else if (a === 'claude-terminal') void this.toTerminal();
       else if (a === 'save-key') void this.saveKey(t.closest<HTMLElement>('[data-a]')?.dataset.p as 'anthropic' | 'openai');
       else if (a === 'remove-key') void this.removeKey(t.closest<HTMLElement>('[data-a]')?.dataset.p as 'anthropic' | 'openai');
       else if (a === 'test') void this.test();
@@ -352,6 +352,12 @@ export class ChatPanel {
       : `Using ${PROVIDER_NAME[this.cfg.provider]}. Ask for edits in plain words; each edit is an undoable agent turn and follows the Allow switch above.`);
   }
 
+  private async toTerminal(): Promise<void> {
+    let session = '';
+    try { session = (await call<{ claudeSession?: string }>(`/api/chat/${encodeURIComponent(this.cid)}`)).claudeSession ?? ''; } catch { session = ''; }
+    this.hooks.openClaude?.(session || undefined);
+  }
+
   private async copyCommand(): Promise<void> {
     try {
       const cmd = this.hooks.mcpCommand ? await this.hooks.mcpCommand() : await this.defaultCommand();
@@ -376,7 +382,7 @@ export class ChatPanel {
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt</button><button class="fd-btn fd-btn-sm" type="button" data-a="copy-cmd">${icon('link', 14)}Copy MCP command</button></div></div>
 <div class="fd-chat-sec" data-p="claudecode" hidden><div class="fd-note">FormDeck runs your own Claude Code (claude -p) with FormDeck's tools only. It uses your Claude sign-in; no key is stored here. Run claude once in a terminal to sign in.</div>
 <label class="fd-chat-lab">Model</label><select class="fd-input" data-f="claudecode.model" aria-label="Claude Code model"><option value="">Claude Code default</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option><option value="haiku">Haiku</option></select>
-<div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="claude-terminal">${icon('terminal', 14)}Open Claude Code in the terminal</button></div></div>
+<div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="claude-terminal">${icon('terminal', 14)}Continue in the terminal</button></div></div>
 ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https://api.openai.com/v1')}
 <div class="fd-chat-sec" data-p="ollama" hidden><label class="fd-chat-lab">Ollama address</label><input class="fd-input" data-f="ollama.url" placeholder="http://127.0.0.1:11434" spellcheck="false" autocomplete="off">
 <label class="fd-chat-lab">Model</label><select class="fd-input" data-f="ollama.model" aria-label="Ollama model"><option value="">Test the connection to list models</option></select>

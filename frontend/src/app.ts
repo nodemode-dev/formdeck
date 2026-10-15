@@ -290,7 +290,7 @@ export async function startApp(): Promise<void> {
   inspector.hooks = {
     templates: () => hooks.templates(), background: () => hooks.background(), slideSize: () => hooks.slideSize(),
     comment: (text, assignee) => { const ed = editor; if (ed) dialogs.addComment(ed, text, assignee); },
-    agentsAllowed: () => agentsAllowed, setAgents, copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null), mcpStatus: () => (agentsAllowed ? 'On' : 'Off'), openClaude: () => { commands.run('claude-code'); },
+    agentsAllowed: () => agentsAllowed, setAgents, copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null), mcpStatus: () => (agentsAllowed ? 'On' : 'Off'), openClaude: (resume) => { if (resume) void showDock().then((d) => d.claude(undefined, resume)); else commands.run('claude-code'); },
   };
   registerCommands(commands, hooks);
   registerTableCommands(commands, () => editor);

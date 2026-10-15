@@ -57,7 +57,8 @@ async def test(body: dict) -> dict:
 
 @router.get("/{cid}")
 def snapshot(cid: str) -> dict:
-    return {**_convo(cid).snapshot(), "provider": engine.active_label(), "mode": engine.settings()["provider"]}
+    c = _convo(cid)
+    return {**c.snapshot(), "provider": engine.active_label(), "mode": engine.settings()["provider"], "claudeSession": getattr(c, "claude_session", None) or ""}
 
 
 @router.get("/{cid}/events")

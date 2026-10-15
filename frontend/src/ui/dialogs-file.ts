@@ -1691,6 +1691,12 @@ class PreferencesDialog extends Dialog {
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Agents</div>
 <div class="fd-field"><span>Access</span><label class="fd-check"><input type="checkbox" data-f="agents"><span>Let Claude Code, Codex and Cursor read and edit decks</span></label></div>
 </section>
+<section class="fd-dlg-section"><div class="fd-dlg-section-title">Claude Code</div>
+<div class="fd-field"><span>Found</span><span class="fd-note fd-dlg-claude-status" translate="no"></span></div>
+<label class="fd-field"><span>Program</span><input class="fd-input" type="text" spellcheck="false" data-c="bin" placeholder="Found automatically; or the full path to claude"></label>
+<label class="fd-field"><span>Folder</span><input class="fd-input" type="text" spellcheck="false" data-c="folder" placeholder="Where Claude Code starts; the FormDeck Agent folder by default"></label>
+<label class="fd-field"><span>First message</span><input class="fd-input" type="text" spellcheck="false" data-c="firstMessage" placeholder="Sent when Claude Code opens in the terminal, if set"></label>
+</section>
 </div>`);
     this.body.appendChild(box);
     this.themes = q(box, '.fd-dlg-themes');
@@ -1718,6 +1724,9 @@ class PreferencesDialog extends Dialog {
     segOn(this.units, (v) => this.persist({ units: v }));
     this.autosave.addEventListener('change', () => this.persist({ autosave: this.autosave.checked }));
     this.agents.addEventListener('change', () => this.h?.setAgents(this.agents.checked));
+    this.claudeStatus = q(box, '.fd-dlg-claude-status');
+    this.claudeFields = Array.from(box.querySelectorAll<HTMLInputElement>('[data-c]'));
+    for (const f of this.claudeFields) f.addEventListener('change', () => this.persistClaude());
     const lang = q<HTMLSelectElement>(box, '.fd-dlg-pref-lang');
     lang.value = storedLanguage();
     lang.addEventListener('change', () => setLanguage(lang.value));
@@ -1725,6 +1734,20 @@ class PreferencesDialog extends Dialog {
 
   private persist(patch: Settings): void {
     void api.setSettings(patch).catch((e) => toast(`Could not save the preference: ${errText(e)}`, 'error'));
+  }
+
+  private claudeStatus!: HTMLElement;
+  private claudeFields: HTMLInputElement[] = [];
+
+  private persistClaude(): void {
+    const claude = Object.fromEntries(this.claudeFields.map((f) => [f.dataset.c ?? '', f.value.trim()]));
+    void api.setSettings({ claude }).then(() => this.syncClaude()).catch((e) => toast(`Could not save the preference: ${errText(e)}`, 'error'));
+  }
+
+  private syncClaude(): void {
+    void api.claudeStatus().then((s) => {
+      setText(this.claudeStatus, s.installed ? `Claude Code ${s.version ?? ''} at ${s.path ?? ''}${s.binNote ? `. ${s.binNote}` : ''}` : 'Not found. Install it from claude.com/claude-code and run claude once to sign in.');
+    }).catch(() => setText(this.claudeStatus, ''));
   }
 
   private syncLook(): void {
@@ -1757,7 +1780,10 @@ class PreferencesDialog extends Dialog {
       setValue(this.author, str(s.author));
       segSet(this.units, str(s.units) || 'pt');
       setChecked(this.autosave, s.autosave !== false);
+      const cl = (s.claude && typeof s.claude === 'object' ? s.claude : {}) as Record<string, unknown>;
+      for (const f of this.claudeFields) setValue(f, str(cl[f.dataset.c ?? '']));
     });
+    this.syncClaude();
   }
 }
 
