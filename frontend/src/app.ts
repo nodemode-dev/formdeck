@@ -323,6 +323,7 @@ export async function startApp(): Promise<void> {
   registerComponentCommands(commands, () => editor);
   registerShareCommands(commands, () => editor?.doc.id ?? null);
   registerSlideZoomCommands(commands, () => editor);
+  toolbar.keyTips(() => !!editor && !anyDialogOpen() && !home.isOpen);
   registerParamCommands(commands, () => editor);
   registerColourStyleCommands(commands, () => editor);
 
@@ -372,7 +373,7 @@ export async function startApp(): Promise<void> {
     { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock', '-', 'component-create', 'component-update', 'component-detach', '-', 'selection-pane'] },
     { label: 'Review', items: ['spelling', 'language', '-', 'check-deck', 'review-activity', 'review-compare', '-', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view', 'use-presenter-view', '-', 'custom-shows', 'show-setup', 'subtitle-settings', 'rehearse-timings', '-', 'record-start', 'record-current', { label: 'Clear', items: ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'] }] },
-    { label: 'Help', items: ['help', 'shortcuts', 'preferences'] },
+    { label: 'Help', items: ['help', 'shortcuts', 'key-tips', 'preferences'] },
   ];
   toolbar.fileItems = menus[0].items as MenuItem[];
   new MenuBar(q(root, '.fd-menubar'), commands, menus);

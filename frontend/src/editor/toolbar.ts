@@ -4,6 +4,7 @@ import { BUNDLED_FONTS, ensureFont } from '../render/fonts';
 import type { Commands } from '../ui/commands';
 import { el, setClass, setDisabled, setHidden, setText, setValue, setStyleVar } from '../ui/dom';
 import { enhanceSelect } from '../ui/dropdown';
+import { KeyTips } from '../ui/key-tips';
 import { icon } from '../ui/icons';
 import type { MenuItem, SubMenu } from '../ui/menu';
 import { Qat } from '../ui/qat';
@@ -185,6 +186,7 @@ export class Toolbar {
   private ed: Editor | null = null;
   private ctx: Ctx = 'none';
   private ribbon: Ribbon | null = null;
+  private tips: KeyTips | null = null;
   readonly qat: Qat;
   readonly painter: FormatPainter;
   readonly crop: CropTool;
@@ -270,7 +272,14 @@ export class Toolbar {
       { id: 'ribbon-customize', label: 'Customize the Ribbon...', icon: 'settings', run: () => void this.customize('ribbon') },
       { id: 'qat-customize', label: 'Customize Quick Access Toolbar...', icon: 'qat', run: () => void this.customize('qat') },
       { id: 'qat-below', label: () => (this.qat.below ? 'Show Quick Access Toolbar Above the Ribbon' : 'Show Quick Access Toolbar Below the Ribbon'), icon: 'qat', checked: () => this.qat.below, run: () => this.qat.setBelow(!this.qat.below) },
+      { id: 'key-tips', label: 'Show Key Tips', enabled: () => !this.ribbon?.simplified, run: () => requestAnimationFrame(() => this.tips?.toggle()) },
     );
+  }
+
+  keyTips(allowed: () => boolean): void {
+    if (this.tips) return;
+    const host = this.ensure().tipHost();
+    this.tips = new KeyTips(host, allowed);
   }
 
   private async customize(what: 'ribbon' | 'qat'): Promise<void> {

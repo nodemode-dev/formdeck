@@ -70,6 +70,10 @@ body.theme-light :is(.fd-rb-file, .fd-rb-tab.is-ctx, .fd-rb-btn.is-on, .fd-qat-b
 .fd-rb-group[data-lv="3"] > .fd-rb-gbody, .fd-rb-group[data-lv="3"] > .fd-rb-glabel { display: none; }
 .fd-rb-group .fd-gal-view { width: calc(var(--gal-n, 5) * 58px + 2px); }
 .fd-rb-gpop { position: fixed; z-index: var(--z-menu); display: flex; max-width: calc(100vw - 8px); padding: var(--space-1) var(--space-2); overflow-x: auto; border: 1px solid var(--line-2); border-radius: var(--radius-md); background: var(--surface-1); box-shadow: var(--shadow-md); }
+.fd-keytips { position: fixed; inset: 0; z-index: var(--z-context); pointer-events: none; }
+.fd-keytips[hidden], .fd-keytip[hidden] { display: none; }
+.fd-keytip { position: absolute; min-width: 16px; height: 16px; padding: 0 3px; transform: translateX(-50%); border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface-1); color: var(--text-primary); font: 600 var(--fd-11)/14px var(--font-mono); text-align: center; box-shadow: var(--shadow-md); }
+.fd-keytip.is-dim { opacity: 0.25; }
 .fd-rb-gpop > .fd-rb-gbody { flex: none; height: calc(var(--rb-body-h) - var(--space-2) - var(--fd-16)); }
 
 .fd-rb-group[data-big]:is([data-lv="1"], [data-lv="2"]) > .fd-rb-gbody { display: grid; grid-auto-flow: column dense; grid-template-rows: repeat(3, var(--ctl-sm)); align-content: center; justify-content: start; column-gap: 2px; }

@@ -2,6 +2,7 @@ import type { Commands } from './commands';
 import { el, escapeHtml, setClass, setDisabled, setHidden, setStyleVar, setTitle } from './dom';
 import { icon } from './icons';
 import { PopupMenu, type MenuItem } from './menu';
+import type { TipHost } from './key-tips';
 import { iconOf, plainLabel, type Qat } from './qat';
 
 export const RIBBON_KEY = 'formdeck.ribbon';
@@ -422,6 +423,18 @@ export class Ribbon {
     if (!panel) return;
     this.ensureRove(panel);
     (this.rover.get(panel) ?? this.controls(panel)[0])?.focus();
+  }
+
+  tipHost(): TipHost {
+    return {
+      ready: () => !this.simplified && !this.root.hidden && this.root.isConnected,
+      file: () => this.fileBtn,
+      qat: () => Array.from(this.qat.node.querySelectorAll<HTMLElement>('button:not(:disabled)')).filter((n) => !n.closest('[hidden]')),
+      tabs: () => this.visibleTabs().map((id) => ({ id, node: this.tabBtns.get(id) as HTMLElement })),
+      open: (id) => { if (this.collapsed) this.setFloat(true); this.select(id); },
+      controls: () => { const p = this.popGroup ? this.gpop : this.panels.get(this.tab); return p && !this.body.hidden ? this.controls(p) : []; },
+      close: () => { this.closePop(false); if (this.float) this.setFloat(false); },
+    };
   }
 
   private openMenu(b: HTMLButtonElement): void {
