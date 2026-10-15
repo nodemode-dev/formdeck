@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, Response, StreamingResponse
 
 HOST_RE = re.compile(r"^[\w-]{4,40}$")
 COOKIE = "fd_relay_host"
+SCHEME_HEADER = "x-formdeck-scheme"
 HOP = {"connection", "keep-alive", "transfer-encoding", "upgrade", "proxy-connection", "te", "trailer"}
 MAX_BODY = 64 * 1024 * 1024
 WAIT = float(os.environ.get("FORMDECK_RELAY_TIMEOUT", "60"))
@@ -106,6 +107,10 @@ async def deliver(guest: WebSocket, msg: dict) -> None:
         pass
 
 
+def headers_of(items, scheme: str) -> list[list[str]]:
+    return [[k, v] for k, v in items if k.lower() != SCHEME_HEADER] + [[SCHEME_HEADER, scheme]]
+
+
 def route(path: str, cookies: dict) -> tuple[str, str, bool]:
     m = re.match(r"^/h/([\w-]{4,40})(/.*)?$", path)
     if m:
@@ -133,7 +138,7 @@ async def forward(request: Request, rest: str) -> Response:
     queue: asyncio.Queue = asyncio.Queue()
     host.streams[sid] = queue
     await host.send({"t": "req", "id": sid, "method": request.method, "path": path, "query": request.url.query,
-                     "headers": [[k, v] for k, v in request.headers.items()], "body": base64.b64encode(body).decode()})
+                     "headers": headers_of(request.headers.items(), request.url.scheme), "body": base64.b64encode(body).decode()})
     try:
         msg = await asyncio.wait_for(fut, WAIT)
     except (asyncio.TimeoutError, asyncio.CancelledError):
@@ -151,7 +156,7 @@ async def forward(request: Request, rest: str) -> Response:
     out = StreamingResponse(chunks(), status_code=int(msg.get("status") or 502))
     raw = [(k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in msg.get("headers") or [] if k.lower() not in HOP]
     if entry:
-        raw.append((b"set-cookie", f"{COOKIE}={name}; Path=/; HttpOnly; SameSite=Lax; Secure".encode() if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else f"{COOKIE}={name}; Path=/; HttpOnly; SameSite=Lax".encode()))
+        raw.append((b"set-cookie", f"{COOKIE}={name}; Path=/; HttpOnly; SameSite=Lax{'; Secure' if request.url.scheme == 'https' else ''}".encode()))
     out.raw_headers = raw
     return out
 
@@ -167,7 +172,7 @@ async def forward_ws(ws: WebSocket, rest: str) -> None:
     opened = asyncio.get_running_loop().create_future()
     host.opened[sid] = opened
     host.early[sid] = []
-    await host.send({"t": "wso", "id": sid, "path": path, "query": ws.url.query, "headers": [[k, v] for k, v in ws.headers.items()]})
+    await host.send({"t": "wso", "id": sid, "path": path, "query": ws.url.query, "headers": headers_of(ws.headers.items(), "https" if ws.url.scheme == "wss" else "http")})
     try:
         ok = await asyncio.wait_for(opened, 15)
     except (asyncio.TimeoutError, asyncio.CancelledError):
@@ -203,4 +208,9 @@ if __name__ == "__main__":
     import uvicorn
     if not tokens():
         raise SystemExit("Set FORMDECK_RELAY_TOKENS to one or more tokens, separated by commas, before starting the relay.")
-    uvicorn.run(app, host=os.environ.get("FORMDECK_RELAY_HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8199")), proxy_headers=True, forwarded_allow_ips="*")
+    cert, key = os.environ.get("FORMDECK_RELAY_CERT", ""), os.environ.get("FORMDECK_RELAY_KEY", "")
+    if bool(cert) != bool(key):
+        raise SystemExit("Set both FORMDECK_RELAY_CERT and FORMDECK_RELAY_KEY to serve HTTPS directly, or neither when a proxy in front handles HTTPS.")
+    uvicorn.run(app, host=os.environ.get("FORMDECK_RELAY_HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8443" if cert else "8199")),
+                proxy_headers=True, forwarded_allow_ips=os.environ.get("FORMDECK_RELAY_PROXIES", "127.0.0.1"),
+                ssl_certfile=cert or None, ssl_keyfile=key or None, ws_max_size=4 * 1024 * 1024)

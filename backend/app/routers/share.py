@@ -95,7 +95,7 @@ class ShareGate:
                 return
             await send({"type": "http.response.start", "status": 303, "headers": [
                 (b"location", f"/?deck={urllib.parse.quote(hit['deck'])}&shared=1".encode()),
-                (b"set-cookie", f"{share.COOKIE}={hit['token']}; Path=/; HttpOnly; SameSite=Strict".encode()),
+                (b"set-cookie", f"{share.COOKIE}={hit['token']}; Path=/; HttpOnly; SameSite=Strict{'; Secure' if scope.get('scheme') == 'https' else ''}".encode()),
                 (b"cache-control", b"no-store")]})
             await send({"type": "http.response.body", "body": b""})
             return

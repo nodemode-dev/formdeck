@@ -135,7 +135,9 @@ def _dispatch(ws, msg: dict) -> None:
 def _scope(kind: str, msg: dict) -> dict:
     headers = [(str(k).lower().encode("latin-1"), str(v).encode("latin-1")) for k, v in msg.get("headers") or [] if str(k).lower() not in ("x-forwarded-for", "forwarded")]
     path = "/" + str(msg.get("path") or "").lstrip("/")
-    scope = {"type": kind, "asgi": {"version": "3.0"}, "http_version": "1.1", "scheme": "https" if kind == "http" else "wss", "path": path, "raw_path": path.encode(),
+    secure = any(str(k).lower() == "x-formdeck-scheme" and str(v) == "https" for k, v in msg.get("headers") or [])
+    scheme = ("https" if secure else "http") if kind == "http" else ("wss" if secure else "ws")
+    scope = {"type": kind, "asgi": {"version": "3.0"}, "http_version": "1.1", "scheme": scheme, "path": path, "raw_path": path.encode(),
              "query_string": str(msg.get("query") or "").encode("latin-1"), "root_path": "", "headers": headers,
              "client": ("relay-guest", 0), "server": ("relay", 0), "fd_relay": True}
     if kind == "http":
