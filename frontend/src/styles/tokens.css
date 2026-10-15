@@ -198,6 +198,9 @@ body.nm-home .nm-canvas-surface { display: none !important; }
   --z-toast: 3000;
 }
 
+html.fd-density-compact { --ctl-sm: 22px; --ctl-md: 26px; --ctl: 28px; --ctl-lg: 32px; --ctl-xl: 36px; --rb-body-h: 88px; --fd-titlebar-h: 38px; --fd-status-h: 24px; --fd-thumb-w: 148px; }
+html.fd-density-comfortable { --ctl-sm: 28px; --ctl-md: 32px; --ctl: 36px; --ctl-lg: 40px; --ctl-xl: 44px; --rb-body-h: 110px; --fd-titlebar-h: 50px; --fd-status-h: 32px; --fd-thumb-w: 184px; }
+
 :root {
   --glass-bg: color-mix(in srgb, var(--surface-2) 82%, transparent);
   --glass-border: color-mix(in srgb, var(--text-primary) 16%, transparent);

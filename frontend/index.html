@@ -47,12 +47,13 @@
     'contrast':      ['#000000', '#0a0a0a', '#161616', '#555555', '#777777', '#ffffff', '#d8d8d8', '#9a9a9a', '#000000', 'rgba(255,255,255,0.10)']
   };
   var NAMES = ['--bg-primary', '--bg-secondary', '--bg-tertiary', '--border-color', '--border-light', '--text-primary', '--text-secondary', '--text-muted', '--canvas-bg', '--grid-color'];
-  var theme = DEFAULT_THEME, accent = DEFAULT_ACCENT, intensity = 1;
+  var theme = DEFAULT_THEME, accent = DEFAULT_ACCENT, intensity = 1, density = '';
   try {
     var raw = localStorage.getItem(KEY);
-    if (raw) { var s = JSON.parse(raw); if (s.appearance === 3 || s.appearance === 2) { if (s.theme && PROFILES[s.theme]) theme = s.theme; if (s.accentColor && !(s.appearance === 2 && s.accentColor === '#aba0d3')) accent = s.accentColor; if (s.appearance === 3 && typeof s.intensity === 'number') intensity = Math.min(1.5, Math.max(0, s.intensity)); } }
+    if (raw) { var s = JSON.parse(raw); if (s.density === 'compact' || s.density === 'comfortable') density = s.density; if (s.appearance === 3 || s.appearance === 2) { if (s.theme && PROFILES[s.theme]) theme = s.theme; if (s.accentColor && !(s.appearance === 2 && s.accentColor === '#aba0d3')) accent = s.accentColor; if (s.appearance === 3 && typeof s.intensity === 'number') intensity = Math.min(1.5, Math.max(0, s.intensity)); } }
   } catch (e) {}
   var p = PROFILES[theme], root = document.documentElement, i;
+  if (density) root.classList.add('fd-density-' + density);
   for (i = 0; i < NAMES.length; i++) root.style.setProperty(NAMES[i], p[i]);
   root.style.setProperty('--bg-node', p[10] || p[1]);
   root.style.setProperty('--shadow-lg', LIGHT[theme] ? '0 4px 14px rgba(96, 90, 70, 0.16)' : '0 8px 32px rgba(0, 0, 0, 0.5)');

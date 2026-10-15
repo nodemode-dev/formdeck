@@ -13,7 +13,7 @@ import { Dialog } from './dialogs';
 import { delayedIndicator, el, escapeHtml, patchList, q, setChecked, setClass, setDisabled, setHidden, setHtml, setText, setValue, type Disposer } from './dom';
 import { mountDeckPreview, templatePreview } from './home';
 import { icon } from './icons';
-import { THEMES, readChoice, setAccent, setTheme, themeSwatchesHtml } from './themes';
+import { THEMES, applyDensity, readChoice, readDensity, setAccent, setTheme, themeSwatchesHtml, type Density } from './themes';
 import { dismissToast, pushToast, toast } from './toast';
 import { fidelityReport } from './report-dialog';
 
@@ -1679,6 +1679,7 @@ class PreferencesDialog extends Dialog {
 <div class="fd-field is-top"><span>Theme</span><div><div class="nm-theme-grid fd-dlg-themes">${themeSwatchesHtml(c.theme, c.accentColor)}</div><div class="fd-note fd-dlg-theme-name"></div></div></div>
 <label class="fd-field"><span>Language</span><select class="fd-input fd-dlg-pref-lang" aria-label="Language" translate="no">${LANGUAGES.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}</select></label>
 <div class="fd-field"><span>Accent</span><div class="fd-dlg-accents">${ACCENTS.map((a) => `<button class="fd-swatch" type="button" data-accent="${a}" style="--swatch:${a}" aria-label="Accent ${a}" title="${a}"></button>`).join('')}<label class="fd-dlg-color" title="Custom accent">${icon('palette', 14)}<input type="color" aria-label="Custom accent colour"></label></div></div>
+<div class="fd-field"><span>Density</span><div class="fd-seg is-quiet" data-seg="density"><button type="button" data-v="compact">Compact</button><button type="button" data-v="standard">Standard</button><button type="button" data-v="comfortable">Comfortable</button></div></div>
 </section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">New decks</div>
 <div class="fd-field"><span>Template</span><select class="fd-dlg-pref-tpl" aria-label="Default template"></select></div>
@@ -1730,6 +1731,9 @@ class PreferencesDialog extends Dialog {
     const lang = q<HTMLSelectElement>(box, '.fd-dlg-pref-lang');
     lang.value = storedLanguage();
     lang.addEventListener('change', () => setLanguage(lang.value));
+    const density = q(box, '[data-seg="density"]');
+    segSet(density, readDensity());
+    segOn(density, (v) => { const d: Density = v === 'compact' || v === 'comfortable' ? v : 'standard'; applyDensity(d); segSet(density, d); });
   }
 
   private persist(patch: Settings): void {

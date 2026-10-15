@@ -53,6 +53,29 @@ export function saveChoice(choice: ThemeChoice): void {
   }
 }
 
+export type Density = 'compact' | 'standard' | 'comfortable';
+
+export function readDensity(): Density {
+  try {
+    const d = (JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as { density?: unknown }).density;
+    return d === 'compact' || d === 'comfortable' ? d : 'standard';
+  } catch {
+    return 'standard';
+  }
+}
+
+export function applyDensity(d: Density): void {
+  const root = document.documentElement;
+  root.classList.toggle('fd-density-compact', d === 'compact');
+  root.classList.toggle('fd-density-comfortable', d === 'comfortable');
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...(raw ? JSON.parse(raw) : {}), density: d }));
+  } catch (e) {
+    console.error('[theme] density save failed:', e);
+  }
+}
+
 export function applyTheme(choice: ThemeChoice = readChoice()): void {
   const root = document.documentElement;
   const theme = THEMES[choice.theme] || THEMES[DEFAULT_THEME];
