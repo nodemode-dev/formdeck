@@ -15,6 +15,7 @@ import { mountDeckPreview, templatePreview } from './home';
 import { icon } from './icons';
 import { THEMES, readChoice, setAccent, setTheme, themeSwatchesHtml } from './themes';
 import { dismissToast, pushToast, toast } from './toast';
+import { fidelityReport } from './report-dialog';
 
 type Catalog = { categories: string[]; templates: TemplateSummary[]; default: string };
 type Settings = Record<string, unknown>;
@@ -1014,7 +1015,7 @@ class ExportDialog extends Dialog {
         this.status.done();
         this.close();
         savedToast('Exported to', r.path);
-        if (r.warnings?.length) toast(r.warnings.slice(0, 3).join(' '));
+        fidelityReport('export', r.path.split(/[\\/]/).pop() ?? r.path, r.warnings);
       } else {
         download(api.downloadUrl(deck.id, f, this.embedArg()));
         this.close();

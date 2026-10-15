@@ -33,13 +33,29 @@ export class ColorPop {
         html += `<button type="button" class="fd-swatch" data-c='${JSON.stringify(c)}' title="${NAMES[s]}${m.label ? `, ${m.label}` : ''}" style="--swatch:${colorCss(c, theme)};background:${colorCss(c, theme)}"></button>`;
       }
     }
-    html += `</div><div class="fd-pop-head">Standard</div><div class="fd-colorpop-grid">${STANDARD.map((h) => `<button type="button" class="fd-swatch" data-c='"${h}"' title="${h}" style="background:${h}"></button>`).join('')}</div><div class="fd-pop-sep"></div><div class="fd-colorpop-row">`;
+    html += `</div><div class="fd-pop-head">Tint or shade</div><div class="fd-colorpop-row fd-colorpop-tint"><select class="fd-input" data-tint-slot aria-label="Theme colour">${SLOTS.map((s) => `<option value="${s}"${s === 'accent1' ? ' selected' : ''}>${NAMES[s]}</option>`).join('')}</select><input class="fd-input" type="number" min="-100" max="100" step="5" value="40" data-tint-pct aria-label="Lighter (positive) or darker (negative), percent" title="Lighter (positive) or darker (negative), percent"><span class="fd-colorpop-tint-sw" data-tint-sw></span><button type="button" class="fd-btn fd-btn-sm" data-tint-apply>Apply</button></div>`;
+    html += `<div class="fd-pop-head">Standard</div><div class="fd-colorpop-grid">${STANDARD.map((h) => `<button type="button" class="fd-swatch" data-c='"${h}"' title="${h}" style="background:${h}"></button>`).join('')}</div><div class="fd-pop-sep"></div><div class="fd-colorpop-row">`;
     if (opts.none) html += `<button type="button" class="fd-btn fd-btn-sm fd-btn-ghost" data-none>${icon('remove', 14)}${opts.none}</button>`;
     html += `<label class="fd-btn fd-btn-sm fd-btn-ghost">${icon('palette', 14)}Custom</label></div>`;
     this.pop.innerHTML = html;
     this.pop.querySelector('label')?.appendChild(this.custom);
     this.pop.querySelectorAll<HTMLButtonElement>('[data-c]').forEach((b) => b.addEventListener('click', () => this.close(JSON.parse(b.dataset.c ?? 'null') as Color)));
     this.pop.querySelector('[data-none]')?.addEventListener('click', () => this.close(null));
+    const slot = this.pop.querySelector<HTMLSelectElement>('[data-tint-slot]');
+    const pct = this.pop.querySelector<HTMLInputElement>('[data-tint-pct]');
+    const sw = this.pop.querySelector<HTMLElement>('[data-tint-sw]');
+    const tint = (): Color | null => {
+      const p = Math.max(-100, Math.min(100, Number(pct?.value ?? 0))) / 100;
+      if (!slot || !Number.isFinite(p)) return null;
+      const s = slot.value as (typeof SLOTS)[number];
+      if (p === 0) return s;
+      return p > 0 ? { scheme: s, lumMod: Math.round((1 - p) * 1000) / 1000, lumOff: Math.round(p * 1000) / 1000 } : { scheme: s, lumMod: Math.round((1 + p) * 1000) / 1000 };
+    };
+    const show = (): void => { const c = tint(); if (sw && c) sw.style.background = colorCss(c, theme); };
+    slot?.addEventListener('change', show);
+    pct?.addEventListener('input', show);
+    show();
+    this.pop.querySelector('[data-tint-apply]')?.addEventListener('click', () => { const c = tint(); if (c) this.close(c); });
     this.custom.oninput = null;
     this.custom.onchange = () => this.close(this.custom.value.toUpperCase());
     setHidden(this.pop, false);

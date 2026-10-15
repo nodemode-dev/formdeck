@@ -53,6 +53,30 @@ const styledRuns = (e: ShapeElement): Array<{ r: ParaOf['runs'][number]; p: Para
   return filled.length ? filled : all;
 };
 
+const RESET_EL = ['x', 'y', 'w', 'h', 'rot', 'fill', 'line', 'effects', 'opacity', 'sp3d', 'scene3d', 'adj'] as const;
+const RESET_BODY = ['anchor', 'autofit', 'inset', 'wrap', 'cols', 'vert', 'warp'] as const;
+const RESET_PARA = ['align', 'lineSpacing', 'spaceBefore', 'spaceAfter', 'bullet'] as const;
+const RESET_RUN = ['b', 'i', 'u', 's', 'sz', 'font', 'color', 'hl', 'sup', 'sub', 'caps', 'spc', 'fill', 'ln', 'fx'] as const;
+
+export function resetOps(slideId: string, els: SlideElement[]): Op[] {
+  const ops: Op[] = [];
+  for (const e of els) {
+    const rec = e as unknown as Record<string, unknown>;
+    for (const k of RESET_EL) if (rec[k] !== undefined) ops.push({ op: 'set', path: [...elPath(slideId, e.id), k] });
+    if (e.type !== 'shape' || !e.text) continue;
+    const body = e.text as unknown as Record<string, unknown>;
+    for (const k of RESET_BODY) if (body[k] !== undefined) ops.push({ op: 'set', path: [...elPath(slideId, e.id), 'text', k] });
+    const paras = e.text.paras.map((p) => {
+      const np = { ...p } as Record<string, unknown>;
+      for (const k of RESET_PARA) delete np[k];
+      np.runs = p.runs.map((r) => { const nr = { ...r } as Record<string, unknown>; for (const k of RESET_RUN) delete nr[k]; return nr; });
+      return np;
+    });
+    if (JSON.stringify(paras) !== JSON.stringify(e.text.paras)) ops.push({ op: 'set', path: [...elPath(slideId, e.id), 'text', 'paras'], value: paras });
+  }
+  return ops;
+}
+
 export function registerCommands(cmds: Commands, h: AppHooks): void {
   const E = (): Editor | null => h.editor();
   const has = (): boolean => !!E();
@@ -168,7 +192,8 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'duplicate-slide', label: 'Duplicate Slide', keys: ['Shift+Mod+D'], icon: 'duplicate', enabled: has, run: () => E()?.duplicateSlides() },
     { id: 'delete-slide', label: 'Delete Slide', icon: 'delete', enabled: () => (E()?.doc.deck.slides.length ?? 0) > 0, run: () => { const ed = E(); if (!ed) return; const ids = ed.slideSel.length ? ed.slideSel : [ed.current]; apply(deleteSlideOps(ed.doc, ids), ids.length > 1 ? 'Delete slides' : 'Delete slide'); } },
     { id: 'hide-slide', label: 'Hide Slide', icon: 'eyeOff', checked: () => !!slide()?.hidden, enabled: has, run: () => { const ed = E(); if (!ed) return; const ids = ed.slideSel.length ? ed.slideSel : [ed.current]; const hide = !ed.doc.slide(ids[0])?.hidden; apply(ids.map((id) => ({ op: 'set', path: [...slidePath(id), 'hidden'], value: hide }) as Op), hide ? 'Hide slide' : 'Show slide'); } },
-    { id: 'reset-slide', label: 'Reset Slide', enabled: has, run: () => { const s = slide(); if (s) apply(s.elements.filter((e) => e.ph).flatMap((e) => (['x', 'y', 'w', 'h', 'rot'] as const).filter((k) => e[k] !== undefined).map((k) => ({ op: 'set', path: [...elPath(s.id, e.id), k] }) as Op)), 'Reset slide'); } },
+    { id: 'reset-slide', label: 'Reset Slide', enabled: has, run: () => { const s = slide(); if (s) apply(resetOps(s.id, s.elements.filter((e) => e.ph)), 'Reset slide'); } },
+    { id: 'reset-placeholder', label: 'Reset Placeholder', enabled: () => sel().some((e) => !!e.ph), run: () => { const s = slide(); if (s) apply(resetOps(s.id, sel().filter((e) => e.ph)), 'Reset placeholder'); } },
     { id: 'add-section', label: 'Add Section', enabled: has, run: async () => { const ed = E(); if (!ed) return; const name = await promptName('Add Section', 'Untitled section', 'Add'); if (!name) return; const start = ed.current; const exists = (ed.doc.deck.sections ?? []).find((x) => x.start === start); apply(exists ? [{ op: 'set', path: ['sections', { id: exists.id }, 'name'], value: name }] : [{ op: 'ins', path: ['sections'], value: { id: ed.doc.nextId('sec'), name, start } }], 'Add section'); } },
     { id: 'rename-section', label: 'Rename Section...', enabled: () => { const ed = E(); return !!ed && sectionOf(ed) !== null; }, run: async () => { const ed = E(); if (!ed) return; const sec = sectionOf(ed); if (!sec) return; const name = await promptName('Rename Section', sec.name, 'Rename'); if (name) apply([{ op: 'set', path: ['sections', { id: sec.id }, 'name'], value: name }], 'Rename section'); } },
     { id: 'format-background', label: 'Format Background...', icon: 'background', enabled: has, run: () => h.background() },

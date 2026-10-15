@@ -3,7 +3,7 @@ import { elPath, type Op } from '../engine/ops';
 import type { Command, Commands } from '../ui/commands';
 import { toast } from '../ui/toast';
 import type { Editor } from './editor';
-import { dirtyOp } from './actions';
+import { dirtyOp, resolvedFrame } from './actions';
 import { applyRunFx, snapOf, type Snap } from './text-effects';
 
 const RUN_KEYS = ['b', 'i', 'u', 's', 'sz', 'font', 'color', 'hl', 'sup', 'sub', 'caps', 'spc', 'fill', 'ln', 'fx'] as const;
@@ -25,6 +25,17 @@ interface Look {
   adjust?: ImageElement['adjust'];
   mask?: string;
   adj?: Record<string, number>;
+  frame?: { x: number; y: number; w: number; h: number; rot?: number };
+}
+
+const FRAME_KEY = 'formdeck.painterFrame';
+let withFrame = ((): boolean => { try { return localStorage.getItem(FRAME_KEY) === '1'; } catch { return false; } })();
+
+function frameLook(ed: Editor, el: SlideElement): Look['frame'] {
+  const s = ed.slide;
+  if (!s || !withFrame) return undefined;
+  const f = resolvedFrame(ed.doc.deck, s, el);
+  return { x: f.x, y: f.y, w: f.w, h: f.h, ...(el.rot ? { rot: el.rot } : {}) };
 }
 
 type Mode = 'off' | 'once' | 'sticky';
@@ -66,10 +77,10 @@ function capture(ed: Editor): Look | null {
     const run = target.text?.paras.flatMap((p) => p.runs).find((r) => r.t && r.t !== '\n');
     return {
       kind: 'shape', fill: structuredClone(target.fill), line: structuredClone(target.line), effects: structuredClone(target.effects), sp3d: structuredClone(target.sp3d), scene3d: structuredClone(target.scene3d),
-      opacity: target.opacity, body: pick(target.text, BODY_KEYS), run: run ? pick(run, RUN_KEYS) : undefined, para: pick(target.text?.paras[0], PARA_KEYS),
+      opacity: target.opacity, body: pick(target.text, BODY_KEYS), run: run ? pick(run, RUN_KEYS) : undefined, para: pick(target.text?.paras[0], PARA_KEYS), frame: frameLook(ed, target),
     };
   }
-  if (target.type === 'image') return { kind: 'image', line: structuredClone(target.line), effects: structuredClone(target.effects), opacity: target.opacity, adjust: structuredClone(target.adjust), mask: target.mask, adj: structuredClone(target.adj) };
+  if (target.type === 'image') return { kind: 'image', line: structuredClone(target.line), effects: structuredClone(target.effects), opacity: target.opacity, adjust: structuredClone(target.adjust), mask: target.mask, adj: structuredClone(target.adj), frame: frameLook(ed, target) };
   return null;
 }
 
@@ -82,7 +93,15 @@ function elementOps(ed: Editor, look: Look): Op[] {
   if (!s) return [];
   const ops: Op[] = [];
   const shapes: ShapeElement[] = [];
-  for (const el of ed.selected()) {
+  const targets = ed.selected();
+  if (look.frame && look.kind !== 'text') {
+    const one = targets.length === 1;
+    for (const el of targets) {
+      ops.push(set(s.id, el, 'w', look.frame.w), set(s.id, el, 'h', look.frame.h), set(s.id, el, 'rot', look.frame.rot));
+      if (one) ops.push(set(s.id, el, 'x', look.frame.x), set(s.id, el, 'y', look.frame.y));
+    }
+  }
+  for (const el of targets) {
     if (el.type === 'shape') {
       shapes.push(el);
       if (look.kind === 'text') continue;
@@ -244,6 +263,11 @@ export function registerFormatPainter(cmds: Commands, painter: FormatPainter): v
     { id: 'format-painter', label: 'Format Painter', icon: 'formatPainter', enabled: () => painter.active || painter.canCopy(), checked: () => painter.active, run: () => painter.toggle() },
     { id: 'format-copy', label: 'Copy Formatting', keys: ['Shift+Mod+C'], enabled: () => painter.canCopy(), run: () => { painter.copy(); } },
     { id: 'format-paste', label: 'Paste Formatting', keys: ['Shift+Mod+V'], enabled: () => painter.canPaste(), run: () => painter.pasteHeld() },
+    { id: 'format-painter-frame', label: 'Format Painter Copies Size and Position', checked: () => withFrame, run: () => {
+      withFrame = !withFrame;
+      try { localStorage.setItem(FRAME_KEY, withFrame ? '1' : '0'); } catch { void 0; }
+      toast(withFrame ? 'Format Painter now copies size too, and position when you paint one element.' : 'Format Painter copies the look only.');
+    } },
   ];
   cmds.add(...list);
 }

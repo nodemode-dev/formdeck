@@ -398,9 +398,14 @@ export class AnimationPane {
       this.sync();
       return;
     }
-    const base: PathKey[] = [...slidePath(s.id), 'animations', { id: a.id }];
-    const ops: Op[] = Object.entries(fields).map(([k, v]) => (v === undefined || v === false || (k === 'delay' && v === 0) ? { op: 'set', path: [...base, k] } : { op: 'set', path: [...base, k], value: v }));
-    ed.apply(ops, label);
+    const timing = Object.keys(fields).every((k) => k === 'trigger' || k === 'duration' || k === 'delay' || k === 'byParagraph');
+    const picked = new Set(ed.selection);
+    const many = timing && picked.size > 1 && picked.has(a.target) ? (s.animations ?? []).filter((x) => picked.has(x.target)) : [a];
+    const ops: Op[] = many.flatMap((one) => {
+      const base: PathKey[] = [...slidePath(s.id), 'animations', { id: one.id }];
+      return Object.entries(fields).map(([k, v]): Op => (v === undefined || v === false || (k === 'delay' && v === 0) ? { op: 'set', path: [...base, k] } : { op: 'set', path: [...base, k], value: v }));
+    });
+    ed.apply(ops, many.length > 1 ? `${label} (${many.length} animations)` : label);
   }
 
   private add(drawn?: string): void {
