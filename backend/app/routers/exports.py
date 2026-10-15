@@ -42,7 +42,12 @@ def _notes_of(deck_id: str) -> dict:
         return {}
 
 
-def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict | None = None) -> bytes:
+def _actual(text: str) -> str:
+    return "<FEFF" + text.encode("utf-16-be").hex().upper() + ">"
+
+
+def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict | None = None, bares: list | None = None, live: "pdf_fonts.LiveFonts | None" = None) -> bytes:
+    from reportlab.lib.colors import HexColor
     from reportlab.lib.utils import ImageReader, simpleSplit
     from reportlab.pdfbase.pdfmetrics import stringWidth
     from reportlab.pdfgen import canvas
@@ -64,19 +69,38 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
     sects = []
     for i, data in enumerate(images):
         info = slides[i] if i < len(slides) and isinstance(slides[i], dict) else {}
+        bare = bares[i] if bares and i < len(bares) else None
+        words = [wd for it in info.get("text") or [] if isinstance(it, dict) for wd in it.get("words") or [] if isinstance(wd, dict)]
+        live_page = bool(bare and words and live is not None and all(live.font(wd) for wd in words))
         c._code.append("/Artifact BMC")
-        c.drawImage(ImageReader(io.BytesIO(data)), 0, extra, pw, sh)
+        c.drawImage(ImageReader(io.BytesIO(bare if live_page else data)), 0, extra, pw, sh)
         c._code.append("EMC")
         sect, runs = pdf_tags.layout(info, ph)
         mc = 0
         for run in runs:
+            whole = live_page and run.items and all(it.get("words") for it in run.items)
             if run.elem is None:
                 c._code.append("/Artifact BMC")
             else:
-                c._code.append(f"/{run.tag} <</MCID {mc}>> BDC")
+                said = f" /ActualText {_actual(' '.join(str(it.get('text') or '') for it in run.items))}" if whole else ""
+                c._code.append(f"/{run.tag} <</MCID {mc}{said}>> BDC")
                 run.elem.mcids.append(mc)
                 mc += 1
             for item in run.items:
+                if live_page and item.get("words"):
+                    t = c.beginText()
+                    ws = item["words"]
+                    for n, wd in enumerate(ws):
+                        try:
+                            t.setFillColor(HexColor(str(wd.get("color") or "#000000")))
+                        except ValueError:
+                            t.setFillColorRGB(0, 0, 0)
+                        t.setFont(live.font(wd), max(1.0, float(wd.get("size") or 12)))
+                        t.setTextOrigin(float(wd.get("x") or 0), ph - float(wd.get("y") or 0))
+                        same = n + 1 < len(ws) and abs(float(ws[n + 1].get("y") or 0) - float(wd.get("y") or 0)) < 0.5
+                        t.textOut(str(wd.get("s") or "") + (" " if same else ""))
+                    c.drawText(t)
+                    continue
                 sz = max(1.0, float(item.get("size") or 12))
                 x, y, w = float(item.get("x") or 0), float(item.get("y") or 0), float(item.get("w") or 0)
                 for k, line in enumerate(str(item.get("text") or "").split("\n")):
@@ -143,10 +167,17 @@ def _raster(data: bytes, fmt: str) -> bytes:
         return out.getvalue()
 
 
-def compose_bytes(deck_id: str, fmt: str, meta: dict, images: list[bytes]) -> tuple[bytes, str]:
+def compose_bytes(deck_id: str, fmt: str, meta: dict, images: list[bytes], bares: list | None = None) -> tuple[bytes, str]:
     title = _title(deck_id)
     if fmt == "pdf":
-        return _pdf(title, _author(deck_id), meta, images, _notes_of(deck_id) if meta.get("notes") else None), f"{title}{' notes' if meta.get('notes') else ''}.pdf"
+        live = None
+        if bares and any(bares):
+            try:
+                from app.services.media import store as media_store
+                live = pdf_fonts.LiveFonts(STORE.snapshot(deck_id)["deck"], media_store())
+            except Exception:
+                live = pdf_fonts.LiveFonts(None)
+        return _pdf(title, _author(deck_id), meta, images, _notes_of(deck_id) if meta.get("notes") else None, bares, live), f"{title}{' notes' if meta.get('notes') else ''}.pdf"
     ext = "png" if fmt == "png" else "jpg"
     slides = meta.get("slides") or []
     if len(images) == 1:
@@ -172,7 +203,7 @@ def _target(name: str, raw: str | None) -> tuple[Path, bool]:
 
 
 @router.post("/decks/{deck_id}/compose")
-async def compose(deck_id: str, format: str = Form(...), meta: str = Form("{}"), images: list[UploadFile] = File(default=[])) -> dict:
+async def compose(deck_id: str, format: str = Form(...), meta: str = Form("{}"), images: list[UploadFile] = File(default=[]), bares: list[UploadFile] = File(default=[])) -> dict:
     fmt = format.lower().strip()
     if fmt == "jpg":
         fmt = "jpeg"
@@ -187,7 +218,12 @@ async def compose(deck_id: str, format: str = Form(...), meta: str = Form("{}"),
     if not blobs:
         raise HTTPException(400, "no slide images")
     try:
-        data, name = await asyncio.to_thread(compose_bytes, deck_id, fmt, info, blobs)
+        extra = [await f.read() for f in bares]
+        flags = [bool(isinstance(s, dict) and s.get("bare")) for s in (info.get("slides") or [])]
+        aligned: list = []
+        for flag in flags[:len(blobs)]:
+            aligned.append(extra.pop(0) if flag and extra else None)
+        data, name = await asyncio.to_thread(compose_bytes, deck_id, fmt, info, blobs, aligned)
     except Exception as exc:
         raise HTTPException(400, f"Could not compose the {fmt}: {exc}")
     path, served = _target(name, info.get("path"))

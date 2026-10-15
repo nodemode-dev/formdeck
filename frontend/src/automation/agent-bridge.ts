@@ -253,19 +253,23 @@ export class AgentBridge {
     const pdf = opts.format === 'pdf';
     const mime = opts.format === 'png' ? 'image/png' : 'image/jpeg';
     const ext = opts.format === 'png' ? 'png' : 'jpg';
-    const slides: Array<{ id: string; n: number; title: string; text: TextItem[]; struct: PdfNode[] }> = [];
+    const slides: Array<{ id: string; n: number; title: string; text: TextItem[]; struct: PdfNode[]; bare?: boolean }> = [];
     const files: Blob[] = [];
+    const bares: Array<Blob | null> = [];
     for (const id of ids) {
       const s = deck.slides.find((x) => x.id === id) as Slide;
-      const r = await rasterSlide(deck, id, scale);
+      const r = await rasterSlide(deck, id, scale, pdf);
       files.push(await toBlob(r.canvas, mime, pdf ? 0.9 : opts.format === 'jpeg' ? 0.92 : undefined));
+      bares.push(r.bare ? await toBlob(r.bare, mime, 0.9) : null);
       r.canvas.width = 0;
-      slides.push({ id, n: deck.slides.indexOf(s) + 1, title: slideTitle(deck, s), text: pdf ? r.text : [], struct: pdf ? r.struct : [] });
+      if (r.bare) r.bare.width = 0;
+      slides.push({ id, n: deck.slides.indexOf(s) + 1, title: slideTitle(deck, s), text: pdf ? r.text : [], struct: pdf ? r.struct : [], ...(r.bare ? { bare: true } : {}) });
     }
     const fd = new FormData();
     fd.append('format', opts.format);
     fd.append('meta', JSON.stringify({ size: deck.size, title: deck.title, lang: typeof deck.meta.lang === 'string' ? deck.meta.lang : '', slides, ...(opts.path ? { path: opts.path } : {}) }));
     files.forEach((b, i) => fd.append('images', b, `slide-${String(slides[i].n).padStart(3, '0')}.${ext}`));
+    bares.forEach((b, i) => { if (b) fd.append('bares', b, `bare-${String(slides[i].n).padStart(3, '0')}.${ext}`); });
     const res = await fetch(`/api/decks/${encodeURIComponent(deck.id)}/compose`, { method: 'POST', body: fd });
     if (!res.ok) {
       let detail = res.statusText;

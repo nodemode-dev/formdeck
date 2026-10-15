@@ -6,18 +6,19 @@ import { loadFxImage, paintTfx, tfxData, tfxLines } from './text-fx';
 import { warpMesh } from './fx3d';
 import { structOf, type PdfNode } from './pdf-struct';
 
-export interface TextItem { x: number; y: number; w: number; h: number; text: string; size: number; font?: string; e?: string; p?: number; r?: number; c?: number; b?: number; lv?: number }
-export interface Raster { canvas: HTMLCanvasElement; text: TextItem[]; w: number; h: number; struct: PdfNode[] }
+export interface LiveWord { s: string; x: number; y: number; size: number; font: string; weight: number; italic: boolean; color: string }
+export interface TextItem { x: number; y: number; w: number; h: number; text: string; size: number; font?: string; e?: string; p?: number; r?: number; c?: number; b?: number; lv?: number; words?: LiveWord[] }
+export interface Raster { canvas: HTMLCanvasElement; text: TextItem[]; w: number; h: number; struct: PdfNode[]; bare?: HTMLCanvasElement }
 
 type Ctx = CanvasRenderingContext2D;
 interface Box { x: number; y: number; w: number; h: number }
 interface Shadow { x: number; y: number; blur: number; color: string }
 type Step = { m: DOMMatrix } | { r: [number, number, number, number] } | { p: Path2D; x: number; y: number };
-interface Draw { k: 'd'; steps: Step[]; alpha: number; shadows: Shadow[]; filter: string; run: (c: Ctx) => void }
+interface Draw { k: 'd'; steps: Step[]; alpha: number; shadows: Shadow[]; filter: string; run: (c: Ctx) => void; live?: boolean }
 interface Layer { k: 'l'; depth: number; clip: Step[] | null; alpha: number; shadows: Shadow[]; filter: string; ops: Op[]; warp?: { m: DOMMatrix; steps: Step[]; box: Box } }
 type Op = Draw | Layer;
 interface Item extends TextItem { gap: boolean }
-interface Walk { origin: DOMRect; scale: number; text: Item[]; waits: Array<Promise<unknown>>; media: Map<string, Promise<string>>; space: boolean }
+interface Walk { origin: DOMRect; scale: number; text: Item[]; waits: Array<Promise<unknown>>; media: Map<string, Promise<string>>; space: boolean; fx: number }
 interface Fx { shadows: Shadow[]; css: string; color: Array<[string, number]> }
 
 const FILTER_OK = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype;
@@ -67,8 +68,13 @@ export function withSlide<T>(deck: Deck, slideId: string, fn: (view: SlideView) 
   return serial(() => mounted(deck, slideId, fn));
 }
 
-export function rasterSlide(deck: Deck, slideId: string, scale = 1): Promise<Raster> {
-  return serial(() => mounted(deck, slideId, (view) => render(collect(deck, view, scale))));
+export function rasterSlide(deck: Deck, slideId: string, scale = 1, live = false): Promise<Raster> {
+  return serial(() => mounted(deck, slideId, async (view) => {
+    const p = collect(deck, view, scale);
+    const full = await render(p);
+    if (live && full.text.some((t) => t.words?.length)) full.bare = (await render(p, true)).canvas;
+    return full;
+  }));
 }
 
 export function rasterSlideWith(deck: Deck, slideId: string, scale: number, prep: (view: SlideView) => void): Promise<Raster> {
@@ -125,7 +131,7 @@ interface Pending { ops: Op[]; w: Walk; W: number; H: number; deck: Deck; struct
 function collect(deck: Deck, view: SlideView, scale: number): Pending {
   const slide = view.slide as Slide;
   const W = Math.max(1, Math.round(deck.size.w * scale)), H = Math.max(1, Math.round(deck.size.h * scale));
-  const w: Walk = { origin: view.inner.getBoundingClientRect(), scale: W / deck.size.w, text: [], waits: [], media: new Map(), space: true };
+  const w: Walk = { origin: view.inner.getBoundingClientRect(), scale: W / deck.size.w, text: [], waits: [], media: new Map(), space: true, fx: 0 };
   const ops: Op[] = [];
   const bg = backgroundOp(deck, slide, w);
   if (bg) ops.push(bg);
@@ -134,7 +140,7 @@ function collect(deck: Deck, view: SlideView, scale: number): Pending {
   return { ops, w, W, H, deck, struct };
 }
 
-async function render(p: Pending): Promise<Raster> {
+async function render(p: Pending, bare = false): Promise<Raster> {
   await Promise.race([Promise.all(p.w.waits), sleep(10000)]);
   const canvas = document.createElement('canvas');
   canvas.width = p.W;
@@ -144,7 +150,7 @@ async function render(p: Pending): Promise<Raster> {
   c.fillRect(0, 0, p.W, p.H);
   const base = new DOMMatrix().scale(p.W / p.deck.size.w, p.H / p.deck.size.h);
   const pool: HTMLCanvasElement[] = [];
-  for (const op of p.ops) drawOp(c, op, base, pool, 0, p.W, p.H);
+  for (const op of p.ops) if (!(bare && op.k === 'd' && op.live)) drawOp(c, op, base, pool, 0, p.W, p.H);
   for (const l of pool) l.width = 0;
   return { canvas, text: mergeText(p.w.text), w: p.W, h: p.H, struct: p.struct };
 }
@@ -215,6 +221,7 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
   const inline = style?.transform ?? '';
   const moved = !!transform && transform !== 'none' && !!style;
   if (moved && style) style.transform = 'none';
+  let fxd = 0;
   try {
     const b = rel(node.getBoundingClientRect(), w.origin);
     let local = steps;
@@ -227,6 +234,8 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
         const layer: Layer = { k: 'l', depth: steps.length, clip: null, alpha: 1, shadows: [], filter: '', ops: [], warp: { m: mm, steps, box: { x: b.x - pad, y: b.y - pad, w: b.w + 2 * pad, h: b.h + 2 * pad } } };
         out.push(layer);
         out = layer.ops;
+        w.fx++;
+        fxd++;
       } else local = [...steps, { m: mm }];
     }
     const lm = matOf(local);
@@ -244,6 +253,8 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
       const layer: Layer = { k: 'l', depth: local.length, clip: clipStep ? [...local, clipStep] : null, alpha: opacity, shadows, filter: scaleCss(fx.css, k), ops: [] };
       out.push(layer);
       sink = layer.ops;
+      w.fx++;
+      fxd++;
     }
     if (!hidden) paintBox(node, cs, b, local, sink, w);
     if (node.namespaceURI === MATHML_NS && !hidden) {
@@ -260,6 +271,7 @@ function walk(node: Element, steps: Step[], out: Op[], w: Walk, hidden: boolean)
       else if (ch instanceof Element) walk(ch, inner, sink, w, hidden);
     }
   } finally {
+    w.fx -= fxd;
     if (moved && style) style.transform = inline;
   }
 }
@@ -344,6 +356,12 @@ function metrics(c: Ctx, size: number): { a: number; d: number } {
   const m = c.measureText('Hg');
   const a = m.fontBoundingBoxAscent, d = m.fontBoundingBoxDescent;
   return Number.isFinite(a) && Number.isFinite(d) && a + d > 0 ? { a, d } : { a: size * 0.8, d: size * 0.2 };
+}
+
+let measurer: Ctx | null = null;
+function measureCtx(): Ctx {
+  measurer ??= document.createElement('canvas').getContext('2d') as Ctx;
+  return measurer;
 }
 
 function firstFamily(cs: CSSStyleDeclaration): string {
@@ -446,7 +464,7 @@ function caseOf(s: string, t: string, start: boolean): string {
   return s;
 }
 
-interface Frag { s: string; x: number; y: number; w: number; h: number; gap: boolean }
+interface Frag { s: string; x: number; y: number; w: number; h: number; gap: boolean; b?: number }
 
 function textNode(t: Text, cs: CSSStyleDeclaration, steps: Step[], out: Op[], w: Walk): void {
   const data = t.data;
@@ -491,23 +509,37 @@ function textNode(t: Text, cs: CSSStyleDeclaration, steps: Step[], out: Op[], w:
   const font = canvasFont(cs);
   const color = cs.color;
   const deco = decoOf(t.parentElement);
-  const lines: Array<{ x: number; y: number; r: number; h: number; text: string; gap: boolean }> = [];
+  const lines: Array<{ x: number; y: number; r: number; h: number; text: string; gap: boolean; fr: Frag[] }> = [];
   for (const f of frags) {
     const last = lines[lines.length - 1];
     const same = last && (vertical ? Math.abs(f.x - last.x) < f.w * 0.5 : Math.abs(f.y - last.y) < f.h * 0.5 && f.x >= last.r - size * 0.5);
-    if (same && last) { last.text += (f.gap || f.x - last.r > size * 0.18 ? ' ' : '') + f.s; last.r = vertical ? last.r : Math.max(last.r, f.x + f.w); last.h = vertical ? f.y + f.h - last.y : Math.max(last.h, f.h); }
-    else lines.push({ x: f.x, y: f.y, r: f.x + f.w, h: f.h, text: f.s, gap: f.gap });
+    if (same && last) { last.text += (f.gap || f.x - last.r > size * 0.18 ? ' ' : '') + f.s; last.r = vertical ? last.r : Math.max(last.r, f.x + f.w); last.h = vertical ? f.y + f.h - last.y : Math.max(last.h, f.h); last.fr.push(f); }
+    else lines.push({ x: f.x, y: f.y, r: f.x + f.w, h: f.h, text: f.s, gap: f.gap, fr: [f] });
   }
   const m2 = matOf(steps);
   const k = Math.sqrt(Math.abs(m2.a * m2.d - m2.b * m2.c));
   const family = firstFamily(cs);
+  const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(color);
+  const plain = Math.abs(m2.b) < 1e-6 && Math.abs(m2.c) < 1e-6 && Math.abs(m2.a - m2.d) < 1e-6 && m2.a > 0;
+  const live = !!rgb && (rgb[4] === undefined || Number(rgb[4]) >= 0.999) && plain && w.fx === 0 && !vertical && !deco.u && !deco.s
+    && cs.fontVariantCaps !== 'small-caps' && !steps.some((s) => 'r' in s || 'p' in s) && !(bullet && !/[\p{L}\p{N}]/u.test(data));
+  if (live) {
+    const mc = measureCtx();
+    mc.font = font;
+    const { a, d } = metrics(mc, size);
+    for (const f of frags) f.b = f.y + (f.h - (a + d)) / 2 + a;
+  }
+  const hex = rgb ? `#${[1, 2, 3].map((i) => Number(rgb[i]).toString(16).padStart(2, '0')).join('')}` : '';
+  const weight = parseInt(cs.fontWeight, 10) || 400;
+  const italic = cs.fontStyle !== 'normal';
   for (const l of bullet && !/[\p{L}\p{N}]/u.test(data) ? [] : lines) {
     const pts = [new DOMPoint(l.x, l.y), new DOMPoint(l.r, l.y), new DOMPoint(l.x, l.y + l.h), new DOMPoint(l.r, l.y + l.h)].map((p) => m2.transformPoint(p));
     const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
     const x0 = Math.min(...xs), y0 = Math.min(...ys);
-    w.text.push({ x: x0, y: y0, w: Math.max(...xs) - x0, h: Math.max(...ys) - y0, text: l.text, size: size * k, font: family, gap: l.gap });
+    const words = live ? l.fr.map((f) => { const p = m2.transformPoint(new DOMPoint(f.x, f.b ?? f.y)); return { s: f.s, x: rd(p.x), y: rd(p.y), size: rd(size * k), font: family, weight, italic, color: hex }; }) : undefined;
+    w.text.push({ x: x0, y: y0, w: Math.max(...xs) - x0, h: Math.max(...ys) - y0, text: l.text, size: size * k, font: family, gap: l.gap, ...(words ? { words } : {}) });
   }
-  out.push({ k: 'd', steps, alpha: 1, shadows: [], filter: '', run: (c) => {
+  out.push({ k: 'd', steps, alpha: 1, shadows: [], filter: '', live, run: (c) => {
     c.font = font;
     c.fillStyle = color;
     c.textAlign = 'left';
@@ -539,7 +571,7 @@ function mergeText(items: Item[]): TextItem[] {
   const out: Item[] = [];
   for (const it of items) {
     const p = out[out.length - 1];
-    const sameLine = p && p.e === it.e && p.p === it.p && p.r === it.r && p.c === it.c && Math.abs(p.y + p.h / 2 - (it.y + it.h / 2)) < Math.max(p.h, it.h) * 0.4;
+    const sameLine = p && !!p.words === !!it.words && p.e === it.e && p.p === it.p && p.r === it.r && p.c === it.c && Math.abs(p.y + p.h / 2 - (it.y + it.h / 2)) < Math.max(p.h, it.h) * 0.4;
     const gapPx = p ? it.x - (p.x + p.w) : 0;
     if (p && sameLine && gapPx > -Math.max(p.size, it.size) * 0.5 && gapPx < Math.max(p.size, it.size) * 1.2) {
       const r = Math.max(p.x + p.w, it.x + it.w), b = Math.max(p.y + p.h, it.y + it.h);
@@ -548,6 +580,7 @@ function mergeText(items: Item[]): TextItem[] {
       p.w = r - p.x;
       p.h = b - p.y;
       p.size = Math.max(p.size, it.size);
+      if (p.words && it.words) p.words = [...p.words, ...it.words];
     } else out.push({ ...it });
   }
   return out.map(({ gap: _g, ...rest }) => { void _g; return { ...rest, x: rd(rest.x), y: rd(rest.y), w: rd(rest.w), h: rd(rest.h), size: rd(rest.size) }; });

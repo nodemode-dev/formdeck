@@ -57,6 +57,67 @@ def text_layer(chars: set[str]) -> str:
         return FALLBACK
 
 
+class LiveFonts:
+    def __init__(self, deck: dict | None, store=None):
+        self.media: dict[str, dict[str, bytes]] = {}
+        if deck is not None and store is not None:
+            try:
+                self.media = font_sources.media_fonts(deck, store)
+            except Exception:
+                self.media = {}
+        self.loaded: dict[str, tuple[str | None, frozenset]] = {}
+        self.picked: dict[tuple, str | None] = {}
+
+    def _load(self, key: str, source) -> tuple[str | None, frozenset]:
+        if key in self.loaded:
+            return self.loaded[key]
+        out: tuple[str | None, frozenset] = (None, frozenset())
+        try:
+            font = TTFont(io.BytesIO(source) if isinstance(source, bytes) else source[0], fontNumber=0 if isinstance(source, bytes) else source[1])
+            if "glyf" in font:
+                cmap = frozenset((font.getBestCmap() or {}).keys())
+                name = "FDLive" + hashlib.sha1(key.encode()).hexdigest()[:12]
+                for rec in font["name"].names:
+                    if rec.nameID == 6:
+                        rec.string = name
+                font.flavor = None
+                buf = io.BytesIO()
+                font.save(buf)
+                out = (_register(name, buf.getvalue()), cmap)
+        except Exception:
+            out = (None, frozenset())
+        self.loaded[key] = out
+        return out
+
+    def _sources(self, family: str, variant: str):
+        media = self.media.get(family.lower(), {})
+        if variant in media:
+            yield f"media:{family}:{variant}", media[variant]
+        for path in font_sources.bundled(family, variant):
+            yield f"file:{path}", (str(path), 0)
+        for path, index in font_sources.system_fonts(family, variant):
+            yield f"sys:{path}:{index}", (path, index)
+
+    def font(self, word: dict) -> str | None:
+        text = str(word.get("s") or "")
+        family = str(word.get("font") or "").strip()
+        if not text or not family:
+            return None
+        variant = font_sources.variant_of(int(word.get("weight") or 400), bool(word.get("italic")))
+        codes = frozenset(ord(ch) for ch in text + " ")
+        cache = (family.lower(), variant, codes)
+        if cache in self.picked:
+            return self.picked[cache]
+        hit = None
+        for key, source in self._sources(family, variant):
+            name, cmap = self._load(key, source)
+            if name and codes <= cmap:
+                hit = name
+                break
+        self.picked[cache] = hit
+        return hit
+
+
 def _covers(path: str, index: int, codes: list[int]) -> bool:
     try:
         font = TTFont(path, fontNumber=index, lazy=True)
