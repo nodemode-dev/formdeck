@@ -21,7 +21,8 @@ Other commands from `./formdeck help`:
 | `./formdeck build`, `./formdeck serve` | build the frontend into `frontend/dist`, then serve it from the engine on 127.0.0.1:8197 |
 | `./build_app` (or `./formdeck desktop build`; Windows `build_app.bat`) | build the desktop app from a fresh checkout in one step: checks and installs what it needs, then bundles the app (see The desktop app) |
 | `./formdeck claude` | Claude Code in this terminal with FormDeck's MCP tools attached |
-| `./formdeck cli list [text]`, `run <id>` | the editor's command catalogue from a terminal; the window must be open |
+| `./formdeck cli list [text]`, `run <id> [key=value ...]`, `counts` | the editor's command catalogue from a terminal; the window must be open. Commands that need values take them as parameters, for example `./formdeck cli set-font-size size=32` or `set-fill-color color=#1D5BD8` (a hex colour or a theme slot such as accent1). `counts` lists commands per group and fails if any lacks a use-when line |
+| `./formdeck i18n check`, `scan [--write]`, `export LANG FILE.csv`, `import LANG FILE.csv` | the translations: `check` fails when a string has no translation or the code has a string the keys lack; `scan --write` adds new strings as the next keys part; `export` gives a native reviewer one language as CSV (english, current, corrected, note) and `import` brings the corrected column back (kept in keys and locales `part99.json`, which wins over earlier parts) |
 | `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop check` | install PyInstaller and check the toolchain, run the desktop app from source, explain toolchain problems |
 | `./formdeck freeze` | freeze the engine into the desktop sidecar |
 | `./formdeck mcp` | the MCP server over stdio, for Claude Desktop and other stdio clients |

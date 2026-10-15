@@ -289,3 +289,7 @@ Claude Code 2.1.300 connected to /mcp but registered 0 of its tools: under proto
 ## 58. User fonts and chart axes · _v0.10.1 (services/media.py font_info and reject_font, routers/media.py, services/pptx/write_chart.py _axis_style, read_chart.py _axis_look)
 
 An uploaded font is sniffed (woff1 added beside woff2, ttf and otf) and read with fontTools: family from name ID 16 or 1, subfamily from 17 or 2, weight from OS/2 usWeightClass, italic from fsSelection or macStyle. A font with fsType restricted-license (0x0002) or bitmap-only (0x0200) is refused with HTTP 422, because embedding it in a .pptx would break its licence; the .pptx reader's embedded fonts do not pass through this check, since the file already carried them. Chart axes write c:spPr/a:ln before c:crossAx (schema order) and c:tickLblPos none for hidden labels; reading treats c:delete 1 as both hidden.
+
+## 59. Command parameters in the catalogue · _v0.10.4 (routers/mcp.py _param_line, t_list_commands; setup/catalogue.py counts)
+
+The engine stays a pass-through for parameters: the window owns the spec and the validation, and list_commands only renders each command's params as `name?: type min..max` so an agent sees what to send before it calls run_command. `./formdeck cli counts` is formvis's commands count check: per-group totals, how many take parameters, and the ids without a use-when line, exiting 1 when any are missing.
