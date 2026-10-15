@@ -273,6 +273,7 @@ class Show {
   private blank: Blank = 'normal';
   private pen = INKS[0][0];
   private marker = false;
+  private zoomBack: { from: string; to: string } | null = null;
   private penBefore = INKS[0][0];
   private typed = '';
   private enteredAt = 0;
@@ -918,7 +919,11 @@ class Show {
     if (rl) { const v = rl.dataset.link ?? ''; if (v.startsWith('#')) this.jump(v.slice(1)); else openUrl(v); return; }
     const node = t.closest<HTMLElement>('.fd-el[data-id]');
     const elm = node?.dataset.id ? this.doc.element(this.cur, node.dataset.id) : undefined;
-    if (elm?.link) { if ('url' in elm.link) openUrl(elm.link.url); else this.jump(elm.link.slide); return; }
+    if (elm?.link) {
+      if ('url' in elm.link) openUrl(elm.link.url);
+      else { this.zoomBack = elm.link.back && this.doc.slide(elm.link.slide) ? { from: this.cur, to: elm.link.slide } : null; this.jump(elm.link.slide); }
+      return;
+    }
     if (elm?.type === 'media') {
       if (elm.kind === 'audio') { const a = this.audioFor(this.cur, elm); if (a.paused) this.playMedia(a); else a.pause(); }
       return;
@@ -936,6 +941,9 @@ class Show {
     if (this.busy) { this.rush(); return; }
     if (this.atEnd) { void this.exit(); return; }
     if (this.step < this.steps.length - 1) { void this.advanceStep(); return; }
+    const zb = this.zoomBack;
+    this.zoomBack = null;
+    if (zb && zb.to === this.cur && this.doc.slide(zb.from)) { void this.go(zb.from, 'built', true); return; }
     const n = this.nav(1);
     if (n) { void this.go(n[0].id, 'start', true, n[1]); return; }
     this.setEnd(true);

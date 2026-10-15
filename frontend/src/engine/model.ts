@@ -49,7 +49,7 @@ export interface TextBody {
   warp?: TextWarp; sp3d?: Sp3d; scene3d?: Scene3d;
 }
 
-export type Link = { url: string } | { slide: string };
+export type Link = { url: string } | { slide: string; back?: boolean };
 export type PhType = 'title' | 'ctrTitle' | 'subTitle' | 'body' | 'obj' | 'pic' | 'chart' | 'tbl' | 'dt' | 'ftr' | 'sldNum';
 export interface Placeholder { type: PhType; idx?: number }
 
