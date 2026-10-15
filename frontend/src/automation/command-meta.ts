@@ -95,6 +95,7 @@ const ROWS: Record<string, Row> = {
   'component-detach': ['Use when one copy of a component should stop following the others.'],
   'text-style-save': ['Use when the look of this text should be saved under a name to reuse.'],
   'text-style-apply': ['Use when text should take a saved text style.'],
+  'share-network': ['Use when people on the same network should open this deck from their own computers; makes view, comment or edit links (sharing is off until turned on).', 'v'],
   'colour-style-save': ['Use when a shape\'s fill colour should be saved under a name, such as a brand colour, to reuse.'],
   'colour-style-apply': ['Use when shapes should take a saved colour style.'],
   'colour-style-update': ['Use when you changed the fill of a shape that has a colour style and every shape with that style should match.'],

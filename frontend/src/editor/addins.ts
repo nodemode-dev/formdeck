@@ -1,4 +1,5 @@
 import { api } from '../io/api';
+import { guest } from '../io/guest';
 import type { Command, Commands } from '../ui/commands';
 import { el, patchList, q, setClass, setDisabled, setText, setTitle } from '../ui/dom';
 import { icon } from '../ui/icons';
@@ -59,7 +60,7 @@ async function ok<T>(res: Response): Promise<T> {
 }
 
 export async function refreshAddins(): Promise<AddinInfo[]> {
-  const res = await api.get<{ addins: AddinInfo[] }>('/api/addins');
+  const res = guest() ? { addins: [] as AddinInfo[] } : await api.get<{ addins: AddinInfo[] }>('/api/addins');
   installed = res.addins;
   syncRegistry();
   renderBar();

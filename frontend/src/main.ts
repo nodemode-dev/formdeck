@@ -1,5 +1,7 @@
 import { startApp } from './app';
 import { initLanguage } from './i18n';
+import { detectGuest } from './io/guest';
+import { toast } from './ui/toast';
 
 const LEGACY_PREFIX = 'formsld.';
 try {
@@ -13,7 +15,7 @@ try {
   }
 } catch { void 0; }
 
-void initLanguage().catch(() => undefined).then(() => {
+void initLanguage().catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => {
   if (new URLSearchParams(location.search).get('audience') === '1') void import('./present/show').then((m) => m.bootAudience());
   else void startApp();
 });

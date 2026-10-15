@@ -1,4 +1,5 @@
 import type { Deck } from '../engine/model';
+import { guest } from './guest';
 
 export interface DeckSummary { id: string; title: string; slides: number; size: { w: number; h: number }; template?: string; modified?: string; review?: Record<string, number>; warnings?: string[]; thumb?: boolean }
 export interface PdfPages { name: string; pages: number; truncated: boolean; slides: Array<{ page: number; w: number; h: number; text: string; media: { id: string; name: string; mime: string; w?: number; h?: number; bytes: number } }> }
@@ -32,9 +33,9 @@ export const api = {
   closeTerminal: (id: string) => fetch(`/api/terminal/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ ok: boolean }>(r)),
   claudeStatus: () => get<ClaudeStatus>('/api/agent/claude/status'),
   openClaude: (body: { prompt?: string; cols: number; rows: number; fresh?: boolean; resume?: string }) => post<TermInfo>('/api/agent/claude/open', body),
-  mirrorCommands: (body: { size: number; missing: string[]; commands: unknown[] }) => post<{ ok: boolean; size: number }>('/api/commands/catalogue', body),
-  settings: () => get<Record<string, unknown>>('/api/settings'),
-  setSettings: (patch: Record<string, unknown>) => post<Record<string, unknown>>('/api/settings', patch),
+  mirrorCommands: (body: { size: number; missing: string[]; commands: unknown[] }) => (guest() ? Promise.resolve({ ok: true, size: 0 }) : post<{ ok: boolean; size: number }>('/api/commands/catalogue', body)),
+  settings: () => (guest() ? Promise.resolve({} as Record<string, unknown>) : get<Record<string, unknown>>('/api/settings')),
+  setSettings: (patch: Record<string, unknown>) => (guest() ? Promise.resolve({} as Record<string, unknown>) : post<Record<string, unknown>>('/api/settings', patch)),
   library: () => get<{ decks: DeckSummary[] }>('/api/decks'),
   create: (body: { title?: string; template?: string; size?: string | { w: number; h: number }; firstSlide?: boolean }) => post<DeckSummary>('/api/decks', body),
   deck: (id: string) => get<{ deck: Deck; rev: number }>(`/api/decks/${id}`),
@@ -78,6 +79,7 @@ export const api = {
     return json<DeckSummary & { template?: string }>(res);
   },
   async putThumb(deckId: string, blob: Blob): Promise<void> {
+    if (guest()) return;
     await fetch(`/api/decks/${deckId}/thumb`, { method: 'PUT', body: blob });
   },
   mediaUrl: (id: string) => `/api/media/${id}`,

@@ -7,6 +7,8 @@ interface Pending { id: string; ops: Op[]; inv: Op[]; label: string }
 let stepSeq = 0;
 
 export class DeckDoc {
+  static guard: ((ops: Op[]) => string) | null = null;
+  static refused: ((reason: string) => void) | null = null;
   deck: Deck;
   rev: number;
   canUndo = false;
@@ -35,6 +37,8 @@ export class DeckDoc {
 
   apply(ops: Op[], label = 'Edit', coalesce?: string): string | null {
     if (!ops.length) return null;
+    const refusal = DeckDoc.guard?.(ops) ?? '';
+    if (refusal) { DeckDoc.refused?.(refusal); return null; }
     let inv: Op[];
     try {
       inv = applyAll(this.deck, ops);

@@ -2,6 +2,7 @@ import { el, patchList, setClass, setHidden, setText } from './dom';
 import { icon } from './icons';
 import { toast } from './toast';
 import { pickFrom } from '../editor/components';
+import { guest } from '../io/guest';
 
 type Role = 'user' | 'assistant' | 'tool' | 'note';
 type Mode = 'connected' | 'claudecode' | 'anthropic' | 'openai' | 'ollama';
@@ -412,6 +413,7 @@ ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https
   }
 
   private async loadConfig(): Promise<void> {
+    if (guest()) return;
     try {
       this.cfg = await call<Cfg>('/api/chat/config');
       this.paintHead();
