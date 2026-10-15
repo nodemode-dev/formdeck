@@ -101,7 +101,7 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 | Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock, Selection Pane |
 | Review | Spelling, Language, Check Deck, Activity, Compare, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
 | Present | From Beginning, From Current Slide, Presenter View, Custom Shows, Set Up Show, Record, Clear timings and narration |
-| Help | FormDeck Help, Keyboard Shortcuts, Preferences |
+| Help | FormDeck Help, Keyboard Shortcuts, Show Key Tips, Preferences |
 
 Right-click a slide thumbnail, an object or the empty slide for the matching short menu.
 
@@ -337,6 +337,8 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 
 Every shortcut can be changed: in Help > Keyboard Shortcuts, click a command's keys and press the new combination (Backspace clears it, Esc cancels). A combination another command had moves to the new one, and FormDeck says which. Your changes are kept for every deck; Reset All goes back to these defaults.
 
+Key tips reach every ribbon command from the keyboard. On Windows and Linux press and release Alt (or press F10); on any computer Help > Show Key Tips does the same. Letters appear on File (F), the Quick Access Toolbar (1 to 9) and the tabs (Home H, Insert N, Design G, Transitions K, Animations A, Slide Show S, Review R, View W, Add-ins X, Slide Master M, and two letters starting with J for the format tabs). Type a tab's letter and its commands get letters; type a command's letters to run it. A group folded into one button opens and labels its contents. Esc steps back one level, Alt or a click hides the tips.
+
 Insert > Slide Zoom... puts a picture of another slide on the current one. In the slide show, clicking it goes to that slide, and the next advance after that slide's last build comes back; the show then carries on from where you were. In .pptx and .odp it is a picture linked to the slide.
 
 On the slide, without a modifier: arrows nudge the selection (Shift for 10 points) or, with nothing selected, change slides; Page Up and Page Down change slides; Home and End go to the first and last slide; Enter starts typing in the selected shape; Esc clears the selection. While typing, Mod+S and Mod+P still save and print.
@@ -488,7 +490,7 @@ It prints each slide's layout and title, any warnings, a lint summary and where 
 
 ## Preferences
 
-Help > Preferences (Mod+,): Appearance (theme and accent colour), New decks (default template, and the author written into exported files), Editing (units: points, inches, centimetres or pixels; save to the library as you work), and Agents (let Claude Code, Codex and Cursor read and edit decks).
+Help > Preferences (Mod+,): Appearance (theme, accent colour, language, and density: Compact, Standard or Comfortable, which sizes buttons, the ribbon, the title bar and the status bar), New decks (default template, and the author written into exported files), Editing (units: points, inches, centimetres or pixels; save to the library as you work), and Agents (let Claude Code, Codex and Cursor read and edit decks).
 
 ## The data folder
 
