@@ -1,0 +1,11 @@
+{
+ "0": "FormDeck 中还没有 Claude Code 对话。请先在终端面板中打开一个（Shift+Ctrl 或 Cmd+`）。",
+ "1": "继续 Claude Code 对话",
+ "2": "未命名",
+ "3": "FormDeck 中还没有 Claude Code 对话。",
+ "4": "将助手切换为 Claude Code（使用你的登录），即可在此继续。",
+ "5": "来自 Claude Code...",
+ "6": "把你在 Claude Code 标签页中的对话带入此聊天",
+ "7": "已从 Claude Code 继续。你的下一条消息将接着这段对话。",
+ "8": "在 FormDeck 的代理文件夹中未找到 Claude Code 对话。请先用 Claude Code 在终端面板中打开一个。"
+}
