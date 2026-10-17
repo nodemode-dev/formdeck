@@ -41,9 +41,15 @@ def main() -> int:
     port = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 0)
     if port == 0:
         import socket
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-            probe.bind(("127.0.0.1", 0))
-            port = probe.getsockname()[1]
+        prefer = int(os.environ.get("FORMDECK_PORT_PREFER") or 0)
+        for want in ([prefer] if prefer else []) + [0]:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+                try:
+                    probe.bind(("127.0.0.1", want))
+                except OSError:
+                    continue
+                port = probe.getsockname()[1]
+                break
     os.environ["FORMDECK_PORT"] = str(port)
     uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
     return 0

@@ -196,6 +196,7 @@ fn main() {
                 .sidecar("formdeck-engine")
                 .expect("sidecar binary is bundled")
                 .env("FORMDECK_PORT", "0")
+                .env("FORMDECK_PORT_PREFER", "8297")
                 .spawn()
                 .expect("the FormDeck engine failed to spawn");
             app.state::<Backend>().0.lock().unwrap().replace(child);
