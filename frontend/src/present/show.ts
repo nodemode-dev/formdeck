@@ -30,7 +30,7 @@ type Msg =
   | { type: Blank }
   | { type: 'ink'; slide: string; strokes: Stroke[] }
   | { type: 'laser'; x: number; y: number; on: boolean }
-  | { type: 'zoom'; x: number; y: number; on: boolean }
+  | { type: 'zoom'; x: number; y: number; on: boolean; k?: number }
   | { type: 'media'; slide: string; id: string; play: boolean; t: number }
   | { type: 'hello' }
   | { type: 'end' };
@@ -67,8 +67,8 @@ const INKS: Array<[string, string]> = [['#ef4444', 'Red'], ['#facc15', 'Yellow']
 const KEYS: Record<string, string> = {
   ArrowRight: 'next', ArrowDown: 'next', ' ': 'next', Enter: 'next', PageDown: 'next', n: 'next', N: 'next',
   ArrowLeft: 'prev', ArrowUp: 'prev', Backspace: 'prev', PageUp: 'prev', p: 'prev', P: 'prev', Home: 'first', End: 'last',
-  b: 'black', B: 'black', '.': 'black', w: 'white', W: 'white', ',': 'white', Escape: 'escape', '-': 'escape',
-  g: 'grid', G: 'grid', l: 'laser', L: 'laser', e: 'eraser', E: 'eraser', s: 'auto', S: 'auto', f: 'fullscreen', F: 'fullscreen', j: 'captions', J: 'captions',
+  b: 'black', B: 'black', '.': 'black', w: 'white', W: 'white', ',': 'white', Escape: 'escape', '+': 'zoom-in', '=': 'zoom-in', '-': 'zoom-out', h: 'next-hidden', H: 'next-hidden', F1: 'help',
+  g: 'grid', G: 'grid', l: 'laser', L: 'laser', e: 'clear', E: 'clear', s: 'auto', S: 'auto', f: 'fullscreen', F: 'fullscreen', j: 'captions', J: 'captions',
 };
 const NAV = new Set(['next', 'prev', 'first', 'last', 'grid', 'auto']);
 const svg = (body: string, size: number): string => `<span class="icon" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${body}</svg></span>`;
@@ -112,7 +112,7 @@ ${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-c
 </aside>
 </div>
 <div class="fd-show-pop fd-show-display" hidden>${item('swap', 'Swap Presenter View and Slide Show')}${item('duplicate', 'Duplicate Slide Show')}</div>
-<div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('highlighter', 'Highlighter', 'Ctrl+I')}${item('laser', 'Laser pointer', 'L')}${item('eraser', 'Eraser', 'E')}${item('clear', 'Erase all ink on slide', 'Ctrl+E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
+<div class="fd-show-pop fd-show-pens" hidden><div class="fd-show-swatches">${INKS.map(([c, n]) => `<button class="fd-show-swatch" type="button" data-act="color" data-color="${c}" title="${n} pen" aria-label="${n} pen" style="--swatch:${c}"></button>`).join('')}</div>${item('highlighter', 'Highlighter', 'Ctrl+I')}${item('laser', 'Laser pointer', 'L')}${item('eraser', 'Eraser', 'Ctrl+E')}${item('clear', 'Erase all ink on slide', 'E')}${item('pointer', 'Stop drawing', 'Esc')}</div>
 <div class="fd-show-pop fd-show-more" hidden>${item('presenter-on', 'Show Presenter View')}${item('presenter-off', 'Hide Presenter View')}${item('white', 'White screen', 'W')}${item('auto', 'Pause automatic advance', 'S')}${item('bar', 'Hide controls', 'Ctrl+H')}${item('fullscreen', 'Full screen', 'F')}<div class="fd-menu-sep"></div>${item('captions', 'Turn on captions', 'J')}${CC_SET}<div class="fd-menu-sep"></div>${item('end', 'End show', 'Esc')}</div>
 <div class="fd-show-grid" hidden><div class="fd-show-grid-head"><span class="fd-show-grid-title">All slides</span><span class="fd-show-grid-hint">Arrow keys to move, Enter to open, Esc to close</span>${btn('grid-close', 'Close (Esc)', icon('close', 16))}</div><div class="fd-show-grid-list"></div></div>
 <div class="fd-show-rehearse" hidden><span class="fd-show-rehearse-msg"><span class="fd-show-rehearse-text"></span><span class="fd-show-coach-text" hidden></span></span><button class="fd-btn fd-btn-primary fd-btn-sm" type="button" data-act="keep">Keep timings</button><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-act="discard">Discard</button></div>
@@ -237,6 +237,11 @@ class Show {
   private solo = false;
   private nudgeSplit: (d: number) => void = () => undefined;
   private zoomPick = false;
+  private zoomLvl = 2;
+  private inkOff = false;
+  private helpEl: HTMLElement | null = null;
+  private allsEl: HTMLElement | null = null;
+  private hot: HTMLElement | null = null;
   private readonly gridEl: HTMLElement;
   private readonly rehearseEl: HTMLElement;
   private readonly consoleEl: HTMLElement;
@@ -493,7 +498,8 @@ class Show {
       const pan = this.panFrom;
       if (pan && this.zoomed && e.buttons & 1) {
         const fr = this.frame.getBoundingClientRect();
-        this.applyZoom({ x: clamp(pan.zx - (e.clientX - pan.x) / Math.max(1, fr.width) / 2, 0, 0.5), y: clamp(pan.zy - (e.clientY - pan.y) / Math.max(1, fr.height) / 2, 0, 0.5) });
+        const lvl = this.zoomLvl, span = 1 - 1 / lvl;
+        this.applyZoom({ x: clamp(pan.zx - (e.clientX - pan.x) / Math.max(1, fr.width) / lvl, 0, span), y: clamp(pan.zy - (e.clientY - pan.y) / Math.max(1, fr.height) / lvl, 0, span) }, lvl);
       }
     });
     this.stage.addEventListener('pointerdown', (e) => { this.panFrom = this.zoomed && e.button === 0 ? { x: e.clientX, y: e.clientY, zx: this.zoomed.x, zy: this.zoomed.y } : null; });
@@ -751,7 +757,7 @@ class Show {
       else if (m.type === 'black' || m.type === 'white' || m.type === 'normal') this.setBlank(m.type);
       else if (m.type === 'ink') { this.ink.set(m.slide, m.strokes); if (m.slide === this.cur) this.drawInk(); }
       else if (m.type === 'laser') this.showLaser(m.on ? m.x : -1, m.y);
-      else if (m.type === 'zoom') this.applyZoom(m.on ? { x: m.x, y: m.y } : null);
+      else if (m.type === 'zoom') this.applyZoom(m.on ? { x: m.x, y: m.y } : null, m.k ?? 2);
       else if (m.type === 'media') {
         const a = this.mediaNode(m.slide, m.id);
         if (a && m.play === a.paused) {
@@ -813,6 +819,8 @@ class Show {
     const k = e.key, mod = e.ctrlKey || e.metaKey;
     if ((e.target as Element | null)?.classList?.contains('fd-show-split') && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); this.nudgeSplit(k === 'ArrowLeft' ? -2 : 2); return; }
     if ((e.target as Element | null)?.closest?.('.fd-show-ccset')) { if (k === 'Escape') { e.preventDefault(); this.closePops(); this.root.focus({ preventScroll: true }); } return; }
+    if (this.helpEl && !this.helpEl.hidden) { if (k === 'Escape' || k === 'F1') { e.preventDefault(); this.toggleHelp(); } return; }
+    if (this.allsEl && !this.allsEl.hidden) { this.allsKey(e); return; }
     if (!this.gridEl.hidden) { this.gridKey(e); return; }
     if (!this.rehearseEl.hidden) {
       if (k === 'Escape') { e.preventDefault(); this.rehearsal = null; void this.exit(); }
@@ -824,15 +832,20 @@ class Show {
       const low = k.toLowerCase();
       if (mod && low === 'p') { const was = this.marker; this.usePen(); this.setMode(this.mode === 'pen' && !was ? 'pointer' : 'pen'); }
       else if (mod && low === 'i') { if (this.mode === 'pen' && this.marker) this.setMode('pointer'); else this.useMarker(); }
-      else if (mod && low === 'e') this.clearInk();
-      else if (mod && low === 'h') { this.root.classList.toggle('is-bar-off'); this.closePops(); }
-      else if (mod && low === 'a') this.setMode('pointer');
+      else if (mod && low === 'e') this.act('eraser');
+      else if (mod && low === 'l') this.act('laser');
+      else if (mod && low === 'm') this.toggleInkShown();
+      else if (mod && low === 's') this.toggleAllSlides();
+      else if (mod && low === 'h') { setClass(this.root, 'is-bar-off', true); setClass(this.root, 'is-ptr-off', true); this.closePops(); }
+      else if (mod && low === 'a') { setClass(this.root, 'is-bar-off', false); setClass(this.root, 'is-ptr-off', false); this.setMode('pointer'); }
       else if (e.altKey && !mod && (k === 'Home' || k === 'End')) this.bookmark(k === 'End' ? 1 : -1);
       else if (e.altKey && !mod && this.mediaKey(e, low)) { }
       else return;
       e.preventDefault();
       return;
     }
+    if (k === 'Tab') { e.preventDefault(); this.hotspot(e.shiftKey ? -1 : 1); return; }
+    if (k === 'Enter' && this.hot?.isConnected && !this.typed) { e.preventDefault(); this.followHot(); return; }
     if (/^[0-9]$/.test(k)) { e.preventDefault(); this.typed = (this.typed + k).slice(-4); this.flash(`Go to slide ${this.typed}`, 0); return; }
     if (k === 'Enter' && this.typed) {
       e.preventDefault();
@@ -930,6 +943,16 @@ class Show {
         if (this.zoomed || this.zoomPick) this.unzoom();
         else { this.zoomPick = true; this.setMode('pointer'); setClass(this.root, 'is-zoompick', true); this.flash('Click the part of the slide to zoom into. Esc returns.', 2600); }
         break;
+      case 'zoom-in': this.stepZoom(1); break;
+      case 'zoom-out': this.stepZoom(-1); break;
+      case 'next-hidden': {
+        const slides = this.doc.deck.slides;
+        const at = slides.findIndex((s) => s.id === this.cur);
+        const nxt = slides.slice(at + 1).find((s) => s.hidden);
+        if (nxt) this.jump(nxt.id);
+        break;
+      }
+      case 'help': this.toggleHelp(); break;
       case 'keep': this.keepTimings(); break;
       case 'discard': this.rehearsal = null; void this.exit(); break;
     }
@@ -1495,12 +1518,27 @@ class Show {
     setClass(this.root, 'is-pinned', false);
   }
 
-  private applyZoom(z: { x: number; y: number } | null): void {
+  private applyZoom(z: { x: number; y: number } | null, lvl = 2): void {
     this.zoomed = z;
+    this.zoomLvl = z ? lvl : 2;
     const wrap = q(this.frame, '.fd-show-zoomwrap');
     setClass(this.frame, 'is-zoomed', !!z);
-    wrap.style.transform = z ? `scale(2) translate(${(-z.x * 100).toFixed(3)}%, ${(-z.y * 100).toFixed(3)}%)` : '';
-    this.post(z ? { type: 'zoom', x: z.x, y: z.y, on: true } : { type: 'zoom', x: 0, y: 0, on: false });
+    wrap.style.transform = z ? `scale(${lvl}) translate(${(-z.x * 100).toFixed(3)}%, ${(-z.y * 100).toFixed(3)}%)` : '';
+    this.post(z ? { type: 'zoom', x: z.x, y: z.y, on: true, k: lvl } : { type: 'zoom', x: 0, y: 0, on: false });
+  }
+
+  private stepZoom(dir: 1 | -1): void {
+    this.zoomPick = false;
+    setClass(this.root, 'is-zoompick', false);
+    setHidden(q(this.frame, '.fd-show-zoombox'), true);
+    const from = this.zoomed ? this.zoomLvl : 1;
+    const to = dir > 0 ? (from < 2 ? 2 : 4) : from > 2 ? 2 : 1;
+    if (to === from) return;
+    if (to === 1) { this.applyZoom(null); this.syncTools(); return; }
+    const z = this.zoomed ?? { x: 0, y: 0 };
+    const cx = this.zoomed ? z.x + 0.5 / from : 0.5, cy = this.zoomed ? z.y + 0.5 / from : 0.5, span = 1 - 1 / to;
+    this.applyZoom({ x: clamp(cx - 0.5 / to, 0, span), y: clamp(cy - 0.5 / to, 0, span) }, to);
+    this.syncTools();
   }
 
   private unzoom(): void {
@@ -1540,6 +1578,7 @@ class Show {
   private setMode(m: Mode): void {
     if (this.mode === 'laser' && m !== 'laser') { this.showLaser(-1, -1); this.post({ type: 'laser', x: 0, y: 0, on: false }); }
     this.mode = m;
+    if (m === 'pen' && this.inkOff) { this.inkOff = false; this.drawInk(); }
     setClass(this.root, 'is-pen', m === 'pen');
     setClass(this.root, 'is-eraser', m === 'eraser');
     setClass(this.root, 'is-laser', m === 'laser');
@@ -1652,8 +1691,110 @@ class Show {
     this.canvas.getContext('2d')?.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
+  private toggleInkShown(): void {
+    this.inkOff = !this.inkOff;
+    this.drawInk();
+    this.flash(this.inkOff ? 'Ink markup hidden' : 'Ink markup shown');
+  }
+
+  private toggleHelp(): void {
+    if (!this.helpEl) {
+      const rows: Array<[string, string]> = [
+        ['N, Enter, Space, Right, Down, Page Down', 'Next slide or animation'], ['P, Backspace, Left, Up, Page Up', 'Previous slide or animation'], ['Number then Enter', 'Go to that slide'],
+        ['B or .', 'Black screen'], ['W or ,', 'White screen'], ['S', 'Stop or restart automatic show'], ['Esc', 'End show or leave zoom'],
+        ['Ctrl+P', 'Pen'], ['Ctrl+I', 'Highlighter'], ['Ctrl+E', 'Eraser'], ['E', 'Erase all ink on slide'], ['Ctrl+M', 'Show or hide ink markup'],
+        ['Ctrl+L', 'Laser pointer'], ['Ctrl+H', 'Hide pointer and buttons'], ['Ctrl+A', 'Show pointer and buttons'], ['+ or =', 'Zoom in'], ['-', 'Zoom out'],
+        ['G', 'See all slides'], ['Ctrl+S', 'All Slides list'], ['H', 'Go to next hidden slide'], ['Tab, Shift+Tab', 'Next or previous link'], ['Home, End', 'First or last slide'], ['F1', 'Show this help'],
+      ];
+      const box = document.createElement('div');
+      box.className = 'fd-show-help';
+      box.hidden = true;
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-label', 'Slide show help');
+      const head = document.createElement('div');
+      head.className = 'fd-show-help-head';
+      head.textContent = 'Slide show help';
+      const list = document.createElement('dl');
+      list.className = 'fd-show-help-list';
+      for (const [key, what] of rows) {
+        const dt = document.createElement('dt');
+        dt.textContent = key;
+        const dd = document.createElement('dd');
+        dd.textContent = what;
+        list.append(dt, dd);
+      }
+      box.append(head, list);
+      box.addEventListener('pointerdown', () => this.toggleHelp());
+      this.root.appendChild(box);
+      this.helpEl = box;
+    }
+    setHidden(this.helpEl, !this.helpEl.hidden);
+  }
+
+  private toggleAllSlides(): void {
+    if (this.allsEl && !this.allsEl.hidden) { setHidden(this.allsEl, true); return; }
+    if (!this.allsEl) {
+      const box = document.createElement('div');
+      box.className = 'fd-show-alls';
+      box.hidden = true;
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-label', 'All slides');
+      this.root.appendChild(box);
+      this.allsEl = box;
+    }
+    const box = this.allsEl;
+    box.textContent = '';
+    const head = document.createElement('div');
+    head.className = 'fd-show-help-head';
+    head.textContent = 'All slides';
+    box.appendChild(head);
+    this.doc.deck.slides.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fd-show-alls-item';
+      b.dataset.id = s.id;
+      const title = s.elements.find((x) => x.type === 'shape' && (x.ph?.type === 'title' || x.ph?.type === 'ctrTitle'));
+      const label = (title && title.type === 'shape' && title.text ? title.text.paras.map((p) => p.runs.map((r) => (r.t === '\n' ? ' ' : r.t)).join('')).join(' ').trim() : '') || s.name || '';
+      b.textContent = `${i + 1}. ${label || 'Slide ' + (i + 1)}${s.hidden ? ' (hidden)' : ''}`;
+      b.addEventListener('click', () => { setHidden(box, true); this.jump(s.id); });
+      box.appendChild(b);
+    });
+    setHidden(box, false);
+    (box.querySelector<HTMLElement>(`[data-id="${this.cur}"]`) ?? box.querySelector<HTMLElement>('button'))?.focus({ preventScroll: false });
+  }
+
+  private allsKey(e: KeyboardEvent): void {
+    const box = this.allsEl;
+    if (!box) return;
+    const items = Array.from(box.querySelectorAll<HTMLElement>('.fd-show-alls-item'));
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'Escape') { e.preventDefault(); setHidden(box, true); return; }
+    const d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+    if (d) { e.preventDefault(); items[clamp(at + d, 0, items.length - 1)]?.focus(); return; }
+    if (e.key === 'Enter') { e.preventDefault(); items[Math.max(0, at)]?.click(); }
+  }
+
+  private hotspot(dir: 1 | -1): void {
+    const all = Array.from(this.frame.querySelectorAll<HTMLElement>('.fd-r[data-link], .fd-el.is-link')).filter((n) => n.getClientRects().length > 0);
+    this.hot?.classList.remove('is-hot');
+    if (!all.length) { this.hot = null; return; }
+    const at = this.hot ? all.indexOf(this.hot) : -1;
+    const next = at < 0 ? (dir > 0 ? 0 : all.length - 1) : (at + dir + all.length) % all.length;
+    this.hot = all[next];
+    this.hot.classList.add('is-hot');
+  }
+
+  private followHot(): void {
+    const n = this.hot;
+    if (!n) return;
+    n.classList.remove('is-hot');
+    this.hot = null;
+    this.stageClick(new MouseEvent('click', { button: 0 }), n);
+  }
+
   private drawInk(): void {
     this.clearCanvas();
+    if (this.inkOff) return;
     for (const s of this.ink.get(this.cur) ?? []) this.paintStroke(s, 0);
   }
 

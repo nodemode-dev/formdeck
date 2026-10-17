@@ -233,3 +233,13 @@ html[data-input="touch"] .fd-show-pop .fd-menu-item { height: 44px; }
   .fd-show-next { justify-self: start; width: auto; height: min(22vh, 180px); }
   .fd-show-ptop .fd-btn { white-space: nowrap; }
 }
+
+.fd-show.is-ptr-off, .fd-show.is-ptr-off * { cursor: none !important; }
+.fd-show .is-hot { outline: 3px solid var(--accent-color); outline-offset: 3px; }
+.fd-show-help, .fd-show-alls { position: absolute; inset: 0; z-index: var(--z-temp); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-6); overflow-y: auto; background: color-mix(in srgb, var(--bg-primary) 94%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--text-primary); font-size: var(--fd-14); }
+.fd-show-help-head { font-size: var(--fd-16); font-weight: 600; margin-bottom: var(--space-3); }
+.fd-show-help-list { display: grid; grid-template-columns: minmax(180px, max-content) 1fr; gap: var(--space-2) var(--space-5); margin: 0; max-width: 720px; }
+.fd-show-help-list dt { color: var(--accent-color); font-weight: 600; }
+.fd-show-help-list dd { margin: 0; color: var(--text-secondary); }
+.fd-show-alls-item { padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
+.fd-show-alls-item:hover, .fd-show-alls-item:focus-visible { background: var(--accent-soft); outline: none; }
