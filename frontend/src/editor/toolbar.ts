@@ -61,7 +61,7 @@ function ribbonTabs(): TabDef[] {
       G('font', 'Font', R([S('font'), S('size'), I('grow-font'), I('shrink-font'), I('clear-format')], [I('bold'), I('italic'), I('underline'), I('strike'), I('superscript'), I('subscript'), I('all-caps'), A('text-color', 'textColor', 'Font Colour', { swatch: true }), A('highlight', 'highlight', 'Highlight', { swatch: true })], [I('small-caps'), I('text-effects'), I('insert-link')])),
       G('paragraph', 'Paragraph', R([I('bullets'), I('numbering'), I('outdent'), I('indent')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('anchor-t'), I('anchor-m'), I('anchor-b')])),
       G('drawing', 'Drawing', A('shapes', 'shapes', 'Shapes'), M('arrange', 'arrange', 'Arrange', ARRANGE_ITEMS), R([A('fill', 'fill', 'Shape Fill', { text: true, swatch: true })], [A('line', 'pen', 'Shape Outline', { text: true, swatch: true })], [T('edit-points', 'Edit Points')])),
-      G('editing', 'Editing', R([T('find', 'Find')], [T('select-all', 'Select All')], [T('selection-pane', 'Selection Pane')])),
+      G('editing', 'Editing', R([T('find', 'Find')], [T('replace-fonts', 'Replace Fonts')], [T('select-all', 'Select All')], [T('selection-pane', 'Selection Pane')])),
       G('addins', 'Add-ins', L('addins-dialog', 'Add-ins')),
     ] },
     { id: 'insert', label: 'Insert', groups: [
@@ -135,9 +135,9 @@ function ribbonTabs(): TabDef[] {
       arrangeGroup(),
     ] },
     { id: 'picfmt', label: 'Picture Format', ctx: true, groups: [
-      G('adjust', 'Adjust', L('replace-image', 'Change Picture'), L('edit-image-ai', 'Edit with AI', { icon: 'sparkle' }), L('picture-reset', 'Reset Picture')),
+      G('adjust', 'Adjust', L('replace-image', 'Change Picture'), L('edit-image-ai', 'Edit with AI', { icon: 'sparkle' }), R([T('compress-pictures', 'Compress Pictures')], [T('picture-reset', 'Reset Picture')], [T('picture-reset-size', 'Reset Picture & Size')])),
       G('styles', 'Picture Styles', A('line', 'pen', 'Picture Border', { swatch: true }), M('picfx', 'sparkle', 'Picture Effects', PICTURE_EFFECTS_MENU)),
-      G('size', 'Size', L('crop', 'Crop'), M('cropto', 'shapes', 'Crop to Shape', CROP_SHAPES.map(([g]) => `crop-shape-${g}`)), R([T('crop-fill', 'Fill')], [T('crop-fit', 'Fit')])),
+      G('size', 'Size', L('crop', 'Crop'), M('cropto', 'shapes', 'Crop to Shape', CROP_SHAPES.map(([g]) => `crop-shape-${g}`)), M('cropratio', 'shapes', 'Aspect Ratio', ['crop-aspect-1-1', '-', 'crop-aspect-2-3', 'crop-aspect-3-4', 'crop-aspect-4-5', 'crop-aspect-9-16', '-', 'crop-aspect-3-2', 'crop-aspect-4-3', 'crop-aspect-5-4', 'crop-aspect-16-9', 'crop-aspect-16-10']), R([T('crop-fill', 'Fill')], [T('crop-fit', 'Fit')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       arrangeGroup(),
     ] },
