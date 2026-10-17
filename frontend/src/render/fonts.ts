@@ -83,3 +83,40 @@ export function fontsOfDeck(deck: { theme: { fonts: { major: string; minor: stri
 export function systemFontsAvailable(): boolean {
   return 'queryLocalFonts' in window;
 }
+
+let systemFonts: Promise<string[]> | null = null;
+
+export function loadSystemFonts(): Promise<string[]> {
+  if (systemFonts) return systemFonts;
+  const raw = async (): Promise<string[]> => {
+    if ('__TAURI_INTERNALS__' in window) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return await invoke<string[]>('system_fonts');
+    }
+    if (systemFontsAvailable()) {
+      const faces = await (window as unknown as { queryLocalFonts(): Promise<Array<{ family: string }>> }).queryLocalFonts();
+      return faces.map((f) => f.family);
+    }
+    return [];
+  };
+  systemFonts = raw().catch(() => [] as string[]).then((names) => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const n of names) {
+      const k = n.trim().toLowerCase();
+      if (!k || seen.has(k) || BUNDLED_FONTS.some((b) => b.toLowerCase() === k)) continue;
+      seen.add(k);
+      out.push(n.trim());
+    }
+    return out.sort((a, b) => a.localeCompare(b));
+  });
+  return systemFonts;
+}
+
+export const SIZE_PRESETS = [8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96];
+
+export function stepSize(cur: number, dir: 1 | -1): number {
+  const r = Math.round(cur * 10) / 10;
+  if (dir > 0) return SIZE_PRESETS.find((x) => x > r) ?? Math.min(3600, r + 12);
+  return [...SIZE_PRESETS].reverse().find((x) => x < r) ?? Math.max(1, r - 1);
+}

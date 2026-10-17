@@ -1,5 +1,5 @@
 import type { DeckDoc } from '../engine/doc';
-import type { Color, Deck, Fill, Layout, Line, Master, Para, PhType, Run, ShapeElement, Slide, SlideElement, TextBody } from '../engine/model';
+import type { Color, Deck, Fill, Layout, LevelStyle, Line, Master, Para, PhType, Run, ShapeElement, Slide, SlideElement, TextBody } from '../engine/model';
 import { elPath, slidePath, type Op, type PathKey } from '../engine/ops';
 import { chain, frameOf, layoutOf, levelStyle, TITLE_KINDS, type Frame } from '../engine/resolve';
 import { remapCopies } from './connectors';
@@ -300,8 +300,22 @@ export function mapParas(el: SlideElement, fn: (p: Para) => Para): TextBody | nu
 export function runStyleOps(deck: Deck, slide: Slide, els: SlideElement[], patch: Partial<Run> | ((r: Run, level: ReturnType<typeof levelStyle>) => Partial<Run>)): Op[] {
   const ops: Op[] = [];
   for (const el of els) {
-    if (el.type !== 'shape' || !el.text) continue;
+    if (el.type !== 'shape') continue;
     const c = chain(deck, slide, el);
+    if (!el.text || !el.text.paras.some((p) => p.runs.some((r) => r.t))) {
+      const add = typeof patch === 'function' ? patch({ t: '' }, levelStyle(c, 0)) : patch;
+      const keep: LevelStyle = {};
+      if (add.font !== undefined) keep.font = add.font;
+      if (add.sz !== undefined) keep.sz = add.sz;
+      if (add.b !== undefined) keep.b = add.b;
+      if (add.i !== undefined) keep.i = add.i;
+      if (add.color !== undefined) keep.color = add.color;
+      const lst: LevelStyle[] = Array.from({ length: 9 }, (_, n) => ({ ...(el.text?.lstStyle?.[n] ?? {}), ...keep }));
+      const base: TextBody = el.text ? { ...clone(el.text), lstStyle: lst } : { paras: [{ runs: [{ t: '' }] }], lstStyle: lst };
+      base.paras = base.paras.map((p) => ({ ...p, runs: p.runs.map((r) => ({ ...r, ...keep })) }));
+      ops.push({ op: 'set', path: [...elPath(slide.id, el.id), 'text'], value: base });
+      continue;
+    }
     const body = mapRuns(el, (r, p) => {
       const add = typeof patch === 'function' ? patch(r, levelStyle(c, p.lvl ?? 0)) : patch;
       const next: Run = { ...r, ...add };

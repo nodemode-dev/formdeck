@@ -6,6 +6,7 @@ import type { Command, Commands } from '../ui/commands';
 import { promptName, confirmAction } from '../ui/dialogs';
 import { toast } from '../ui/toast';
 import type { Editor } from './editor';
+import { stepSize } from '../render/fonts';
 import { alignOps, bodyPropOps, deleteSlideOps, dirtyOp, distributeOps, groupOps, newShape, newTextBox, paraStyleOps, runStyleOps, ungroupOps, zOrderOps } from './actions';
 import { tableColorOps } from './table-edit';
 import { isPreviewing, selectedMedia, togglePreview } from './media-preview';
@@ -130,12 +131,16 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     const ed = E();
     const s = slide();
     if (!ed || !s) return;
-    const steps = [8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96, 120, 144];
-    apply(runStyleOps(ed.doc.deck, s, textSel(), (r, lvl) => {
-      const cur = r.sz ?? lvl.sz ?? 18;
-      const next = dir > 0 ? steps.find((x) => x > cur) ?? cur + 12 : [...steps].reverse().find((x) => x < cur) ?? Math.max(1, cur - 1);
-      return { sz: next };
-    }), dir > 0 ? 'Increase font size' : 'Decrease font size');
+    if (ed.stage.editing) {
+      const node = ed.stage.view?.nodeFor(ed.stage.editing);
+      const sel = window.getSelection();
+      const at = sel?.anchorNode instanceof Element ? sel.anchorNode : sel?.anchorNode?.parentElement;
+      const px = at && node?.contains(at) ? parseFloat(getComputedStyle(at).fontSize) : NaN;
+      const k = parseFloat(getComputedStyle(node?.querySelector('.fd-flow') ?? document.body).getPropertyValue('--k')) || 1;
+      if (Number.isFinite(px) && ed.stage.editFormat('fontSize', String(stepSize(px / k, dir)))) return;
+    }
+    ed.stage.commit();
+    apply(runStyleOps(ed.doc.deck, s, textSel(), (r, lvl) => ({ sz: stepSize(r.sz ?? lvl.sz ?? 18, dir) })), dir > 0 ? 'Increase font size' : 'Decrease font size');
   };
   const insertShape = (geom: string): void => {
     const ed = E();

@@ -1,7 +1,7 @@
 import { el, escapeHtml, setHidden, setText } from './dom';
 import { icon } from './icons';
 
-export function enhanceSelect(select: HTMLSelectElement, opts: { search?: string } = {}): void {
+export function enhanceSelect(select: HTMLSelectElement, opts: { search?: string; onOpen?: () => void } = {}): void {
   const btn = el<HTMLButtonElement>(`<button class="fd-dd-btn" type="button" aria-haspopup="listbox"><span class="fd-dd-label"></span>${icon('chevronDown', 12)}</button>`);
   const pop = el(`<div class="fd-dd-pop" role="listbox" hidden>${opts.search ? '<input class="fd-dd-search" type="search">' : ''}<div class="fd-dd-list"></div></div>`);
   const list = pop.querySelector('.fd-dd-list') as HTMLElement, search = pop.querySelector('.fd-dd-search') as HTMLInputElement | null;
@@ -47,6 +47,7 @@ export function enhanceSelect(select: HTMLSelectElement, opts: { search?: string
   const mark = (): void => { list.querySelectorAll<HTMLElement>('.fd-dd-item').forEach((i, n) => i.classList.toggle('is-picked', n === picked)); };
   const close = (): void => { setHidden(pop, true); btn.setAttribute('aria-expanded', 'false'); };
   const open = (): void => {
+    opts.onOpen?.();
     if (search) search.value = '';
     fill();
     setHidden(pop, false);

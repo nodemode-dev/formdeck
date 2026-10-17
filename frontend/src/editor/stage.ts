@@ -1069,20 +1069,77 @@ export class Stage {
     }
   }
 
-  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName' | 'createLink' | 'unlink' | 'superscript' | 'subscript', value?: string): boolean {
+  private savedRange: { id: string; range: Range } | null = null;
+
+  rememberSelection(): void {
+    const flow = this.editing ? this.editFlow() : null;
+    const sel = window.getSelection();
+    if (!flow || !this.editing || !sel || !sel.rangeCount || !flow.contains(sel.anchorNode)) return;
+    this.savedRange = { id: this.editing, range: sel.getRangeAt(0).cloneRange() };
+  }
+
+  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName' | 'fontSize' | 'createLink' | 'unlink' | 'superscript' | 'subscript', value?: string): boolean {
     if (!this.editing) return false;
     const flow = this.editFlow();
     if (!flow) return false;
     const sel = window.getSelection();
-    if (!sel || !flow.contains(sel.anchorNode) || (sel.isCollapsed && !this.cell)) return false;
-    if (sel.isCollapsed) {
-      const all = document.createRange();
-      all.selectNodeContents(flow);
+    if (!sel) return false;
+    const saved = this.savedRange;
+    if (!flow.contains(sel.anchorNode) && saved && saved.id === this.editing && flow.contains(saved.range.startContainer) && flow.contains(saved.range.endContainer)) {
+      flow.focus({ preventScroll: true });
       sel.removeAllRanges();
-      sel.addRange(all);
-      document.execCommand(cmd, false, value);
-      sel.collapseToEnd();
-    } else document.execCommand(cmd, false, value);
+      sel.addRange(saved.range);
+    }
+    if (!flow.contains(sel.anchorNode)) return false;
+    const run = (): void => {
+      if (cmd !== 'fontSize') { document.execCommand(cmd, false, value); return; }
+      document.execCommand('fontSize', false, '7');
+      const css = `calc(var(--k, 1) * ${value}px)`;
+      for (const n of Array.from(flow.querySelectorAll<HTMLElement>('span, font'))) {
+        if (n.style.fontSize !== 'xxx-large' && n.getAttribute('size') !== '7') continue;
+        n.removeAttribute('size');
+        n.style.fontSize = css;
+        for (const c of Array.from(n.querySelectorAll<HTMLElement>('span'))) if (c.style.fontSize) c.style.fontSize = css;
+      }
+    };
+    if (sel.isCollapsed) {
+      const at = sel.getRangeAt(0);
+      const node = at.startContainer;
+      if (this.cell || node.nodeType !== Node.TEXT_NODE) {
+        const all = document.createRange();
+        all.selectNodeContents(flow);
+        sel.removeAllRanges();
+        sel.addRange(all);
+        run();
+        sel.collapseToEnd();
+      } else {
+        const text = node.textContent ?? '';
+        let a = at.startOffset, b = at.startOffset;
+        while (a > 0 && !/\s/.test(text[a - 1])) a--;
+        while (b < text.length && !/\s/.test(text[b])) b++;
+        if (a === b) run();
+        else {
+          const word = document.createRange();
+          word.setStart(node, a);
+          word.setEnd(node, b);
+          const caret = at.startOffset;
+          sel.removeAllRanges();
+          sel.addRange(word);
+          run();
+          const keep = document.createRange();
+          const target = sel.anchorNode && flow.contains(sel.anchorNode) ? sel : null;
+          if (target) {
+            const end = sel.getRangeAt(0).endContainer;
+            const len = end.nodeType === Node.TEXT_NODE ? (end.textContent ?? '').length : 0;
+            keep.setStart(end, Math.min(len, Math.max(0, len - (b - caret))));
+            keep.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(keep);
+          }
+        }
+      }
+    } else run();
+    if (sel.rangeCount) this.savedRange = { id: this.editing, range: sel.getRangeAt(0).cloneRange() };
     this.onInput(flow);
     return true;
   }
