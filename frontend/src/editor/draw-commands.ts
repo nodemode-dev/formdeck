@@ -34,6 +34,11 @@ export function registerDrawCommands(cmds: Commands, E: () => Editor | null, pro
     run: () => { const ed = E(); if (!ed) return; if (same(ed.stage.draw.mode, t.mode)) ed.stage.draw.cancel(); else ed.stage.draw.begin(t.mode); },
   }));
   list.push(
+    {
+      id: 'draw-shape', label: 'Draw Shape', enabled: slideView, params: [{ name: 'geom', type: 'string', label: 'Shape', hint: 'Preset name such as rect, ellipse or rightArrow' }],
+      run: () => E()?.stage.draw.begin({ kind: 'shape', geom: 'rect' }),
+      runWith: (p) => { const ed = E(); if (!ed) return 'No slide open.'; const geom = typeof p.geom === 'string' && p.geom ? p.geom : 'rect'; ed.stage.draw.begin({ kind: 'shape', geom }); return `Drag on the slide to draw ${geom}.`; },
+    },
     { id: 'edit-points', label: 'Edit Points', icon: 'pen', enabled: () => { const ed = E(); return !!ed && ed.view === 'normal' && canEditPoints(ed); }, checked: () => ptsOn(), run: () => { const ed = E(); if (!ed) return; if (ed.stage.points.active) ed.stage.points.end(); else ed.stage.points.begin(); } },
     { id: 'points-smooth', label: 'Smooth Point', enabled: nodeCtx, checked: () => pts()?.ctxNodeKind() === 'smooth', run: () => pts()?.setKind('smooth') },
     { id: 'points-straight', label: 'Straight Point', enabled: nodeCtx, checked: () => pts()?.ctxNodeKind() === 'straight', run: () => pts()?.setKind('straight') },

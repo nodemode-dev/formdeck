@@ -2,7 +2,8 @@ import type { ConnEnd, ConnKind, Connection, ShapeElement, SlideElement } from '
 import { localToSlide, nearestSite, routeConnector, type ConnGeom, type Site } from '../engine/geometry/connectors';
 import { fitCurve, formatPath, mapPath, parsePath, pathBounds, thinPoints, type PathNode, type Pt, type SubPath } from '../engine/geometry/path';
 import { presetGeometry } from '../engine/geometry/presets';
-import { setClass } from '../ui/dom';
+import { isMac, setClass } from '../ui/dom';
+import { newShape } from './actions';
 import { sitesOf, targetAt } from './connectors';
 import type { Editor } from './editor';
 import type { Stage } from './stage';
@@ -10,13 +11,15 @@ import type { Stage } from './stage';
 export type DrawMode =
   | { kind: 'freeform' }
   | { kind: 'scribble' }
-  | { kind: 'connector'; conn: ConnKind; arrow: boolean; line?: boolean };
+  | { kind: 'connector'; conn: ConnKind; arrow: boolean; line?: boolean }
+  | { kind: 'shape'; geom: string };
 
 const SVG = 'http://www.w3.org/2000/svg';
 const HINTS: Record<string, string> = {
   freeform: 'Click to place corners, drag to draw. Click the first point to close, double-click or Enter to finish, Backspace removes a point, Esc cancels.',
   scribble: 'Press and drag to draw. Release to finish. Esc cancels.',
   connector: 'Drag from one shape to another. Ends snap to the dots. Esc cancels.',
+  shape: 'Drag to draw the shape, or click for a 1 inch shape. Shift keeps it even; Esc cancels.',
 };
 
 interface Hover { id: string; sites: Site[]; hot: number }
@@ -54,6 +57,8 @@ export class DrawTool {
   private cursor: Pt | null = null;
   private a: { p: Pt; d: Pt | null; end?: ConnEnd } | null = null;
   private b: { p: Pt; d: Pt | null; end?: ConnEnd } | null = null;
+  private even = false;
+  private centred = false;
 
   constructor(private readonly stage: Stage, private readonly ed: Editor) {
     this.layer = document.createElementNS(SVG, 'svg');
@@ -138,6 +143,7 @@ export class DrawTool {
     e.stopPropagation();
     const p = this.pt(e);
     if (m.kind === 'scribble') { this.press = { down: p, raw: [p], drag: true }; this.paint(); return; }
+    if (m.kind === 'shape') { this.press = { down: p, raw: [p], drag: false }; this.cursor = p; this.mods(e); this.paint(); return; }
     if (m.kind === 'connector') {
       this.a = this.snapEnd(p, null);
       this.b = { p, d: null };
@@ -159,6 +165,14 @@ export class DrawTool {
     if (!m) return;
     const p = this.pt(e);
     const k = this.stage.k;
+    if (m.kind === 'shape') {
+      if (!this.press) return;
+      if (!this.press.drag && Math.hypot(p[0] - this.press.down[0], p[1] - this.press.down[1]) * k > 3) this.press.drag = true;
+      this.cursor = p;
+      this.mods(e);
+      this.paint();
+      return;
+    }
     if (m.kind === 'connector') {
       if (this.press) {
         if (!this.press.drag && Math.hypot(p[0] - this.press.down[0], p[1] - this.press.down[1]) * k > 3) this.press.drag = true;
@@ -190,6 +204,7 @@ export class DrawTool {
     this.press = null;
     const k = this.stage.k;
     if (m.kind === 'scribble') { this.finishScribble(pr.raw); return; }
+    if (m.kind === 'shape') { this.finishShape(m.geom, pr.drag ? this.box(pr.down) : null, pr.down); return; }
     if (m.kind === 'connector') {
       if (!pr.drag || !this.a || !this.b) {
         const a = this.a?.p ?? pr.down;
@@ -276,6 +291,25 @@ export class DrawTool {
     this.ed.insert(connectorElement(m.conn, m.arrow, g, conn, `${label} ${n}`, !!m.line) as SlideElement, m.line ? (m.arrow ? 'Insert arrow' : 'Insert line') : 'Insert connector');
   }
 
+  private mods(e: MouseEvent): void {
+    this.even = e.shiftKey;
+    this.centred = isMac ? e.altKey || e.ctrlKey : e.ctrlKey;
+  }
+
+  private box(down: Pt): { x: number; y: number; w: number; h: number } {
+    const c = this.cursor ?? down;
+    let dx = c[0] - down[0], dy = c[1] - down[1];
+    if (this.even) { const s = Math.max(Math.abs(dx), Math.abs(dy)); dx = Math.sign(dx || 1) * s; dy = Math.sign(dy || 1) * s; }
+    if (this.centred) return { x: down[0] - Math.abs(dx), y: down[1] - Math.abs(dy), w: Math.abs(dx) * 2, h: Math.abs(dy) * 2 };
+    return { x: Math.min(down[0], down[0] + dx), y: Math.min(down[1], down[1] + dy), w: Math.abs(dx), h: Math.abs(dy) };
+  }
+
+  private finishShape(geom: string, f: { x: number; y: number; w: number; h: number } | null, at: Pt): void {
+    this.cancel();
+    const frame = f && f.w >= 1 && f.h >= 1 ? f : { x: at[0], y: at[1], w: 72, h: 72 };
+    this.ed.insert(newShape(geom, { x: r2(frame.x), y: r2(frame.y), w: r2(frame.w), h: r2(frame.h) }) as SlideElement, 'Insert shape');
+  }
+
   private finishFreeform(close: boolean, dbl = false): void {
     const n = this.sub.nodes;
     if (dbl) while (n.length > 1 && Math.hypot(n[n.length - 1].x - n[n.length - 2].x, n[n.length - 1].y - n[n.length - 2].y) * this.stage.k < 4) { n.pop(); n[n.length - 1].out = null; }
@@ -331,6 +365,12 @@ export class DrawTool {
     if (m.kind === 'connector') {
       const g = this.press ? this.geom() : null;
       if (g) shape = formatPath(mapPath(parsePath(connectorPathD(g)), (p) => this.screen(p)));
+    } else if (m.kind === 'shape') {
+      if (this.press?.drag) {
+        const b = this.box(this.press.down);
+        const d = presetGeometry(m.geom, Math.max(0.01, b.w), Math.max(0.01, b.h)).paths[0]?.d ?? '';
+        shape = formatPath(mapPath(parsePath(d), (p) => this.screen([b.x + p[0], b.y + p[1]])));
+      }
     } else if (m.kind === 'scribble') {
       const raw = this.press?.raw ?? [];
       if (raw.length > 1) shape = map([{ closed: false, nodes: raw.map(([x, y]) => ({ x, y, in: null, out: null })) }]);

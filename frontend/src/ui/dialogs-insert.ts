@@ -1264,7 +1264,9 @@ class ShapesPop {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-geom]');
       if (!b) return;
       this.close();
-      this.commands.run(`shape:${b.dataset.geom}`);
+      const draw = this.commands.get('draw-shape');
+      if (draw?.runWith && this.commands.enabled(draw)) draw.runWith({ geom: b.dataset.geom });
+      else this.commands.run(`shape:${b.dataset.geom}`);
     });
     document.addEventListener('pointerdown', (e) => {
       const t = e.target as Node;

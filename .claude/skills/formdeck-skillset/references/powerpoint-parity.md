@@ -23,6 +23,7 @@ Sources are abbreviated: MS-KB = Microsoft, "Use keyboard shortcuts to create Po
 | Ctrl while dragging a handle resizes from the centre; Shift keeps proportions; Alt while dragging skips snapping; Shift while rotating snaps to 15 degrees. | MS "Change the size of a picture"; MS-GRID; MS "Rotate or flip" |
 | Ctrl+arrow nudges by one screen pixel; Shift+arrow resizes; Alt+Left or Right rotates 15 degrees. | MS "Move a text box"; MS-KB |
 | Ctrl+drag copies an object. On Mac, Option+drag copies (IDZ 2011 Mac) and Control+drag on a handle resizes from the centre (IDZ 365 Mac). FormDeck Mac: Option copies (objects and guides), Control or Option resizes from the centre, Cmd skips snapping while moving or resizing; the Mac snap-override key in PowerPoint itself is not verified. | Office Watch; IDZ |
+| Choosing a shape from the gallery arms drawing: drag on the slide to draw it, or click to add it "in a predefined size" (about one inch square); Shift keeps width and height in a fixed ratio. | IDZ 365 insert shapes |
 | Ctrl+] is Bring Forward and Ctrl+[ Send Backward on desktop (font size only in PowerPoint for the web). | MS-KB |
 
 ## Gridlines, guides, smart guides
