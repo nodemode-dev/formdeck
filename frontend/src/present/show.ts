@@ -90,7 +90,7 @@ const ROOT = `<div class="fd-show" tabindex="-1" role="application" aria-roledes
 <button class="fd-show-tmenu fd-icon-btn" type="button" data-act="touch-bar" title="Show controls" aria-label="Show controls" aria-expanded="false">${icon('more3', 18)}</button>
 </div>
 <div class="fd-show-bar" role="toolbar" aria-label="Slide show controls">
-${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-count"></span>${btn('next', 'Next (Right)', icon('chevronRight', 16))}<span class="fd-sep"></span>${TOOLS}${btn('more', 'More', icon('more3', 16))}
+${btn('prev', 'Previous (Left)', icon('chevronLeft', 16))}<span class="fd-show-count"></span>${btn('next', 'Next (Right)', icon('chevronRight', 16))}<span class="fd-sep"></span>${TOOLS}${btn('more', 'More', icon('more3', 16))}${btn('end', 'End Show (Esc)', icon('close', 16))}
 </div>
 <div class="fd-show-console" hidden>
 <header class="fd-show-ptop">
@@ -828,6 +828,7 @@ class Show {
       else if (mod && low === 'h') { this.root.classList.toggle('is-bar-off'); this.closePops(); }
       else if (mod && low === 'a') this.setMode('pointer');
       else if (e.altKey && !mod && (k === 'Home' || k === 'End')) this.bookmark(k === 'End' ? 1 : -1);
+      else if (e.altKey && !mod && this.mediaKey(e, low)) { }
       else return;
       e.preventDefault();
       return;
@@ -888,8 +889,6 @@ class Show {
       case 'escape':
         if (this.popOpen()) this.closePops();
         else if (this.zoomed || this.zoomPick) this.unzoom();
-        else if (this.mode !== 'pointer') this.setMode('pointer');
-        else if (this.blank !== 'normal') this.setBlank('normal');
         else void this.exit();
         break;
       case 'grid':
@@ -1389,7 +1388,33 @@ class Show {
 
   private playMedia(a: HTMLMediaElement): void {
     a.muted = this.muted || mutedOf(a);
-    void a.play().catch(() => { a.muted = true; return a.play().catch(() => undefined); });
+    void a.play().catch(() => {
+      if (!a.muted && !this.soundHinted) { this.soundHinted = true; this.flash('Sound blocked: press Alt+U or click to unmute', 4000); }
+      a.muted = true;
+      return a.play().catch(() => undefined);
+    });
+  }
+
+  private soundHinted = false;
+
+  private mediaKey(e: KeyboardEvent, low: string): boolean {
+    const s = this.doc.deck.slides.find((x) => x.id === this.cur);
+    const nodes = (s ? mediaOf(s.elements) : []).map((m) => this.mediaNode(this.cur, m.id)).filter((a): a is HTMLMediaElement => !!a);
+    const a = nodes.find((n) => !n.paused) ?? nodes[0];
+    const k = e.key;
+    if (low === 'p' && !e.shiftKey) { if (a) { if (a.paused) this.playMedia(a); else a.pause(); } }
+    else if (low === 'q' && !e.shiftKey) { if (a) { a.pause(); a.currentTime = 0; } }
+    else if (low === 'u' && !e.shiftKey) {
+      this.muted = !this.muted;
+      for (const n of nodes) n.muted = this.muted;
+      this.flash(this.muted ? 'Sound off' : 'Sound on', 1200);
+    } else if ((k === 'ArrowUp' || k === 'ArrowDown') && !e.shiftKey) {
+      for (const n of nodes) n.volume = clamp(n.volume + (k === 'ArrowUp' ? 0.1 : -0.1), 0, 1);
+      if (a) this.flash(`Volume ${Math.round(a.volume * 100)}%`, 1200);
+    } else if ((k === 'PageDown' || k === 'PageUp') && e.shiftKey) {
+      if (a) a.currentTime = clamp(a.currentTime + (k === 'PageDown' ? 3 : -3), 0, Number.isFinite(a.duration) ? a.duration : a.currentTime + 3);
+    } else return false;
+    return true;
   }
 
   private mediaEnter(view: SlideView, slide: Slide): void {

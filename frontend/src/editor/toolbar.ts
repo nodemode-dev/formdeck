@@ -1,6 +1,6 @@
 import type { Layout, ShapeElement } from '../engine/model';
 import { chain, colorCss, levelStyle, masterOf } from '../engine/resolve';
-import { BUNDLED_FONTS, ensureFont } from '../render/fonts';
+import { BUNDLED_FONTS, SIZE_PRESETS, ensureFont, loadSystemFonts } from '../render/fonts';
 import type { Commands } from '../ui/commands';
 import { el, setClass, setDisabled, setHidden, setText, setValue, setStyleVar } from '../ui/dom';
 import { enhanceSelect } from '../ui/dropdown';
@@ -14,6 +14,7 @@ import { runStyleOps } from './actions';
 import { addinBar } from './addins';
 import { DIAGRAM_MENU } from './diagram-commands';
 import { deckFontFamilies } from './font-commands';
+import { MEDIA_START_MENU, MEDIA_VOLUME_MENU } from './media-commands';
 import { MODEL3D_VIEW_IDS } from './model3d-commands';
 import { MASTER_PLACEHOLDER_IDS, editorTheme } from './master-view';
 import { MERGE_MENU } from './merge-shapes';
@@ -170,6 +171,7 @@ function ribbonTabs(): TabDef[] {
     { id: 'playback', label: 'Playback', ctx: true, groups: [
       G('preview', 'Preview', L('media-play', 'Play')),
       G('editing', 'Editing', L('media-trim', 'Trim')),
+      G('options', 'Video Options', M('mstart', 'play', 'Start', [...MEDIA_START_MENU]), M('mvolume', 'speaker', 'Volume', [...MEDIA_VOLUME_MENU]), L('media-fullscreen', 'Play Full Screen'), L('media-hide', 'Hide While Not Playing'), L('media-loop', 'Loop until Stopped'), L('media-rewind', 'Rewind after Playing')),
       G('poster', 'Poster', M('poster', 'image', 'Poster Frame', ['media-poster-frame', 'media-poster-picture', 'media-poster-reset'])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       arrangeGroup(),
@@ -211,7 +213,7 @@ export class Toolbar {
 <span class="fd-sep" data-g="master"></span>
 <div class="fd-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-wordart', 'wordArt', 'WordArt')}${btn('insert-image', 'image', 'Picture')}<button class="fd-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-equation', 'equation', 'Equation')}${btn('insert-media', 'video', 'Video or audio')}${btn('insert-icons', 'iconLib', 'Icons')}${btn('insert-diagram', 'diagram', 'SmartArt')}${btn('add-comment', 'comment', 'Comment')}</div>
 <span class="fd-sep" data-g="insert"></span>
-<div class="fd-tb-group" data-g="font"><select class="fd-tb-font" aria-label="Font" title="Font" style="width:140px"></select><input class="fd-tb-field is-num fd-tb-size" type="number" min="1" max="400" step="1" aria-label="Font size" title="Font size"></div>
+<div class="fd-tb-group" data-g="font"><select class="fd-tb-font" aria-label="Font" title="Font" style="width:140px"></select><input class="fd-tb-field is-num fd-tb-size" type="number" min="1" max="3600" step="0.1" list="fd-size-presets" aria-label="Font size" title="Font size"></div>
 <span class="fd-sep" data-g="font"></span>
 <div class="fd-tb-group" data-g="style">${btn('bold', 'bold', 'Bold')}${btn('italic', 'italic', 'Italic')}${btn('underline', 'underline', 'Underline')}${btn('strike', 'strike', 'Strikethrough')}${btn('superscript', 'superscript', 'Superscript')}${btn('subscript', 'subscript', 'Subscript')}${btn('insert-link', 'link', 'Link (Mod+K)')}<button class="fd-tb-btn fd-tb-color" type="button" data-act="text-color" title="Text colour" aria-label="Text colour">${icon('textColor', 16)}</button><button class="fd-tb-btn fd-tb-color" type="button" data-act="highlight" title="Highlight" aria-label="Highlight">${icon('highlight', 16)}</button>${btn('text-effects', 'textEffects', 'Text effects')}${btn('clear-format', 'clearFormat', 'Clear formatting')}</div>
 <span class="fd-sep" data-g="style"></span>
@@ -313,13 +315,57 @@ export class Toolbar {
   private wireFont(font: HTMLSelectElement): void {
     this.fonts.push(font);
     font.addEventListener('change', () => this.setFont(font.value));
-    enhanceSelect(font, { search: 'Search fonts' });
+    enhanceSelect(font, { search: 'Search fonts', onOpen: () => this.ed?.stage.rememberSelection() });
   }
 
   private wireSize(size: HTMLInputElement): void {
     this.sizes.push(size);
+    if (!document.getElementById('fd-size-presets')) {
+      const list = document.createElement('datalist');
+      list.id = 'fd-size-presets';
+      for (const n of SIZE_PRESETS) {
+        const o = document.createElement('option');
+        o.value = String(n);
+        list.append(o);
+      }
+      document.body.append(list);
+    }
+    const remember = (): void => this.ed?.stage.rememberSelection();
+    size.addEventListener('pointerdown', remember, true);
+    size.addEventListener('focus', remember);
     size.addEventListener('change', () => this.setSize(Number(size.value)));
     size.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); this.setSize(Number(size.value)); size.blur(); } });
+  }
+
+  private fillSystemFonts(): void {
+    void loadSystemFonts().then((names) => {
+      for (const font of this.fonts) {
+        if (font.dataset.sys || !names.length) continue;
+        font.dataset.sys = '1';
+        const group = document.createElement('optgroup');
+        group.label = 'All fonts';
+        group.dataset.g = 'sys';
+        for (const f of names) {
+          const o = document.createElement('option');
+          o.value = f;
+          o.textContent = f;
+          group.append(o);
+        }
+        font.append(group);
+      }
+    });
+  }
+
+  private ensureFontOption(font: HTMLSelectElement, name: string): void {
+    if (!name || Array.from(font.options).some((o) => o.value === name)) return;
+    let extra = font.querySelector<HTMLOptionElement>(':scope > option[data-x]');
+    if (!extra) {
+      extra = document.createElement('option');
+      extra.dataset.x = '1';
+      font.append(extra);
+    }
+    extra.value = name;
+    extra.textContent = name;
   }
 
   private wireLayout(layout: HTMLSelectElement): void {
@@ -335,7 +381,7 @@ export class Toolbar {
   }
 
   private sizeSlot(): HTMLElement {
-    const input = el<HTMLInputElement>('<input class="fd-tb-field is-num fd-tb-size" type="number" min="1" max="400" step="1" aria-label="Font size" title="Font size">');
+    const input = el<HTMLInputElement>('<input class="fd-tb-field is-num fd-tb-size" type="number" min="1" max="3600" step="0.1" list="fd-size-presets" aria-label="Font size" title="Font size">');
     this.wireSize(input);
     return input;
   }
@@ -366,8 +412,9 @@ export class Toolbar {
       for (const font of this.fonts) {
         if (font.dataset.key) continue;
         font.dataset.key = 'fonts';
-        font.innerHTML = `<optgroup label="Theme fonts"><option value="+mj"></option><option value="+mn"></option></optgroup><optgroup label="All fonts">${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</optgroup>`;
+        font.innerHTML = `<optgroup label="Theme fonts"><option value="+mj"></option><option value="+mn"></option></optgroup><optgroup label="Bundled fonts" data-g="bundled">${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</optgroup>`;
       }
+      this.fillSystemFonts();
     }
     this.sync();
   }
@@ -385,7 +432,7 @@ export class Toolbar {
         group = document.createElement('optgroup');
         group.label = 'In this deck';
         group.dataset.g = 'deck';
-        font.querySelector('optgroup[label="All fonts"]')?.before(group);
+        font.querySelector('optgroup[data-g="bundled"]')?.before(group);
       }
       if (!group) continue;
       for (const o of Array.from(group.querySelectorAll('option'))) if (!own.includes(o.value)) o.remove();
@@ -514,8 +561,12 @@ export class Toolbar {
       const lvl = levelStyle(c, p?.lvl ?? 0);
       const run = p?.runs.find((r) => r.t) ?? p?.runs[0];
       const font = run?.font ?? lvl.font ?? '+mn';
-      for (const f of this.fonts) setValue(f, font.startsWith('+') ? font.slice(0, 3) : font);
-      for (const z of this.sizes) setValue(z, String(Math.round((run?.sz ?? lvl.sz ?? 18) * 10) / 10));
+      const fontKey = font.startsWith('+') ? font.slice(0, 3) : font;
+      for (const f of this.fonts) { this.ensureFontOption(f, fontKey); setValue(f, fontKey); }
+      const sizes = new Set<number>();
+      for (const pp of t.text?.paras ?? []) for (const r of pp.runs) if (r.t) sizes.add(Math.round((r.sz ?? levelStyle(c, pp.lvl ?? 0).sz ?? 18) * 10) / 10);
+      const sizeText = sizes.size > 1 ? '' : String(sizes.size ? [...sizes][0] : Math.round((run?.sz ?? lvl.sz ?? 18) * 10) / 10);
+      for (const z of this.sizes) setValue(z, sizeText);
       const theme = c.master.theme ?? ed.doc.deck.theme;
       this.paint('text-color', colorCss(run?.color ?? lvl.color ?? 'tx1', theme));
       const fill = t.fill ?? null;
@@ -526,7 +577,7 @@ export class Toolbar {
       const p = tableRunProbe(ed);
       const theme = editorTheme(ed);
       if (p) {
-        for (const f of this.fonts) setValue(f, p.font.startsWith('+') ? p.font.slice(0, 3) : p.font);
+        for (const f of this.fonts) { const k = p.font.startsWith('+') ? p.font.slice(0, 3) : p.font; this.ensureFontOption(f, k); setValue(f, k); }
         for (const z of this.sizes) setValue(z, String(Math.round(p.sz * 10) / 10));
         this.paint('text-color', colorCss(p.color, theme));
         this.paint('fill', p.fill ? colorCss(p.fill, theme) : 'transparent');
@@ -550,8 +601,10 @@ export class Toolbar {
     const ed = this.ed;
     const s = ed?.slide;
     if (!ed || !s || !Number.isFinite(v) || v <= 0) return;
-    if (tableTextFormat(ed, { sz: Math.min(400, Math.max(1, v)) }, 'Font size')) return;
+    const sz = Math.min(3600, Math.max(1, Math.round(v * 10) / 10));
+    if (ed.stage.editing && ed.stage.editFormat('fontSize', String(sz))) return;
+    if (tableTextFormat(ed, { sz }, 'Font size')) return;
     ed.stage.commit();
-    ed.apply(runStyleOps(ed.doc.deck, s, ed.selected(), { sz: Math.min(400, Math.max(1, v)) }), 'Font size');
+    ed.apply(runStyleOps(ed.doc.deck, s, ed.selected(), { sz }), 'Font size', 'font-size');
   }
 }

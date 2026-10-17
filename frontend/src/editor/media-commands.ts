@@ -1,8 +1,9 @@
 import type { MediaElement } from '../engine/model';
-import { elPath } from '../engine/ops';
+import { elPath, type Op } from '../engine/ops';
 import type { Command, Commands } from '../ui/commands';
 import { dirtyOp } from './actions';
 import type { Editor } from './editor';
+import { startMode, VOLUMES, volumeLevel } from './media-panel';
 
 export function registerMediaCommands(cmds: Commands, E: () => Editor | null): void {
   const clip = (kind?: 'video'): MediaElement | undefined => {
@@ -31,7 +32,62 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
       run: () => { const ed = E(); const s = ed?.slide; const m = clip('video'); if (ed && s && m?.poster) ed.apply([{ op: 'set', path: [...elPath(s.id, m.id), 'poster'] }, ...dirtyOp(s)], 'Reset poster frame'); },
     },
   ];
-  cmds.add(...list);
+  const clips = (): MediaElement[] => {
+    const ed = E();
+    if (!ed || ed.holderKind !== 'slide') return [];
+    const sel = ed.selected();
+    return sel.length && sel.every((e) => e.type === 'media') ? (sel as MediaElement[]) : [];
+  };
+  const setClips = (fields: Partial<Record<keyof MediaElement, unknown>>, label: string, only?: (m: MediaElement) => boolean): void => {
+    const ed = E();
+    const s = ed?.slide;
+    if (!ed || !s) return;
+    const ops: Op[] = [];
+    for (const m of clips()) {
+      if (only && !only(m)) continue;
+      for (const [k, v] of Object.entries(fields)) {
+        if ((m as unknown as Record<string, unknown>)[k] === v) continue;
+        ops.push({ op: 'set', path: [...elPath(s.id, m.id), k], value: v });
+      }
+    }
+    if (ops.length) ed.apply([...ops, ...dirtyOp(s)], label);
+  };
+  const start = (id: string, label: string, mode: 'sequence' | 'auto' | 'click'): Command => ({
+    id, label, enabled: () => clips().length > 0, checked: () => { const c = clips(); return c.length > 0 && c.every((m) => startMode(m) === mode); },
+    run: () => setClips({ autoplay: mode === 'auto' ? true : undefined, sequence: mode === 'sequence' ? true : undefined }, 'Start'),
+  });
+  const level = (id: string, label: string, key: string): Command => ({
+    id, label, enabled: () => clips().length > 0, checked: () => { const c = clips(); return c.length > 0 && c.every((m) => volumeLevel(m) === key); },
+    run: () => {
+      if (key === 'mute') setClips({ muted: true }, 'Mute');
+      else setClips({ muted: undefined, volume: VOLUMES.find((x) => x[0] === key)?.[2] ?? 1 }, 'Volume');
+    },
+  });
+  const flag = (id: string, label: string, field: 'fullScreen' | 'hideInShow' | 'loop' | 'rewind', ic: string): Command => {
+    const only = field === 'fullScreen' ? (m: MediaElement): boolean => m.kind === 'video' : undefined;
+    const pool = (): MediaElement[] => clips().filter((m) => !only || only(m));
+    return {
+      id, label, icon: ic, enabled: () => pool().length > 0, checked: () => { const c = pool(); return c.length > 0 && c.every((m) => !!m[field]); },
+      run: () => { const on = !pool().every((m) => !!m[field]); setClips({ [field]: on ? true : undefined }, label, only); },
+    };
+  };
+  cmds.add(
+    ...list,
+    start('media-start-sequence', 'In Click Sequence', 'sequence'),
+    start('media-start-auto', 'Automatically', 'auto'),
+    start('media-start-click', 'When Clicked On', 'click'),
+    level('media-volume-low', 'Low', 'low'),
+    level('media-volume-medium', 'Medium', 'medium'),
+    level('media-volume-high', 'High', 'high'),
+    level('media-volume-mute', 'Mute', 'mute'),
+    flag('media-fullscreen', 'Play Full Screen', 'fullScreen', 'maximize'),
+    flag('media-hide', 'Hide While Not Playing', 'hideInShow', 'eyeOff'),
+    flag('media-loop', 'Loop until Stopped', 'loop', 'refresh'),
+    flag('media-rewind', 'Rewind after Playing', 'rewind', 'undo'),
+  );
 }
+
+export const MEDIA_START_MENU = ['media-start-sequence', 'media-start-auto', 'media-start-click'];
+export const MEDIA_VOLUME_MENU = ['media-volume-low', 'media-volume-medium', 'media-volume-high', 'media-volume-mute'];
 
 export const MEDIA_MENU = { label: 'Video and Audio', items: ['media-trim', 'media-poster-frame', 'media-poster-picture', 'media-poster-reset'] };
