@@ -580,7 +580,7 @@ export class Stage {
         return;
       }
       const add = e.shiftKey || e.metaKey || e.ctrlKey;
-      const mod = isMac ? e.metaKey : e.ctrlKey;
+      const mod = isMac ? e.altKey : e.ctrlKey;
       const copying = mod && !e.shiftKey && this.ed.selection.includes(hit.id);
       let sel = this.ed.selection;
       const hitEl = this.ed.element(hit.id);
@@ -838,7 +838,7 @@ export class Stage {
       const frames = Array.from(d.frames.values());
       if (!frames.length) return;
       const b = bounds(frames);
-      const snapped = e.altKey ? { dx: 0, dy: 0, guides: [], gaps: [] } : this.snap({ x: b.x + dx, y: b.y + dy, w: b.w, h: b.h }, new Set(d.frames.keys()));
+      const snapped = (isMac ? e.metaKey : e.altKey) ? { dx: 0, dy: 0, guides: [], gaps: [] } : this.snap({ x: b.x + dx, y: b.y + dy, w: b.w, h: b.h }, new Set(d.frames.keys()));
       const sdx = dx + snapped.dx;
       const sdy = dy + snapped.dy;
       this.guides = snapped.guides;
@@ -859,7 +859,7 @@ export class Stage {
       return;
     }
     if (d.kind === 'resize') {
-      const center = isMac ? e.altKey : e.ctrlKey;
+      const center = isMac ? e.altKey || e.ctrlKey : e.ctrlKey;
       const noSnap = isMac ? e.metaKey : e.altKey;
       if (d.multi) {
         const box = this.resized(d, p, e.shiftKey, center);

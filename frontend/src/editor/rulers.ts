@@ -4,7 +4,7 @@ import { layoutOf, masterOf } from '../engine/resolve';
 import { api } from '../io/api';
 import { Dialog } from '../ui/dialogs';
 import { PopupMenu } from '../ui/menu';
-import { el, q, setChecked, setHidden, setText, setValue } from '../ui/dom';
+import { el, isMac, q, setChecked, setHidden, setText, setValue } from '../ui/dom';
 import type { Editor } from './editor';
 import type { Stage } from './stage';
 import '../styles/draw.css';
@@ -261,7 +261,7 @@ export class StageAids {
     if (!g) return;
     e.preventDefault();
     e.stopPropagation();
-    if (e.ctrlKey || e.metaKey) {
+    if (isMac ? e.altKey : e.ctrlKey) {
       const n = el(`<div class="fd-guide-line is-new"></div>`);
       if (g.color) n.style.setProperty('--guide-c', g.color);
       this.guideLayer.insertBefore(n, this.tip);
@@ -281,7 +281,7 @@ export class StageAids {
     const p = this.local(e);
     let pos = d.axis === 'x' ? p.x : p.y;
     const size = d.axis === 'x' ? this.ed.doc.deck.size.w : this.ed.doc.deck.size.h;
-    if (!e.altKey) for (const c of [0, size / 2, size]) if (Math.abs(c - pos) * this.stage.k < 5) pos = c;
+    if (!(isMac ? e.metaKey : e.altKey)) for (const c of [0, size / 2, size]) if (Math.abs(c - pos) * this.stage.k < 5) pos = c;
     d.pos = Math.round(pos * 8) / 8;
     d.moved = true;
     this.place(d.node, d.axis, d.pos);
