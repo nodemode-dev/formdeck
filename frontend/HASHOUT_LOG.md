@@ -489,3 +489,15 @@ Minus ended the show, which is how a presenter zooming out lost the room; it now
 ## 109. Export as PowerPoint lays it out; AutoFit readout · _v0.16.0 (ui/dialogs-file.ts PDF Publish, perPage, order, frame; automation/agent-bridge.ts ExportOpts.pdf; editor/inspector.ts autofit labels; render/text.ts fitScaleOf; editor/toolbar.ts size readout)
 
 PDF Publish options are passed as compose metadata so the engine lays out handouts and notes pages from the same slide rasters it already has; the window draws nothing new. The size box shows stored size times the live fit scale only for shrink-on-overflow, because that is what PowerPoint shows; the number can lag one refresh behind a re-fit since the toolbar syncs before the stage re-measures. The AutoFit buttons keep short labels for the narrow panel and carry PowerPoint's full names as tooltips.
+
+## 110. A presentation opens as itself from every door · _v0.17.0 (ui/home.ts hero drop, pick; app.ts openFiles)
+
+The tester dropped a .pptx on Home and got a FormDeck template with the slides redrafted inside it, because the hero zone and Choose files handed every file to material intake. Every Home entry now goes through openFiles, which decides by extension: presentation and FormDeck files import as their own deck, anything else is material for intake. openFiles used to return at the first material file, so a deck after it in the same drop never opened; decks now open first and the material goes to intake once.
+
+## 111. Preferences live with the engine · _v0.17.0 (io/ui-settings.ts syncUiSettings; main.ts boot order)
+
+Webview storage is per origin, so a different engine port or a cleared webview dropped every layout and aid preference. Rather than touch the thirty sites that read storage, one boot step seeds storage from settings.ui before the app module is imported, and wraps Storage setItem and removeItem to mirror formdeck keys back with a short debounce and a keepalive flush on pagehide. The app import is dynamic so module top-level reads see seeded values. The inline theme script in index.html still reads storage before the seed, so on the first boot after storage loss the default theme paints until startApp applies the seeded one; every later boot reads the restored value. Guests never mirror: the engine refuses them the settings route, the read fails, and the wrap is never installed.
+
+## 112. The agent hands off; people review · _v0.17.0 (editor/inspector.ts syncHandoff, Agent handoff section; engine/model.ts Slide.agent; editor/stage.ts and editor/rulers.ts Mac modifiers)
+
+Review status is a verdict between people, so the agent's own report moved to slide.agent and the Agent tab, where a row goes to its slide and the check mark clears it as an undoable step. Mac modifiers follow PowerPoint for Mac and never mean two things: Option copies (objects and guides), Control or Option resizes from the centre, Cmd skips snapping; this replaces the Mac half of entry 107. Snap to grid now starts off by the owner's decision.
