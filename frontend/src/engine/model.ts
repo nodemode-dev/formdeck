@@ -117,8 +117,8 @@ export interface Slide {
 }
 export const SEMANTIC_LAYOUTS = ['title', 'section', 'agenda', 'content', 'twoContent', 'comparison', 'imageLeft', 'imageRight', 'imageFull', 'gallery', 'bigNumber', 'stats', 'quote', 'timeline', 'process', 'team', 'chart', 'table', 'titleOnly', 'closing', 'blank'] as const;
 export type SemanticLayout = typeof SEMANTIC_LAYOUTS[number];
-export interface Layout { id: string; master: string; name: string; semantic?: SemanticLayout | null; background?: Fill | null; hideMasterShapes?: boolean; elements: SlideElement[] }
-export interface Master { id: string; name: string; background?: Fill | null; elements: SlideElement[]; textStyles: { title: LevelStyle[]; body: LevelStyle[]; other: LevelStyle[] }; theme?: Theme; preserve?: boolean }
+export interface Layout { id: string; master: string; name: string; semantic?: SemanticLayout | null; background?: Fill | null; hideMasterShapes?: boolean; guides?: Guide[]; elements: SlideElement[] }
+export interface Master { id: string; name: string; background?: Fill | null; guides?: Guide[]; elements: SlideElement[]; textStyles: { title: LevelStyle[]; body: LevelStyle[]; other: LevelStyle[] }; theme?: Theme; preserve?: boolean }
 export interface Theme { name: string; colors: Record<string, string>; fonts: { major: string; minor: string } }
 export interface Section { id: string; name: string; start: string; collapsed?: boolean }
 export interface CommentReply { author: string; kind: 'user' | 'agent'; text: string; at: string; mentions?: string[] }

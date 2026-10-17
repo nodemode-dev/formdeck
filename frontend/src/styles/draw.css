@@ -46,6 +46,9 @@
 .fd-guide-line::before { content: ''; position: absolute; background: var(--guide-c, #8a8a93); opacity: 0.85; }
 .fd-guide-line.is-x::before { left: 3px; top: 0; bottom: 0; width: 1px; }
 .fd-guide-line.is-y::before { top: 3px; left: 0; right: 0; height: 1px; }
+.fd-guide-line.is-inherited { pointer-events: none; cursor: default; }
+.fd-guide-line.is-master::before { background: var(--guide-c, #f76b15); opacity: 0.7; }
+.fd-guide-line.is-layout::before { background: var(--guide-c, #e5b800); opacity: 0.7; }
 .fd-guide-line.is-drag::before, .fd-guide-line.is-new::before { opacity: 1; }
 .fd-guide-line.is-out::before { opacity: 0.35; }
 .fd-guide-tip { transform: none; }

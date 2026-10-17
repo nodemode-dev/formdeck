@@ -457,7 +457,14 @@ export class Stage {
         if (hd) this.drag = { kind: 'adjust', id, index: hd.index, key: hd.key, f };
       } else {
         const p = this.toSlide(e);
-        this.drag = { kind: 'resize', id, h, f0: f, rot: el.rot ?? 0, aspect: f.w / Math.max(1, f.h), x0: p.x, y0: p.y };
+        let aspect = f.w / Math.max(1, f.h);
+        if (el.type === 'image' && !el.model) {
+          const img = this.view?.nodeFor(id)?.querySelector<HTMLImageElement>('img.fd-img');
+          const c = el.crop;
+          const vw = 1 - (c?.l ?? 0) - (c?.r ?? 0), vh = 1 - (c?.t ?? 0) - (c?.b ?? 0);
+          if (img && img.naturalWidth > 0 && img.naturalHeight > 0 && vw > 0 && vh > 0) aspect = (img.naturalWidth * vw) / (img.naturalHeight * vh);
+        }
+        this.drag = { kind: 'resize', id, h, f0: f, rot: el.rot ?? 0, aspect, x0: p.x, y0: p.y };
       }
       return;
     }

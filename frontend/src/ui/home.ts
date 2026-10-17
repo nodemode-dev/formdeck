@@ -83,6 +83,7 @@ export class Home {
 <button class="fd-home-nav-item" type="button" data-a="prefs">${icon('settings', 16)}<span>Preferences</span></button>
 </div></nav>
 <div class="fd-home-main">
+<div class="fd-home-narrow"><button class="fd-home-nav-item" type="button" data-v="start">${icon('sparkle', 16)}<span>Start</span></button><button class="fd-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent</span></button><button class="fd-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span></button><button class="fd-home-nav-item" type="button" data-v="trash">${icon('delete', 16)}<span>Trash</span></button></div>
 <div class="fd-home-confirm" role="alertdialog" aria-live="assertive" hidden><span class="fd-home-confirm-text"></span><button class="fd-btn fd-btn-sm" type="button" data-a="confirm-no">Cancel</button><button class="fd-btn fd-btn-sm fd-btn-danger" type="button" data-a="confirm-yes"></button></div>
 <div data-page="start">
 <div class="fd-home-head"><div><h1 class="fd-home-title"></h1><p class="fd-home-sub">Turn notes, documents, pictures and data into a deck, or start from a template.</p></div><div class="fd-home-head-actions"><button class="fd-btn" type="button" data-a="open">${icon('load', 14)}Open file</button><button class="fd-btn" type="button" data-a="blank">${icon('slideAdd', 14)}Blank deck</button></div></div>
@@ -122,6 +123,7 @@ export class Home {
     document.getElementById('app')?.appendChild(this.root);
     this.wire();
     this.renderTemplates();
+    collab.subscribe(() => { if (this.decks.length) this.renderDecks(); });
   }
 
   private wire(): void {

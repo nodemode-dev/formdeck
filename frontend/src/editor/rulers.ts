@@ -1,5 +1,6 @@
 import type { Guide } from '../engine/model';
-import type { Op } from '../engine/ops';
+import type { Op, PathKey } from '../engine/ops';
+import { layoutOf, masterOf } from '../engine/resolve';
 import { api } from '../io/api';
 import { Dialog } from '../ui/dialogs';
 import { PopupMenu } from '../ui/menu';
@@ -43,24 +44,24 @@ export function saveAidDefaults(): void {
   try { localStorage.setItem(DEFAULT_KEY, JSON.stringify(prefs)); } catch { return; }
 }
 export function addGuide(ed: Editor, axis: 'x' | 'y'): void {
-  const list = ed.doc.deck.guides ?? [];
+  const list = ownGuides(ed);
   const size = ed.doc.deck.size;
   const raw = ctxPos ? (axis === 'x' ? ctxPos.x : ctxPos.y) : (axis === 'x' ? size.w : size.h) / 2;
   const pos = Math.max(0, Math.min(axis === 'x' ? size.w : size.h, Math.round(raw * 8) / 8));
   const id = `g${list.reduce((m, g) => Math.max(m, Number(g.id.slice(1)) || 0), 0) + 1}`;
   aidsRef?.markGuides();
   if (!prefs.guides) setAidPrefs({ guides: true });
-  ed.apply(guideOps([...ed.doc.deck.guides ?? [], { id, axis, pos }]), 'Add guide');
+  ed.apply(guideOps(ed, [...list, { id, axis, pos }]), 'Add guide');
 }
 export function colorGuide(ed: Editor, color: string): void {
-  const list = ed.doc.deck.guides ?? [];
+  const list = ownGuides(ed);
   if (!ctxGuide || !list.some((g) => g.id === ctxGuide)) return;
   const css = color === '#8a8a93' ? undefined : color;
-  ed.apply(guideOps(list.map((g) => { if (g.id !== ctxGuide) return g; const { color: _c, ...rest } = g; void _c; return css ? { ...rest, color: css } : rest; })), 'Color guide');
+  ed.apply(guideOps(ed, list.map((g) => { if (g.id !== ctxGuide) return g; const { color: _c, ...rest } = g; void _c; return css ? { ...rest, color: css } : rest; })), 'Color guide');
 }
 export function deleteGuide(ed: Editor): void {
-  const list = ed.doc.deck.guides ?? [];
-  if (ctxGuide && list.some((g) => g.id === ctxGuide)) ed.apply(guideOps(list.filter((g) => g.id !== ctxGuide)), 'Remove guide');
+  const list = ownGuides(ed);
+  if (ctxGuide && list.some((g) => g.id === ctxGuide)) ed.apply(guideOps(ed, list.filter((g) => g.id !== ctxGuide)), 'Remove guide');
 }
 export function noteContextPoint(e: MouseEvent): void { aidsRef?.noteContext(e); }
 const prefs: AidPrefs = readPrefs();
@@ -72,8 +73,24 @@ export function setAidPrefs(patch: Partial<AidPrefs>): void {
   try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch { return; }
 }
 
-export function guideOps(next: Guide[]): Op[] {
-  return [next.length ? { op: 'set', path: ['guides'], value: next } : { op: 'set', path: ['guides'] }];
+function ownGuides(ed: Editor): Guide[] {
+  return ed.holderKind === 'slide' ? ed.doc.deck.guides ?? [] : (ed.holder as { guides?: Guide[] } | undefined)?.guides ?? [];
+}
+
+function inheritedGuides(ed: Editor): Array<Guide & { from: 'm' | 'l' }> {
+  if (ed.holderKind === 'master') return [];
+  const deck = ed.doc.deck;
+  const layout = ed.holderKind === 'layout' ? deck.layouts.find((l) => l.id === ed.current) : ed.slide ? layoutOf(deck, ed.slide) : undefined;
+  const master = masterOf(deck, layout);
+  const out: Array<Guide & { from: 'm' | 'l' }> = [];
+  for (const g of master?.guides ?? []) out.push({ ...g, from: 'm' });
+  if (ed.holderKind === 'slide') for (const g of layout?.guides ?? []) out.push({ ...g, from: 'l' });
+  return out;
+}
+
+export function guideOps(ed: Editor, next: Guide[]): Op[] {
+  const path: PathKey[] = ed.holderKind === 'slide' ? ['guides'] : [ed.holderKind === 'layout' ? 'layouts' : 'masters', { id: ed.current }, 'guides'];
+  return [next.length ? { op: 'set', path, value: next } : { op: 'set', path }];
 }
 
 export class StageAids {
@@ -171,7 +188,7 @@ export class StageAids {
     s.setProperty('--g-major', `${major}px`);
   }
 
-  private guides(): Guide[] { return this.ed.doc.deck.guides ?? []; }
+  private guides(): Guide[] { return ownGuides(this.ed); }
 
   private syncGuides(): void {
     const show = prefs.guides && !!this.stage.view;
@@ -180,22 +197,25 @@ export class StageAids {
     if (prefs.guides && !this.wasGuides && !list.length && this.stage.view) {
       const size = this.ed.doc.deck.size;
       this.wasGuides = true;
-      this.ed.apply(guideOps([{ id: 'g1', axis: 'x', pos: size.w / 2 }, { id: 'g2', axis: 'y', pos: size.h / 2 }]), 'Add guides');
+      this.ed.apply(guideOps(this.ed, [{ id: 'g1', axis: 'x', pos: size.w / 2 }, { id: 'g2', axis: 'y', pos: size.h / 2 }]), 'Add guides');
       return;
     }
     this.wasGuides = prefs.guides;
     const seen = new Set<string>();
-    for (const g of list) {
-      seen.add(g.id);
-      let n = this.nodes.get(g.id);
+    const inherited = inheritedGuides(this.ed);
+    for (const g of [...inherited, ...list]) {
+      const from = (g as { from?: 'm' | 'l' }).from;
+      const key = from ? `${from}:${g.id}` : g.id;
+      seen.add(key);
+      let n = this.nodes.get(key);
       if (!n) {
-        n = el(`<div class="fd-guide-line" data-guide="${g.id}"></div>`);
-        this.nodes.set(g.id, n);
-        this.guideLayer.insertBefore(n, this.tip);
+        n = el(from ? `<div class="fd-guide-line is-inherited is-${from === 'm' ? 'master' : 'layout'}"></div>` : `<div class="fd-guide-line" data-guide="${g.id}"></div>`);
+        this.nodes.set(key, n);
+        this.guideLayer.insertBefore(n, from ? this.guideLayer.firstChild : this.tip);
       }
       const col = g.color ?? '';
       if (n.style.getPropertyValue('--guide-c') !== col) { if (col) n.style.setProperty('--guide-c', col); else n.style.removeProperty('--guide-c'); }
-      if (this.drag?.id === g.id) continue;
+      if (!from && this.drag?.id === g.id) continue;
       this.place(n, g.axis, g.pos);
     }
     for (const [id, n] of this.nodes) if (!seen.has(id)) { n.remove(); this.nodes.delete(id); }
@@ -211,7 +231,7 @@ export class StageAids {
 
   snapLines(): { xs: number[]; ys: number[] } {
     if (!prefs.guides) return { xs: [], ys: [] };
-    const g = this.guides();
+    const g = [...inheritedGuides(this.ed), ...this.guides()];
     return { xs: g.filter((x) => x.axis === 'x').map((x) => x.pos), ys: g.filter((x) => x.axis === 'y').map((x) => x.pos) };
   }
 
@@ -296,10 +316,10 @@ export class StageAids {
       d.node.remove();
       if (!out) {
         const id = `g${list.reduce((m, g) => Math.max(m, Number(g.id.slice(1)) || 0), 0) + 1}`;
-        this.ed.apply(guideOps([...list, d.color ? { id, axis: d.axis, pos: d.pos, color: d.color } : { id, axis: d.axis, pos: d.pos }]), 'Add guide');
+        this.ed.apply(guideOps(this.ed, [...list, d.color ? { id, axis: d.axis, pos: d.pos, color: d.color } : { id, axis: d.axis, pos: d.pos }]), 'Add guide');
       }
-    } else if (out) this.ed.apply(guideOps(list.filter((g) => g.id !== d.id)), 'Remove guide');
-    else if (d.moved && list.find((g) => g.id === d.id)?.pos !== d.pos) this.ed.apply(guideOps(list.map((g) => (g.id === d.id ? { ...g, pos: d.pos } : g))), 'Move guide');
+    } else if (out) this.ed.apply(guideOps(this.ed, list.filter((g) => g.id !== d.id)), 'Remove guide');
+    else if (d.moved && list.find((g) => g.id === d.id)?.pos !== d.pos) this.ed.apply(guideOps(this.ed, list.map((g) => (g.id === d.id ? { ...g, pos: d.pos } : g))), 'Move guide');
     this.sync();
   }
 
@@ -445,7 +465,7 @@ class GridDialog extends Dialog {
     this.spacing.addEventListener('change', () => { const v = Number(this.spacing.value); if (v > 0) { setAidPrefs({ spacing: v }); this.syncSpacing(); } });
     this.custom.addEventListener('change', () => { const v = Number(this.custom.value) * UNIT_PT[unit]; if (v > 0.5) setAidPrefs({ spacing: v }); this.syncSpacing(); });
     this.button('Set as Default', 'ghost', () => saveAidDefaults());
-    this.clear.addEventListener('click', () => { const ed = this.ed; if (ed?.doc.deck.guides?.length) ed.apply(guideOps([]), 'Remove guides'); this.syncClear(); });
+    this.clear.addEventListener('click', () => { const ed = this.ed; if (ed && ownGuides(ed).length) ed.apply(guideOps(ed, []), 'Remove guides'); this.syncClear(); });
     this.button('Done', 'primary', () => this.close());
   }
 
@@ -455,7 +475,7 @@ class GridDialog extends Dialog {
     setText(this.note, `${fmtLen(cur, 'in')}${unit === 'cm' ? ` (${fmtLen(cur, 'cm')})` : ''}`);
   }
 
-  private syncClear(): void { this.clear.disabled = !this.ed?.doc.deck.guides?.length; }
+  private syncClear(): void { this.clear.disabled = !this.ed || !ownGuides(this.ed).length; }
 
   show(ed: Editor): void {
     this.ed = ed;

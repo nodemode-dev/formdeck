@@ -199,6 +199,9 @@ class _Importer:
         background = background_fill(find(c_sld, "p:bg"), self.ctx)
         if background is not None:
             master["background"] = background
+        guides = read_guides(el)
+        if guides:
+            master["guides"] = guides
         self._master_clrmap = clrmap
         return master
 
@@ -238,6 +241,9 @@ class _Importer:
             layout["background"] = background
         if el.get("showMasterSp") in ("0", "false"):
             layout["hideMasterShapes"] = True
+        guides = read_guides(el)
+        if guides:
+            layout["guides"] = guides
         key = str(part.partname)
         self.layout_ids[key] = layout_id
         self.layout_masters[key] = master_id

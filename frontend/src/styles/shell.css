@@ -277,9 +277,12 @@ body.theme-light .fd-seg button.is-on { color: color-mix(in srgb, var(--accent-c
 .fd-trash-none[hidden] { display: none; }
 .fd-toast-undo { display: flex; align-items: center; gap: var(--space-3); }
 .fd-toast-undo > .fd-toast-text { flex: 1 1 auto; min-width: 0; }
+.fd-home-narrow { display: none; }
 @media (max-width: 719px) {
   .fd-home { grid-template-columns: minmax(0, 1fr); }
   .fd-home-nav { display: none; }
+  .fd-home-narrow { display: flex; gap: 4px; margin: 0 0 16px; overflow-x: auto; }
+  .fd-home-narrow .fd-home-nav-item { height: 32px; padding: 0 10px; }
   .fd-home-main { padding: 20px 16px 40px; }
   .fd-home-hero { grid-template-columns: minmax(0, 1fr); padding: 20px; }
   .fd-home-section-head > .fd-search { width: 100%; margin-left: 0; }
