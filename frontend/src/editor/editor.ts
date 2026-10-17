@@ -318,6 +318,19 @@ export class Editor {
     let metas;
     try { metas = await api.upload(files); } catch (e) { toast(`Could not add ${files.length === 1 ? files[0].name : 'the files'}: ${e instanceof Error ? e.message : e}`, 'error'); return; }
     const probes = await Promise.all(files.map(probeVideo));
+    this.placeMedia(metas, probes, at, phLayoutId);
+  }
+
+  async insertPaths(paths: string[], at?: { x: number; y: number }, phLayoutId?: string): Promise<void> {
+    if (!this.slide) return;
+    let metas;
+    try { metas = await api.mediaFromPaths(paths); } catch (e) { toast(`Could not add ${paths.length === 1 ? (paths[0].split(/[\\/]/).pop() ?? paths[0]) : 'the files'}: ${e instanceof Error ? e.message : e}`, 'error'); return; }
+    this.placeMedia(metas, metas.map(() => null), at, phLayoutId);
+  }
+
+  private placeMedia(metas: Awaited<ReturnType<typeof api.upload>>, probes: Array<Awaited<ReturnType<typeof probeVideo>> | null>, at?: { x: number; y: number }, phLayoutId?: string): void {
+    const s = this.slide;
+    if (!s) return;
     const deck = this.doc.deck;
     const ops: Op[] = [];
     const ids: string[] = [];
@@ -342,7 +355,7 @@ export class Editor {
       const base = { id, x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w: Math.round(w), h: Math.round(h) };
       ops.push({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: kind === 'image' ? { ...base, type: 'image', src: m.id, fit: 'stretch', alt: m.name.replace(/\.[^.]+$/, '') } : { ...base, type: 'media', kind, src: m.id } });
     });
-    const label = files.length > 1 ? 'Insert files' : metas[0]?.mime.startsWith('video/') ? 'Insert video' : metas[0]?.mime.startsWith('audio/') ? 'Insert audio' : 'Insert picture';
+    const label = metas.length > 1 ? 'Insert files' : metas[0]?.mime.startsWith('video/') ? 'Insert video' : metas[0]?.mime.startsWith('audio/') ? 'Insert audio' : 'Insert picture';
     if (this.apply([...ops, ...dirtyOp(s)], label)) this.select(ids);
   }
 

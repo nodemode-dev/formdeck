@@ -72,6 +72,7 @@ export const api = {
     const res = await fetch('/api/media', { method: 'POST', body: fd });
     return (await json<{ media: Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number; duration?: number }> }>(res)).media;
   },
+  mediaFromPaths: async (paths: string[]) => (await post<{ media: Array<{ id: string; name: string; mime: string; w?: number; h?: number; bytes: number; frames?: number; duration?: number }> }>('/api/media/from-path', { paths })).media,
   async pdfPages(file: File): Promise<PdfPages> {
     const fd = new FormData();
     fd.append('file', file, file.name);

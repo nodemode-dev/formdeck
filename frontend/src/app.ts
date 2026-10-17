@@ -588,6 +588,15 @@ export async function startApp(): Promise<void> {
       } catch (err) { toast(`Could not open ${p}: ${err instanceof Error ? err.message : err}`, 'error'); }
     }
   }
+  function dropPaths(paths: string[], pos: { x: number; y: number }): void {
+    const ed = editor;
+    if (!ed) { toast('Open a deck first, then drop pictures or videos onto a slide.', 'info'); return; }
+    const r = ed.stage.root.getBoundingClientRect();
+    const cx = pos.x / window.devicePixelRatio, cy = pos.y / window.devicePixelRatio;
+    const inside = cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    const at = inside ? { x: (cx - r.left - ed.stage.ox) / ed.stage.k, y: (cy - r.top - ed.stage.oy) / ed.stage.k } : undefined;
+    void ed.insertPaths(paths, at);
+  }
   (window as unknown as { __formdeckOpen?: (paths: string[]) => void }).__formdeckOpen = (paths) => void openPaths(paths);
   if ('__TAURI_INTERNALS__' in window) {
     const dropOverlay = q(root, '.fd-drop');
@@ -598,8 +607,10 @@ export async function startApp(): Promise<void> {
       else {
         setHidden(dropOverlay, true);
         const docs = p.paths.filter((f) => /\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(f));
+        const pics = p.paths.filter((f) => /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|mp4|mov|m4v|webm|mp3|wav|m4a)$/i.test(f));
         if (docs.length) void openPaths(docs);
-        else if (p.paths.length) toast('Drop a .pptx, .potx, .odp or .fdec file to open it. To add pictures or videos, use Insert.', 'info');
+        else if (pics.length) dropPaths(pics, p.position);
+        else if (p.paths.length) toast('Drop a .pptx, .potx, .odp or .fdec file to open it, or a picture or video to add it.', 'info');
       }
     }).catch(() => undefined);
   }

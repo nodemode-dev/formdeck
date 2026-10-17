@@ -2,10 +2,11 @@ import asyncio
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Body, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from app.core import config
+from app.routers.terminal import require_local
 from app.services import media as mediamod
 from app.services import pdf_pages
 
@@ -44,6 +45,30 @@ async def upload(files: list[UploadFile]) -> dict:
             except mediamod.FontRejected as e:
                 raise HTTPException(422, str(e)) from None
         out.append(mediamod.store().put(data, f.filename or "file", mime))
+    return {"media": out}
+
+
+FROM_PATH_EXT = {"png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "tif", "tiff", "mp4", "mov", "m4v", "webm", "mp3", "wav", "m4a"}
+
+
+@router.post("/media/from-path")
+async def upload_from_path(request: Request, body: dict = Body(...)) -> dict:
+    require_local(request)
+    raw = body.get("paths")
+    if not isinstance(raw, list) or not raw or len(raw) > 50:
+        raise HTTPException(400, "Give between 1 and 50 file paths.")
+    out = []
+    for item in raw:
+        path = Path(str(item or "")).expanduser()
+        if not path.is_absolute() or not path.is_file():
+            raise HTTPException(400, f"{path.name or 'That path'} is not a file that exists.")
+        if path.suffix.lower().lstrip(".") not in FROM_PATH_EXT:
+            raise HTTPException(415, f"{path.name} is not a picture, video or audio file FormDeck can add.")
+        if path.stat().st_size > config.MAX_UPLOAD_BYTES:
+            raise HTTPException(413, f"{path.name} is larger than 1 GB")
+        data = await asyncio.to_thread(path.read_bytes)
+        mime = mediamod.sniff_mime(data, path.name)
+        out.append(mediamod.store().put(data, path.name, mime))
     return {"media": out}
 
 
