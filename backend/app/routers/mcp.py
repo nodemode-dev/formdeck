@@ -33,7 +33,7 @@ LIST_CACHE = {"ttlMs": 60_000, "cacheScope": "private"}
 INSTRUCTIONS = ("FormDeck builds and edits slide decks on this computer; the person watches and approves them in the FormDeck window. "
                 "Workflow: get_context; ingest the person's files (absolute paths) with their brief; draft_spec gives a markdown slide script, edit it; "
                 "build_deck {script, intake, template} opens the deck in the window; render_slides and lint_deck to check; fix with set_text, update_slide, "
-                "add_slides, slides, edit_elements; review {status: review} hands it over. undo reverts your last turn. The person can also type to you in the window's "
+                "add_slides, slides, edit_elements; handoff {state: ready, note} hands it over. undo reverts your last turn. The person can also type to you in the window's "
                 "chat panel (Agent tab): poll chat_inbox {wait: 30} and answer with chat_reply. Script syntax and token tips: "
                 "resource formdeck://guide.")
 WORKFLOW = [
@@ -41,7 +41,7 @@ WORKFLOW = [
     "2. draft_spec {intake, template, slides?} -> slide script; edit it (syntax: formdeck://guide)",
     "3. build_deck {script, intake, template} -> deck opens in the window",
     "4. render_slides + lint_deck -> fix with set_text, update_slide, edit_elements, slides",
-    "5. review {deck, status: review} -> the person approves or comments",
+    "5. handoff {deck, state: ready, note} -> the person looks it over or comments; question asks them something",
     "6. undo {deck} reverts your whole last turn",
     "7. chat_inbox {wait: 30} reads what the person typed in the window's chat panel; chat_reply {text} answers there",
 ]
@@ -54,7 +54,7 @@ GUIDE = """# FormDeck authoring guide
 4. build_deck {script, intake, template}: compiles, stores and opens the deck in the window.
 5. render_slides {deck, slides?} shows contact sheets; lint_deck {deck} lists overflow, contrast, empty placeholders and more, each with a fix.
 6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis, exit and motion path animations per slide), apply_template, set_theme, masters (several slide masters: list, add a template's design beside the current one, duplicate, rename, delete, preserve), apply_ops (raw ops).
-7. review {deck, status: review} hands slides to the person, who approves or asks for changes; comments {action: list} shows what they said.
+7. handoff {deck, state: ready, note} tells the person your slides are ready to look at (question when you need their input); it shows in their Agent tab. Human review is separate: it is for people sharing a deck, only the person turns it on, and you never approve or request changes. comments {action: list} shows what they said.
 undo {deck} reverts your whole last turn (every change you made within 90 seconds of the previous one).
 
 ## Chat panel
@@ -208,8 +208,12 @@ TOOLS = [
            "mentions": {"type": "array", "items": _S, "description": "add, reply: names to mention (also read from @Name in text)"},
            "assignee": {"type": "string", "description": "add, reply: assign the comment to this person"},
            "filter": {"type": "string", "enum": ["open", "all", "mine"], "description": "list: open (default), all, or mine (mentions you or assigned to you)"}}, ["deck", "action"]),
-    _tool("review", "Sets slides' review status (draft, review, changes, approved); with no status, the counts.",
-          {"deck": _DECK, "slides": _SLIDES, "status": {"type": "string", "enum": ["draft", "review", "changes", "approved"]}}, ["deck"]),
+    _tool("handoff", "Tells the person where your work stands, per slide: working (still on it), ready (done, for them to look at) or question (you need their input, say what in note). "
+          "This is your report to the person and shows in their Agent tab; it is not review. clear removes your handoff from the slides. With no state, lists the current handoff.",
+          {"deck": _DECK, "slides": _SLIDES, "state": {"type": "string", "enum": ["working", "ready", "question", "clear"]}, "note": {"type": "string", "description": "One short line for the person"}}, ["deck"]),
+    _tool("review", "Human review between people sharing a deck. With no status, the counts. Only when the person turned review on for the deck can you set status, and only "
+          "draft or review (submit for review); approved and changes are the people's verdicts. To report your own work, use handoff.",
+          {"deck": _DECK, "slides": _SLIDES, "status": {"type": "string", "enum": ["draft", "review"]}}, ["deck"]),
     _tool("undo", "Undoes your last turn (default) or last step on a deck.", {"deck": _DECK, "scope": {"type": "string", "enum": ["turn", "step"]}}, ["deck"], destructive=True),
     _tool("chat_inbox", "Reads new messages the person typed in the FormDeck chat panel (Agent tab) that nobody has answered yet; with wait, holds the call open up to that many seconds for one to arrive. "
           "Call it in a loop to stay available, and answer each message with chat_reply.",
@@ -247,6 +251,8 @@ def _mutating(name: str, args: dict) -> bool:
         return args.get("action") in ("add", "reply", "resolve")
     if name == "review":
         return bool(args.get("status"))
+    if name == "handoff":
+        return bool(args.get("state"))
     if name == "animate":
         return (args.get("action") or "list") != "list"
     if name == "masters":
@@ -1618,8 +1624,10 @@ async def t_review(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
     status = args.get("status")
     if status:
-        if status not in ("draft", "review", "changes", "approved"):
-            raise ToolError("status is draft, review, changes or approved.")
+        if not (deck.get("review") or {}).get("enabled"):
+            raise ToolError("Review is off for this deck: it is for people working on a shared deck, and only the person can turn it on. Use handoff to tell the person where your work stands.")
+        if status not in ("draft", "review"):
+            raise ToolError("You can set draft or review (submit for review). Approved and changes are the people's verdicts, not yours; use handoff to report your work.")
         idxs = _sel(deck, args.get("slides")) if args.get("slides") else list(range(len(deck["slides"])))
         stamp = model.now_iso()
         ops = [{"op": "set", "path": ["slides", {"id": deck["slides"][i]["id"]}, "review"], "value": {"status": status, "by": a.name, "at": stamp}} for i in idxs]
@@ -1630,6 +1638,26 @@ async def t_review(a: Agent, args: dict) -> dict:
         groups.setdefault(_status(s), []).append(i + 1)
     text = " · ".join(f"{k}: {_ranges(v)}" for k, v in groups.items())
     return _ok(("Set. " if status else "") + (text or "no slides"), model.review_counts(deck))
+
+
+async def t_handoff(a: Agent, args: dict) -> dict:
+    deck = _deck(args.get("deck"))
+    state = args.get("state")
+    if state:
+        if state not in ("working", "ready", "question", "clear"):
+            raise ToolError("state is working, ready, question or clear.")
+        idxs = _sel(deck, args.get("slides")) if args.get("slides") else list(range(len(deck["slides"])))
+        note = str(args.get("note") or "").strip()[:400]
+        value = None if state == "clear" else {"state": state, "by": a.name, "at": model.now_iso(), **({"note": note} if note else {})}
+        ops = [{"op": "set", "path": ["slides", {"id": deck["slides"][i]["id"]}, "agent"], "value": value} for i in idxs]
+        await _apply(a, deck["id"], ops, f"handoff: {len(idxs)} slide{'s' if len(idxs) != 1 else ''} {state}")
+        deck = _deck(deck["id"])
+    groups: dict[str, list[int]] = {}
+    for i, s in enumerate(deck["slides"]):
+        if s.get("agent"):
+            groups.setdefault(s["agent"]["state"], []).append(i + 1)
+    text = " · ".join(f"{k}: {_ranges(v)}" for k, v in groups.items())
+    return _ok(("Set. " if state else "") + (text or "no handoff on any slide"), {k: len(v) for k, v in groups.items()})
 
 
 async def t_undo(a: Agent, args: dict) -> dict:

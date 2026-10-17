@@ -236,6 +236,14 @@ def normalize(deck: dict) -> dict:
             deck["review"] = {"enabled": True, **{k: str(rv[k])[:80] for k in ("by", "at") if isinstance(rv.get(k), str) and rv[k]}}
         else:
             deck.pop("review")
+    for s in deck.get("slides") or []:
+        ag = s.get("agent") if isinstance(s, dict) else None
+        if ag is None:
+            continue
+        if isinstance(ag, dict) and ag.get("state") in ("working", "ready", "question"):
+            s["agent"] = {"state": ag["state"], **{k: str(ag[k])[:lim] for k, lim in (("note", 400), ("by", 80), ("at", 40)) if isinstance(ag.get(k), str) and ag[k]}}
+        else:
+            s.pop("agent")
     if "guides" in deck:
         guides = [g for g in deck["guides"] if isinstance(g, dict) and g.get("axis") in ("x", "y") and isinstance(g.get("pos"), (int, float))] if isinstance(deck["guides"], list) else []
         used: set[str] = set()

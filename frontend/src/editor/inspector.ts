@@ -131,6 +131,9 @@ export class Inspector {
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt for your agent</button></div></div></div>
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Chat with Claude</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="open-chat">${icon('agentChat', 14)}Chat with Claude</button></div></div></div>
+<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Agent handoff</span><button class="fd-btn fd-btn-sm fd-btn-ghost" type="button" data-a="handoff-clear" hidden>Clear all</button></div>
+<div class="fd-note">Where your agent says its work stands: Working, Ready for you to look at, or a Question for you. This is the agent's report to you, not review; review is for people you share the deck with.</div>
+<div class="fd-list fd-handoff"></div><div class="fd-note fd-handoff-empty">Nothing handed off yet.</div></div>
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Agent activity</span></div><div class="fd-activity"></div></div>
 </div>`);
     const g1 = new PanelGroup(host, 'format', [{ id: 'format', label: 'Format', body: this.format }, { id: 'slide', label: 'Slide', body: this.slidePage }, { id: 'design', label: 'Design', body: this.design }, { id: 'animate', label: 'Animate', body: this.animate.el }], 'Format');
@@ -245,6 +248,13 @@ export class Inspector {
       const t = e.target as HTMLElement;
       if (t.closest('[data-a="copy-prompt"]')) this.hooks?.copyPrompt();
       else if (t.closest('[data-a="open-chat"]')) this.hooks?.openChat?.();
+      const ed = this.ed;
+      if (!ed) return;
+      const go = t.closest('[data-goto]') as HTMLElement | null;
+      const done = t.closest('[data-handoff-done]') as HTMLElement | null;
+      const ids = done ? [done.dataset.handoffDone as string] : t.closest('[data-a="handoff-clear"]') ? ed.doc.deck.slides.filter((s) => s.agent).map((s) => s.id) : [];
+      if (ids.length) ed.apply(ids.map((id) => ({ op: 'set', path: ['slides', { id }, 'agent'], value: null })), ids.length > 1 ? 'Clear agent handoff' : 'Mark handoff seen');
+      else if (go?.dataset.goto) ed.setCurrent(go.dataset.goto);
     });
   }
 
@@ -477,6 +487,7 @@ export class Inspector {
       for (const x of deck.slides) counts[x.review?.status ?? 'draft']++;
       setText(this.review.querySelector('.fd-review-deck'), `${counts.approved} of ${deck.slides.length} approved · ${counts.review} ready for review · ${counts.changes} with changes`);
       this.syncComments(deck, s.id);
+      this.syncHandoff(deck);
     }
     const theme = editorTheme(ed);
     setText(this.design.querySelector('.fd-tpl-name'), deck.masters.length > 1 ? editorMaster(ed)?.name ?? theme.name : deck.template?.name ?? deck.theme.name ?? 'Custom');
@@ -605,6 +616,25 @@ export class Inspector {
     this.activity.unshift(item);
     this.activity.length = Math.min(this.activity.length, 60);
     this.syncActivity();
+  }
+
+  private syncHandoff(deck: Deck): void {
+    const rows = deck.slides.map((s, i) => ({ s, n: i + 1 })).filter((r) => r.s.agent);
+    const label = { working: 'Working', ready: 'Ready', question: 'Question' } as const;
+    const fill = (n: HTMLElement, r: (typeof rows)[number]) => {
+      const a = r.s.agent!;
+      setText(n.querySelector('.fd-comment-where'), `Slide ${r.n}`);
+      setText(n.querySelector('.fd-handoff-state'), `${label[a.state] ?? a.state}${a.by ? ` · ${a.by}` : ''}`);
+      if (n.dataset.state !== a.state) n.dataset.state = a.state;
+      setText(n.querySelector('.fd-row-text'), a.note ?? '');
+    };
+    patchList(this.agent.querySelector('.fd-handoff') as HTMLElement, rows, {
+      key: (r) => r.s.id,
+      create: (r) => { const n = el(`<div class="fd-row is-stack fd-handoff-row"><div class="fd-row-main"><div class="fd-row-title"><button class="fd-comment-where" type="button" data-goto="${escapeHtml(r.s.id)}"></button><span class="fd-handoff-state"></span></div><div class="fd-row-text"></div></div><button class="fd-icon-btn is-sm" type="button" title="Mark as seen" data-handoff-done="${escapeHtml(r.s.id)}">${icon('check', 14)}</button></div>`); fill(n, r); return n; },
+      update: fill,
+    });
+    setHidden(this.agent.querySelector('.fd-handoff-empty') as HTMLElement, rows.length > 0);
+    setHidden(this.agent.querySelector('[data-a="handoff-clear"]') as HTMLElement, rows.length < 2);
   }
 
   private syncActivity(): void {

@@ -15,7 +15,7 @@ PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). In FormDeck a PDF
 
 ## Doctrine (applies to every route)
 
-1. **The person approves.** Leave finished slides in `review` (`review {deck, status: "review"}`). Never set `approved`; that click belongs to the person.
+1. **Hand off, do not review.** Report finished slides with `handoff {deck, state: "ready", note}` and ask with `state: "question"`; it shows in the person's Agent tab. Review is human review between people sharing a deck: only the person turns it on, and even then you only submit (`review {status: "review"}`), never approve or request changes.
 2. **Story first.** Titles are claims ("Revenue grew 29% in Q3"), not topics ("Revenue"). One idea per slide, at most 6 bullets of about 12 words, detail in speaker notes.
 3. **Use the template's semantic layouts.** Every template has the same 21 layouts (title, section, agenda, content, twoContent, comparison, imageLeft, imageRight, imageFull, gallery, bigNumber, stats, quote, timeline, process, team, chart, table, titleOnly, closing, blank). Pick the layout that fits the content instead of drawing shapes by hand.
 4. **Real content over placeholders.** Use the person's numbers, names and pictures (asset ids from the digest). An empty placeholder or an invented figure is a defect.
@@ -82,7 +82,7 @@ To tell a usage problem from a server problem, call `get_context` directly. If t
 ## Done means
 
 - The deck exists in the engine, `render_slides` was looked at after the last fix, and `lint_deck` shows 0 errors (warnings fixed or named in the summary).
-- Every slide is in `review`, none set to `approved` by you.
+- Every slide you built or changed has a `ready` handoff (or `question` with the question in note); no review status set by you unless the person turned review on.
 - The person got a short summary: deck id and title, template, slide count, what to look at, open questions, and anything you could not fix.
 - Exports, when asked for, were written to the path the tool reported.
 

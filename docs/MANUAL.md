@@ -451,7 +451,8 @@ Ask in plain language, for example: "Use FormDeck. Build an investor update from
 
 - Agent edits show in the Agent tab's Activity list, and other windows and agents on the same deck show where they are working.
 - **Edit > Undo Agent Turn** takes back the agent's whole last turn (every change it made within 90 seconds of the one before) in one step. Plain Undo steps back one change at a time.
-- Comments you leave on a slide reach the agent; it can reply, resolve and set review status, but it never approves a slide for you.
+- Comments you leave on a slide reach the agent; it can reply and resolve them.
+- The agent reports where its work stands in the Agent tab under Agent handoff: Working, Ready for you to look at, or a Question for you, each with a short note. Click a row to go to the slide and the check mark to mark it seen. This is separate from review, which is for people you share the deck with: the agent cannot turn review on, and when you have it on the agent can only submit slides for review, never approve them or request changes.
 
 ### Chat
 

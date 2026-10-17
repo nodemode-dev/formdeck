@@ -112,7 +112,7 @@ export interface Animation {
 export type ReviewStatus = 'draft' | 'review' | 'changes' | 'approved';
 export interface Slide {
   id: string; layout: string; elements: SlideElement[]; notes?: string; background?: Fill | null; hidden?: boolean; hideMasterShapes?: boolean;
-  transition?: Transition | null; animations?: Animation[]; review?: { status: ReviewStatus; by?: string; at?: string } | null;
+  transition?: Transition | null; animations?: Animation[]; review?: { status: ReviewStatus; by?: string; at?: string } | null; agent?: { state: 'working' | 'ready' | 'question'; note?: string; by?: string; at?: string } | null;
   spec?: Record<string, unknown> | null; name?: string;
 }
 export const SEMANTIC_LAYOUTS = ['title', 'section', 'agenda', 'content', 'twoContent', 'comparison', 'imageLeft', 'imageRight', 'imageFull', 'gallery', 'bigNumber', 'stats', 'quote', 'timeline', 'process', 'team', 'chart', 'table', 'titleOnly', 'closing', 'blank'] as const;

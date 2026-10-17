@@ -10,7 +10,7 @@ The FormDeck MCP server is configured in .mcp.json (http://127.0.0.1:8197/mcp). 
 2. ingest the person's files (absolute paths); read get_source only for what the digest leaves out.
 3. draft_spec for a starting slide script, rewrite it into the story the brief asks for (claims as titles, at most 6 bullets), then build_deck.
 4. render_slides and lint_deck; fix with update_slide, set_text or edit_elements.
-5. Leave slides in review status for the person; never mark them approved yourself.
+5. Hand off with `handoff {deck, state: ready, note}` (or `question` when you need the person's input); it shows in their Agent tab. Human review is separate, for people sharing a deck: only the person turns it on, and you never approve or request changes.
 
 Load the skill `.claude/skills/formdeck-harness` for the full loop, the slide-script syntax with an example per layout, template choice, visual QA and handoff. The MCP resource formdeck://guide is the short version; the deck format is docs/FORMAT.md. For work on the codebase itself, load `.claude/skills/formdeck-skillset`.
 

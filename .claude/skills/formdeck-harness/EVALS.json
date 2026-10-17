@@ -12,7 +12,7 @@
         "Calls draft_spec with the intake id, template aurora and slides 10, then rewrites the script before build_deck",
         "The built deck has 10 slides, titles phrased as claims, and every screenshot placed by asset id on an image layout",
         "Runs render_slides and lint_deck after building, sets fit contain on cropped screenshots, and ends with 0 lint errors",
-        "Sets review status to review (never approved) and sends a summary naming the deck id, template and open questions"
+        "Sets handoff ready on the slides it built (no review verdict) and sends a summary naming the deck id, template and open questions"
       ]
     },
     {
