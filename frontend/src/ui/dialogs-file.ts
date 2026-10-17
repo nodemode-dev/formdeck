@@ -813,7 +813,7 @@ class ExportDialog extends Dialog {
   private fmt: ExportFormat = 'pptx';
   private range = 'all';
   private which = 'all';
-  private scale = 2;
+  private scale = 96 / 72;
   private touched = false;
   private running = false;
   private res = 720;
@@ -856,11 +856,11 @@ class ExportDialog extends Dialog {
 </div>`);
     const raster = el(`<div class="fd-dlg-stack">
 <div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="which"><button type="button" data-v="current">Current slide</button><button type="button" data-v="all">All slides</button></div></div>
-<div class="fd-field"><span>Size</span><div class="fd-seg is-quiet" data-seg="scale"><button type="button" data-v="1">1x</button><button type="button" data-v="2">2x</button><button type="button" data-v="3">3x</button></div></div>
+<div class="fd-field"><span>Resolution</span><div class="fd-seg is-quiet" data-seg="scale"><button type="button" data-v="96">96 dpi</button><button type="button" data-v="150">150 dpi</button><button type="button" data-v="220">220 dpi</button><button type="button" data-v="300">300 dpi</button></div></div>
 <div class="fd-field"><span></span><span class="fd-note fd-dlg-px"></span></div>
 </div>`);
     const motion = el(`<div class="fd-dlg-stack">
-<div class="fd-field fd-dlg-res"><span>Resolution</span><div class="fd-seg is-quiet" data-seg="res"><button type="button" data-v="720">720p</button><button type="button" data-v="1080">1080p</button></div></div>
+<div class="fd-field fd-dlg-res"><span>Resolution</span><div class="fd-seg is-quiet" data-seg="res"><button type="button" data-v="480">Standard (480p)</button><button type="button" data-v="720">HD (720p)</button><button type="button" data-v="1080">Full HD (1080p)</button><button type="button" data-v="2160">Ultra HD (4K)</button></div></div>
 <div class="fd-field fd-dlg-gifw"><span>Width</span><div class="fd-seg is-quiet" data-seg="gifw"><button type="button" data-v="480">480 px</button><button type="button" data-v="720">720 px</button><button type="button" data-v="960">960 px</button></div></div>
 <label class="fd-field"><span>Per slide</span><span class="fd-dlg-secs"><input class="fd-input" type="number" min="0.5" max="600" step="0.5" aria-label="Seconds per slide"><span class="fd-note">seconds, when a slide has no timing</span></span></label>
 <div class="fd-field is-top"><span></span><div class="fd-dlg-checks fd-dlg-col"><label class="fd-check"><input type="checkbox" data-f="timings" checked><span>Use recorded timings and narration</span></label><label class="fd-check"><input type="checkbox" data-f="builds" checked><span>Include animations as build steps</span></label><label class="fd-check"><input type="checkbox" data-f="fades" checked><span>Show transitions as fades</span></label></div></div>
@@ -891,7 +891,7 @@ class ExportDialog extends Dialog {
     segOn(this.formats, (v) => { this.fmt = v as ExportFormat; if (!this.running) this.status.reset(); this.sync(); });
     segOn(q(pdf, '[data-seg="range"]'), (v) => { this.range = v; this.sync(); if (v === 'custom') this.custom.focus(); });
     segOn(q(raster, '[data-seg="which"]'), (v) => { this.which = v; this.sync(); });
-    segOn(q(raster, '[data-seg="scale"]'), (v) => { this.scale = Number(v); this.sync(); });
+    segOn(q(raster, '[data-seg="scale"]'), (v) => { this.scale = (Number(v) || 96) / 72; this.sync(); });
     segOn(q(office, '[data-seg="embed"]'), (v) => { this.embed = v === 'used' || v === 'all' ? v : 'off'; this.sync(); });
     this.custom.addEventListener('input', () => this.status.reset());
     this.path.addEventListener('input', () => { this.touched = true; });
@@ -966,7 +966,7 @@ class ExportDialog extends Dialog {
     setHidden(this.groups.outline, !isOutline(f));
     segSet(q(this.groups.pdf, '[data-seg="range"]'), this.range);
     segSet(q(this.groups.raster, '[data-seg="which"]'), this.which);
-    segSet(q(this.groups.raster, '[data-seg="scale"]'), String(this.scale));
+    segSet(q(this.groups.raster, '[data-seg="scale"]'), String(Math.round(this.scale * 72)));
     segSet(q(this.groups.office, '[data-seg="embed"]'), this.embed);
     setText(this.fonts, this.embed === 'off' ? `Fonts are not embedded, so the computer that opens the file needs ${this.fontList} installed or it substitutes a similar font.`
       : 'Fonts are embedded as PowerPoint embeds them. PowerPoint and LibreOffice use them; Google Slides and Keynote may still substitute.');
