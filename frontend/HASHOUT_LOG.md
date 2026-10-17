@@ -485,3 +485,7 @@ Ctrl or Cmd is the copy modifier while moving, so on a Mac snapping is skipped w
 ## 108. Slide show keys and picture tools · _v0.15.0 (present/show.ts KEYS, stepZoom, help, all-slides, hotspots; editor/crop-tool.ts CROP_SHAPES, crop-aspect-*, picture-reset-size; ui/dialogs-compress.ts; ui/dialogs-replace-fonts.ts; ui/dialogs-file.ts dpi)
 
 Minus ended the show, which is how a presenter zooming out lost the room; it now zooms out as in PowerPoint and only Esc ends. Picture export offers dpi because PowerPoint's default is 96 dpi (1280 by 720 for widescreen) and people compare file sizes in those terms. Compress Pictures re-encodes in the engine with Pillow and keeps the original when the result is not smaller.
+
+## 109. Export as PowerPoint lays it out; AutoFit readout · _v0.16.0 (ui/dialogs-file.ts PDF Publish, perPage, order, frame; automation/agent-bridge.ts ExportOpts.pdf; editor/inspector.ts autofit labels; render/text.ts fitScaleOf; editor/toolbar.ts size readout)
+
+PDF Publish options are passed as compose metadata so the engine lays out handouts and notes pages from the same slide rasters it already has; the window draws nothing new. The size box shows stored size times the live fit scale only for shrink-on-overflow, because that is what PowerPoint shows; the number can lag one refresh behind a re-fit since the toolbar syncs before the stage re-measures. The AutoFit buttons keep short labels for the narrow panel and carry PowerPoint's full names as tooltips.
