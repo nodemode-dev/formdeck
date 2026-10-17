@@ -192,7 +192,7 @@ export class Home {
       e.preventDefault();
       setClass(hero, 'is-drag-over', false);
       const files = Array.from(e.dataTransfer?.files ?? []);
-      if (files.length) this.hooks.intake(files);
+      if (files.length) this.hooks.openFiles(files);
     });
   }
 
@@ -201,7 +201,7 @@ export class Home {
     input.type = 'file';
     input.multiple = true;
     input.accept = material ? '.md,.markdown,.txt,.pdf,.docx,.pptx,.csv,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.svg,.json' : '.fdec,.fsld,.pptx,.potx,.ppsx,.pptm,.odp,.otp,.pdf';
-    input.onchange = () => { const files = Array.from(input.files ?? []); if (!files.length) return; if (material) this.hooks.intake(files); else this.hooks.openFiles(files); };
+    input.onchange = () => { const files = Array.from(input.files ?? []); if (files.length) this.hooks.openFiles(files); };
     input.click();
   }
 

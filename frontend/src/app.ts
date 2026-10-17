@@ -583,21 +583,18 @@ export async function startApp(): Promise<void> {
   });
 
   async function openFiles(files: File[]): Promise<void> {
-    for (const f of files) {
-      const lower = f.name.toLowerCase();
-      if (/\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/.test(lower)) {
-        try {
-          const d = await api.importFile(f);
-          fidelityReport('import', f.name, d.warnings);
-          await openDeck(d.id);
-        } catch (err) { toast(`Could not open ${f.name}: ${err instanceof Error ? err.message : err}`, 'error'); }
-        continue;
-      }
-      const material = files.filter((m) => !/\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(m.name));
-      dialogs.intakeDialog(material, undefined, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') });
-      if (material.some((m) => /\.pdf$/i.test(m.name))) pdfMaterialNote();
-      return;
+    const isDeck = (f: File) => /\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(f.name);
+    for (const f of files.filter(isDeck)) {
+      try {
+        const d = await api.importFile(f);
+        fidelityReport('import', f.name, d.warnings);
+        await openDeck(d.id);
+      } catch (err) { toast(`Could not open ${f.name}: ${err instanceof Error ? err.message : err}`, 'error'); }
     }
+    const material = files.filter((m) => !isDeck(m));
+    if (!material.length) return;
+    dialogs.intakeDialog(material, undefined, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') });
+    if (material.some((m) => /\.pdf$/i.test(m.name))) pdfMaterialNote();
   }
 
   function pdfMaterialNote(): void {
