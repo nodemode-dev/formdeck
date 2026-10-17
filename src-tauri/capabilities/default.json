@@ -6,5 +6,5 @@
   "remote": {
     "urls": ["http://127.0.0.1:*", "http://localhost:*"]
   },
-  "permissions": ["core:default", "core:window:allow-set-fullscreen", "core:window:allow-close", "allow-system-fonts", "allow-open-presenter", "allow-print-window"]
+  "permissions": ["core:default", "core:window:allow-set-fullscreen", "core:window:allow-close", "allow-system-fonts", "allow-open-presenter", "allow-print-window", "allow-monitor-count", "allow-swap-presenter", "dialog:default", "dialog:allow-save", "dialog:allow-open"]
 }

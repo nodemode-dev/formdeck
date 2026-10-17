@@ -2,6 +2,8 @@ import type { AgentBridge } from '../automation/agent-bridge';
 import type { Editor } from '../editor/editor';
 import { addMaster } from '../editor/master-view';
 import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
+import { documentDir } from '@tauri-apps/api/path';
+import { save } from '@tauri-apps/plugin-dialog';
 import { api, type TemplateSummary } from '../io/api';
 import { BUNDLED_FONTS, ensureFonts, fontsOfDeck } from '../render/fonts';
 import { setMarqueeRule } from '../editor/stage';
@@ -105,10 +107,23 @@ function caps(): Promise<Settings> {
 
 async function exportPath(title: string, ext: string): Promise<string> {
   const c = await caps();
-  const dir = str(c.dataDir) || '~/FormDeck';
+  let docs = '';
+  try { docs = await documentDir(); } catch { docs = ''; }
+  const dir = docs || (str(c.dataDir) ? `${str(c.dataDir)}/Exports` : '~/FormDeck/Exports');
   const sep = dir.includes('\\') && !dir.includes('/') ? '\\' : '/';
-  return `${dir.replace(/[\\/]+$/, '')}${sep}Exports${sep}${safeName(title)}.${ext}`;
+  return `${dir.replace(/[\\/]+$/, '')}${sep}${safeName(title)}.${ext}`;
 }
+
+async function browseSave(input: HTMLInputElement, ext: string, label: string): Promise<void> {
+  try {
+    const picked = await save({ defaultPath: input.value.trim() || undefined, filters: [{ name: label, extensions: [ext] }] });
+    if (picked) { input.value = withExt(picked, ext); input.dispatchEvent(new Event('input', { bubbles: true })); }
+  } catch (e) {
+    toast(`Could not open the save dialog: ${errText(e)}`, 'error');
+  }
+}
+
+const PATH_ROW = '<span class="fd-dlg-pathrow"><input class="fd-input" type="text" spellcheck="false" aria-label="File path"><button class="fd-btn fd-btn-ghost fd-dlg-browse" type="button">Browse...</button></span>';
 
 let catalogP: Promise<Catalog> | null = null;
 function catalog(fresh = false): Promise<Catalog> {
@@ -635,7 +650,7 @@ class SaveAsDialog extends Dialog {
 </div>`);
     this.fileOpts = el(`<div class="fd-dlg-stack">
 <div class="fd-field"><span>Format</span><div class="fd-seg is-quiet" role="group" aria-label="File format"><button type="button" data-v="fdec">FormDeck (.fdec)</button><button type="button" data-v="pptx">PowerPoint (.pptx)</button></div></div>
-<label class="fd-field fd-dlg-path"><span>Save to</span><input class="fd-input" type="text" spellcheck="false" aria-label="File path"></label>
+<label class="fd-field fd-dlg-path"><span>Save to</span>${PATH_ROW}</label>
 <p class="fd-note fd-dlg-browser-note">Your browser saves the file to its downloads folder.</p>
 </div>`);
     this.body.append(this.choices, this.fileOpts);
@@ -655,6 +670,7 @@ class SaveAsDialog extends Dialog {
     });
     this.path.addEventListener('input', () => { this.touched = true; });
     this.path.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
+    q<HTMLButtonElement>(this.fileOpts, '.fd-dlg-browse').addEventListener('click', () => void browseSave(this.path, this.fmt, this.fmt === 'pptx' ? 'PowerPoint' : 'FormDeck'));
     const browser = !isTauri();
     setHidden(q(this.fileOpts, '.fd-dlg-path'), browser);
     setHidden(q(this.fileOpts, '.fd-dlg-browser-note'), !browser);
@@ -859,7 +875,7 @@ class ExportDialog extends Dialog {
     segOn(q(motion, '[data-seg="gifw"]'), (v) => { this.gifW = Number(v) || 720; this.sync(); });
     this.secs.addEventListener('input', () => this.sync());
     for (const c of Array.from(motion.querySelectorAll('input[type="checkbox"]'))) c.addEventListener('change', () => this.sync());
-    this.pathRow = el('<label class="fd-field fd-dlg-path"><span>Save to</span><input class="fd-input" type="text" spellcheck="false" aria-label="File path"></label>');
+    this.pathRow = el(`<label class="fd-field fd-dlg-path"><span>Save to</span>${PATH_ROW}</label>`);
     this.groups = { office, fdec, pdf, raster, motion, outline };
     this.body.append(this.formats, this.sub, office, fdec, pdf, raster, motion, outline, this.pathRow);
     this.custom = q<HTMLInputElement>(pdf, '.fd-dlg-custom input');
@@ -879,6 +895,7 @@ class ExportDialog extends Dialog {
     segOn(q(office, '[data-seg="embed"]'), (v) => { this.embed = v === 'used' || v === 'all' ? v : 'off'; this.sync(); });
     this.custom.addEventListener('input', () => this.status.reset());
     this.path.addEventListener('input', () => { this.touched = true; });
+    q<HTMLButtonElement>(this.pathRow, '.fd-dlg-browse').addEventListener('click', () => void browseSave(this.path, this.ext(), EXPORTS[this.fmt].label));
     for (const input of [this.custom, this.path]) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
     setHidden(this.pathRow, !isTauri());
   }
@@ -1799,7 +1816,7 @@ class PreferencesDialog extends Dialog {
       for (const f of this.fonts) setValue(f, str(df[f.dataset.font ?? '']));
       setValue(this.author, str(s.author));
       segSet(this.units, str(s.units) || 'pt');
-      segSet(this.marquee, str(s.marquee) === 'enclose' ? 'enclose' : 'touch');
+      segSet(this.marquee, str(s.marquee) === 'touch' ? 'touch' : 'enclose');
       setChecked(this.autosave, s.autosave !== false);
       const cl = (s.claude && typeof s.claude === 'object' ? s.claude : {}) as Record<string, unknown>;
       for (const f of this.claudeFields) setValue(f, str(cl[f.dataset.c ?? '']));

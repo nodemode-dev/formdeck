@@ -1,7 +1,9 @@
 import asyncio
 import copy
+import datetime
 import io
 import json
+import logging
 import re
 from pathlib import Path
 
@@ -15,6 +17,20 @@ from app.services.media import store as media_store
 from app.services.store import STORE, deck_dir
 
 router = APIRouter()
+log = logging.getLogger(__name__)
+
+
+def _stamp_import(deck: dict) -> dict:
+    meta = deck.setdefault("meta", {})
+    if meta.get("modified"):
+        meta["sourceModified"] = meta["modified"]
+    if meta.get("created"):
+        meta.setdefault("sourceCreated", meta["created"])
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    meta["modified"] = now
+    if "opened" in meta:
+        meta["opened"] = now
+    return deck
 
 PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 POTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.template"
@@ -134,6 +150,9 @@ async def compare_file(file: UploadFile) -> dict:
         deck = await asyncio.to_thread(import_bytes, data, file.filename or "deck.pptx")
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except Exception as exc:
+        log.exception("could not compare %s", file.filename)
+        raise HTTPException(422, f"Could not read {file.filename or 'the file'}: {exc}")
     return {"deck": model.normalize(deck), "name": Path(file.filename or "deck").name}
 
 
@@ -199,11 +218,14 @@ async def export(deck_id: str, body: dict = Body(default={})) -> dict:
     fmt = body.get("format") or "pptx"
     notes: list[str] = []
     data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
-    target = body.get("path")
-    path = Path(target).expanduser() if target else config.exports_dir() / name
+    from app.routers.exports import _target
+    path, _ = _target(name, body.get("path"))
     if not path.parent.is_dir():
         raise HTTPException(400, f"The folder {path.parent} does not exist.")
-    await asyncio.to_thread(path.write_bytes, data)
+    try:
+        await asyncio.to_thread(path.write_bytes, data)
+    except OSError as exc:
+        raise HTTPException(400, f"Could not write {path}: {exc.strerror or exc}")
     return {"path": str(path), "bytes": len(data), "warnings": notes}
 
 
@@ -235,9 +257,12 @@ async def import_file(file: UploadFile, asTemplate: bool = False) -> dict:
         deck = await asyncio.to_thread(import_bytes, data, file.filename or "deck.pptx", asTemplate)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except Exception as exc:
+        log.exception("could not import %s", file.filename)
+        raise HTTPException(422, f"Could not read {file.filename or 'the file'}: {exc}")
     if asTemplate:
         return save_as_template(deck, Path(file.filename or "Imported").stem)
-    deck = STORE.create(deck)
+    deck = STORE.create(_stamp_import(deck))
     return {**model.summary(deck), "warnings": (deck.get("meta") or {}).get("importWarnings", [])}
 
 
@@ -252,10 +277,13 @@ async def open_path(body: dict = Body(...)) -> dict:
         deck = await asyncio.to_thread(import_bytes, data, path.name, bool(body.get("asTemplate")))
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except Exception as exc:
+        log.exception("could not open %s", path)
+        raise HTTPException(422, f"Could not read {path.name}: {exc}")
     if body.get("asTemplate"):
         return save_as_template(deck, path.stem)
     deck.setdefault("meta", {})["file"] = {"path": str(path), "format": path.suffix.lower().lstrip(".")}
-    deck = STORE.create(deck)
+    deck = STORE.create(_stamp_import(deck))
     return {**model.summary(deck), "warnings": (deck.get("meta") or {}).get("importWarnings", [])}
 
 
@@ -271,8 +299,13 @@ async def save(deck_id: str, body: dict = Body(default={})) -> dict:
     fmt = body.get("format") or path.suffix.lower().lstrip(".") or package.EXT
     if fmt not in (*package.FORMATS, "pptx", "potx", "odp", "otp"):
         fmt = package.EXT
-    data, _, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"))
-    await asyncio.to_thread(path.write_bytes, data)
+    data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"))
+    from app.routers.exports import _target
+    path, _ = _target(name, str(path))
+    try:
+        await asyncio.to_thread(path.write_bytes, data)
+    except OSError as exc:
+        raise HTTPException(400, f"Could not write {path}: {exc.strerror or exc}")
     if body.get("path"):
         await STORE.step(deck_id, [{"op": "set", "path": ["meta", "file"], "value": {"path": str(path), "format": fmt}}], "Save As", "user")
     return {"saved": str(path), "bytes": len(data)}

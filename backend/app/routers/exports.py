@@ -195,14 +195,23 @@ def compose_bytes(deck_id: str, fmt: str, meta: dict, images: list[bytes], bares
     return buf.getvalue(), f"{title}-slides.zip"
 
 
+_KNOWN_EXT = {".fdec", ".fsld", ".pptx", ".potx", ".ppsx", ".pptm", ".odp", ".otp", ".pdf", ".png", ".jpg", ".jpeg", ".zip", ".gif", ".mp4", ".webm"}
+
+
 def _target(name: str, raw: str | None) -> tuple[Path, bool]:
-    if raw:
-        p = Path(str(raw)).expanduser()
+    if raw and str(raw).strip():
+        p = Path(str(raw).strip()).expanduser()
         if p.is_dir():
             return p / name, False
-        if p.parent.is_dir():
-            want = Path(name).suffix
-            return (p if p.suffix.lower() == want else p.with_suffix(want)), False
+        if not p.parent.is_dir():
+            raise HTTPException(400, f"The folder {p.parent} does not exist.")
+        want = Path(name).suffix
+        have = p.suffix.lower()
+        if have == want.lower():
+            return p, False
+        if have in _KNOWN_EXT:
+            return p.with_suffix(want), False
+        return p.with_name(p.name + want), False
     return config.exports_dir() / name, True
 
 
