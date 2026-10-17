@@ -49,6 +49,7 @@ import { registerSlideZoomCommands } from './editor/slide-zoom';
 import { registerDesignIdeas } from './editor/design-ideas';
 import { registerCameraCommands } from './editor/camera';
 import { setMarqueeRule } from './editor/stage';
+import { groupChain } from './editor/actions';
 import { guest, guestName } from './io/guest';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
@@ -217,7 +218,7 @@ export async function startApp(): Promise<void> {
     setClass(status.dot, 'is-ok', live.connected && !ed.doc.hasPending);
     setClass(status.dot, 'is-warn', !live.connected);
     const sel = ed.selected();
-    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : sel.length ? `${sel.length} selected · Shift-drag keeps proportions, Alt-drag skips snapping` : 'Click a placeholder to type. Drop pictures anywhere.');
+    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : sel.length ? `${sel.length} selected · Shift-drag a corner toggles proportions, Alt-drag skips snapping` : 'Click a placeholder to type. Drop pictures anywhere.');
   }
 
   live.onNotice = (t, k) => toast(t, k);
@@ -456,7 +457,11 @@ export async function startApp(): Promise<void> {
         ed.step(['ArrowUp', 'PageUp', 'ArrowLeft'].includes(e.key) ? -1 : 1, true);
         return;
       }
-      if (e.key === 'Escape') { ed.select([]); return; }
+      if (e.key === 'Escape') {
+        const chain = ed.selection.length === 1 ? groupChain(ed.slide?.elements ?? [], ed.selection[0]) : [];
+        ed.select(chain.length ? [chain[chain.length - 1].id] : []);
+        return;
+      }
       if (e.key === 'Enter' && ed.selection.length === 1) {
         const one = ed.selected()[0];
         if (one.type === 'shape') { e.preventDefault(); ed.stage.beginEdit(one.id); return; }

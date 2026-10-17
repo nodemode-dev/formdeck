@@ -33,8 +33,8 @@ type Drag =
   | { kind: 'mid'; id: string };
 
 export type MarqueeRule = 'touch' | 'enclose';
-let marqueeRule: MarqueeRule = 'touch';
-export function setMarqueeRule(rule: unknown): void { marqueeRule = rule === 'enclose' ? 'enclose' : 'touch'; }
+let marqueeRule: MarqueeRule = 'enclose';
+export function setMarqueeRule(rule: unknown): void { marqueeRule = rule === 'touch' ? 'touch' : 'enclose'; }
 
 export interface CellSel { el: string; r0: number; c0: number; r1: number; c1: number; ar: number; ac: number; fr: number; fc: number; active: boolean; one: boolean }
 
@@ -275,7 +275,7 @@ export class Stage {
         if (els.length === 1 && el.type === 'table') parts.push(...this.tableParts(el, f, rot));
       }
       if (els.length === 1 && !this.editing && !els[0].locked && this.points?.id !== els[0].id && isLineLike(this.ed.doc.deck, slide, els[0])) parts.push(...this.lineParts(slide, els[0] as ShapeElement));
-      else if (els.length === 1 && !this.editing && !els[0].locked && this.points?.id !== els[0].id) {
+      else if (els.length === 1 && !els[0].locked && this.points?.id !== els[0].id) {
         const el = els[0];
         const f = this.frameOf(el);
         const rot = this.rotOf(el);
@@ -474,7 +474,9 @@ export class Stage {
       const hitEl = this.ed.element(hit.id);
       const drill = !add && !sel.includes(hit.id) && groupChain(slide.elements, hit.id).some((g) => sel.includes(g.id));
       const textual = hitEl?.type === 'shape' && !hitEl.locked && (!!hitEl.ph || !!hitEl.text);
-      const clickEdit = !add && !drill && textual && (!!hitEl?.ph || (sel.length === 1 && sel[0] === hit.id));
+      const single = !sel.includes(hit.id) || sel.length === 1;
+      const clickEdit = !add && !drill && textual && single && this.overText(hit.id, e.clientX, e.clientY);
+      const reduce = !add && !drill && sel.length > 1 && sel.includes(hit.id);
       if (add) sel = sel.includes(hit.id) ? sel.filter((x) => x !== hit.id) : [...sel, hit.id];
       else if (!drill && !sel.includes(hit.id)) sel = [hit.id];
       this.ed.select(sel);
@@ -484,7 +486,7 @@ export class Stage {
         const el = this.ed.element(id);
         if (el && !el.locked) frames.set(id, this.frameOf(el));
       }
-      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined, pick: drill ? hit.id : undefined };
+      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined, pick: drill || reduce ? hit.id : undefined };
       if (e.pointerType === 'touch') this.armPress(e);
       return;
     }
@@ -502,6 +504,29 @@ export class Stage {
   }
 
   private viewOnly(): boolean { return !!this.viewport.closest('.is-view-only'); }
+
+  private overText(id: string, x: number, y: number): boolean {
+    const flow = this.view?.nodeFor(id)?.querySelector<HTMLElement>('.fd-flow');
+    if (!flow) return false;
+    const inside = (rects: DOMRectList): boolean => {
+      for (const r of Array.from(rects)) if (x >= r.left - 1 && x <= r.right + 1 && y >= r.top - 1 && y <= r.bottom + 1) return true;
+      return false;
+    };
+    const prompt = flow.querySelector<HTMLElement>('.fd-prompt');
+    if (prompt) {
+      const range = document.createRange();
+      range.selectNodeContents(prompt);
+      return inside(range.getClientRects());
+    }
+    const walker = document.createTreeWalker(flow, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!(n.textContent ?? '').trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      if (inside(range.getClientRects())) return true;
+    }
+    return false;
+  }
 
   private touchDown(e: PointerEvent): boolean {
     this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -683,7 +708,7 @@ export class Stage {
       const m = { x: Math.min(d.x0, p.x), y: Math.min(d.y0, p.y), w: Math.abs(p.x - d.x0), h: Math.abs(p.y - d.y0) };
       this.marquee = m;
       const hits = slide.elements.filter((el) => {
-        if (el.locked) return false;
+        if (el.locked || el.hidden) return false;
         const f = this.frameOf(el);
         if (marqueeRule === 'enclose') return f.x >= m.x && f.x + f.w <= m.x + m.w && f.y >= m.y && f.y + f.h <= m.y + m.h;
         return f.x < m.x + m.w && f.x + f.w > m.x && f.y < m.y + m.h && f.y + f.h > m.y;
@@ -1014,7 +1039,7 @@ export class Stage {
 
   private editKey(ev: KeyboardEvent, flow: HTMLElement): void {
     if (this.cell) { this.cellKey(ev, flow); return; }
-    if (ev.key === 'Escape') { ev.preventDefault(); this.endEdit(); return; }
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); this.endEdit(); return; }
     if (ev.key === 'Tab') {
       ev.preventDefault();
       const p = window.getSelection()?.anchorNode;

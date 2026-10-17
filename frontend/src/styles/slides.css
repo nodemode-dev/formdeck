@@ -8,8 +8,8 @@
 .fd-slide.is-edit .fd-layer-content > .fd-el.is-locked { pointer-events: auto; }
 .fd-geom { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 .fd-tx { position: absolute; display: flex; flex-direction: column; overflow: visible; }
-.fd-flow { min-height: 0; flex: none; outline: none; overflow-wrap: break-word; word-break: normal; caret-color: var(--accent-color); cursor: inherit; user-select: text; -webkit-user-select: text; }
-.fd-flow[contenteditable="true"] { cursor: text; }
+.fd-flow { min-height: 0; flex: none; outline: none; overflow-wrap: break-word; word-break: normal; caret-color: var(--accent-color); cursor: inherit; user-select: none; -webkit-user-select: none; }
+.fd-flow[contenteditable="true"] { cursor: text; user-select: text; -webkit-user-select: text; }
 .fd-p { margin: 0; padding: 0; white-space: pre-wrap; }
 .fd-bu { display: inline-block; white-space: nowrap; text-decoration: none; font-style: normal; user-select: none; -webkit-user-select: none; }
 .fd-r[data-link] { cursor: pointer; }

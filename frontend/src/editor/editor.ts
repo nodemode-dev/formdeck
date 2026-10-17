@@ -19,6 +19,8 @@ import { probeVideo } from './media-preview';
 import { Stage } from './stage';
 
 export type EditorEvent = 'selection' | 'current' | 'doc' | 'edit' | 'view';
+const PEER_TTL = 20000;
+
 export interface Peer { name: string; slide?: string; sel?: string[]; color: string; seen: number }
 
 const PEER_COLORS = ['#3b82f6', '#10b981', '#a855f7', '#eab308', '#ec4899', '#06b6d4'];
@@ -33,6 +35,7 @@ export class Editor {
   holderKind: HolderKind = 'slide';
   private returnTo = '';
   readonly peers = new Map<string, Peer>();
+  private peerTimer = 0;
   readonly stage: Stage;
   readonly strip: Filmstrip;
   private readonly listeners = new Map<EditorEvent, Set<() => void>>();
@@ -462,6 +465,21 @@ export class Editor {
     const color = prev?.color ?? PEER_COLORS[this.peers.size % PEER_COLORS.length];
     this.peers.set(client, { name: name || 'Collaborator', slide, sel, color, seen: performance.now() });
     this.stage.drawOverlay();
+    window.clearTimeout(this.peerTimer);
+    this.peerTimer = window.setTimeout(() => this.prunePeers(), PEER_TTL + 50);
+  }
+
+  private prunePeers(): void {
+    const now = performance.now();
+    let next = Infinity;
+    let dropped = false;
+    for (const [id, p] of this.peers) {
+      const left = p.seen + PEER_TTL - now;
+      if (left <= 0) { this.peers.delete(id); dropped = true; }
+      else next = Math.min(next, left);
+    }
+    if (dropped) this.stage.drawOverlay();
+    if (next !== Infinity) this.peerTimer = window.setTimeout(() => this.prunePeers(), next + 50);
   }
 
   holderOrder(): Array<{ kind: 'layout' | 'master'; id: string }> {
