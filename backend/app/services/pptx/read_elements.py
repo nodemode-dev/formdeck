@@ -112,6 +112,13 @@ def base_element(kind: str, c_nv_pr, ctx) -> dict:
     return el
 
 
+def _keeps_aspect(nv_child_pr) -> bool:
+    for locks in nv_child_pr if nv_child_pr is not None else []:
+        if local(locks).endswith("Locks") and bool_attr(locks, "noChangeAspect"):
+            return True
+    return False
+
+
 def _locked(nv_child_pr) -> bool:
     for locks in nv_child_pr if nv_child_pr is not None else []:
         if local(locks).endswith("Locks") and (bool_attr(locks, "noMove") or bool_attr(locks, "noSelect")):
@@ -209,6 +216,8 @@ def read_sp(sp, ctx, tf: Transform) -> dict:
         el["ph"] = read_ph(ph)
     if _locked(find(nv, "p:cNvSpPr")):
         el["locked"] = True
+    if _keeps_aspect(find(nv, "p:cNvSpPr")):
+        el["lockAspect"] = True
     sp_pr = find(sp, "p:spPr")
     el.update(read_frame(find(sp_pr, "a:xfrm"), tf))
     _geometry(el, sp_pr)
@@ -300,6 +309,8 @@ def read_pic(pic, ctx, tf: Transform, frame_xfrm=None) -> dict | None:
         el["ph"] = read_ph(ph)
     if _locked(find(nv, "p:cNvPicPr")):
         el["locked"] = True
+    if not _keeps_aspect(find(nv, "p:cNvPicPr")):
+        el["lockAspect"] = False
     el["src"] = poster
     el.update(read_frame(frame_xfrm if frame_xfrm is not None else find(sp_pr, "a:xfrm"), tf))
     _read_crop(el, find(blip_fill, "a:srcRect"), find(blip_fill, "a:stretch/a:fillRect"), ctx)

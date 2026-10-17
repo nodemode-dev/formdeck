@@ -2,6 +2,7 @@ import type { Guide } from '../engine/model';
 import type { Op } from '../engine/ops';
 import { api } from '../io/api';
 import { Dialog } from '../ui/dialogs';
+import { PopupMenu } from '../ui/menu';
 import { el, q, setChecked, setHidden, setText, setValue } from '../ui/dom';
 import type { Editor } from './editor';
 import type { Stage } from './stage';
@@ -9,7 +10,12 @@ import '../styles/draw.css';
 
 export interface AidPrefs { ruler: boolean; grid: boolean; guides: boolean; snapGrid: boolean; smart: boolean; spacing: number }
 const KEY = 'formdeck.aids';
-const DEFAULTS: AidPrefs = { ruler: false, grid: false, guides: false, snapGrid: false, smart: true, spacing: 9 };
+const DEFAULT_KEY = 'formdeck.aids.default';
+const DEFAULTS: AidPrefs = { ruler: false, grid: false, guides: false, snapGrid: true, smart: true, spacing: 6 };
+export const GUIDE_COLORS: Array<[string, string, string]> = [['grey', 'Grey', '#8a8a93'], ['red', 'Red', '#e5484d'], ['orange', 'Orange', '#f76b15'], ['yellow', 'Yellow', '#e5b800'], ['green', 'Green', '#30a46c'], ['teal', 'Teal', '#12a594'], ['blue', 'Blue', '#3e63dd'], ['purple', 'Purple', '#8e4ec6'], ['pink', 'Pink', '#d6409f'], ['black', 'Black', '#111111']];
+let ctxGuide: string | null = null;
+let ctxPos: { x: number; y: number } | null = null;
+let aidsRef: StageAids | null = null;
 const RULER = 20;
 export type Unit = 'in' | 'cm';
 const UNIT_PT: Record<Unit, number> = { in: 72, cm: 72 / 2.54 };
@@ -31,8 +37,32 @@ export function fmtLen(pt: number, u: Unit = unit): string {
 }
 
 function readPrefs(): AidPrefs {
-  try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<AidPrefs>) }; } catch { return { ...DEFAULTS }; }
+  try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(DEFAULT_KEY) ?? '{}') as Partial<AidPrefs>), ...(JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<AidPrefs>) }; } catch { return { ...DEFAULTS }; }
 }
+export function saveAidDefaults(): void {
+  try { localStorage.setItem(DEFAULT_KEY, JSON.stringify(prefs)); } catch { return; }
+}
+export function addGuide(ed: Editor, axis: 'x' | 'y'): void {
+  const list = ed.doc.deck.guides ?? [];
+  const size = ed.doc.deck.size;
+  const raw = ctxPos ? (axis === 'x' ? ctxPos.x : ctxPos.y) : (axis === 'x' ? size.w : size.h) / 2;
+  const pos = Math.max(0, Math.min(axis === 'x' ? size.w : size.h, Math.round(raw * 8) / 8));
+  const id = `g${list.reduce((m, g) => Math.max(m, Number(g.id.slice(1)) || 0), 0) + 1}`;
+  aidsRef?.markGuides();
+  if (!prefs.guides) setAidPrefs({ guides: true });
+  ed.apply(guideOps([...ed.doc.deck.guides ?? [], { id, axis, pos }]), 'Add guide');
+}
+export function colorGuide(ed: Editor, color: string): void {
+  const list = ed.doc.deck.guides ?? [];
+  if (!ctxGuide || !list.some((g) => g.id === ctxGuide)) return;
+  const css = color === '#8a8a93' ? undefined : color;
+  ed.apply(guideOps(list.map((g) => { if (g.id !== ctxGuide) return g; const { color: _c, ...rest } = g; void _c; return css ? { ...rest, color: css } : rest; })), 'Color guide');
+}
+export function deleteGuide(ed: Editor): void {
+  const list = ed.doc.deck.guides ?? [];
+  if (ctxGuide && list.some((g) => g.id === ctxGuide)) ed.apply(guideOps(list.filter((g) => g.id !== ctxGuide)), 'Remove guide');
+}
+export function noteContextPoint(e: MouseEvent): void { aidsRef?.noteContext(e); }
 const prefs: AidPrefs = readPrefs();
 const prefListeners = new Set<() => void>();
 export const aidPrefs = (): AidPrefs => prefs;
@@ -54,7 +84,9 @@ export class StageAids {
   private readonly guideLayer: HTMLElement;
   private readonly tip: HTMLElement;
   private readonly nodes = new Map<string, HTMLElement>();
-  private drag: { id: string | null; axis: 'x' | 'y'; pos: number; node: HTMLElement; moved: boolean } | null = null;
+  private drag: { id: string | null; axis: 'x' | 'y'; pos: number; node: HTMLElement; moved: boolean; color?: string } | null = null;
+  private readonly menu: PopupMenu;
+  private wasGuides = prefs.guides;
   private frame = 0;
   private gridKey = '';
 
@@ -72,6 +104,18 @@ export class StageAids {
     for (const r of [this.hRuler, this.vRuler]) r.addEventListener('pointerdown', (e) => this.fromRuler(e, r === this.hRuler ? 'y' : 'x'));
     this.guideLayer.addEventListener('pointerdown', (e) => this.grab(e));
     this.guideLayer.addEventListener('dblclick', (e) => e.stopPropagation());
+    this.menu = new PopupMenu(ed.commands, null, true);
+    this.guideLayer.addEventListener('contextmenu', (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLElement>('[data-guide]');
+      if (!t) return;
+      e.preventDefault();
+      e.stopPropagation();
+      ctxGuide = t.dataset.guide ?? null;
+      this.noteContext(e);
+      this.menu.setItems(['guide-add-v', 'guide-add-h', { label: 'Color', items: GUIDE_COLORS.map(([id]) => `guide-color-${id}`) }, 'guide-delete']);
+      this.menu.openAt(e.clientX, e.clientY);
+    });
+    aidsRef = this;
     window.addEventListener('pointermove', (e) => this.moveDrag(e));
     window.addEventListener('pointerup', () => this.endDrag());
     const again = (): void => this.sync();
@@ -83,6 +127,13 @@ export class StageAids {
   }
 
   get rulerOn(): boolean { return prefs.ruler; }
+
+  markGuides(): void { this.wasGuides = true; }
+
+  noteContext(e: MouseEvent): void {
+    const r = this.stage.viewport.getBoundingClientRect();
+    ctxPos = { x: (e.clientX - r.left - this.stage.ox) / this.stage.k, y: (e.clientY - r.top - this.stage.oy) / this.stage.k };
+  }
 
   private schedule(): void {
     if (this.frame) return;
@@ -104,10 +155,11 @@ export class StageAids {
     const k = this.stage.k;
     let step = prefs.spacing * k;
     while (step > 0 && step < 7) step *= 2;
+    const major = 72 * k;
     const show = prefs.grid && !!this.stage.view && step > 0;
     setHidden(this.grid, !show);
     if (!show) return;
-    const key = `${this.stage.ox},${this.stage.oy},${deck.size.w * k},${deck.size.h * k},${step}`;
+    const key = `${this.stage.ox},${this.stage.oy},${deck.size.w * k},${deck.size.h * k},${step},${major}`;
     if (key === this.gridKey) return;
     this.gridKey = key;
     const s = this.grid.style;
@@ -115,8 +167,8 @@ export class StageAids {
     s.top = `${this.stage.oy}px`;
     s.width = `${deck.size.w * k}px`;
     s.height = `${deck.size.h * k}px`;
-    s.backgroundSize = `${step}px ${step}px`;
-    s.backgroundPosition = `${-step / 2}px ${-step / 2}px`;
+    s.setProperty('--g-step', `${step}px`);
+    s.setProperty('--g-major', `${major}px`);
   }
 
   private guides(): Guide[] { return this.ed.doc.deck.guides ?? []; }
@@ -125,6 +177,13 @@ export class StageAids {
     const show = prefs.guides && !!this.stage.view;
     setHidden(this.guideLayer, !show && !this.drag);
     const list = this.guides();
+    if (prefs.guides && !this.wasGuides && !list.length && this.stage.view) {
+      const size = this.ed.doc.deck.size;
+      this.wasGuides = true;
+      this.ed.apply(guideOps([{ id: 'g1', axis: 'x', pos: size.w / 2 }, { id: 'g2', axis: 'y', pos: size.h / 2 }]), 'Add guides');
+      return;
+    }
+    this.wasGuides = prefs.guides;
     const seen = new Set<string>();
     for (const g of list) {
       seen.add(g.id);
@@ -134,6 +193,8 @@ export class StageAids {
         this.nodes.set(g.id, n);
         this.guideLayer.insertBefore(n, this.tip);
       }
+      const col = g.color ?? '';
+      if (n.style.getPropertyValue('--guide-c') !== col) { if (col) n.style.setProperty('--guide-c', col); else n.style.removeProperty('--guide-c'); }
       if (this.drag?.id === g.id) continue;
       this.place(n, g.axis, g.pos);
     }
@@ -162,6 +223,7 @@ export class StageAids {
   private fromRuler(e: PointerEvent, axis: 'x' | 'y'): void {
     if (e.button !== 0) return;
     e.preventDefault();
+    this.markGuides();
     if (!prefs.guides) setAidPrefs({ guides: true });
     const n = el(`<div class="fd-guide-line is-new"></div>`);
     this.guideLayer.insertBefore(n, this.tip);
@@ -179,6 +241,15 @@ export class StageAids {
     if (!g) return;
     e.preventDefault();
     e.stopPropagation();
+    if (e.ctrlKey || e.metaKey) {
+      const n = el(`<div class="fd-guide-line is-new"></div>`);
+      if (g.color) n.style.setProperty('--guide-c', g.color);
+      this.guideLayer.insertBefore(n, this.tip);
+      this.drag = { id: null, axis: g.axis, pos: g.pos, node: n, moved: false, color: g.color };
+      this.place(n, g.axis, g.pos);
+      this.showTip(e);
+      return;
+    }
     this.drag = { id: g.id, axis: g.axis, pos: g.pos, node: t, moved: false };
     t.classList.add('is-drag');
     this.showTip(e);
@@ -203,7 +274,9 @@ export class StageAids {
     const r = this.stage.viewport.getBoundingClientRect();
     const size = d.axis === 'x' ? this.ed.doc.deck.size.w : this.ed.doc.deck.size.h;
     const out = d.pos < 0 || d.pos > size;
-    setText(this.tip, out ? 'Release to remove' : fmtLen(d.pos));
+    const off = (d.pos - size / 2) / 72;
+    const side = Math.abs(off) < 0.005 ? '' : d.axis === 'x' ? (off < 0 ? 'Left ' : 'Right ') : off < 0 ? 'Above ' : 'Below ';
+    setText(this.tip, out ? 'Release to remove' : `${side}${Math.abs(off).toFixed(2)} in`);
     setHidden(this.tip, false);
     this.tip.style.left = `${e.clientX - r.left + 14}px`;
     this.tip.style.top = `${e.clientY - r.top + 6}px`;
@@ -223,7 +296,7 @@ export class StageAids {
       d.node.remove();
       if (!out) {
         const id = `g${list.reduce((m, g) => Math.max(m, Number(g.id.slice(1)) || 0), 0) + 1}`;
-        this.ed.apply(guideOps([...list, { id, axis: d.axis, pos: d.pos }]), 'Add guide');
+        this.ed.apply(guideOps([...list, d.color ? { id, axis: d.axis, pos: d.pos, color: d.color } : { id, axis: d.axis, pos: d.pos }]), 'Add guide');
       }
     } else if (out) this.ed.apply(guideOps(list.filter((g) => g.id !== d.id)), 'Remove guide');
     else if (d.moved && list.find((g) => g.id === d.id)?.pos !== d.pos) this.ed.apply(guideOps(list.map((g) => (g.id === d.id ? { ...g, pos: d.pos } : g))), 'Move guide');
@@ -325,7 +398,7 @@ export class StageAids {
 }
 
 const SPACINGS: Record<Unit, Array<[string, number]>> = {
-  in: [['1/16 in', 72 / 16], ['1/12 in', 6], ['1/10 in', 7.2], ['1/8 in', 9], ['1/6 in', 12], ['1/5 in', 14.4], ['1/4 in', 18], ['1/3 in', 24], ['1/2 in', 36], ['1 in', 72]],
+  in: [['1/24 in', 3], ['1/16 in', 72 / 16], ['1/12 in', 6], ['1/10 in', 7.2], ['1/8 in', 9], ['1/6 in', 12], ['1/5 in', 14.4], ['1/4 in', 18], ['1/3 in', 24], ['1/2 in', 36], ['1 in', 72], ['2 in', 144]],
   cm: [['0.1 cm', 72 / 25.4], ['0.2 cm', 144 / 25.4], ['0.25 cm', 180 / 25.4], ['0.5 cm', 360 / 25.4], ['1 cm', 720 / 25.4], ['2 cm', 1440 / 25.4]],
 };
 
@@ -336,6 +409,8 @@ class GridDialog extends Dialog {
   private readonly smart: HTMLInputElement;
   private readonly spacing: HTMLSelectElement;
   private readonly clear: HTMLButtonElement;
+  private readonly custom: HTMLInputElement;
+  private readonly note: HTMLElement;
   private ed: Editor | null = null;
 
   constructor() {
@@ -345,6 +420,8 @@ class GridDialog extends Dialog {
 <div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="snap"><span>Snap objects to grid</span></label></div></section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Grid settings</div>
 <label class="fd-field"><span>Spacing</span><select class="fd-input" data-f="spacing" aria-label="Grid spacing"></select></label>
+<label class="fd-field"><span>Custom</span><input class="fd-input" type="number" min="0.01" step="0.01" data-f="custom" aria-label="Custom grid spacing"></label>
+<div class="fd-field"><span></span><span class="fd-note" data-f="spacing-note"></span></div>
 <div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="grid"><span>Display grid on screen</span></label></div></section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Guide settings</div>
 <div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="guides"><span>Display drawing guides on screen</span></label></div>
@@ -363,9 +440,19 @@ class GridDialog extends Dialog {
     this.showGrid.addEventListener('change', () => setAidPrefs({ grid: this.showGrid.checked }));
     this.showGuides.addEventListener('change', () => setAidPrefs({ guides: this.showGuides.checked }));
     this.smart.addEventListener('change', () => setAidPrefs({ smart: this.smart.checked }));
-    this.spacing.addEventListener('change', () => { const v = Number(this.spacing.value); if (v > 0) setAidPrefs({ spacing: v }); });
+    this.custom = q<HTMLInputElement>(box, '[data-f="custom"]');
+    this.note = q<HTMLElement>(box, '[data-f="spacing-note"]');
+    this.spacing.addEventListener('change', () => { const v = Number(this.spacing.value); if (v > 0) { setAidPrefs({ spacing: v }); this.syncSpacing(); } });
+    this.custom.addEventListener('change', () => { const v = Number(this.custom.value) * UNIT_PT[unit]; if (v > 0.5) setAidPrefs({ spacing: v }); this.syncSpacing(); });
+    this.button('Set as Default', 'ghost', () => saveAidDefaults());
     this.clear.addEventListener('click', () => { const ed = this.ed; if (ed?.doc.deck.guides?.length) ed.apply(guideOps([]), 'Remove guides'); this.syncClear(); });
     this.button('Done', 'primary', () => this.close());
+  }
+
+  private syncSpacing(): void {
+    const cur = prefs.spacing;
+    setValue(this.custom, String(Math.round((cur / UNIT_PT[unit]) * 1000) / 1000));
+    setText(this.note, `${fmtLen(cur, 'in')}${unit === 'cm' ? ` (${fmtLen(cur, 'cm')})` : ''}`);
   }
 
   private syncClear(): void { this.clear.disabled = !this.ed?.doc.deck.guides?.length; }
@@ -382,6 +469,7 @@ class GridDialog extends Dialog {
     setChecked(this.showGuides, prefs.guides);
     setChecked(this.smart, prefs.smart);
     this.syncClear();
+    this.syncSpacing();
     this.open(this.snap);
   }
 }

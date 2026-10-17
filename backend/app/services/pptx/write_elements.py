@@ -208,7 +208,7 @@ class ElementWriter:
             attrs["noGrp"] = True
         if el.get("locked"):
             attrs.update({"noMove": True, "noResize": True})
-        if tag == "a:picLocks":
+        if el.get("lockAspect", tag == "a:picLocks") is True:
             attrs["noChangeAspect"] = True
         if attrs:
             sub(parent, tag, attrs)

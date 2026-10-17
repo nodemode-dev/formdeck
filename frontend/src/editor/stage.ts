@@ -17,7 +17,7 @@ import { connectorMid, lineEnds, nearestSite, routeConnector, slideToLocal, type
 import type { Pt } from '../engine/geometry/path';
 import { endPoint, geometryOps, glueOps, isLineLike, kindOf, sitesOf, targetAt, xfOf } from './connectors';
 import { buzz, installInputKind, isTouchInput, Press } from '../ui/touch';
-import { aidPrefs, StageAids } from './rulers';
+import { aidPrefs, noteContextPoint, StageAids } from './rulers';
 import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
 
@@ -40,6 +40,44 @@ export interface CellSel { el: string; r0: number; c0: number; r1: number; c1: n
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
 const SNAP_PX = 6;
+
+interface GapMark { axis: 'h' | 'v'; at: number; from: number; to: number }
+
+function gridDelta(edges: number[], sp: number): number {
+  let best = 0, bestAbs = Infinity;
+  for (const e of edges) { const d = Math.round(e / sp) * sp - e; if (Math.abs(d) < bestAbs) { best = d; bestAbs = Math.abs(d); } }
+  return best;
+}
+
+function equalSpacing(others: Frame[], b: Frame, ax: 'x' | 'y', tol: number): { d: number; marks: GapMark[] } | null {
+  const [p, s, q, t] = ax === 'x' ? (['x', 'w', 'y', 'h'] as const) : (['y', 'h', 'x', 'w'] as const);
+  const row = others.filter((f) => f[q] < b[q] + b[t] && f[q] + f[t] > b[q]).sort((m, n) => m[p] - n[p]);
+  const at = b[q] + b[t] / 2;
+  let best: { d: number; gaps: Array<[number, number]> } | null = null;
+  const consider = (target: number, gaps: Array<[number, number]>): void => {
+    const d = target - b[p];
+    if (Math.abs(d) <= tol && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, gaps };
+  };
+  for (let i = 0; i < row.length; i++) {
+    const P = row[i];
+    for (let j = i + 1; j < row.length; j++) {
+      const Q = row[j];
+      const room = Q[p] - (P[p] + P[s]);
+      if (room >= b[s]) { const x = (P[p] + P[s] + Q[p] - b[s]) / 2; consider(x, [[P[p] + P[s], x], [x + b[s], Q[p]]]); }
+    }
+    const Q = row[i + 1];
+    if (Q) {
+      const g = Q[p] - (P[p] + P[s]);
+      if (g > 0.5) {
+        consider(Q[p] + Q[s] + g, [[P[p] + P[s], Q[p]], [Q[p] + Q[s], Q[p] + Q[s] + g]]);
+        consider(P[p] - g - b[s], [[P[p] + P[s], Q[p]], [P[p] - g, P[p]]]);
+      }
+    }
+  }
+  const hit = best as { d: number; gaps: Array<[number, number]> } | null;
+  if (!hit) return null;
+  return { d: hit.d, marks: hit.gaps.map(([from, to]) => ({ axis: ax === 'x' ? 'h' : 'v', at, from, to })) };
+}
 
 export class Stage {
   readonly viewport: HTMLDivElement;
@@ -307,6 +345,7 @@ export class Stage {
         }
       }
       if (this.guides.length) for (const g of this.guides) parts.push(g.axis === 'v' ? `<div class="fd-guide is-v" style="left:${this.ox + g.at * k}px;top:${this.oy + g.from * k}px;height:${(g.to - g.from) * k}px"></div>` : `<div class="fd-guide is-h" style="top:${this.oy + g.at * k}px;left:${this.ox + g.from * k}px;width:${(g.to - g.from) * k}px"></div>`);
+      for (const g of this.gaps) parts.push(g.axis === 'h' ? `<div class="fd-gap is-h" style="left:${this.ox + g.from * k}px;top:${this.oy + g.at * k}px;width:${(g.to - g.from) * k}px"></div>` : `<div class="fd-gap is-v" style="top:${this.oy + g.from * k}px;left:${this.ox + g.at * k}px;height:${(g.to - g.from) * k}px"></div>`);
       if (this.marquee) parts.push(`<div class="fd-marquee" style="left:${this.ox + this.marquee.x * k}px;top:${this.oy + this.marquee.y * k}px;width:${this.marquee.w * k}px;height:${this.marquee.h * k}px"></div>`);
       if (this.tip) parts.push(`<div class="fd-size-tip" style="left:${this.tip.x}px;top:${this.tip.y}px">${this.tip.text}</div>`);
       for (const p of this.ed.peers.values()) {
@@ -345,6 +384,7 @@ export class Stage {
 
   private overlayHtml = '';
   private guides: Array<{ axis: 'h' | 'v'; at: number; from: number; to: number }> = [];
+  private gaps: GapMark[] = [];
   private marquee: Frame | null = null;
   private tip: { x: number; y: number; text: string } | null = null;
 
@@ -725,10 +765,11 @@ export class Stage {
       const frames = Array.from(d.frames.values());
       if (!frames.length) return;
       const b = bounds(frames);
-      const snapped = e.altKey ? { dx: 0, dy: 0, guides: [] } : this.snap({ x: b.x + dx, y: b.y + dy, w: b.w, h: b.h }, new Set(d.frames.keys()));
+      const snapped = e.altKey ? { dx: 0, dy: 0, guides: [], gaps: [] } : this.snap({ x: b.x + dx, y: b.y + dy, w: b.w, h: b.h }, new Set(d.frames.keys()));
       const sdx = dx + snapped.dx;
       const sdy = dy + snapped.dy;
       this.guides = snapped.guides;
+      this.gaps = snapped.gaps;
       for (const [id, f] of d.frames) {
         const el = this.ed.element(id);
         this.pendingOps.set(id, { ...f, x: f.x + sdx, y: f.y + sdy, rot: el?.rot });
@@ -740,8 +781,19 @@ export class Stage {
     if (d.kind === 'resize') {
       const el = this.ed.element(d.id);
       if (!el) return;
-      const corner = ['nw', 'ne', 'se', 'sw'].includes(d.h);
-      const f = this.resized(d, p, el.type === 'image' && corner ? !e.shiftKey : e.shiftKey, e.altKey);
+      const keep = (el.lockAspect ?? el.type === 'image') !== e.shiftKey;
+      let f = this.resized(d, p, keep, e.altKey);
+      this.guides = [];
+      this.gaps = [];
+      if (!keep && !e.altKey && !d.rot) {
+        const only = { x: d.h.includes('w') ? [0] : d.h.includes('e') ? [2] : [], y: d.h.includes('n') ? [0] : d.h.includes('s') ? [2] : [] };
+        const sn = this.snap(f, new Set([d.id]), only);
+        this.guides = sn.guides;
+        let { x, y, w, h: hh } = f;
+        if (d.h.includes('w')) { x += sn.dx; w -= sn.dx; } else if (d.h.includes('e')) w += sn.dx;
+        if (d.h.includes('n')) { y += sn.dy; hh -= sn.dy; } else if (d.h.includes('s')) hh += sn.dy;
+        if (w >= 4 && hh >= 4) f = { x, y, w, h: hh };
+      }
       this.pendingOps.set(d.id, { ...f, rot: el.rot });
       this.tip = { x: e.clientX - this.root.getBoundingClientRect().left, y: e.clientY - this.root.getBoundingClientRect().top + 14, text: `${Math.round(f.w)} × ${Math.round(f.h)}` };
       this.schedule('Resize', `resize:${d.id}`, true);
@@ -805,6 +857,11 @@ export class Stage {
       if (Math.abs(w) / a > Math.abs(hh)) { const nh = Math.sign(hh || 1) * Math.abs(w) / a; if (h.includes('n')) t = b - nh; else b = t + nh; }
       else { const nw = Math.sign(w || 1) * Math.abs(hh) * a; if (h.includes('w')) l = r - nw; else r = l + nw; }
       w = r - l; hh = b - t;
+    } else if (keep) {
+      const a = d.aspect, mid = (t + b) / 2, midx = (l + r) / 2;
+      if (h === 'e' || h === 'w') { const nh = Math.abs(w) / a; t = mid - nh / 2; b = mid + nh / 2; }
+      else { const nw = Math.abs(hh) * a; l = midx - nw / 2; r = midx + nw / 2; }
+      w = r - l; hh = b - t;
     }
     const minS = 4;
     if (Math.abs(w) < minS) { if (h.includes('w')) l = r - minS; else r = l + minS; w = minS; }
@@ -815,7 +872,7 @@ export class Stage {
     return { x: cx - W / 2, y: cy - H / 2, w: W, h: H };
   }
 
-  private snap(b: Frame, moving: Set<string>): { dx: number; dy: number; guides: Array<{ axis: 'h' | 'v'; at: number; from: number; to: number }> } {
+  private snap(b: Frame, moving: Set<string>, only?: { x: number[]; y: number[] }): { dx: number; dy: number; guides: Array<{ axis: 'h' | 'v'; at: number; from: number; to: number }>; gaps: GapMark[] } {
     const slide = this.slide();
     const deck = this.ed.doc.deck;
     const tol = SNAP_PX / this.k;
@@ -824,9 +881,11 @@ export class Stage {
     const vx: Cand[] = prefs.smart ? [{ at: 0, from: 0, to: deck.size.h }, { at: deck.size.w / 2, from: 0, to: deck.size.h }, { at: deck.size.w, from: 0, to: deck.size.h }] : [];
     const hy: Cand[] = prefs.smart ? [{ at: 0, from: 0, to: deck.size.w }, { at: deck.size.h / 2, from: 0, to: deck.size.w }, { at: deck.size.h, from: 0, to: deck.size.w }] : [];
     const holders = new Set(Array.from(moving).flatMap((id) => groupChain(slide?.elements ?? [], id).map((g) => g.id)));
+    const others: Frame[] = [];
     for (const el of prefs.smart ? slide?.elements ?? [] : []) {
       if (moving.has(el.id) || holders.has(el.id) || el.hidden) continue;
       const f = this.frameOf(el);
+      others.push(f);
       for (const x of [f.x, f.x + f.w / 2, f.x + f.w]) vx.push({ at: x, from: Math.min(f.y, b.y), to: Math.max(f.y + f.h, b.y + b.h) });
       for (const y of [f.y, f.y + f.h / 2, f.y + f.h]) hy.push({ at: y, from: Math.min(f.x, b.x), to: Math.max(f.x + f.w, b.x + b.w) });
     }
@@ -835,14 +894,21 @@ export class Stage {
     for (const y of lines.ys) hy.push({ at: y, from: 0, to: deck.size.w, quiet: true });
     let dx = 0, dy = 0, bx = tol + 1, by = tol + 1;
     let gx: Cand | null = null, gy: Cand | null = null;
-    for (const s of [b.x, b.x + b.w / 2, b.x + b.w]) for (const c of vx) { const dd = c.at - s; if (Math.abs(dd) < Math.abs(bx) && Math.abs(dd) <= tol) { bx = dd; gx = c; } }
-    for (const s of [b.y, b.y + b.h / 2, b.y + b.h]) for (const c of hy) { const dd = c.at - s; if (Math.abs(dd) < Math.abs(by) && Math.abs(dd) <= tol) { by = dd; gy = c; } }
+    const xp = [b.x, b.x + b.w / 2, b.x + b.w], yp = [b.y, b.y + b.h / 2, b.y + b.h];
+    for (const s of only ? only.x.map((i) => xp[i]) : xp) for (const c of vx) { const dd = c.at - s; if (Math.abs(dd) < Math.abs(bx) && Math.abs(dd) <= tol) { bx = dd; gx = c; } }
+    for (const s of only ? only.y.map((i) => yp[i]) : yp) for (const c of hy) { const dd = c.at - s; if (Math.abs(dd) < Math.abs(by) && Math.abs(dd) <= tol) { by = dd; gy = c; } }
     const guides: Array<{ axis: 'h' | 'v'; at: number; from: number; to: number }> = [];
+    const gaps: GapMark[] = [];
+    const sx = !gx && !only && prefs.smart ? equalSpacing(others, b, 'x', tol) : null;
+    const sy = !gy && !only && prefs.smart ? equalSpacing(others, b, 'y', tol) : null;
+    const grid = prefs.snapGrid && prefs.spacing > 0;
     if (gx) { dx = bx; if (!gx.quiet) guides.push({ axis: 'v', at: gx.at, from: gx.from, to: gx.to }); }
-    else if (prefs.snapGrid && prefs.spacing > 0) dx = Math.round(b.x / prefs.spacing) * prefs.spacing - b.x;
+    else if (sx) { dx = sx.d; gaps.push(...sx.marks); }
+    else if (grid) dx = gridDelta(only ? only.x.map((i) => xp[i]) : [b.x, b.x + b.w], prefs.spacing);
     if (gy) { dy = by; if (!gy.quiet) guides.push({ axis: 'h', at: gy.at, from: gy.from, to: gy.to }); }
-    else if (prefs.snapGrid && prefs.spacing > 0) dy = Math.round(b.y / prefs.spacing) * prefs.spacing - b.y;
-    return { dx, dy, guides };
+    else if (sy) { dy = sy.d; gaps.push(...sy.marks); }
+    else if (grid) dy = gridDelta(only ? only.y.map((i) => yp[i]) : [b.y, b.y + b.h], prefs.spacing);
+    return { dx, dy, guides, gaps };
   }
 
   private schedule(label: string, coalesce: string, _resize: boolean): void {
@@ -888,6 +954,7 @@ export class Stage {
     if (d.kind === 'end' || d.kind === 'mid') { this.flushLive(); this.sites = null; }
     if (this.pendingOps.size) this.flush(d.kind === 'move' ? 'Move' : d.kind === 'resize' ? 'Resize' : 'Rotate', `${d.kind}:end`);
     this.guides = [];
+    this.gaps = [];
     this.marquee = null;
     this.tip = null;
     this.drawOverlay();
@@ -1409,6 +1476,7 @@ export class Stage {
     const hit = this.hitElement(e.target);
     if (hit.id && !this.ed.selection.includes(hit.id)) this.ed.select([hit.id]);
     if (!hit.id) this.ed.select([]);
+    noteContextPoint(e);
     this.ed.contextMenu(e.clientX, e.clientY, hit.id ? 'element' : 'slide');
   }
 

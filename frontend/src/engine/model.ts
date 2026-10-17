@@ -55,7 +55,7 @@ export interface Placeholder { type: PhType; idx?: number }
 
 interface ElementBase {
   id: string; name?: string; x?: number; y?: number; w?: number; h?: number; rot?: number; flipH?: boolean; flipV?: boolean;
-  ph?: Placeholder; slot?: string; hidden?: boolean; locked?: boolean; alt?: string; link?: Link; opacity?: number;
+  ph?: Placeholder; slot?: string; hidden?: boolean; locked?: boolean; lockAspect?: boolean; alt?: string; link?: Link; opacity?: number;
 }
 export type ConnKind = 'straight' | 'elbow' | 'curved';
 export interface ConnEnd { id: string; site: number }
@@ -130,7 +130,7 @@ export interface ShowSettings {
   useTimings?: boolean; noAnimation?: boolean; noNarration?: boolean; pen?: string;
 }
 export interface DeckMeta { created?: string; modified?: string; author?: string; template?: string; app?: string; [k: string]: unknown }
-export interface Guide { id: string; axis: 'x' | 'y'; pos: number }
+export interface Guide { id: string; axis: 'x' | 'y'; pos: number; color?: string }
 export interface Macro { id: string; name: string; code: string; description?: string }
 
 export interface Deck {

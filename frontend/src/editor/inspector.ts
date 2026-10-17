@@ -6,6 +6,7 @@ import { SlideView } from '../render/slide';
 import { pickColor } from '../ui/colorpop';
 import { el, escapeHtml, patchList, setChecked, setClass, setHidden, setText, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
+import { collab } from './collab-state';
 import { PanelGroup } from '../ui/panel-group';
 import type { Editor } from './editor';
 import { dirtyOp, holderNameOps, paraStyleOps, runStyleOps, setFrameOps } from './actions';
@@ -54,6 +55,7 @@ export class Inspector {
 <div class="fd-prop-section" data-s="frame"><div class="fd-panel-head"><span class="fd-panel-title">Position and size</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Position</span><div class="fd-prop-ctl fd-pair">${num('x', 'X')}${num('y', 'Y')}</div></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Size</span><div class="fd-prop-ctl fd-pair">${num('w', 'W')}${num('h', 'H')}</div></div>
+<div class="fd-prop-row"><span class="fd-prop-label">Aspect</span><div class="fd-prop-ctl"><label class="fd-check"><input type="checkbox" data-f="lockAspect" aria-label="Lock aspect ratio"><span>Lock aspect ratio</span></label></div></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Rotation</span><div class="fd-prop-ctl fd-pair">${num('rot', 'R', '°')}<span></span></div></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Opacity</span><div class="fd-prop-ctl"><input class="fd-slider" type="range" min="0" max="100" data-f="opacity" aria-label="Opacity"></div></div></div>
 <div class="fd-prop-section" data-s="text"><div class="fd-panel-head"><span class="fd-panel-title">Text box</span></div>
@@ -110,7 +112,8 @@ export class Inspector {
 <div class="fd-prop-row"><span class="fd-prop-label">Size</span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="size"><span class="fd-size-label"></span></button></div></div></div>
 </div>`);
     this.review = el(`<div class="fd-insp">
-<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">This slide</span></div>
+<div class="fd-prop-section" data-collab="status"><div class="fd-panel-head"><span class="fd-panel-title fd-status-title">Slide status</span></div>
+<div class="fd-note fd-status-note"></div>
 <div class="fd-seg" data-seg="review"><button type="button" data-v="draft">Draft</button><button type="button" data-v="review">Review</button><button type="button" data-v="changes">Changes</button><button type="button" data-v="approved">Approved</button></div>
 <div class="fd-review-deck fd-note"></div></div>
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Comments</span></div>
@@ -119,18 +122,29 @@ export class Inspector {
 <div class="fd-comment-new"><textarea class="fd-input" rows="2" placeholder="Comment on this slide (Enter to post, @ to mention)"></textarea><div class="fd-comment-assign" hidden><label class="fd-check"><input type="checkbox" data-f="assign" aria-label="Assign this comment"><span></span></label><span class="fd-comment-assign-label">Assign to</span><select data-f="assignee" aria-label="Assign to"></select></div></div></div>
 </div>`);
     this.agent = el(`<div class="fd-insp">
-<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Outside agents</span></div>
+<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Outside agents (MCP)</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Allow</span><div class="fd-prop-ctl"><label class="fd-check"><input type="checkbox" data-f="agents" aria-label="Allow outside agents"><span></span></label><span class="fd-note fd-mcp-status"></span></div></div>
 <div class="fd-note">Claude Code, Codex and Cursor build and edit decks here through FormDeck's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.</div>
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt for your agent</button></div></div></div>
-<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Chat</span></div>
+<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Chat with Claude</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="open-chat">${icon('agentChat', 14)}Chat with Claude</button></div></div></div>
-<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Activity</span></div><div class="fd-activity"></div></div>
+<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Agent activity</span></div><div class="fd-activity"></div></div>
 </div>`);
     const g1 = new PanelGroup(host, 'format', [{ id: 'format', label: 'Format', body: this.format }, { id: 'slide', label: 'Slide', body: this.slidePage }, { id: 'design', label: 'Design', body: this.design }, { id: 'animate', label: 'Animate', body: this.animate.el }], 'Format');
     const g2 = new PanelGroup(host, 'review', [{ id: 'review', label: 'Review', body: this.review }, { id: 'agent', label: 'Agent', body: this.agent }], 'Review');
     void g1; void g2;
     this.wire();
+    this.paintCollab();
+    collab.subscribe(() => this.paintCollab());
+  }
+
+  private paintCollab(): void {
+    const sec = this.review.querySelector<HTMLElement>('[data-collab="status"]');
+    if (!sec) return;
+    setHidden(sec, !collab.statusVisible);
+    const handoff = collab.agents && !collab.shared;
+    setText(sec.querySelector('.fd-status-title'), handoff ? 'Agent handoff' : 'Slide status');
+    setText(sec.querySelector('.fd-status-note'), handoff ? 'Agent handoff: Draft, Review, Changes, Approved. Agents leave slides in Review for you.' : 'Shared deck: mark where each slide stands for the people you share it with.');
   }
 
   private wire(): void {
@@ -275,8 +289,14 @@ export class Inspector {
       if (['x', 'y', 'w', 'h', 'rot'].includes(f)) {
         const v = Number(t.value);
         if (!Number.isFinite(v)) continue;
-        ops.push(...setFrameOps(ed.doc.deck, s, e, { [f]: f === 'rot' ? ((v % 360) + 360) % 360 : v }));
-      } else if (f === 'opacity') ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'opacity'], value: Number(t.value) / 100 });
+        const patch: { [k: string]: number } = { [f]: f === 'rot' ? ((v % 360) + 360) % 360 : v };
+        if ((f === 'w' || f === 'h') && (e.lockAspect ?? e.type === 'image')) {
+          const cur = frameOf(chain(ed.doc.deck, s, e), ed.doc.deck);
+          if (cur.w > 0 && cur.h > 0) { if (f === 'w') patch.h = Math.round((v * cur.h / cur.w) * 10) / 10; else patch.w = Math.round((v * cur.w / cur.h) * 10) / 10; }
+        }
+        ops.push(...setFrameOps(ed.doc.deck, s, e, patch));
+      } else if (f === 'lockAspect') ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'lockAspect'], value: t.checked });
+      else if (f === 'opacity') ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'opacity'], value: Number(t.value) / 100 });
       else if (f === 'grayscale' && e.type === 'image') ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'adjust'], value: { ...(e.adjust ?? {}), grayscale: t.checked } });
       else if (f === 'alt') ops.push({ op: 'set', path: [...elPath(s.id, e.id), 'alt'], value: t.value });
       else if ((f === 'bright' || f === 'contrast' || f === 'sat' || f === 'blur') && e.type === 'image') {
@@ -381,6 +401,8 @@ export class Inspector {
         const input = this.format.querySelector<HTMLInputElement>(`[data-f="${k}"]`);
         if (input) setValue(input, String(Math.round(v * 10) / 10));
       }
+      const lk = this.format.querySelector<HTMLInputElement>('[data-f="lockAspect"]');
+      if (lk) setChecked(lk, one.lockAspect ?? one.type === 'image');
       const op = this.format.querySelector<HTMLInputElement>('[data-f="opacity"]');
       if (op) setValue(op, String(Math.round((one.opacity ?? 1) * 100)));
       const segVal = (name: string, v: string): void => { for (const b of Array.from(this.format.querySelectorAll<HTMLButtonElement>(`[data-seg="${name}"] button`))) setClass(b, 'is-on', b.dataset.v === v); };
@@ -485,6 +507,7 @@ export class Inspector {
       const css = colorCss(b.dataset.slot as string, theme);
       if (b.style.background !== css) b.style.background = css;
     }
+    this.paintCollab();
     const agents = this.agent.querySelector<HTMLInputElement>('[data-f="agents"]');
     if (agents && this.hooks) setChecked(agents, this.hooks.agentsAllowed());
     setText(this.agent.querySelector('.fd-mcp-status'), this.hooks?.mcpStatus() ?? '');

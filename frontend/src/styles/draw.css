@@ -28,16 +28,25 @@
 .fd-ruler[hidden], .fd-ruler-corner[hidden], .fd-altview:not([hidden]) ~ .fd-ruler, .fd-altview:not([hidden]) ~ .fd-ruler-corner { display: none; }
 .fd-stage:has(> .fd-ruler.is-h:not([hidden])) .fd-master-banner { top: calc(var(--space-2) + 20px); }
 
-.fd-grid { position: absolute; left: 0; top: 0; background-image: radial-gradient(circle, rgba(128, 128, 136, 0.75) 0.85px, transparent 1.15px); pointer-events: none; }
+.fd-grid { position: absolute; left: 0; top: 0; pointer-events: none; --g-step: 6px; --g-major: 72px; background-image: linear-gradient(to right, rgba(110, 110, 130, 0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(110, 110, 130, 0.5) 1px, transparent 1px), radial-gradient(circle, rgba(16, 16, 24, 0.7) 0.7px, rgba(255, 255, 255, 0.55) 1px, rgba(255, 255, 255, 0.55) 1.5px, transparent 1.9px); background-size: var(--g-major) var(--g-major), var(--g-major) var(--g-major), var(--g-step) var(--g-step); background-position: 0 0, 0 0, calc(var(--g-step) / -2) calc(var(--g-step) / -2); }
+.fd-gap { position: absolute; background: var(--fd-guide); pointer-events: none; }
+.fd-gap.is-h { height: 1px; }
+.fd-gap.is-v { width: 1px; }
+.fd-gap.is-h::before, .fd-gap.is-h::after { content: ''; position: absolute; top: -3px; width: 1px; height: 7px; background: var(--fd-guide); }
+.fd-gap.is-h::before { left: 0; }
+.fd-gap.is-h::after { right: 0; }
+.fd-gap.is-v::before, .fd-gap.is-v::after { content: ''; position: absolute; left: -3px; height: 1px; width: 7px; background: var(--fd-guide); }
+.fd-gap.is-v::before { top: 0; }
+.fd-gap.is-v::after { bottom: 0; }
 .fd-grid[hidden], .fd-guides[hidden] { display: none; }
 .fd-guides { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .fd-guide-line { position: absolute; pointer-events: auto; touch-action: none; }
 .fd-guide-line.is-x { top: 0; bottom: 0; width: 7px; margin-left: -3px; cursor: col-resize; }
 .fd-guide-line.is-y { left: 0; right: 0; height: 7px; margin-top: -3px; cursor: row-resize; }
-.fd-guide-line::before { content: ''; position: absolute; background: color-mix(in srgb, var(--fd-sel) 62%, transparent); }
+.fd-guide-line::before { content: ''; position: absolute; background: var(--guide-c, #8a8a93); opacity: 0.85; }
 .fd-guide-line.is-x::before { left: 3px; top: 0; bottom: 0; width: 1px; }
 .fd-guide-line.is-y::before { top: 3px; left: 0; right: 0; height: 1px; }
-.fd-guide-line.is-drag::before, .fd-guide-line.is-new::before { background: var(--fd-sel); }
+.fd-guide-line.is-drag::before, .fd-guide-line.is-new::before { opacity: 1; }
 .fd-guide-line.is-out::before { opacity: 0.35; }
 .fd-guide-tip { transform: none; }
 .fd-guide-tip[hidden] { display: none; }

@@ -2,7 +2,7 @@ import type { Command, Commands } from '../ui/commands';
 import type { DrawMode } from './draw-tool';
 import type { Editor } from './editor';
 import { canEditPoints } from './points-edit';
-import { aidPrefs, gridGuidesDialog, setAidPrefs } from './rulers';
+import { addGuide, aidPrefs, colorGuide, deleteGuide, GUIDE_COLORS, gridGuidesDialog, setAidPrefs } from './rulers';
 import { SelectionPane } from './selection-pane';
 
 export interface LineTool { id: string; label: string; mode: DrawMode; preview: string; arrow: boolean }
@@ -46,6 +46,11 @@ export function registerDrawCommands(cmds: Commands, E: () => Editor | null, pro
     { id: 'view-ruler', label: 'Ruler', keys: ['Alt+Shift+F9'], icon: 'ruler', checked: () => aidPrefs().ruler, run: () => setAidPrefs({ ruler: !aidPrefs().ruler }) },
     { id: 'view-gridlines', label: 'Gridlines', keys: ['Shift+F9'], icon: 'grid', checked: () => aidPrefs().grid, run: () => setAidPrefs({ grid: !aidPrefs().grid }) },
     { id: 'view-guides', label: 'Guides', keys: ['Alt+F9'], icon: 'guides', checked: () => aidPrefs().guides, run: () => setAidPrefs({ guides: !aidPrefs().guides }) },
+    { id: 'view-smart', label: 'Smart Guides', checked: () => aidPrefs().smart, run: () => setAidPrefs({ smart: !aidPrefs().smart }) },
+    { id: 'guide-add-v', label: 'Add Vertical Guide', enabled: () => !!E(), run: () => { const ed = E(); if (ed) addGuide(ed, 'x'); } },
+    { id: 'guide-add-h', label: 'Add Horizontal Guide', enabled: () => !!E(), run: () => { const ed = E(); if (ed) addGuide(ed, 'y'); } },
+    { id: 'guide-delete', label: 'Delete', enabled: () => !!E(), run: () => { const ed = E(); if (ed) deleteGuide(ed); } },
+    ...GUIDE_COLORS.map(([id, label, css]): Command => ({ id: `guide-color-${id}`, label, enabled: () => !!E(), run: () => { const ed = E(); if (ed) colorGuide(ed, css); } })),
     { id: 'grid-guides', label: 'Grid and Guides...', enabled: () => !!E(), run: () => { const ed = E(); if (ed) gridGuidesDialog(ed); } },
     { id: 'selection-pane', label: 'Selection Pane', keys: ['Alt+F10'], icon: 'layers', checked: () => pane.isOpen, run: () => pane.toggle() },
   );

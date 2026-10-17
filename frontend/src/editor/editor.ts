@@ -9,6 +9,7 @@ import type { Commands } from '../ui/commands';
 import type { MenuItem, PopupMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import { setText } from '../ui/dom';
+import { collab } from './collab-state';
 import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, refitGroupOps, resolvedFrame, setFrameOps } from './actions';
 import { diagramSync } from './diagram-sync';
 import { Filmstrip } from './filmstrip';
@@ -259,7 +260,7 @@ export class Editor {
     if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste'];
     else if (kind === 'element' && this.selected()[0]?.type === 'table') items = ['table-merge', 'table-split', '-', { label: 'Insert', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right'] }, { label: 'Delete', items: ['table-delete-row', 'table-delete-col', 'delete'] }, { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, '-', 'table-distribute-rows', 'table-distribute-cols', 'table-header-row', 'table-banded-rows', '-', 'cut', 'copy', 'paste', 'duplicate', '-', 'add-comment', 'alt-text'];
     else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', ...(this.selected()[0]?.type === 'shape' ? ['edit-points'] : []), ...(this.selected().length > 1 ? [MERGE_MENU] : []), '-', 'insert-link', 'add-comment', 'alt-text'];
-    else items = ['paste', '-', 'new-slide', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', 'format-background', '-', 'add-comment'];
+    else items = ['paste', '-', 'new-slide', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', 'format-background', '-', { label: 'Grid and Guides', items: ['view-gridlines', 'view-guides', 'view-smart', '-', 'guide-add-v', 'guide-add-h', '-', 'grid-guides'] }, '-', 'add-comment'];
     this.menu.setItems(items);
     this.menu.openAt(x, y);
   }
@@ -465,6 +466,7 @@ export class Editor {
     const color = prev?.color ?? PEER_COLORS[this.peers.size % PEER_COLORS.length];
     this.peers.set(client, { name: name || 'Collaborator', slide, sel, color, seen: performance.now() });
     this.stage.drawOverlay();
+    collab.setPeers(this.peers.size);
     window.clearTimeout(this.peerTimer);
     this.peerTimer = window.setTimeout(() => this.prunePeers(), PEER_TTL + 50);
   }
@@ -478,7 +480,7 @@ export class Editor {
       if (left <= 0) { this.peers.delete(id); dropped = true; }
       else next = Math.min(next, left);
     }
-    if (dropped) this.stage.drawOverlay();
+    if (dropped) { this.stage.drawOverlay(); collab.setPeers(this.peers.size); }
     if (next !== Infinity) this.peerTimer = window.setTimeout(() => this.prunePeers(), next + 50);
   }
 

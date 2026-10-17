@@ -78,9 +78,9 @@
 .fd-handle.is-rot { border-radius: 50%; cursor: grab; }
 .fd-handle.is-adj { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-color: #b45309; border-radius: 50%; background: #fbbf24; cursor: pointer; }
 .fd-rot-stem { position: absolute; width: 1px; background: var(--fd-sel); pointer-events: none; }
-.fd-guide { position: absolute; background: var(--fd-guide); pointer-events: none; }
-.fd-guide.is-h { height: 1px; }
-.fd-guide.is-v { width: 1px; }
+.fd-guide { position: absolute; pointer-events: none; }
+.fd-guide.is-h { height: 1px; background: repeating-linear-gradient(to right, var(--fd-guide) 0 4px, transparent 4px 7px); }
+.fd-guide.is-v { width: 1px; background: repeating-linear-gradient(to bottom, var(--fd-guide) 0 4px, transparent 4px 7px); }
 .fd-marquee { position: absolute; box-sizing: border-box; border: 1px solid var(--fd-sel); background: color-mix(in srgb, var(--fd-sel) 10%, transparent); pointer-events: none; }
 .fd-size-tip { position: absolute; padding: 3px 7px; border-radius: 5px; background: rgba(10, 10, 12, 0.86); color: #f2f2f2; font: 500 11px/1.2 var(--font-mono); white-space: nowrap; pointer-events: none; transform: translate(-50%, 8px); }
 .fd-presence { position: absolute; box-sizing: border-box; border: 2px solid var(--peer, var(--accent-2, #3b82f6)); pointer-events: none; }
