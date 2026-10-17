@@ -35,8 +35,9 @@ class ShareDialog extends Dialog {
   private readonly relayUrl: HTMLInputElement;
   private readonly relayToken: HTMLInputElement;
   private readonly relayStatus: HTMLElement;
+  private readonly review: HTMLInputElement;
 
-  constructor() {
+  constructor(private readonly cmds: Commands) {
     super('Share Deck', 560);
     const box = el(`<div class="fd-dlg-stack fd-share">
 <label class="fd-check"><input type="checkbox" data-f="lan"><span>Allow other computers on this network</span></label>
@@ -48,6 +49,7 @@ class ShareDialog extends Dialog {
 <div class="fd-share-make" data-f="make"><select class="fd-input" data-f="role" aria-label="Access"><option value="view">Can view</option><option value="comment">Can comment</option><option value="edit">Can edit</option></select><button class="fd-btn fd-btn-sm" type="button" data-a="create">${icon('link', 14)}Create Link</button></div>
 <p class="fd-note" data-f="empty">No links for this deck yet.</p>
 <div class="fd-share-list" role="list" data-f="list"></div>
+<label class="fd-check"><input type="checkbox" data-f="review"><span>Review: people you share this deck with can comment and mark slides Ready, Changes or Approved</span></label>
 </div>`);
     this.body.appendChild(box);
     this.lan = q<HTMLInputElement>(box, '[data-f="lan"]');
@@ -55,6 +57,8 @@ class ShareDialog extends Dialog {
     this.make = q(box, '[data-f="make"]');
     this.role = q<HTMLSelectElement>(box, '[data-f="role"]');
     this.list = q(box, '[data-f="list"]');
+    this.review = q<HTMLInputElement>(box, '[data-f="review"]');
+    this.review.addEventListener('change', () => { this.cmds.run('review-toggle'); this.review.checked = collab.statusVisible; });
     this.empty = q(box, '[data-f="empty"]');
     this.relay = q<HTMLInputElement>(box, '[data-f="relay"]');
     this.relayForm = q(box, '[data-f="relayform"]');
@@ -137,7 +141,7 @@ class ShareDialog extends Dialog {
 
   private async refresh(): Promise<void> {
     try { this.paint(await call<ShareState>(`/api/share?deck=${encodeURIComponent(this.deck)}`)); } catch (e) { toast((e as Error).message, 'error'); }
-    void collab.refresh();
+    this.review.checked = collab.statusVisible;
   }
 
   private async toggle(): Promise<void> {
@@ -167,5 +171,5 @@ class ShareDialog extends Dialog {
 let dlg: ShareDialog | null = null;
 
 export function registerShareCommands(cmds: Commands, deckId: () => string | null): void {
-  cmds.add({ id: 'share-network', label: 'Share Deck...', icon: 'link', enabled: () => !guest() && !!deckId(), run: () => { const id = deckId(); if (!id) return; dlg ??= new ShareDialog(); void dlg.show(id); } });
+  cmds.add({ id: 'share-network', label: 'Share Deck...', icon: 'link', enabled: () => !guest() && !!deckId(), run: () => { const id = deckId(); if (!id) return; dlg ??= new ShareDialog(cmds); void dlg.show(id); } });
 }

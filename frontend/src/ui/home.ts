@@ -2,7 +2,6 @@ import type { Deck } from '../engine/model';
 import { api, type DeckSummary, type TemplateSummary, type TrashedDeck } from '../io/api';
 import { ensureFonts, fontsOfDeck } from '../render/fonts';
 import { SlideView } from '../render/slide';
-import { collab } from '../editor/collab-state';
 import { brandMark } from './brand';
 import { Dialog } from './dialogs';
 import { el, escapeHtml, patchList, setClass, setHidden, setText } from './dom';
@@ -123,7 +122,6 @@ export class Home {
     document.getElementById('app')?.appendChild(this.root);
     this.wire();
     this.renderTemplates();
-    collab.subscribe(() => { if (this.decks.length) this.renderDecks(); });
   }
 
   private wire(): void {
@@ -454,7 +452,7 @@ export class Home {
       setText(n.querySelector('.fd-card-name'), d.title);
       const r = d.review ?? {};
       const total = d.slides;
-      const status = !collab.statusVisible ? '' : total && r.approved === total ? 'Approved' : r.changes ? 'Changes' : r.review ? 'In review' : '';
+      const status = !d.reviewOn ? '' : total && r.approved === total ? 'Approved' : r.changes ? 'Changes' : r.review ? 'In review' : '';
       setText(n.querySelector('.fd-card-meta'), `${d.slides} slide${d.slides === 1 ? '' : 's'} · ${ago(d.modified)}${status ? ` · ${status}` : ''}`);
     };
     const make = (d: DeckSummary): HTMLElement => { const n = card(d); update(n, d); return n; };

@@ -136,7 +136,7 @@ export interface Macro { id: string; name: string; code: string; description?: s
 export interface Deck {
   format: 'formdeck/deck'; formatVersion: 1; id: string; title: string; size: { w: number; h: number }; theme: Theme;
   masters: Master[]; layouts: Layout[]; slides: Slide[]; sections?: Section[]; comments?: Comment[]; media: Record<string, MediaInfo>; meta: DeckMeta;
-  show?: ShowSettings | null; customShows?: CustomShow[]; guides?: Guide[]; macros?: Macro[];
+  show?: ShowSettings | null; customShows?: CustomShow[]; guides?: Guide[]; macros?: Macro[]; review?: { enabled: boolean; by?: string; at?: string };
   components?: Record<string, Component>; namedStyles?: Record<string, NamedTextStyle>; namedColors?: Record<string, NamedColor>;
   template?: { id: string; name: string; category?: string; tags?: string[]; source?: string; license?: string; description?: string } | null;
 }

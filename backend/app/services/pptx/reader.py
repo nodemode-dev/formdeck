@@ -124,6 +124,8 @@ class _Importer:
             "meta": {},
         }
         deck.update(read_show(self.prs_part, slide_entries))
+        if self._has_comments():
+            deck["review"] = {"enabled": True}
         guides = read_guides(self.prs_el)
         if guides:
             deck["guides"] = guides
@@ -132,6 +134,13 @@ class _Importer:
         if as_template:
             deck["template"] = {"id": re.sub(r"_+", "-", slugify(deck["title"])), "name": deck["title"], "source": "imported", "license": "user"}
         return deck
+
+    def _has_comments(self) -> bool:
+        for part in self.package.iter_parts():
+            name = str(part.partname).lower()
+            if name.startswith("/ppt/comments/") and name.endswith(".xml"):
+                return True
+        return False
 
     def _load_theme(self, master_part, master_id: str) -> dict:
         try:

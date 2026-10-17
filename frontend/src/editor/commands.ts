@@ -10,6 +10,8 @@ import { stepSize } from '../render/fonts';
 import { alignOps, bodyPropOps, deleteSlideOps, dirtyOp, distributeOps, groupOps, newShape, newTextBox, paraStyleOps, runStyleOps, ungroupOps, zOrderOps } from './actions';
 import { tableColorOps } from './table-edit';
 import { isPreviewing, selectedMedia, togglePreview } from './media-preview';
+import { collab } from './collab-state';
+import { myName } from './mentions';
 
 export interface AppHooks {
   editor(): Editor | null;
@@ -150,6 +152,13 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     const w = line ? 200 : 160, hh = line ? 0 : geom === 'rect' || geom === 'roundRect' ? 100 : 140;
     ed.insert(newShape(geom, { x: Math.round(d.w / 2 - w / 2), y: Math.round(d.h / 2 - hh / 2), w, h: line ? 1 : hh }) as SlideElement, 'Insert shape');
   };
+  const reviewOn = (): boolean => !!E() && collab.statusVisible;
+  const reviewLabel = (text: string): (() => string) => () => (collab.statusVisible ? text : `${text} (review is off)`);
+  const setReview = (on: boolean): void => {
+    const name = myName();
+    const value = { enabled: true, ...(name && name !== 'You' ? { by: name } : {}), at: new Date().toISOString() };
+    apply([on ? { op: 'set', path: ['review'], value } : { op: 'set', path: ['review'] }] as Op[], on ? 'Turn on review' : 'Turn off review');
+  };
   const reviewStatus = (st: 'review' | 'approved' | 'changes' | 'draft'): void => {
     const ed = E();
     if (!ed) return;
@@ -204,10 +213,13 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'format-background', label: 'Format Background...', icon: 'background', enabled: has, run: () => h.background() },
     { id: 'slide-size', label: 'Slide Size...', enabled: has, run: () => h.slideSize() },
     { id: 'apply-template', label: 'Change Template...', icon: 'template', enabled: has, run: () => h.templates() },
-    { id: 'review-ready', label: 'Mark Ready for Review', icon: 'send', enabled: has, run: () => reviewStatus('review') },
-    { id: 'review-approve', label: 'Approve Slide', icon: 'approve', keys: ['Alt+Mod+A'], enabled: has, run: () => reviewStatus('approved') },
-    { id: 'review-changes', label: 'Request Changes', icon: 'requestChanges', enabled: has, run: () => reviewStatus('changes') },
-    { id: 'review-draft', label: 'Back to Draft', enabled: has, run: () => reviewStatus('draft') },
+    { id: 'review-enable', label: 'Turn On Review', icon: 'approve', enabled: () => !!E() && !collab.statusVisible, run: () => void confirmAction('Turn On Review', 'Review is for working on this deck with other people: they can comment and mark slides Ready, Changes or Approved. Turn it on only if you plan to share this deck. Next you can choose how to share it.', 'Turn On').then((ok) => { if (!ok) return; setReview(true); cmds.run('share-network'); }) },
+    { id: 'review-disable', label: 'Turn Off Review', icon: 'approve', enabled: reviewOn, run: () => void confirmAction('Turn Off Review', 'Status badges, comments and the review tools will be hidden. Slide statuses and comments are kept in the deck and come back if you turn review on again.', 'Turn Off').then((ok) => { if (ok) setReview(false); }) },
+    { id: 'review-toggle', label: () => (collab.statusVisible ? 'Turn Off Review' : 'Turn On Review'), enabled: has, checked: () => collab.statusVisible, run: () => setReview(!collab.statusVisible) },
+    { id: 'review-ready', label: reviewLabel('Mark Ready for Review'), icon: 'send', enabled: () => reviewOn() && has(), run: () => reviewStatus('review') },
+    { id: 'review-approve', label: reviewLabel('Approve Slide'), icon: 'approve', keys: ['Alt+Mod+A'], enabled: reviewOn, run: () => reviewStatus('approved') },
+    { id: 'review-changes', label: reviewLabel('Request Changes'), icon: 'requestChanges', enabled: reviewOn, run: () => reviewStatus('changes') },
+    { id: 'review-draft', label: reviewLabel('Back to Draft'), enabled: reviewOn, run: () => reviewStatus('draft') },
     { id: 'check-deck', label: 'Check Deck...', icon: 'success', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/check-dialog').then((m) => m.checkDeck(ed)); } },
     { id: 'macro-dialog', label: 'Macros...', keys: ['Alt+F8'], icon: 'code', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-macros').then((m) => m.openMacroDialog(ed)); } },
     { id: 'macro-editor', label: 'Macro Editor...', keys: ['Alt+F11'], icon: 'code', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-macros').then((m) => m.openMacroEditor(ed)); } },
@@ -215,7 +227,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'language', label: 'Language...', icon: 'language', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-spelling').then((m) => m.openLanguage(ed)); } },
     { id: 'review-activity', label: 'Activity...', icon: 'history', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/review-dialogs').then((m) => m.activityDialog(ed)); } },
     { id: 'review-compare', label: 'Compare...', icon: 'compare', enabled: has, run: () => { const ed = E(); if (ed) void import('../ui/review-dialogs').then((m) => m.compareDialog(ed)); } },
-    { id: 'add-comment', label: 'New Comment', keys: ['Alt+Mod+M'], icon: 'comment', enabled: has, run: () => h.comment() },
+    { id: 'add-comment', label: reviewLabel('New Comment'), keys: ['Alt+Mod+M'], icon: 'comment', enabled: reviewOn, run: () => h.comment() },
     { id: 'insert-text', label: 'Text Box', icon: 'textBox', enabled: has, run: () => { const ed = E(); if (!ed) return; const d = ed.doc.deck.size; const id = ed.insert(newTextBox({ x: Math.round(d.w / 2 - 160), y: Math.round(d.h / 2 - 30), w: 320, h: 60 }) as SlideElement, 'Insert text box'); if (id) requestAnimationFrame(() => ed.stage.beginEdit(id)); } },
     { id: 'insert-image', label: 'Picture...', icon: 'image', enabled: has, run: () => void E()?.pickImage() },
     { id: 'insert-media', label: 'Video or Audio...', icon: 'video', enabled: has, run: () => void E()?.pickImage() },

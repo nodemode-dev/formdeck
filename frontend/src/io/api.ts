@@ -1,7 +1,7 @@
 import type { Deck } from '../engine/model';
 import { guest } from './guest';
 
-export interface DeckSummary { id: string; title: string; slides: number; size: { w: number; h: number }; template?: string; modified?: string; review?: Record<string, number>; warnings?: string[]; thumb?: boolean }
+export interface DeckSummary { id: string; title: string; slides: number; size: { w: number; h: number }; template?: string; modified?: string; review?: Record<string, number>; reviewOn?: boolean; warnings?: string[]; thumb?: boolean }
 export interface TrashedDeck { entry: string; id: string; title: string; slides: number | null; deletedAt: number; thumb: boolean }
 export interface PdfPages { name: string; pages: number; truncated: boolean; slides: Array<{ page: number; w: number; h: number; text: string; media: { id: string; name: string; mime: string; w?: number; h?: number; bytes: number } }> }
 export interface ActivityEntry { id: string; at: string; who: string; origin: string; label: string; slides: string[] }

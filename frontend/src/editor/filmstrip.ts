@@ -277,7 +277,7 @@ export class Filmstrip {
       setClass(it.node, 'is-hidden-slide', !!s.hidden);
       it.node.hidden = !!currentSection && this.collapsed.has(currentSection) && !sec;
       const review = collab.statusVisible ? s.review?.status : undefined;
-      const comments = (deck.comments ?? []).filter((c) => c.slide === s.id && !c.resolved).length;
+      const comments = collab.statusVisible ? (deck.comments ?? []).filter((c) => c.slide === s.id && !c.resolved).length : 0;
       const badge = `${review && review !== 'draft' ? `<span class="fd-thumb-badge is-${review}"><span class="fd-st-dot"></span>${review === 'review' ? 'Review' : review === 'changes' ? 'Changes' : 'Approved'}</span>` : ''}${comments ? `<span class="fd-thumb-badge">${icon('comment', 10)}${comments}</span>` : ''}${hasAnimations(s) ? `<span class="fd-thumb-badge" title="Animations">${icon('animation', 10)}</span>` : ''}${s.hidden ? `<span class="fd-thumb-badge">${icon('eyeOff', 10)}</span>` : ''}`;
       if (it.badges.dataset.html !== badge) { it.badges.dataset.html = badge; it.badges.innerHTML = badge; }
       nodes.push(it.node);

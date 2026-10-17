@@ -19,7 +19,6 @@ import { applyTheme } from './ui/themes';
 import { installResponsive } from './ui/responsive';
 import { toast } from './ui/toast';
 import { Editor } from './editor/editor';
-import { collab } from './editor/collab-state';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
@@ -140,7 +139,6 @@ export async function startApp(): Promise<void> {
 
   const setAgents = (on: boolean): void => {
     agentsAllowed = on;
-    collab.setAgents(on);
     live.setAgents(on);
     void api.setSettings({ agentsAllowed: on });
     inspector.sync();
@@ -392,7 +390,7 @@ export async function startApp(): Promise<void> {
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'design-ideas', 'reset-slide', 'reset-placeholder', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
     { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock', '-', 'component-create', 'component-update', 'component-detach', '-', 'selection-pane'] },
-    { label: 'Review', items: ['spelling', 'language', '-', 'check-deck', 'review-activity', 'review-compare', '-', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
+    { label: 'Review', items: ['spelling', 'language', '-', 'check-deck', 'review-activity', 'review-compare', '-', 'review-enable', 'review-disable', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view', 'use-presenter-view', '-', 'custom-shows', 'show-setup', 'subtitle-settings', 'rehearse-timings', 'rehearse-coach', '-', 'record-start', 'record-current', { label: 'Clear', items: ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'] }] },
     { label: 'Help', items: ['help', 'shortcuts', 'key-tips', 'preferences'] },
   ];
@@ -619,7 +617,6 @@ export async function startApp(): Promise<void> {
   try {
     const settings = await api.settings();
     agentsAllowed = !!settings.agentsAllowed;
-    collab.setAgents(agentsAllowed);
     live.setAgents(agentsAllowed);
     const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
     for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));

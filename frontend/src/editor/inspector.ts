@@ -112,11 +112,14 @@ export class Inspector {
 <div class="fd-prop-row"><span class="fd-prop-label">Size</span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="size"><span class="fd-size-label"></span></button></div></div></div>
 </div>`);
     this.review = el(`<div class="fd-insp">
+<div class="fd-prop-section" data-collab="off"><div class="fd-panel-head"><span class="fd-panel-title">Review is off</span></div>
+<div class="fd-note">Review is for working on a deck with other people: comments and slide status. Turn it on when you share this deck.</div>
+<div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="review-on">${icon('approve', 14)}Turn On Review</button></div></div></div>
 <div class="fd-prop-section" data-collab="status"><div class="fd-panel-head"><span class="fd-panel-title fd-status-title">Slide status</span></div>
-<div class="fd-note fd-status-note"></div>
+<div class="fd-note fd-status-note">Mark where each slide stands for the people you share the deck with.</div>
 <div class="fd-seg" data-seg="review"><button type="button" data-v="draft">Draft</button><button type="button" data-v="review">Review</button><button type="button" data-v="changes">Changes</button><button type="button" data-v="approved">Approved</button></div>
 <div class="fd-review-deck fd-note"></div></div>
-<div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Comments</span></div>
+<div class="fd-prop-section" data-collab="comments"><div class="fd-panel-head"><span class="fd-panel-title">Comments</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Show</span><div class="fd-prop-ctl"><select data-f="cfilter" aria-label="Show comments"><option value="all">All</option><option value="open" selected>Open</option><option value="mine">Mentions me</option><option value="assigned">Assigned to me</option></select></div></div>
 <div class="fd-list fd-comments"></div><div class="fd-note fd-comments-empty" hidden></div>
 <div class="fd-comment-new"><textarea class="fd-input" rows="2" placeholder="Comment on this slide (Enter to post, @ to mention)"></textarea><div class="fd-comment-assign" hidden><label class="fd-check"><input type="checkbox" data-f="assign" aria-label="Assign this comment"><span></span></label><span class="fd-comment-assign-label">Assign to</span><select data-f="assignee" aria-label="Assign to"></select></div></div></div>
@@ -142,9 +145,8 @@ export class Inspector {
     const sec = this.review.querySelector<HTMLElement>('[data-collab="status"]');
     if (!sec) return;
     setHidden(sec, !collab.statusVisible);
-    const handoff = collab.agents && !collab.shared;
-    setText(sec.querySelector('.fd-status-title'), handoff ? 'Agent handoff' : 'Slide status');
-    setText(sec.querySelector('.fd-status-note'), handoff ? 'Agent handoff: Draft, Review, Changes, Approved. Agents leave slides in Review for you.' : 'Shared deck: mark where each slide stands for the people you share it with.');
+    setHidden(this.review.querySelector('[data-collab="comments"]') as HTMLElement, !collab.statusVisible);
+    setHidden(this.review.querySelector('[data-collab="off"]') as HTMLElement, collab.statusVisible);
   }
 
   private wire(): void {
@@ -181,6 +183,7 @@ export class Inspector {
     this.review.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest('[data-seg="review"] button') as HTMLButtonElement | null;
       if (b && this.ed) this.ed.run({ draft: 'review-draft', review: 'review-ready', changes: 'review-changes', approved: 'review-approve' }[b.dataset.v as string] as string);
+      if ((e.target as HTMLElement).closest('[data-a="review-on"]')) this.ed?.run('review-enable');
       const r = (e.target as HTMLElement).closest('[data-resolve]') as HTMLElement | null;
       const rc = r && this.ed ? (this.ed.doc.deck.comments ?? []).find((x) => x.id === r.dataset.resolve) : undefined;
       if (rc && this.ed) this.ed.apply([{ op: 'set', path: ['comments', { id: rc.id }, 'resolved'], value: !rc.resolved }], rc.resolved ? 'Reopen comment' : 'Resolve comment');

@@ -102,6 +102,7 @@ function ribbonTabs(): TabDef[] {
     { id: 'review', label: 'Review', groups: [
       G('proofing', 'Proofing', L('spelling', 'Spelling'), L('language', 'Language')),
       G('accessibility', 'Accessibility', L('check-deck', 'Check Deck'), L('alt-text', 'Alt Text', { icon: 'info' })),
+      G('reviewmode', 'Review', L('review-enable', 'Turn On Review'), L('review-disable', 'Turn Off Review')),
       G('comments', 'Comments', L('add-comment', 'New Comment')),
       G('approval', 'Slide Status', L('review-ready', 'Ready for Review'), L('review-approve', 'Approve'), L('review-changes', 'Request Changes'), L('review-draft', 'Back to Draft', { icon: 'refresh' })),
       G('compare', 'Compare', L('review-compare', 'Compare'), L('review-activity', 'Activity')),
@@ -510,6 +511,10 @@ export class Toolbar {
       if (!rb.simplified) rb.sync();
       const gate = this.host.querySelector<HTMLElement>('.fd-rb-group[data-g="approval"]');
       if (gate) setHidden(gate, !collab.statusVisible || rb.config.hiddenGroups.includes('approval'));
+      for (const [id, hide] of [['review-enable', collab.statusVisible], ['review-disable', !collab.statusVisible]] as const) {
+        const b = this.host.querySelector<HTMLElement>(`.fd-rb-btn[data-cmd="${id}"]`);
+        if (b) setHidden(b, hide);
+      }
     }
     if (!rb || rb.simplified) this.syncSimple(ctx, inMaster);
     this.syncFields(ctx);

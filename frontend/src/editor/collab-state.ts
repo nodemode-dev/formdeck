@@ -1,42 +1,36 @@
+import type { DeckDoc } from '../engine/doc';
+
 type Listener = () => void;
 
 const listeners = new Set<Listener>();
-let server = false;
-let peers = 0;
-let agents = false;
+let watched: DeckDoc | null = null;
+let off: (() => void) | null = null;
+let on = false;
 
-function emit(): void {
+function read(): void {
+  const next = !!watched?.deck.review?.enabled;
+  if (next === on) return;
+  on = next;
   for (const fn of listeners) fn();
 }
 
-function set(next: { server?: boolean; peers?: number; agents?: boolean }): void {
-  const before = `${collab.shared}|${collab.statusVisible}`;
-  if (next.server !== undefined) server = next.server;
-  if (next.peers !== undefined) peers = next.peers;
-  if (next.agents !== undefined) agents = next.agents;
-  if (before !== `${collab.shared}|${collab.statusVisible}`) emit();
-}
-
 export const collab = {
-  get shared(): boolean { return server || peers > 0; },
-  get agents(): boolean { return agents; },
-  get statusVisible(): boolean { return server || peers > 0 || agents; },
+  get statusVisible(): boolean { return on; },
   subscribe(fn: Listener): () => void {
     listeners.add(fn);
     return () => { listeners.delete(fn); };
   },
-  setPeers(n: number): void { set({ peers: n }); },
-  setAgents(on: boolean): void { set({ agents: on }); },
-  async refresh(): Promise<void> {
-    try {
-      const r = await fetch('/api/share', { cache: 'no-store' });
-      if (r.status === 403) { set({ server: true }); return; }
-      if (!r.ok) return;
-      const s = (await r.json()) as { lan?: boolean; relay?: { on?: boolean } };
-      set({ server: !!s.lan || !!s.relay?.on });
-    } catch { return; }
+  watch(doc: DeckDoc): void {
+    off?.();
+    watched = doc;
+    off = doc.on(() => read());
+    read();
+  },
+  unwatch(doc: DeckDoc): void {
+    if (watched !== doc) return;
+    off?.();
+    off = null;
+    watched = null;
+    read();
   },
 };
-
-void collab.refresh();
-window.addEventListener('focus', () => void collab.refresh());

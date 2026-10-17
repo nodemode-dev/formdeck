@@ -230,6 +230,12 @@ def normalize(deck: dict) -> dict:
         deck["customShows"] = [{**c, "slides": [str(s) for s in c.get("slides") or [] if isinstance(s, str)]} for c in shows if isinstance(c, dict) and c.get("id")]
     if "show" in deck and not isinstance(deck["show"], dict):
         deck.pop("show")
+    if "review" in deck:
+        rv = deck["review"]
+        if isinstance(rv, dict) and rv.get("enabled") is True:
+            deck["review"] = {"enabled": True, **{k: str(rv[k])[:80] for k in ("by", "at") if isinstance(rv.get(k), str) and rv[k]}}
+        else:
+            deck.pop("review")
     if "guides" in deck:
         guides = [g for g in deck["guides"] if isinstance(g, dict) and g.get("axis") in ("x", "y") and isinstance(g.get("pos"), (int, float))] if isinstance(deck["guides"], list) else []
         used: set[str] = set()
@@ -275,7 +281,7 @@ def normalize(deck: dict) -> dict:
 def summary(deck: dict) -> dict:
     return {"id": deck["id"], "title": deck.get("title", ""), "slides": len(deck.get("slides", [])), "size": deck.get("size"),
             "template": (deck.get("meta") or {}).get("template"), "modified": (deck.get("meta") or {}).get("modified"),
-            "review": review_counts(deck)}
+            "review": review_counts(deck), "reviewOn": bool((deck.get("review") or {}).get("enabled"))}
 
 
 def review_counts(deck: dict) -> dict:

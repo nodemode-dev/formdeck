@@ -50,6 +50,7 @@ export class Editor {
     this.current = doc.deck.slides[0]?.id ?? '';
     this.slideSel = this.current ? [this.current] : [];
     this.offDoc = doc.on((e) => this.onDoc(e));
+    collab.watch(doc);
     this.strip.update();
     this.stage.show(this.current || null);
     roots.notes.addEventListener('input', () => this.notesInput());
@@ -63,6 +64,7 @@ export class Editor {
 
   dispose(): void {
     this.offDoc();
+    collab.unwatch(this.doc);
     if (this.holderKind !== 'slide') setHolderResolver(null);
     this.stage.show(null);
     this.strip.dispose();
@@ -479,7 +481,6 @@ export class Editor {
     const color = prev?.color ?? PEER_COLORS[this.peers.size % PEER_COLORS.length];
     this.peers.set(client, { name: name || 'Collaborator', slide, sel, color, seen: performance.now() });
     this.stage.drawOverlay();
-    collab.setPeers(this.peers.size);
     window.clearTimeout(this.peerTimer);
     this.peerTimer = window.setTimeout(() => this.prunePeers(), PEER_TTL + 50);
   }
@@ -493,7 +494,7 @@ export class Editor {
       if (left <= 0) { this.peers.delete(id); dropped = true; }
       else next = Math.min(next, left);
     }
-    if (dropped) { this.stage.drawOverlay(); collab.setPeers(this.peers.size); }
+    if (dropped) this.stage.drawOverlay();
     if (next !== Infinity) this.peerTimer = window.setTimeout(() => this.prunePeers(), next + 50);
   }
 
