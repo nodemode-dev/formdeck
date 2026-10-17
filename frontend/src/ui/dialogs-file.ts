@@ -833,6 +833,8 @@ class ExportDialog extends Dialog {
   private readonly publish: HTMLSelectElement;
   private readonly perPage: HTMLSelectElement;
   private readonly pframe: HTMLInputElement;
+  private readonly paper: HTMLSelectElement;
+  private readonly pcomments: HTMLInputElement;
   private order: 'horizontal' | 'vertical' = 'horizontal';
   private readonly px: HTMLElement;
   private readonly fonts: HTMLElement;
@@ -859,7 +861,8 @@ class ExportDialog extends Dialog {
 <div class="fd-field"><span>Publish</span><select class="fd-dlg-publish" aria-label="Publish what"><option value="slides">Slides</option><option value="handouts">Handouts</option><option value="notes">Notes pages</option></select></div>
 <div class="fd-field fd-dlg-per"><span>Slides per page</span><select class="fd-dlg-perpage" aria-label="Slides per page"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6" selected>6</option><option value="9">9</option></select></div>
 <div class="fd-field fd-dlg-order"><span>Order</span><div class="fd-seg is-quiet" data-seg="order"><button type="button" data-v="horizontal">Horizontal</button><button type="button" data-v="vertical">Vertical</button></div></div>
-<div class="fd-field"><span></span><div class="fd-dlg-checks fd-dlg-col"><label class="fd-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label><label class="fd-check"><input type="checkbox" data-f="pframe"><span>Frame slides</span></label></div></div>
+<div class="fd-field fd-dlg-paper"><span>Paper</span><select class="fd-dlg-papersel" aria-label="Paper size"><option value="">Automatic</option><option value="letter">Letter</option><option value="a4">A4</option></select></div>
+<div class="fd-field"><span></span><div class="fd-dlg-checks fd-dlg-col"><label class="fd-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label><label class="fd-check"><input type="checkbox" data-f="pframe"><span>Frame slides</span></label><label class="fd-check fd-dlg-pcomments"><input type="checkbox" data-f="pcomments"><span>Include comments</span></label></div></div>
 </div>`);
     const raster = el(`<div class="fd-dlg-stack">
 <div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="which"><button type="button" data-v="current">Current slide</button><button type="button" data-v="all">All slides</button></div></div>
@@ -891,6 +894,8 @@ class ExportDialog extends Dialog {
     this.publish = q<HTMLSelectElement>(pdf, '.fd-dlg-publish');
     this.perPage = q<HTMLSelectElement>(pdf, '.fd-dlg-perpage');
     this.pframe = q<HTMLInputElement>(pdf, '[data-f="pframe"]');
+    this.paper = q<HTMLSelectElement>(pdf, '.fd-dlg-papersel');
+    this.pcomments = q<HTMLInputElement>(pdf, '[data-f="pcomments"]');
     this.publish.addEventListener('change', () => this.sync());
     segOn(q(pdf, '[data-seg="order"]'), (v) => { this.order = v === 'vertical' ? 'vertical' : 'horizontal'; this.sync(); });
     this.px = q(raster, '.fd-dlg-px');
@@ -988,6 +993,8 @@ class ExportDialog extends Dialog {
     setHidden(q(this.groups.pdf, '.fd-dlg-order'), !handouts || this.perPage.value === '1' || this.perPage.value === '2');
     segSet(q(this.groups.pdf, '[data-seg="order"]'), this.order);
     setDisabled(this.pframe, handouts);
+    setHidden(q(this.groups.pdf, '.fd-dlg-paper'), !handouts);
+    setHidden(q(this.groups.pdf, '.fd-dlg-pcomments'), handouts || !(this.ed?.doc.deck.comments ?? []).some((c) => !c.resolved));
     const size = this.ed?.doc.deck.size ?? { w: 960, h: 540 };
     setText(this.px, `About ${Math.round(size.w * this.scale)} × ${Math.round(size.h * this.scale)} pixels per slide`);
     if (this.path.value) this.path.value = withExt(this.path.value, this.ext());
@@ -1039,7 +1046,7 @@ class ExportDialog extends Dialog {
         await this.runMotion(deck, f, path);
       } else if (isRaster(f)) {
         this.status.busy(`Rendering ${plural(slides.length, 'slide')}`);
-        const r = await bridge.exportRaster(ed, { format: f, slides, scale: f === 'pdf' ? Number(this.quality.value) || 2 : this.scale, path: path || undefined, ...(f === 'pdf' ? { pdf: { publish: this.publish.value as 'slides' | 'handouts' | 'notes', perPage: Number(this.perPage.value) || 6, order: this.order, frame: this.pframe.checked } } : {}) });
+        const r = await bridge.exportRaster(ed, { format: f, slides, scale: f === 'pdf' ? Number(this.quality.value) || 2 : this.scale, path: path || undefined, ...(f === 'pdf' ? { pdf: { publish: this.publish.value as 'slides' | 'handouts' | 'notes', perPage: Number(this.perPage.value) || 6, order: this.order, frame: this.pframe.checked, paper: (this.paper.value || undefined) as 'a4' | 'letter' | undefined, comments: this.pcomments.checked && !this.pcomments.closest('[hidden]') } } : {}) });
         this.status.done();
         this.close();
         if (tauri) savedToast('Exported to', r.path);

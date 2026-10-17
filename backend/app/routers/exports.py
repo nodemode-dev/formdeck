@@ -42,11 +42,28 @@ def _notes_of(deck_id: str) -> dict:
         return {}
 
 
+def _comments_of(deck_id: str) -> dict:
+    try:
+        deck = STORE.session(deck_id).deck
+    except KeyError:
+        return {}
+    where = {e["id"]: (e.get("x"), e.get("y")) for s in deck.get("slides", []) for e in s.get("elements") or [] if isinstance(e, dict) and e.get("id")}
+    out: dict = {}
+    for c in deck.get("comments") or []:
+        if not isinstance(c, dict) or c.get("resolved") or not c.get("slide"):
+            continue
+        lines = [f"{c.get('author') or 'Someone'}: {c.get('text') or ''}"]
+        lines += [f"{r.get('author') or 'Someone'}: {r.get('text') or ''}" for r in c.get("replies") or [] if isinstance(r, dict)]
+        x, y = where.get(c.get("element") or "", (None, None))
+        out.setdefault(c["slide"], []).append({"text": "\n".join(lines)[:4000], "x": x, "y": y})
+    return out
+
+
 def _actual(text: str) -> str:
     return "<FEFF" + text.encode("utf-16-be").hex().upper() + ">"
 
 
-def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict | None = None, bares: list | None = None, live: "pdf_fonts.LiveFonts | None" = None) -> bytes:
+def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict | None = None, bares: list | None = None, live: "pdf_fonts.LiveFonts | None" = None, comments: dict | None = None) -> bytes:
     from reportlab.lib.colors import HexColor
     from reportlab.lib.utils import ImageReader, simpleSplit
     from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -149,6 +166,11 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
                     c.drawString(48 * k, y, line)
                     y -= 14 * k * 1.35
                 c._code.append("EMC")
+        for j, cm in enumerate((comments or {}).get(str(info.get("id") or ""), [])):
+            cx = float(cm["x"]) if isinstance(cm["x"], (int, float)) else 8.0 + j * 22
+            cy = extra + sh - (float(cm["y"]) if isinstance(cm["y"], (int, float)) else 8.0)
+            cx, cy = max(0.0, min(pw - 18, cx)), max(extra + 18, min(ph, cy))
+            c.textAnnotation(cm["text"], Rect=(cx, cy - 18, cx + 18, cy), Name="Comment")
         sects.append(sect)
         key = f"s{i + 1}"
         c.bookmarkPage(key)
@@ -203,7 +225,12 @@ def _handouts(title: str, author: str, meta: dict, images: list[bytes]) -> bytes
     c.setTitle(str(meta.get("title") or "").strip() or title)
     c.setAuthor(author)
     c.setCreator(f"FormDeck {config.VERSION}")
+    slides = meta.get("slides") or []
     for start in range(0, len(images), per):
+        for k in range(start, min(start + per, len(images))):
+            info = slides[k] if k < len(slides) and isinstance(slides[k], dict) else {}
+            c.bookmarkPage(f"s{k + 1}")
+            c.addOutlineEntry(str(info.get("title") or f"Slide {info.get('n') or k + 1}")[:120], f"s{k + 1}", level=0)
         for k, data in enumerate(images[start:start + per]):
             col, row = (k // rows, k % rows) if vertical else (k % cols, k // cols)
             x = margin + col * (cell_w + gap) + (cell_w - w) / 2
@@ -246,7 +273,7 @@ def compose_bytes(deck_id: str, fmt: str, meta: dict, images: list[bytes], bares
                 live = pdf_fonts.LiveFonts(STORE.snapshot(deck_id)["deck"], media_store())
             except Exception:
                 live = pdf_fonts.LiveFonts(None)
-        return _pdf(title, _author(deck_id), meta, images, _notes_of(deck_id) if meta.get("notes") else None, bares, live), f"{title}{' notes' if meta.get('notes') else ''}.pdf"
+        return _pdf(title, _author(deck_id), meta, images, _notes_of(deck_id) if meta.get("notes") else None, bares, live, _comments_of(deck_id) if meta.get("comments") else None), f"{title}{' notes' if meta.get('notes') else ''}.pdf"
     ext = "png" if fmt == "png" else "jpg"
     slides = meta.get("slides") or []
     if len(images) == 1:

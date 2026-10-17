@@ -15,7 +15,7 @@ type Content = { type: 'text'; text: string } | { type: 'image'; data: string; m
 export interface ToolResult { content: Content[]; structuredContent?: Record<string, unknown>; isError?: boolean }
 export type IssueKind = 'overflow' | 'shrunk' | 'offslide' | 'overlap' | 'tiny' | 'empty';
 export interface Issue { slide: string; n: number; element: string; kind: IssueKind; detail: string; scale?: number }
-interface ExportOpts { format: 'pdf' | 'png' | 'jpeg'; slides?: string[]; scale?: number; path?: string; pdf?: { publish?: 'slides' | 'handouts' | 'notes'; perPage?: number; order?: 'horizontal' | 'vertical'; frame?: boolean } }
+interface ExportOpts { format: 'pdf' | 'png' | 'jpeg'; slides?: string[]; scale?: number; path?: string; pdf?: { publish?: 'slides' | 'handouts' | 'notes'; perPage?: number; order?: 'horizontal' | 'vertical'; frame?: boolean; paper?: 'a4' | 'letter'; comments?: boolean } }
 type Args = Record<string, unknown>;
 interface Box { x: number; y: number; w: number; h: number }
 
@@ -267,7 +267,7 @@ export class AgentBridge {
     }
     const fd = new FormData();
     fd.append('format', opts.format);
-    fd.append('meta', JSON.stringify({ size: deck.size, title: deck.title, lang: typeof deck.meta.lang === 'string' ? deck.meta.lang : '', slides, ...(opts.path ? { path: opts.path } : {}), ...(pdf && opts.pdf ? { publish: opts.pdf.publish ?? 'slides', perPage: opts.pdf.perPage, order: opts.pdf.order, frame: !!opts.pdf.frame, notes: opts.pdf.publish === 'notes' } : {}) }));
+    fd.append('meta', JSON.stringify({ size: deck.size, title: deck.title, lang: typeof deck.meta.lang === 'string' ? deck.meta.lang : '', slides, ...(opts.path ? { path: opts.path } : {}), ...(pdf && opts.pdf ? { publish: opts.pdf.publish ?? 'slides', perPage: opts.pdf.perPage, order: opts.pdf.order, frame: !!opts.pdf.frame, notes: opts.pdf.publish === 'notes', ...(opts.pdf.paper ? { paper: opts.pdf.paper } : {}), ...(opts.pdf.comments ? { comments: true } : {}) } : {}) }));
     files.forEach((b, i) => fd.append('images', b, `slide-${String(slides[i].n).padStart(3, '0')}.${ext}`));
     bares.forEach((b, i) => { if (b) fd.append('bares', b, `bare-${String(slides[i].n).padStart(3, '0')}.${ext}`); });
     const res = await fetch(`/api/decks/${encodeURIComponent(deck.id)}/compose`, { method: 'POST', body: fd });
