@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from app.core import config
 
 router = APIRouter()
-UI_KEY = re.compile(r"^formdeck[._][\w.:-]{1,100}$")
+UI_KEY = re.compile(r"^(formdeck[._][\w.:-]{1,100}|nodemode_ui_settings)$")
 
 
 def _available(module: str) -> bool:

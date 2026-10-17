@@ -4,8 +4,9 @@ import os
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core import config
@@ -71,4 +72,14 @@ app.include_router(mcp.router)
 
 _dist = config.dist_dir()
 if _dist is not None:
+    @app.get("/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)
+    def _index(request: Request) -> HTMLResponse:
+        html = (_dist / "index.html").read_text(encoding="utf-8")
+        ui = config.read_settings().get("ui")
+        if request.client and request.client.host in ("127.0.0.1", "::1") and isinstance(ui, dict) and ui:
+            seed = json.dumps({k: v for k, v in ui.items() if isinstance(v, str)}).replace("</", "<\\/")
+            html = html.replace("<head>", f"<head><script>try{{var u={seed};for(var k in u)if(localStorage.getItem(k)===null)localStorage.setItem(k,u[k]);}}catch(e){{}}</script>", 1)
+        return HTMLResponse(html, headers={"cache-control": "no-store"})
+
     app.mount("/", StaticFiles(directory=str(_dist), html=True), name="frontend")

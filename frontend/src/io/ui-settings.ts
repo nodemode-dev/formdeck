@@ -1,6 +1,6 @@
 import { api } from './api';
 
-const MIRRORED = /^formdeck[._][\w.:-]{1,100}$/;
+const MIRRORED = /^(formdeck[._][\w.:-]{1,100}|nodemode_ui_settings)$/;
 const pending = new Map<string, string | null>();
 let timer = 0;
 
