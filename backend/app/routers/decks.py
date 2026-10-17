@@ -66,6 +66,33 @@ def create(body: dict = Body(default={})) -> dict:
     return model.summary(deck)
 
 
+@router.get("/decks/trash")
+def trash_list() -> dict:
+    return {"decks": STORE.trash_list()}
+
+
+@router.post("/decks/trash/{entry}/restore")
+def trash_restore(entry: str) -> dict:
+    try:
+        return STORE.trash_restore(entry)
+    except KeyError:
+        raise HTTPException(404, "That deck is no longer in the trash.")
+
+
+@router.delete("/decks/trash/{entry}")
+def trash_delete(entry: str) -> dict:
+    try:
+        STORE.trash_purge(entry)
+    except KeyError:
+        raise HTTPException(404, "That deck is no longer in the trash.")
+    return {"ok": True}
+
+
+@router.delete("/decks/trash")
+def trash_empty() -> dict:
+    return {"ok": True, "removed": STORE.trash_purge()}
+
+
 @router.get("/decks/{deck_id}")
 def get_deck(deck_id: str) -> dict:
     _session_or_404(deck_id)

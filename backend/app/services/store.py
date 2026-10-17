@@ -2,6 +2,7 @@ import asyncio
 import copy
 import itertools
 import json
+import re
 import shutil
 import time
 from dataclasses import dataclass, field
@@ -15,6 +16,7 @@ HISTORY_LIMIT = 400
 SAVE_DELAY = 0.8
 ACTIVITY_LIMIT = 2000
 ACTIVITY_TRIM_BYTES = 900_000
+TRASH_ENTRY = re.compile(r"(d_[A-Za-z0-9_]+)-(\d{1,12})")
 
 
 @dataclass
@@ -353,6 +355,58 @@ class Store:
             trash.mkdir(exist_ok=True)
             dest = trash / f"{deck_id}-{int(time.time())}"
             shutil.move(str(d), str(dest))
+
+    def _trash_entry(self, entry: str) -> Path:
+        if not TRASH_ENTRY.fullmatch(entry or ""):
+            raise KeyError(entry)
+        p = config.decks_dir() / ".trash" / entry
+        if not p.is_dir():
+            raise KeyError(entry)
+        return p
+
+    def trash_list(self) -> list[dict]:
+        root = config.decks_dir() / ".trash"
+        out = []
+        if not root.is_dir():
+            return out
+        for p in root.iterdir():
+            m = TRASH_ENTRY.fullmatch(p.name)
+            if not m or not p.is_dir():
+                continue
+            title, slides = "", None
+            try:
+                info = json.loads((p / "info.json").read_text(encoding="utf-8"))
+                title, slides = info.get("title") or "", info.get("slides")
+            except (OSError, ValueError):
+                pass
+            out.append({"entry": p.name, "id": m.group(1), "title": title or "Untitled deck", "slides": slides, "deletedAt": int(m.group(2)), "thumb": (p / "thumb.webp").is_file()})
+        out.sort(key=lambda x: x["deletedAt"], reverse=True)
+        return out
+
+    def trash_restore(self, entry: str) -> dict:
+        p = self._trash_entry(entry)
+        deck_id = TRASH_ENTRY.fullmatch(entry).group(1)
+        if self.exists(deck_id) or (config.decks_dir() / deck_id).exists():
+            deck_id = ids.deck_id()
+            while (config.decks_dir() / deck_id).exists():
+                deck_id = ids.deck_id()
+            deck_file = p / "deck.json"
+            deck = json.loads(deck_file.read_text(encoding="utf-8"))
+            deck["id"] = deck_id
+            _write_json(deck_file, deck)
+            (p / "info.json").unlink(missing_ok=True)
+        shutil.move(str(p), str(config.decks_dir() / deck_id))
+        return next((x for x in self.library() if x.get("id") == deck_id), {"id": deck_id})
+
+    def trash_purge(self, entry: str | None = None) -> int:
+        if entry is not None:
+            shutil.rmtree(self._trash_entry(entry))
+            return 1
+        n = 0
+        for x in self.trash_list():
+            shutil.rmtree(config.decks_dir() / ".trash" / x["entry"], ignore_errors=True)
+            n += 1
+        return n
 
     def save_version(self, deck_id: str, name: str = "") -> dict:
         s = self.session(deck_id)

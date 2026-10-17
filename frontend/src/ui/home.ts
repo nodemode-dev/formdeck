@@ -1,12 +1,13 @@
 import type { Deck } from '../engine/model';
-import { api, type DeckSummary, type TemplateSummary } from '../io/api';
+import { api, type DeckSummary, type TemplateSummary, type TrashedDeck } from '../io/api';
 import { ensureFonts, fontsOfDeck } from '../render/fonts';
 import { SlideView } from '../render/slide';
+import { collab } from '../editor/collab-state';
 import { brandMark } from './brand';
 import { Dialog } from './dialogs';
 import { el, escapeHtml, patchList, setClass, setHidden, setText } from './dom';
 import { icon } from './icons';
-import { toast } from './toast';
+import { dismissToast, pushToast, toast } from './toast';
 
 export interface HomeHooks {
   openDeck(id: string): void;
@@ -17,7 +18,7 @@ export interface HomeHooks {
   agents(): void;
 }
 
-type View = 'start' | 'recent' | 'templates';
+type View = 'start' | 'recent' | 'templates' | 'trash';
 
 const previewCache = new Map<string, Promise<Deck>>();
 export function templatePreview(id: string, only = 'title'): Promise<Deck> {
@@ -58,6 +59,13 @@ export class Home {
   private readonly recentGrid: HTMLElement;
   private readonly recentGridFull: HTMLElement;
   private readonly preview: TemplatePreviewDialog;
+  private trashed: TrashedDeck[] = [];
+  private readonly selected = new Set<string>();
+  private anchor = '';
+  private readonly trashList: HTMLElement;
+  private readonly confirmBar: HTMLElement;
+  private onConfirm: (() => void) | null = null;
+  private readonly menu: HTMLElement;
 
   constructor(private readonly hooks: HomeHooks) {
     this.root = el(`<section class="fd-home" aria-label="Home" hidden>
@@ -66,6 +74,7 @@ export class Home {
 <button class="fd-home-nav-item is-active" type="button" data-v="start">${icon('sparkle', 16)}<span>Start</span></button>
 <button class="fd-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fd-badge is-count fd-deck-count">0</span></button>
 <button class="fd-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fd-badge is-count fd-tpl-count">0</span></button>
+<button class="fd-home-nav-item" type="button" data-v="trash">${icon('delete', 16)}<span>Trash</span><span class="fd-badge is-count fd-trash-count">0</span></button>
 <div class="fd-home-nav-sep"></div>
 <div class="fd-home-nav-title">Agents</div>
 <button class="fd-home-nav-item" type="button" data-a="agents">${icon('agent', 16)}<span>Claude Code, Codex, Cursor</span></button>
@@ -74,6 +83,7 @@ export class Home {
 <button class="fd-home-nav-item" type="button" data-a="prefs">${icon('settings', 16)}<span>Preferences</span></button>
 </div></nav>
 <div class="fd-home-main">
+<div class="fd-home-confirm" role="alertdialog" aria-live="assertive" hidden><span class="fd-home-confirm-text"></span><button class="fd-btn fd-btn-sm" type="button" data-a="confirm-no">Cancel</button><button class="fd-btn fd-btn-sm fd-btn-danger" type="button" data-a="confirm-yes"></button></div>
 <div data-page="start">
 <div class="fd-home-head"><div><h1 class="fd-home-title"></h1><p class="fd-home-sub">Turn notes, documents, pictures and data into a deck, or start from a template.</p></div><div class="fd-home-head-actions"><button class="fd-btn" type="button" data-a="open">${icon('load', 14)}Open file</button><button class="fd-btn" type="button" data-a="blank">${icon('slideAdd', 14)}Blank deck</button></div></div>
 <div class="fd-home-hero">
@@ -87,6 +97,7 @@ export class Home {
 <section class="fd-home-section"><div class="fd-home-section-head"><h2 class="fd-home-section-title">Templates</h2><div class="fd-home-filters fd-cats"></div><label class="fd-search">${icon('search', 14)}<input type="search" placeholder="Search templates" class="fd-tpl-search"></label></div><div class="fd-card-grid fd-tpl-grid"></div></section>
 </div>
 <div data-page="recent" hidden><div class="fd-home-head"><div><h1 class="fd-home-title">Recent decks</h1><p class="fd-home-sub">Everything in your library, newest first. Decks save as you work.</p></div></div><div class="fd-card-grid fd-recent-full"></div></div>
+<div data-page="trash" hidden><div class="fd-home-head"><div><h1 class="fd-home-title">Trash</h1><p class="fd-home-sub">Deleted decks wait here until you restore them or delete them permanently.</p></div><div class="fd-home-head-actions"><button class="fd-btn fd-btn-empty-trash" type="button" data-a="empty-trash" disabled>${icon('delete', 14)}Empty Trash</button></div></div><div class="fd-trash-list"></div><p class="fd-note fd-trash-none">Trash is empty.</p></div>
 <div data-page="templates" hidden><div class="fd-home-head"><div><h1 class="fd-home-title">Templates</h1><p class="fd-home-sub">67 original templates, plus any PowerPoint or Google Slides template you import. Every one opens and exports as .pptx.</p></div><div class="fd-home-head-actions"><button class="fd-btn" type="button" data-a="import-template">${icon('upload', 14)}Import a template</button></div></div>
 <div class="fd-home-section-head"><div class="fd-home-filters fd-cats"></div><label class="fd-search">${icon('search', 14)}<input type="search" placeholder="Search templates" class="fd-tpl-search"></label></div><div class="fd-card-grid fd-tpl-full"></div></div>
 </div></section>`);
@@ -94,6 +105,10 @@ export class Home {
     this.tplGridFull = this.root.querySelector('.fd-tpl-full') as HTMLElement;
     this.recentGrid = this.root.querySelector('.fd-recent-grid') as HTMLElement;
     this.recentGridFull = this.root.querySelector('.fd-recent-full') as HTMLElement;
+    this.trashList = this.root.querySelector('.fd-trash-list') as HTMLElement;
+    this.confirmBar = this.root.querySelector('.fd-home-confirm') as HTMLElement;
+    this.menu = el('<div class="fd-menu fd-home-menu" role="menu" hidden></div>');
+    document.getElementById('overlay-root')?.appendChild(this.menu);
     this.preview = new TemplatePreviewDialog(this.hooks);
     this.io = new IntersectionObserver((entries) => {
       for (const en of entries) {
@@ -112,9 +127,26 @@ export class Home {
   private wire(): void {
     this.root.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
+      this.closeMenu();
       const v = (t.closest('[data-v]') as HTMLElement | null)?.dataset.v as View | undefined;
       if (v) { this.show(v); return; }
       const a = (t.closest('[data-a]') as HTMLElement | null)?.dataset.a;
+      const row = (t.closest('[data-entry]') as HTMLElement | null)?.dataset.entry;
+      if (a === 'confirm-yes') { const go = this.onConfirm; this.askClose(); go?.(); return; }
+      if (a === 'confirm-no') { this.askClose(); return; }
+      if (a === 'empty-trash') { this.ask(`Permanently delete ${this.trashed.length} deck${this.trashed.length === 1 ? '' : 's'} in the Trash? This cannot be undone.`, 'Empty Trash', () => void this.purge(null)); return; }
+      if (a === 'restore' && row) { void this.restore([row]); return; }
+      if (a === 'purge' && row) { const x = this.trashed.find((d) => d.entry === row); this.ask(`Permanently delete "${x?.title ?? 'this deck'}"? This cannot be undone.`, 'Delete permanently', () => void this.purge(row)); return; }
+      const more = t.closest('.fd-card-more') as HTMLElement | null;
+      if (more) {
+        e.stopPropagation();
+        const id = (more.closest('.fd-card') as HTMLElement).dataset.deck;
+        const r = more.getBoundingClientRect();
+        if (id) this.openMenu(id, r.left, r.bottom + 4);
+        return;
+      }
+      const hit = t.closest('.fd-card') as HTMLElement | null;
+      if (hit?.dataset.deck && (e.ctrlKey || e.metaKey || e.shiftKey)) { this.pickCard(hit, e.shiftKey); return; }
       if (a === 'blank') void this.hooks.createDeck('studio');
       else if (a === 'open') this.pick(false);
       else if (a === 'choose') this.pick(true);
@@ -133,6 +165,24 @@ export class Home {
       if (chip?.dataset.cat) { this.category = chip.dataset.cat; this.renderTemplates(); }
     });
     for (const input of Array.from(this.root.querySelectorAll<HTMLInputElement>('.fd-tpl-search'))) input.addEventListener('input', () => { this.query = input.value.trim().toLowerCase(); this.renderTemplates(); });
+    this.root.addEventListener('contextmenu', (e) => {
+      const card = (e.target as HTMLElement).closest('.fd-card') as HTMLElement | null;
+      if (!card?.dataset.deck) return;
+      e.preventDefault();
+      if (!this.selected.has(card.dataset.deck)) { this.clearSelection(); this.setSelected(card.dataset.deck, true); }
+      this.openMenu(card.dataset.deck, e.clientX, e.clientY);
+    });
+    this.root.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { if (!this.menu.hidden) { this.closeMenu(); return; } if (!this.confirmBar.hidden) { this.askClose(); return; } if (this.selected.size) this.clearSelection(); return; }
+      if (e.key !== 'Delete') return;
+      const card = (e.target as HTMLElement).closest('.fd-card') as HTMLElement | null;
+      const id = card?.dataset.deck;
+      if (!id) return;
+      e.preventDefault();
+      this.requestDelete(this.selected.has(id) ? [...this.selected] : [id]);
+    });
+    this.menu.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('pointerdown', (e) => { if (!this.menu.hidden && !this.menu.contains(e.target as Node)) this.closeMenu(); }, true);
     const hero = this.root.querySelector('.fd-home-hero') as HTMLElement;
     hero.addEventListener('dragover', (e) => { e.preventDefault(); setClass(hero, 'is-drag-over', true); });
     hero.addEventListener('dragleave', () => setClass(hero, 'is-drag-over', false));
@@ -187,16 +237,158 @@ export class Home {
   }
 
   async load(): Promise<void> {
-    const [t, l] = await Promise.all([api.templates(), api.library()]);
+    const [t, l, tr] = await Promise.all([api.templates(), api.library(), api.trash().catch(() => ({ decks: [] as TrashedDeck[] }))]);
     this.templates = t.templates;
     this.categories = ['All', ...t.categories];
     this.decks = l.decks;
+    this.trashed = tr.decks;
+    for (const id of [...this.selected]) if (!this.decks.some((d) => d.id === id)) this.selected.delete(id);
     setText(this.root.querySelector('.fd-tpl-count'), String(this.templates.length));
     setText(this.root.querySelector('.fd-deck-count'), String(this.decks.length));
     const h = new Date().getHours();
     setText(this.root.querySelector('[data-page="start"] .fd-home-title'), h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening');
     this.renderTemplates();
     this.renderDecks();
+    this.renderTrash();
+  }
+
+  private ask(text: string, action: string, go: () => void): void {
+    this.onConfirm = go;
+    setText(this.confirmBar.querySelector('.fd-home-confirm-text'), text);
+    setText(this.confirmBar.querySelector('[data-a="confirm-yes"]'), action);
+    setHidden(this.confirmBar, false);
+    (this.confirmBar.querySelector('[data-a="confirm-no"]') as HTMLElement).focus();
+  }
+
+  private askClose(): void {
+    this.onConfirm = null;
+    setHidden(this.confirmBar, true);
+  }
+
+  private closeMenu(): void { setHidden(this.menu, true); }
+
+  private openMenu(id: string, x: number, y: number): void {
+    const ids = this.selected.has(id) && this.selected.size > 1 ? [...this.selected] : [id];
+    const many = ids.length > 1;
+    const rows: Array<[string, string, () => void]> = [];
+    if (!many) {
+      rows.push(['Open', 'open', () => this.hooks.openDeck(id)]);
+      rows.push(['Duplicate', 'dup', () => { void api.duplicate(id).then(() => this.load()).then(() => toast('Duplicated.')).catch((e) => toast(`Could not duplicate: ${e instanceof Error ? e.message : e}`, 'error')); }]);
+    }
+    rows.push([many ? `Delete ${ids.length} decks` : 'Delete', 'del', () => this.requestDelete(ids)]);
+    this.menu.textContent = '';
+    for (const [label, key, run] of rows) {
+      const b = el<HTMLButtonElement>(`<button class="fd-menu-item" role="menuitem" type="button" data-k="${key}"><span class="fd-menu-label"></span></button>`);
+      setText(b.querySelector('.fd-menu-label'), label);
+      b.addEventListener('click', () => { this.closeMenu(); run(); });
+      this.menu.appendChild(b);
+    }
+    this.menu.style.visibility = 'hidden';
+    setHidden(this.menu, false);
+    const w = this.menu.offsetWidth, h = this.menu.offsetHeight;
+    this.menu.style.left = `${Math.round(Math.max(4, Math.min(x, window.innerWidth - w - 4)))}px`;
+    this.menu.style.top = `${Math.round(Math.max(4, Math.min(y, window.innerHeight - h - 4)))}px`;
+    this.menu.style.visibility = '';
+    (this.menu.firstElementChild as HTMLElement | null)?.focus();
+  }
+
+  private setSelected(id: string, on: boolean): void {
+    if (on) this.selected.add(id); else this.selected.delete(id);
+    for (const grid of [this.recentGrid, this.recentGridFull]) {
+      const n = grid.querySelector<HTMLElement>(`.fd-card[data-deck="${id}"]`);
+      if (n) setClass(n, 'is-selected', on);
+    }
+  }
+
+  private clearSelection(): void {
+    for (const id of [...this.selected]) this.setSelected(id, false);
+    this.anchor = '';
+  }
+
+  private pickCard(card: HTMLElement, range: boolean): void {
+    const id = card.dataset.deck as string;
+    if (range && this.anchor && this.anchor !== id) {
+      const order = Array.from((card.parentElement as HTMLElement).querySelectorAll<HTMLElement>('.fd-card[data-deck]')).map((n) => n.dataset.deck as string);
+      const a = order.indexOf(this.anchor), b = order.indexOf(id);
+      if (a >= 0 && b >= 0) for (let i = Math.min(a, b); i <= Math.max(a, b); i++) this.setSelected(order[i], true);
+      return;
+    }
+    this.setSelected(id, !this.selected.has(id));
+    this.anchor = id;
+  }
+
+  private requestDelete(ids: string[]): void {
+    if (!ids.length) return;
+    if (ids.length === 1) { void this.trashDecks(ids); return; }
+    this.ask(`Move ${ids.length} decks to the Trash?`, `Move ${ids.length} to Trash`, () => void this.trashDecks(ids));
+  }
+
+  private async trashDecks(ids: string[]): Promise<void> {
+    const done: string[] = [];
+    for (const id of ids) {
+      try { await api.remove(id); done.push(id); } catch (e) { toast(`Could not delete a deck: ${e instanceof Error ? e.message : e}`, 'error'); }
+    }
+    if (!done.length) return;
+    for (const id of done) this.selected.delete(id);
+    const titles = done.map((id) => this.decks.find((d) => d.id === id)?.title ?? 'Untitled deck');
+    this.decks = this.decks.filter((d) => !done.includes(d.id));
+    this.renderDecks();
+    const tr = await api.trash().catch(() => ({ decks: [] as TrashedDeck[] }));
+    this.trashed = tr.decks;
+    this.renderTrash();
+    const entries: string[] = [];
+    for (const id of done) { const e = this.trashed.find((x) => x.id === id); if (e) entries.push(e.entry); }
+    this.undoToast(done.length === 1 ? `Moved "${titles[0]}" to the Trash.` : `Moved ${done.length} decks to the Trash.`, entries);
+  }
+
+  private undoToast(text: string, entries: string[]): void {
+    const root = document.getElementById('toast-root');
+    if (!root || !entries.length) { toast(text); return; }
+    const node = el('<div class="fd-toast fd-toast-undo" role="status"><span class="fd-toast-text"></span><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button">Undo</button></div>');
+    setText(node.querySelector('.fd-toast-text'), text);
+    node.querySelector('button')?.addEventListener('click', () => { dismissToast(node); void this.restore(entries); });
+    pushToast(root, node, 8000);
+  }
+
+  private async restore(entries: string[]): Promise<void> {
+    let n = 0;
+    for (const entry of entries) {
+      try { await api.restoreTrashed(entry); n++; } catch (e) { toast(`Could not restore: ${e instanceof Error ? e.message : e}`, 'error'); }
+    }
+    if (!n) return;
+    const [l, tr] = await Promise.all([api.library(), api.trash().catch(() => ({ decks: [] as TrashedDeck[] }))]);
+    this.decks = l.decks;
+    this.trashed = tr.decks;
+    this.renderDecks();
+    this.renderTrash();
+    toast(n === 1 ? 'Deck restored.' : `${n} decks restored.`);
+  }
+
+  private async purge(entry: string | null): Promise<void> {
+    try {
+      if (entry) await api.purgeTrashed(entry); else await api.emptyTrash();
+    } catch (e) { toast(`Could not delete: ${e instanceof Error ? e.message : e}`, 'error'); }
+    this.trashed = entry ? this.trashed.filter((d) => d.entry !== entry) : [];
+    this.renderTrash();
+  }
+
+  private renderTrash(): void {
+    setText(this.root.querySelector('.fd-trash-count'), String(this.trashed.length));
+    setText(this.root.querySelector('.fd-deck-count'), String(this.decks.length));
+    const empty = this.root.querySelector<HTMLButtonElement>('.fd-btn-empty-trash');
+    if (empty && empty.disabled !== !this.trashed.length) empty.disabled = !this.trashed.length;
+    const none = this.root.querySelector<HTMLElement>('.fd-trash-none');
+    if (none) setHidden(none, this.trashed.length > 0);
+    const update = (n: HTMLElement, d: TrashedDeck): void => {
+      setText(n.querySelector('.fd-card-name'), d.title);
+      setText(n.querySelector('.fd-card-meta'), `${d.slides === null ? '' : `${d.slides} slide${d.slides === 1 ? '' : 's'} · `}Deleted ${ago(new Date(d.deletedAt * 1000).toISOString())}`);
+    };
+    const create = (d: TrashedDeck): HTMLElement => {
+      const n = el(`<div class="fd-trash-row" data-entry="${escapeHtml(d.entry)}"><span class="fd-trash-icon">${icon('slides', 18)}</span><span class="fd-trash-text"><span class="fd-card-name"></span><span class="fd-card-meta"></span></span><button class="fd-btn fd-btn-sm" type="button" data-a="restore">${icon('undo', 14)}Restore</button><button class="fd-btn fd-btn-sm fd-btn-danger" type="button" data-a="purge">${icon('delete', 14)}Delete permanently</button></div>`);
+      update(n, d);
+      return n;
+    };
+    patchList(this.trashList, this.trashed, { key: (d) => d.entry, create, update });
   }
 
   show(v: View = this.view): void {
@@ -214,6 +406,9 @@ export class Home {
 
   close(): void {
     setHidden(this.root, true);
+    this.closeMenu();
+    this.askClose();
+    this.clearSelection();
     document.body.classList.remove('nm-home');
   }
 
@@ -245,7 +440,7 @@ export class Home {
 
   private renderDecks(): void {
     const card = (d: DeckSummary): HTMLElement => {
-      const n = el(`<button class="fd-card" type="button" data-deck="${d.id}"><span class="fd-card-preview"><img alt="" decoding="async" draggable="false"></span><span class="fd-card-body"><span class="fd-card-name"></span><span class="fd-card-meta"></span></span></button>`);
+      const n = el(`<button class="fd-card" type="button" data-deck="${d.id}"><span class="fd-card-preview"><img alt="" decoding="async" draggable="false"></span><span class="fd-card-body"><span class="fd-card-name"></span><span class="fd-card-meta"></span></span><span class="fd-card-more" role="button" tabindex="-1" title="More actions (right-click)" aria-label="More actions">${icon('more3', 16)}</span></button>`);
       const img = n.querySelector('img') as HTMLImageElement;
       const blank = (): void => { img.remove(); (n.querySelector('.fd-card-preview') as HTMLElement).classList.add('is-blank'); (n.querySelector('.fd-card-preview') as HTMLElement).innerHTML = icon('slides', 28); };
       if (d.thumb === false) { blank(); return n; }
@@ -257,7 +452,7 @@ export class Home {
       setText(n.querySelector('.fd-card-name'), d.title);
       const r = d.review ?? {};
       const total = d.slides;
-      const status = total && r.approved === total ? 'Approved' : r.changes ? 'Changes' : r.review ? 'In review' : '';
+      const status = !collab.statusVisible ? '' : total && r.approved === total ? 'Approved' : r.changes ? 'Changes' : r.review ? 'In review' : '';
       setText(n.querySelector('.fd-card-meta'), `${d.slides} slide${d.slides === 1 ? '' : 's'} · ${ago(d.modified)}${status ? ` · ${status}` : ''}`);
     };
     const make = (d: DeckSummary): HTMLElement => { const n = card(d); update(n, d); return n; };

@@ -19,6 +19,7 @@ import { applyTheme } from './ui/themes';
 import { installResponsive } from './ui/responsive';
 import { toast } from './ui/toast';
 import { Editor } from './editor/editor';
+import { collab } from './editor/collab-state';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
@@ -84,6 +85,8 @@ const SHELL = `<div class="fd-app">
 </div>
 <div class="fd-resizer" data-edge="props" role="separator" aria-orientation="vertical"></div>
 <aside class="fd-props-col" aria-label="Properties"></aside>
+<button class="fd-props-hide fd-icon-btn is-sm" type="button" data-cmd="toggle-props" title="Hide the Format pane" aria-label="Hide the Format pane">${icon('chevronRight', 14)}</button>
+<button class="fd-props-tab" type="button" data-cmd="toggle-props" title="Show the Format pane" aria-label="Show the Format pane">${icon('chevronLeft', 14)}</button>
 </div>
 <section class="fd-dock" aria-label="Terminal" hidden></section>
 <footer class="fd-status">
@@ -137,6 +140,7 @@ export async function startApp(): Promise<void> {
 
   const setAgents = (on: boolean): void => {
     agentsAllowed = on;
+    collab.setAgents(on);
     live.setAgents(on);
     void api.setSettings({ agentsAllowed: on });
     inspector.sync();
@@ -265,6 +269,7 @@ export async function startApp(): Promise<void> {
       root.classList.toggle(cls);
       const ed = editor;
       if (ed) requestAnimationFrame(() => ed.stage.layout());
+      if (part === 'props') { try { localStorage.setItem('formdeck.propsHidden', root.classList.contains('is-props-hidden') ? '1' : '0'); } catch { return; } }
     },
     templates: () => { const ed = editor; if (ed) void dialogs.templatePicker(ed); },
     insertTable: () => { const ed = editor; if (ed) void dialogs.insertTable(ed); },
@@ -414,14 +419,32 @@ export async function startApp(): Promise<void> {
       const start = parseFloat(getComputedStyle(root).getPropertyValue(prop)) || (edge === 'strip' ? 232 : 308);
       node.classList.add('is-dragging');
       const mv = (ev: PointerEvent): void => {
-        const w = Math.max(edge === 'strip' ? 140 : 240, Math.min(edge === 'strip' ? 420 : 520, start + (edge === 'strip' ? ev.clientX - x0 : x0 - ev.clientX)));
+        const raw = start + (edge === 'strip' ? ev.clientX - x0 : x0 - ev.clientX);
+        if (edge === 'props') {
+          const collapse = raw < 120;
+          if (root.classList.contains('is-props-hidden') !== collapse) { root.classList.toggle('is-props-hidden', collapse); requestAnimationFrame(() => editor?.stage.layout()); }
+          if (collapse) return;
+        }
+        const w = Math.max(edge === 'strip' ? 140 : 240, Math.min(edge === 'strip' ? 420 : 520, raw));
         setStyleVar(root, prop, `${w}px`);
       };
-      const up = (): void => { node.classList.remove('is-dragging'); window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); try { localStorage.setItem(`formdeck.${edge}`, getComputedStyle(root).getPropertyValue(prop)); } catch { return; } };
+      const up = (): void => {
+        node.classList.remove('is-dragging');
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', up);
+        try {
+          localStorage.setItem(`formdeck.${edge}`, getComputedStyle(root).getPropertyValue(prop));
+          if (edge === 'props') localStorage.setItem('formdeck.propsHidden', root.classList.contains('is-props-hidden') ? '1' : '0');
+        } catch { return; }
+      };
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', up);
     });
-    try { const saved = localStorage.getItem(`formdeck.${edge}`); if (saved) setStyleVar(root, edge === 'strip' ? '--fd-strip-w' : '--fd-props-w', saved.trim()); } catch { return; }
+    try {
+      const saved = localStorage.getItem(`formdeck.${edge}`);
+      if (saved) setStyleVar(root, edge === 'strip' ? '--fd-strip-w' : '--fd-props-w', saved.trim());
+      if (edge === 'props' && localStorage.getItem('formdeck.propsHidden') === '1') root.classList.add('is-props-hidden');
+    } catch { return; }
   };
   resizer('strip');
   resizer('props');
@@ -585,6 +608,7 @@ export async function startApp(): Promise<void> {
   try {
     const settings = await api.settings();
     agentsAllowed = !!settings.agentsAllowed;
+    collab.setAgents(agentsAllowed);
     live.setAgents(agentsAllowed);
     const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
     for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));
