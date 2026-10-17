@@ -86,6 +86,7 @@ class CompressDialog extends Dialog {
       const c = e.crop && (e.crop.l || e.crop.t || e.crop.r || e.crop.b) ? e.crop : null;
       const visible = f.w / 72 * ppi;
       const full = c && !dropCrop ? visible / Math.max(0.05, 1 - c.l - c.r) : visible;
+      if (!(c && dropCrop) && info?.mime === 'image/jpeg' && info.w !== undefined && info.w <= Math.round(full)) continue;
       try {
         const res = await fetch(`/api/media/${e.src}/compress`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ width: Math.max(16, Math.round(full)), crop: c && dropCrop ? c : null }) });
         if (!res.ok) continue;
