@@ -20,6 +20,7 @@ import { MASTER_PLACEHOLDER_IDS, editorTheme } from './master-view';
 import { MERGE_MENU } from './merge-shapes';
 import { TABLE_BORDER_MENU, tableRunProbe, tableTextFormat } from './table-edit';
 import { selectedMedia } from './media-preview';
+import { collab } from './collab-state';
 import { FormatPainter, registerFormatPainter } from './format-painter';
 import { registerHeaderFooter } from './header-footer';
 import { RibbonGalleries } from './ribbon-galleries';
@@ -102,9 +103,9 @@ function ribbonTabs(): TabDef[] {
       G('proofing', 'Proofing', L('spelling', 'Spelling'), L('language', 'Language')),
       G('accessibility', 'Accessibility', L('check-deck', 'Check Deck'), L('alt-text', 'Alt Text', { icon: 'info' })),
       G('comments', 'Comments', L('add-comment', 'New Comment')),
-      G('approval', 'Approval', L('review-ready', 'Ready for Review'), L('review-approve', 'Approve'), L('review-changes', 'Request Changes'), L('review-draft', 'Back to Draft', { icon: 'refresh' })),
+      G('approval', 'Slide Status', L('review-ready', 'Ready for Review'), L('review-approve', 'Approve'), L('review-changes', 'Request Changes'), L('review-draft', 'Back to Draft', { icon: 'refresh' })),
       G('compare', 'Compare', L('review-compare', 'Compare'), L('review-activity', 'Activity')),
-      G('agents', 'Agents', L('agents', 'Agents and MCP')),
+      G('agents', 'Outside Agents', L('agents', 'Agents and MCP')),
     ] },
     { id: 'view', label: 'View', groups: [
       G('views', 'Presentation Views', L('view-normal', 'Normal'), L('view-sorter', 'Slide Sorter'), L('view-outline', 'Outline'), L('view-master', 'Slide Master')),
@@ -203,6 +204,7 @@ export class Toolbar {
     host.setAttribute('aria-label', 'Ribbon');
     host.appendChild(el('<h1 class="fd-rb-sr">FormDeck editor</h1>'));
     this.qat = new Qat(commands);
+    collab.subscribe(() => this.sync());
     this.simple = el('<div class="fd-rb-simple" hidden></div>');
     this.root = el(`<div class="fd-tb">
 <button class="fd-tb-btn" type="button" data-act="ribbon-full" title="Show the full ribbon" aria-label="Show the full ribbon">${icon('ribbon', 16)}</button>
@@ -506,6 +508,8 @@ export class Toolbar {
     if (rb) {
       this.contextTabs(rb, ctx, inMaster);
       if (!rb.simplified) rb.sync();
+      const gate = this.host.querySelector<HTMLElement>('.fd-rb-group[data-g="approval"]');
+      if (gate) setHidden(gate, !collab.statusVisible || rb.config.hiddenGroups.includes('approval'));
     }
     if (!rb || rb.simplified) this.syncSimple(ctx, inMaster);
     this.syncFields(ctx);
@@ -519,7 +523,7 @@ export class Toolbar {
       slide: ctx === 'slide' && !inMaster, master: inMaster && (ctx === 'slide' || ctx === 'none'), insert: ctx === 'slide' || ctx === 'none', table: ctx === 'table',
       font: ctx === 'text' || ctx === 'shape' || cells, style: ctx === 'text' || ctx === 'shape' || cells, para: ctx === 'text' || ctx === 'shape' || cells,
       list: ctx === 'text', anchor: ctx === 'text' || ctx === 'shape' || cells, paint: ctx === 'shape' || ctx === 'text',
-      image: ctx === 'image', chart: ctx === 'chart', arrange: ctx !== 'slide' && ctx !== 'none', review: ctx === 'slide' && !inMaster,
+      image: ctx === 'image', chart: ctx === 'chart', arrange: ctx !== 'slide' && ctx !== 'none', review: ctx === 'slide' && !inMaster && collab.statusVisible,
       diagram: !!ed && ed.selected().some((e) => e.type === 'group' && !!e.diagram),
     };
     for (const [g, node] of Object.entries(this.groups)) {

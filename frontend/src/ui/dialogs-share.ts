@@ -4,6 +4,7 @@ import { el, patchList, q, setHidden, setText } from './dom';
 import { icon } from './icons';
 import { toast } from './toast';
 import { guest } from '../io/guest';
+import { collab } from '../editor/collab-state';
 
 interface ShareLink { token: string; deck: string; role: 'view' | 'comment' | 'edit'; label: string; created: number; urls: string[] }
 interface RelayState { on: boolean; url: string; hasToken: boolean; connected: boolean; error: string; base: string }
@@ -135,6 +136,7 @@ class ShareDialog extends Dialog {
 
   private async refresh(): Promise<void> {
     try { this.paint(await call<ShareState>(`/api/share?deck=${encodeURIComponent(this.deck)}`)); } catch (e) { toast((e as Error).message, 'error'); }
+    void collab.refresh();
   }
 
   private async toggle(): Promise<void> {

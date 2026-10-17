@@ -7,6 +7,7 @@ import { buzz, isTouchInput, Press } from '../ui/touch';
 import type { Editor } from './editor';
 import { moveSlidesOps } from './actions';
 import { hasAnimations } from './animation-pane';
+import { collab } from './collab-state';
 
 interface ThumbItem { node: HTMLElement; view: SlideView; num: HTMLElement; badges: HTMLElement }
 interface HolderItem { node: HTMLElement; view: SlideView; num: HTMLElement; name: HTMLElement; kind: 'layout' | 'master' }
@@ -28,6 +29,7 @@ export class Filmstrip {
   private refitSlides = false;
   private slideTop = 0;
   private readonly ro = new ResizeObserver(() => this.resize());
+  private unsub: () => void = () => undefined;
 
   constructor(private readonly ed: Editor, private readonly scroll: HTMLElement, private readonly count: HTMLElement) {
     this.list = el('<div class="fd-strip-list" role="listbox" tabindex="0" aria-label="Slides" aria-multiselectable="true"></div>');
@@ -57,9 +59,11 @@ export class Filmstrip {
       this.ed.contextMenu(e.clientX, e.clientY, 'thumb');
     });
     this.list.addEventListener('dragover', (e) => e.preventDefault());
+    this.unsub = collab.subscribe(() => this.update());
   }
 
   dispose(): void {
+    this.unsub();
     this.ro.disconnect();
     this.list.remove();
     this.mlist.remove();
@@ -272,7 +276,7 @@ export class Filmstrip {
       setText(it.num, String(i + 1));
       setClass(it.node, 'is-hidden-slide', !!s.hidden);
       it.node.hidden = !!currentSection && this.collapsed.has(currentSection) && !sec;
-      const review = s.review?.status;
+      const review = collab.statusVisible ? s.review?.status : undefined;
       const comments = (deck.comments ?? []).filter((c) => c.slide === s.id && !c.resolved).length;
       const badge = `${review && review !== 'draft' ? `<span class="fd-thumb-badge is-${review}"><span class="fd-st-dot"></span>${review === 'review' ? 'Review' : review === 'changes' ? 'Changes' : 'Approved'}</span>` : ''}${comments ? `<span class="fd-thumb-badge">${icon('comment', 10)}${comments}</span>` : ''}${hasAnimations(s) ? `<span class="fd-thumb-badge" title="Animations">${icon('animation', 10)}</span>` : ''}${s.hidden ? `<span class="fd-thumb-badge">${icon('eyeOff', 10)}</span>` : ''}`;
       if (it.badges.dataset.html !== badge) { it.badges.dataset.html = badge; it.badges.innerHTML = badge; }
