@@ -2,6 +2,7 @@ import type { ImageElement } from '../engine/model';
 import { elPath, type Op } from '../engine/ops';
 import { mediaUrl } from '../render/slide';
 import type { Command, Commands } from '../ui/commands';
+import { compressPicturesDialog } from '../ui/dialogs-compress';
 import type { Editor } from './editor';
 import { dirtyOp } from './actions';
 
@@ -214,7 +215,13 @@ export class CropTool {
   }
 }
 
-export const CROP_SHAPES: Array<[string, string]> = [['rect', 'Rectangle'], ['roundRect', 'Rounded Rectangle'], ['ellipse', 'Oval']];
+export const CROP_SHAPES: Array<[string, string]> = [
+  ['rect', 'Rectangle'], ['roundRect', 'Rounded Rectangle'], ['ellipse', 'Oval'], ['triangle', 'Isosceles Triangle'], ['rtTriangle', 'Right Triangle'],
+  ['diamond', 'Diamond'], ['pentagon', 'Pentagon'], ['hexagon', 'Hexagon'], ['octagon', 'Octagon'], ['star5', '5-Point Star'], ['heart', 'Heart'],
+  ['cloud', 'Cloud'], ['parallelogram', 'Parallelogram'], ['trapezoid', 'Trapezoid'], ['round2SameRect', 'Round Same Side Corner Rectangle'], ['snip2SameRect', 'Snip Same Side Corner Rectangle'],
+];
+
+export const CROP_ASPECTS: Array<[number, number]> = [[1, 1], [2, 3], [3, 2], [3, 4], [4, 3], [4, 5], [5, 4], [9, 16], [16, 9], [16, 10]];
 
 export function registerCropCommands(cmds: Commands, E: () => Editor | null, tool: CropTool): void {
   const images = (): ImageElement[] => (E()?.selected() ?? []).filter((e): e is ImageElement => e.type === 'image');
@@ -229,6 +236,59 @@ export function registerCropCommands(cmds: Commands, E: () => Editor | null, too
       run: () => { const s = E()?.slide; if (s) apply(images().flatMap((e) => ['adjust', 'crop', 'effects'].map((k) => ({ op: 'set', path: [...elPath(s.id, e.id), k] }) as Op)), 'Reset picture'); },
     },
   ];
+  const first = (): ImageElement | null => croppable(E());
+  for (const [aw, ah] of CROP_ASPECTS) {
+    list.push({
+      id: `crop-aspect-${aw}-${ah}`, label: `${aw}:${ah}`, enabled: () => !tool.active && !!first(),
+      run: () => {
+        const ed = E(), s = ed?.slide, e = first();
+        if (!ed || !s || !e) return;
+        const f = ed.stage.frameOf(e);
+        const info = ed.doc.deck.media[e.src];
+        const nat = ed.stage.view?.nodeFor(e.id)?.querySelector('img');
+        const iw = info?.w || nat?.naturalWidth || f.w, ih = info?.h || nat?.naturalHeight || f.h;
+        const ar = aw / ah, ir = iw / ih;
+        const w = f.w / f.h > ar ? f.h * ar : f.w, h = f.w / f.h > ar ? f.h : f.w / ar;
+        const cx = f.x + f.w / 2, cy = f.y + f.h / 2;
+        const side = ar > ir ? 0 : (1 - ar / ir) / 2, vert = ar > ir ? (1 - ir / ar) / 2 : 0;
+        const p = elPath(s.id, e.id);
+        const crop = { l: round(side * 1e4) / 1e4, t: round(vert * 1e4) / 1e4, r: round(side * 1e4) / 1e4, b: round(vert * 1e4) / 1e4 };
+        apply([
+          { op: 'set', path: [...p, 'x'], value: round(cx - w / 2) }, { op: 'set', path: [...p, 'y'], value: round(cy - h / 2) },
+          { op: 'set', path: [...p, 'w'], value: round(w) }, { op: 'set', path: [...p, 'h'], value: round(h) },
+          { op: 'set', path: [...p, 'crop'], value: crop }, { op: 'set', path: [...p, 'fit'], value: 'stretch' },
+        ], 'Crop to aspect ratio');
+        tool.toggle();
+      },
+    });
+  }
+  list.push(
+    {
+      id: 'picture-reset-size', label: 'Reset Picture & Size', icon: 'refresh', enabled: ok,
+      run: () => {
+        const ed = E(), s = ed?.slide;
+        if (!ed || !s) return;
+        const ops: Op[] = [];
+        for (const e of images()) {
+          const p = elPath(s.id, e.id);
+          const f = ed.stage.frameOf(e);
+          const info = ed.doc.deck.media[e.src];
+          const nat = ed.stage.view?.nodeFor(e.id)?.querySelector('img');
+          let w = ((nat?.naturalWidth || info?.w) ?? 0) * 0.75, h = ((nat?.naturalHeight || info?.h) ?? 0) * 0.75;
+          if (w > 0 && h > 0) {
+            const fit = Math.min(1, ed.doc.deck.size.w / w, ed.doc.deck.size.h / h);
+            w *= fit; h *= fit;
+            const cx = f.x + f.w / 2, cy = f.y + f.h / 2;
+            ops.push({ op: 'set', path: [...p, 'x'], value: round(cx - w / 2) }, { op: 'set', path: [...p, 'y'], value: round(cy - h / 2) }, { op: 'set', path: [...p, 'w'], value: round(w) }, { op: 'set', path: [...p, 'h'], value: round(h) });
+          }
+          for (const k of ['adjust', 'crop', 'effects', 'rot', 'flipH', 'flipV']) ops.push({ op: 'set', path: [...p, k] });
+          ops.push({ op: 'set', path: [...p, 'fit'], value: 'stretch' });
+        }
+        apply(ops, 'Reset picture and size');
+      },
+    },
+    { id: 'compress-pictures', label: 'Compress Pictures...', icon: 'image', enabled: () => !!E(), run: () => { const ed = E(); if (ed) compressPicturesDialog(ed, images()); } },
+  );
   for (const [geom, label] of CROP_SHAPES) {
     list.push({
       id: `crop-shape-${geom}`, label, enabled: ok, checked: () => (images()[0]?.mask ?? 'rect') === geom,

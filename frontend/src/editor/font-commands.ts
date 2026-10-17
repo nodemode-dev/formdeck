@@ -2,6 +2,7 @@ import type { Deck } from '../engine/model';
 import { api } from '../io/api';
 import { fontsOfDeck } from '../render/fonts';
 import type { Commands } from '../ui/commands';
+import { replaceFontsDialog } from '../ui/dialogs-replace-fonts';
 import { toast } from '../ui/toast';
 import type { Editor } from './editor';
 
@@ -40,6 +41,12 @@ async function addFont(ed: Editor, file: File): Promise<void> {
 }
 
 export function registerFontCommands(cmds: Commands, editor: () => Editor | null): void {
+  cmds.add({
+    id: 'replace-fonts',
+    label: 'Replace Fonts...',
+    enabled: () => !!editor(),
+    run: () => { const ed = editor(); if (ed) replaceFontsDialog(ed); },
+  });
   cmds.add({
     id: 'add-font',
     label: 'Add Font...',

@@ -81,6 +81,51 @@ def get_media(media_id: str):
     return FileResponse(path, media_type=info.get("mime"), headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
+@router.post("/media/{media_id}/compress")
+async def compress_media(media_id: str, body: dict = Body(...)) -> dict:
+    path = mediamod.store().path(media_id)
+    info = mediamod.store().info(media_id)
+    if path is None or info is None:
+        raise HTTPException(404, "no such media")
+    if info.get("mime") not in ("image/png", "image/jpeg", "image/webp", "image/bmp", "image/tiff"):
+        raise HTTPException(415, "Only PNG, JPEG, WebP, BMP and TIFF pictures can be compressed.")
+    try:
+        max_w = int(body.get("width") or 0)
+        box = body.get("crop")
+        frac = [float(box[k]) for k in ("l", "t", "r", "b")] if isinstance(box, dict) else None
+    except (TypeError, ValueError, KeyError):
+        raise HTTPException(400, "width must be a number and crop must hold l, t, r and b.") from None
+    if frac and (min(frac) < 0 or frac[0] + frac[2] >= 1 or frac[1] + frac[3] >= 1):
+        raise HTTPException(400, "crop is out of range.")
+
+    def work() -> tuple[bytes, str, str]:
+        import io
+
+        from PIL import Image
+
+        im = Image.open(path)
+        im.load()
+        if frac:
+            w, h = im.size
+            im = im.crop((round(frac[0] * w), round(frac[1] * h), w - round(frac[2] * w), h - round(frac[3] * h)))
+        if max_w > 0 and im.width > max_w:
+            im = im.resize((max_w, max(1, round(im.height * max_w / im.width))), Image.LANCZOS)
+        out = io.BytesIO()
+        alpha = im.mode in ("RGBA", "LA") or "transparency" in im.info
+        if alpha:
+            im.convert("RGBA").save(out, "PNG", optimize=True)
+            return out.getvalue(), "image/png", "png"
+        im.convert("RGB").save(out, "JPEG", quality=85, optimize=True)
+        return out.getvalue(), "image/jpeg", "jpg"
+
+    try:
+        data, mime, ext = await asyncio.to_thread(work)
+    except Exception:
+        raise HTTPException(422, "That picture could not be compressed.") from None
+    stem = Path(str(info.get("name") or "picture")).stem
+    return mediamod.store().put(data, f"{stem}.{ext}", mime)
+
+
 @router.get("/media/{media_id}/info")
 def media_info(media_id: str) -> dict:
     info = mediamod.store().info(media_id)
