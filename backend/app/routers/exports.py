@@ -75,6 +75,12 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
         c._code.append("/Artifact BMC")
         c.drawImage(ImageReader(io.BytesIO(bare if live_page else data)), 0, extra, pw, sh)
         c._code.append("EMC")
+        if meta.get("frame") and notes is None:
+            c._code.append("/Artifact BMC")
+            c.setStrokeColorRGB(0.2, 0.2, 0.2)
+            c.setLineWidth(1)
+            c.rect(0.5, extra + 0.5, pw - 1, sh - 1, stroke=1, fill=0)
+            c._code.append("EMC")
         sect, runs = pdf_tags.layout(info, ph)
         mc = 0
         for run in runs:
@@ -159,6 +165,63 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
         return raw
 
 
+_GRID = {1: (1, 1), 2: (1, 2), 3: (1, 3), 4: (2, 2), 6: (2, 3), 9: (3, 3)}
+
+
+def _paper(meta: dict) -> tuple[float, float]:
+    from reportlab.lib.pagesizes import A4, letter
+    want = str(meta.get("paper") or "").lower()
+    if want not in ("a4", "letter"):
+        want = "letter" if str(meta.get("lang") or "en-US").lower() in ("", "en-us", "en-ca", "es-mx", "en") else "a4"
+    return A4 if want == "a4" else letter
+
+
+def _handouts(title: str, author: str, meta: dict, images: list[bytes]) -> bytes:
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    per = int(meta.get("perPage") or 6)
+    per = per if per in _GRID else 6
+    cols, rows = _GRID[per]
+    vertical = str(meta.get("order") or "horizontal") == "vertical"
+    pw, ph = _paper(meta)
+    size = meta.get("size") or {}
+    ratio = float(size.get("w") or 960) / float(size.get("h") or 540)
+    margin = 36.0
+    gap = 18.0
+    lines = per == 3
+    area_w = (pw - 2 * margin) * (0.5 if lines else 1)
+    cell_w = (area_w - gap * (cols - 1)) / cols
+    cell_h = (ph - 2 * margin - gap * (rows - 1)) / rows
+    w = min(cell_w, cell_h * ratio)
+    h = w / ratio
+    if per == 1:
+        w = min(pw - 2 * margin, (ph - 2 * margin) * ratio)
+        h = w / ratio
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(pw, ph))
+    c.setTitle(str(meta.get("title") or "").strip() or title)
+    c.setAuthor(author)
+    c.setCreator(f"FormDeck {config.VERSION}")
+    for start in range(0, len(images), per):
+        for k, data in enumerate(images[start:start + per]):
+            col, row = (k // rows, k % rows) if vertical else (k % cols, k // cols)
+            x = margin + col * (cell_w + gap) + (cell_w - w) / 2
+            y = ph - margin - row * (cell_h + gap) - (cell_h + h) / 2
+            c.drawImage(ImageReader(io.BytesIO(data)), x, y, w, h)
+            c.setStrokeColorRGB(0.6, 0.6, 0.6)
+            c.setLineWidth(0.5)
+            c.rect(x, y, w, h, stroke=1, fill=0)
+            if lines:
+                lx = pw / 2 + gap
+                for j in range(1, 4):
+                    ly = y + h * j / 4.5
+                    c.line(lx, ly, pw - margin, ly)
+        c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
 def _raster(data: bytes, fmt: str) -> bytes:
     want = "PNG" if fmt == "png" else "JPEG"
     head = data[:4]
@@ -174,6 +237,8 @@ def _raster(data: bytes, fmt: str) -> bytes:
 def compose_bytes(deck_id: str, fmt: str, meta: dict, images: list[bytes], bares: list | None = None) -> tuple[bytes, str]:
     title = _title(deck_id)
     if fmt == "pdf":
+        if meta.get("publish") == "handouts" or meta.get("handouts"):
+            return _handouts(title, _author(deck_id), meta, images), f"{title} handouts.pdf"
         live = None
         if bares and any(bares):
             try:
@@ -230,6 +295,34 @@ async def compose(deck_id: str, format: str = Form(...), meta: str = Form("{}"),
     blobs = [b for b in blobs if b]
     if not blobs:
         raise HTTPException(400, "no slide images")
+    target = str(info.get("path") or "").strip()
+    if fmt in ("png", "jpeg") and len(blobs) > 1 and target:
+        base = Path(target).expanduser()
+        parent = base if base.is_dir() else base.parent
+        if not parent.is_dir():
+            raise HTTPException(400, f"The folder {parent} does not exist.")
+        ext = "png" if fmt == "png" else "jpg"
+        slides = info.get("slides") or []
+        name = _title(deck_id)
+        folder, k = parent / name, 2
+        while folder.exists():
+            folder, k = parent / f"{name} ({k})", k + 1
+
+        def write_folder() -> int:
+            folder.mkdir()
+            total = 0
+            for i, data in enumerate(blobs):
+                n = (slides[i] or {}).get("n") if i < len(slides) and isinstance(slides[i], dict) else None
+                raw = _raster(data, fmt)
+                (folder / f"Slide{int(n or i + 1)}.{ext}").write_bytes(raw)
+                total += len(raw)
+            return total
+
+        try:
+            total = await asyncio.to_thread(write_folder)
+        except Exception as exc:
+            raise HTTPException(400, f"Could not write the pictures: {exc}")
+        return {"path": str(folder), "bytes": total, "name": folder.name, "url": ""}
     try:
         extra = [await f.read() for f in bares]
         flags = [bool(isinstance(s, dict) and s.get("bare")) for s in (info.get("slides") or [])]

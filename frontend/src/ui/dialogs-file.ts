@@ -757,8 +757,8 @@ type ExportFormat = 'pptx' | 'potx' | 'pdf' | 'png' | 'jpeg' | 'fdec' | 'video' 
 const EXPORTS: Record<ExportFormat, { label: string; ext: string; sub: string }> = {
   pptx: { label: 'PowerPoint', ext: 'pptx', sub: 'Editable slides for PowerPoint, Keynote and Google Slides.' },
   pdf: { label: 'PDF', ext: 'pdf', sub: 'One page per slide with searchable text and an outline of slide titles.' },
-  png: { label: 'PNG', ext: 'png', sub: 'Sharp pictures of your slides. Several slides arrive together in a .zip.' },
-  jpeg: { label: 'JPEG', ext: 'jpg', sub: 'Smaller pictures of your slides. Several slides arrive together in a .zip.' },
+  png: { label: 'PNG', ext: 'png', sub: 'Sharp pictures of your slides. Several slides are saved in a folder named after the deck as Slide1.png, Slide2.png and so on; a browser downloads them as a .zip.' },
+  jpeg: { label: 'JPEG', ext: 'jpg', sub: 'Smaller pictures of your slides. Several slides are saved in a folder named after the deck as Slide1.jpg, Slide2.jpg and so on; a browser downloads them as a .zip.' },
   potx: { label: 'Template', ext: 'potx', sub: 'A PowerPoint template with this deck’s masters, layouts, colours and fonts.' },
   odp: { label: 'OpenDocument', ext: 'odp', sub: 'Editable slides for LibreOffice Impress and other OpenDocument apps, with master pages, notes and transitions.' },
   fdec: { label: 'FormDeck', ext: 'fdec', sub: 'One file with every slide, picture and the template, for FormDeck on any computer.' },
@@ -830,6 +830,10 @@ class ExportDialog extends Dialog {
   private readonly custom: HTMLInputElement;
   private readonly quality: HTMLSelectElement;
   private readonly hidden: HTMLInputElement;
+  private readonly publish: HTMLSelectElement;
+  private readonly perPage: HTMLSelectElement;
+  private readonly pframe: HTMLInputElement;
+  private order: 'horizontal' | 'vertical' = 'horizontal';
   private readonly px: HTMLElement;
   private readonly fonts: HTMLElement;
   private readonly pathRow: HTMLElement;
@@ -852,7 +856,10 @@ class ExportDialog extends Dialog {
 <div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
 <label class="fd-field fd-dlg-custom" hidden><span>Numbers</span><input class="fd-input" type="text" spellcheck="false" placeholder="For example 1-3, 5, 8-" aria-label="Slide numbers"></label>
 <div class="fd-field"><span>Quality</span><select class="fd-dlg-quality" aria-label="Quality"><option value="2">Standard</option><option value="3">High (larger file)</option></select></div>
-<div class="fd-field"><span></span><label class="fd-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label></div>
+<div class="fd-field"><span>Publish</span><select class="fd-dlg-publish" aria-label="Publish what"><option value="slides">Slides</option><option value="handouts">Handouts</option><option value="notes">Notes pages</option></select></div>
+<div class="fd-field fd-dlg-per"><span>Slides per page</span><select class="fd-dlg-perpage" aria-label="Slides per page"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6" selected>6</option><option value="9">9</option></select></div>
+<div class="fd-field fd-dlg-order"><span>Order</span><div class="fd-seg is-quiet" data-seg="order"><button type="button" data-v="horizontal">Horizontal</button><button type="button" data-v="vertical">Vertical</button></div></div>
+<div class="fd-field"><span></span><div class="fd-dlg-checks fd-dlg-col"><label class="fd-check"><input type="checkbox" data-f="hidden"><span>Include hidden slides</span></label><label class="fd-check"><input type="checkbox" data-f="pframe"><span>Frame slides</span></label></div></div>
 </div>`);
     const raster = el(`<div class="fd-dlg-stack">
 <div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="which"><button type="button" data-v="current">Current slide</button><button type="button" data-v="all">All slides</button></div></div>
@@ -881,6 +888,11 @@ class ExportDialog extends Dialog {
     this.custom = q<HTMLInputElement>(pdf, '.fd-dlg-custom input');
     this.quality = q<HTMLSelectElement>(pdf, '.fd-dlg-quality');
     this.hidden = q<HTMLInputElement>(pdf, '[data-f="hidden"]');
+    this.publish = q<HTMLSelectElement>(pdf, '.fd-dlg-publish');
+    this.perPage = q<HTMLSelectElement>(pdf, '.fd-dlg-perpage');
+    this.pframe = q<HTMLInputElement>(pdf, '[data-f="pframe"]');
+    this.publish.addEventListener('change', () => this.sync());
+    segOn(q(pdf, '[data-seg="order"]'), (v) => { this.order = v === 'vertical' ? 'vertical' : 'horizontal'; this.sync(); });
     this.px = q(raster, '.fd-dlg-px');
     this.fonts = q(office, '.fd-dlg-fonts');
     this.path = q<HTMLInputElement>(this.pathRow, 'input');
@@ -971,6 +983,11 @@ class ExportDialog extends Dialog {
     setText(this.fonts, this.embed === 'off' ? `Fonts are not embedded, so the computer that opens the file needs ${this.fontList} installed or it substitutes a similar font.`
       : 'Fonts are embedded as PowerPoint embeds them. PowerPoint and LibreOffice use them; Google Slides and Keynote may still substitute.');
     setHidden(q(this.groups.pdf, '.fd-dlg-custom'), this.range !== 'custom');
+    const handouts = this.publish.value === 'handouts';
+    setHidden(q(this.groups.pdf, '.fd-dlg-per'), !handouts);
+    setHidden(q(this.groups.pdf, '.fd-dlg-order'), !handouts || this.perPage.value === '1' || this.perPage.value === '2');
+    segSet(q(this.groups.pdf, '[data-seg="order"]'), this.order);
+    setDisabled(this.pframe, handouts);
     const size = this.ed?.doc.deck.size ?? { w: 960, h: 540 };
     setText(this.px, `About ${Math.round(size.w * this.scale)} × ${Math.round(size.h * this.scale)} pixels per slide`);
     if (this.path.value) this.path.value = withExt(this.path.value, this.ext());
@@ -1022,7 +1039,7 @@ class ExportDialog extends Dialog {
         await this.runMotion(deck, f, path);
       } else if (isRaster(f)) {
         this.status.busy(`Rendering ${plural(slides.length, 'slide')}`);
-        const r = await bridge.exportRaster(ed, { format: f, slides, scale: f === 'pdf' ? Number(this.quality.value) || 2 : this.scale, path: path || undefined });
+        const r = await bridge.exportRaster(ed, { format: f, slides, scale: f === 'pdf' ? Number(this.quality.value) || 2 : this.scale, path: path || undefined, ...(f === 'pdf' ? { pdf: { publish: this.publish.value as 'slides' | 'handouts' | 'notes', perPage: Number(this.perPage.value) || 6, order: this.order, frame: this.pframe.checked } } : {}) });
         this.status.done();
         this.close();
         if (tauri) savedToast('Exported to', r.path);
