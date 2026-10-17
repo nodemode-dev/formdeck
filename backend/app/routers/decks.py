@@ -11,6 +11,7 @@ from fastapi import APIRouter, Body, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from app.core import config, ids
+from app.routers.exports import _target
 from app.services import compiler, model, package, templates
 from app.services import ops as opsmod
 from app.services.media import store as media_store
@@ -218,7 +219,6 @@ async def export(deck_id: str, body: dict = Body(default={})) -> dict:
     fmt = body.get("format") or "pptx"
     notes: list[str] = []
     data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
-    from app.routers.exports import _target
     path, _ = _target(name, body.get("path"))
     if not path.parent.is_dir():
         raise HTTPException(400, f"The folder {path.parent} does not exist.")
@@ -300,7 +300,6 @@ async def save(deck_id: str, body: dict = Body(default={})) -> dict:
     if fmt not in (*package.FORMATS, "pptx", "potx", "odp", "otp"):
         fmt = package.EXT
     data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"))
-    from app.routers.exports import _target
     path, _ = _target(name, str(path))
     try:
         await asyncio.to_thread(path.write_bytes, data)
