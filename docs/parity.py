@@ -183,9 +183,28 @@ row(a, "Phone and tablet", 1, 1, 1, P, "touch editing (tap, double-tap to type, 
 row(a, "Interface in many languages", 1, 1, 1, F, "English and 25 more (`i18n/index.ts`, Preferences > Appearance > Language), plural forms by the language's rules; machine-translated, not yet reviewed by native speakers")
 
 
+WINDOW = {
+    "Character formatting: font, size, bold, italic, underline, strike, colour, highlight": "0.16.0: a font applied to selected text, selection kept after the pick, Shift+F3 changes case, Ctrl+Space clears formatting",
+    "Preset shapes gallery": "0.18.0: picked a shape in the gallery and dragging on the slide drew it; a click gave a 1 inch shape, Shift made it even",
+    "Smart guides and snapping": "0.14.0: smart guides with equal spacing, snap while resizing, Ctrl+drag copy of guides",
+    "Rulers and gridlines": "0.14.0: gridlines and guides with spacing presets, centre guides and guide colours",
+    "Crop and crop to shape": "0.15.0: crop to aspect ratio 1:1 on a picture",
+    "Video and audio with start, end, loop and autoplay": "0.16.0: video autoplay, full screen and volume in the show, Alt+P, Alt+Up and Alt+U keys",
+    "Open .pptx, .potx, .ppsx, .pptm": "0.17.0: a 73-slide .pptx with 54 media items opened as its own deck from Home, text edited and saved",
+    "Autosave to a library of recent decks": "0.17.0: Recent list on Home, Pin to list and Remove from list, imported decks sort first, delete to Trash and restore",
+    "Full-screen show, keyboard navigation, go to slide by number": "0.13.0: Esc ends the slide show, End Show button, media keys; 0.15.0: + and - zoom",
+}
+
+
 def score(rows, key):
     s = [r for r in rows if r["area"] != "Platform" and r[key]]
     pts = sum(V[r["st"]] for r in s)
+    return pts, len(s)
+
+
+def score_window(rows, key):
+    s = [r for r in rows if r["area"] != "Platform" and r[key]]
+    pts = sum(V[r["st"]] for r in s if r["cap"] in WINDOW)
     return pts, len(s)
 
 
@@ -201,11 +220,13 @@ if __name__ == "__main__":
         entry = {"area": area, "rows": len(rows)}
         for k, _ in keys:
             entry[k] = score(rows, k)
+        entry["window"] = {k: score_window(rows, k) for k, _ in keys}
         allp = sum(V[r["st"]] for r in rows)
         entry["own"] = (allp, len(rows))
         out["areas"].append(entry)
     for k, _ in keys:
         out["overall"][k] = score(R, k)
+    out["window"] = {k: score_window(R, k) for k, _ in keys}
     nonplat = [r for r in R if r["area"] != "Platform"]
     out["overall"]["own"] = (sum(V[r["st"]] for r in nonplat), len(nonplat))
     out["counts"] = {s: sum(1 for r in nonplat if r["st"] == s) for s in (F, P, N)}
@@ -217,10 +238,10 @@ if __name__ == "__main__":
         for area in AREAS:
             rows = [r for r in R if r["area"] == area]
             lines.append(f"### {area}\n")
-            lines.append("| Capability | PowerPoint | Keynote | Slides | FormDeck | Evidence |")
-            lines.append("| --- | --- | --- | --- | --- | --- |")
+            lines.append("| Capability | PowerPoint | Keynote | Slides | FormDeck | Seen working | Evidence |")
+            lines.append("| --- | --- | --- | --- | --- | --- | --- |")
             for r in rows:
-                lines.append(f"| {r['cap']} | {mark(r['ppt'])} | {mark(r['kn'])} | {mark(r['gs'])} | {word[r['st']]} | {r['ev']} |")
+                lines.append(f"| {r['cap']} | {mark(r['ppt'])} | {mark(r['kn'])} | {mark(r['gs'])} | {word[r['st']]} | {WINDOW.get(r['cap'], 'not yet')} | {r['ev']} |")
             lines.append("")
         print("\n".join(lines))
         print("\n### SCORES\n")
@@ -235,6 +256,20 @@ if __name__ == "__main__":
         cells = []
         for k, _ in keys:
             p, n = out["overall"][k]
+            cells.append(f"**{p:g} of {n} · {pct(p, n)}**")
+        print("| **Overall** | " + " | ".join(cells) + " |")
+        print("\n### SCORES, VERIFIED IN THE WINDOW\n")
+        print("| Area | vs PowerPoint | vs Keynote | vs Google Slides |")
+        print("| --- | --- | --- | --- |")
+        for e in out["areas"]:
+            cells = []
+            for k, _ in keys:
+                p, n = e["window"][k]
+                cells.append(f"{p:g} of {n} · {pct(p, n)}" if n else "not offered")
+            print(f"| {e['area']} | " + " | ".join(cells) + " |")
+        cells = []
+        for k, _ in keys:
+            p, n = out["window"][k]
             cells.append(f"**{p:g} of {n} · {pct(p, n)}**")
         print("| **Overall** | " + " | ".join(cells) + " |")
     else:
