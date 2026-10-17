@@ -283,7 +283,7 @@ def compose_bytes(deck_id: str, fmt: str, meta: dict, images: list[bytes], bares
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
         for i, data in enumerate(images):
             n = (slides[i] or {}).get("n") if i < len(slides) and isinstance(slides[i], dict) else None
-            z.writestr(f"{title}-{int(n or i + 1):02d}.{ext}", _raster(data, fmt))
+            z.writestr(f"{title}/Slide{int(n or i + 1)}.{ext}", _raster(data, fmt))
     return buf.getvalue(), f"{title}-slides.zip"
 
 

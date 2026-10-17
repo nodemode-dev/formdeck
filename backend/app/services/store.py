@@ -432,6 +432,9 @@ class Store:
         old = json.loads(p.read_text(encoding="utf-8"))["deck"]
         cur = self.session(deck_id).deck
         ops = [{"op": "set", "path": [k], "value": copy.deepcopy(old[k])} for k in ("title", "size", "theme", "masters", "layouts", "slides", "sections", "comments", "media") if k in old and old[k] != cur.get(k)]
+        was, now = (old.get("meta") or {}).get("template"), (cur.get("meta") or {}).get("template")
+        if was != now:
+            ops.append({"op": "set", "path": ["meta", "template"], **({"value": was} if was is not None else {})})
         return await self.step(deck_id, ops, f"Restore {n}", "user", client)
 
 
