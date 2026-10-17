@@ -38,7 +38,7 @@ Sources are abbreviated: MS-KB = Microsoft, "Use keyboard shortcuts to create Po
 | Right-click a guide > Color recolours it. | MS-GRID; The PowerPoint Blog |
 | Master and layout guides show on slides in their own colour, cannot be selected there, and still snap. | IDZ; The PowerPoint Blog (colours conflict) |
 | Smart guides: dashed lines for edge and centre alignment, arrows for equal spacing, also while resizing to match another object. | MS "Guides for arranging things"; IDZ |
-| Snap to grid on by default: sources conflict (on per The Software Pro and Office Watch, off per IDZ). | conflict |
+| Snap to grid on by default: sources conflict (on per The Software Pro and Office Watch, off per IDZ). FormDeck ships it off, the owner's decision of 2026-10-17. | decided: off |
 
 ## Fonts and sizes
 

@@ -12,7 +12,7 @@ import '../styles/draw.css';
 export interface AidPrefs { ruler: boolean; grid: boolean; guides: boolean; snapGrid: boolean; smart: boolean; spacing: number }
 const KEY = 'formdeck.aids';
 const DEFAULT_KEY = 'formdeck.aids.default';
-const DEFAULTS: AidPrefs = { ruler: false, grid: false, guides: false, snapGrid: true, smart: true, spacing: 6 };
+const DEFAULTS: AidPrefs = { ruler: false, grid: false, guides: false, snapGrid: false, smart: true, spacing: 6 };
 export const GUIDE_COLORS: Array<[string, string, string]> = [['grey', 'Grey', '#8a8a93'], ['red', 'Red', '#e5484d'], ['orange', 'Orange', '#f76b15'], ['yellow', 'Yellow', '#e5b800'], ['green', 'Green', '#30a46c'], ['teal', 'Teal', '#12a594'], ['blue', 'Blue', '#3e63dd'], ['purple', 'Purple', '#8e4ec6'], ['pink', 'Pink', '#d6409f'], ['black', 'Black', '#111111']];
 let ctxGuide: string | null = null;
 let ctxPos: { x: number; y: number } | null = null;
