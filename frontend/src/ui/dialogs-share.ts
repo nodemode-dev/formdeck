@@ -40,6 +40,7 @@ class ShareDialog extends Dialog {
     super('Share Deck', 560);
     const box = el(`<div class="fd-dlg-stack fd-share">
 <label class="fd-check"><input type="checkbox" data-f="lan"><span>Allow other computers on this network</span></label>
+<p class="fd-note">This only lets people on the same network open the decks you share with a link. FormDeck does not search your network, collect information about you or your devices, or send anything anywhere. On a Mac, turning this on makes macOS ask once for Local Network access.</p>
 <p class="fd-note" data-f="status"></p>
 <label class="fd-check"><input type="checkbox" data-f="relay"><span>Also share through a relay, for people outside this network</span></label>
 <div class="fd-share-relay" data-f="relayform"><input class="fd-input" type="url" spellcheck="false" data-f="rurl" aria-label="Relay address" placeholder="https://relay.example.com"><input class="fd-input" type="password" autocomplete="off" data-f="rtoken" aria-label="Relay token" placeholder="Relay token"><button class="fd-btn fd-btn-sm" type="button" data-a="relay-save">Connect</button></div>

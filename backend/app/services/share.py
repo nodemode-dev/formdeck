@@ -102,7 +102,8 @@ def urls(token: str) -> list[str]:
 
 def status() -> dict:
     task = _server["task"]
-    return {"lan": enabled(), "listening": bool(task and not task.done()), "port": lan_port(), "addresses": addresses()}
+    on = enabled()
+    return {"lan": on, "listening": bool(task and not task.done()), "port": lan_port(), "addresses": addresses() if on else []}
 
 
 async def start(app) -> None:
