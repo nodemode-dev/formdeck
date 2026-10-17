@@ -86,4 +86,4 @@ Sources are abbreviated: MS-KB = Microsoft, "Use keyboard shortcuts to create Po
 
 ## Where FormDeck deliberately differs
 
-Record a deliberate difference here with the reason, so the next session does not "fix" it back. As of 0.13.0: the marquee keeps a touch rule as a preference beside PowerPoint's enclose default; review status is FormDeck's agent handoff, not a PowerPoint feature.
+Record a deliberate difference here with the reason, so the next session does not "fix" it back. As of 0.14.0: the marquee keeps a touch rule as a preference beside PowerPoint's enclose default; review status is FormDeck's agent handoff, not a PowerPoint feature, and shows only when the deck is shared or outside agents are allowed; guide colours are kept in FormDeck files only, since PowerPoint's guide extension has no colour; Lock aspect ratio keeps the current frame ratio, not the picture's original pixel ratio.
