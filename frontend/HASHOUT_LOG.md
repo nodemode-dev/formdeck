@@ -473,3 +473,15 @@ The owner asked for review only on the network. One module answers "shared" (loc
 ## 105. Trash and a pane that stays put · _v0.14.0 (ui/home.ts card menu, selection, trash view, confirm bar; app.ts props hide and restore; io/api.ts trash calls)
 
 Deleting from Home moves to the engine's existing .trash folder and offers Undo, which is the restore route, so nothing is lost by a slip. Confirmation is an in-page bar because the window must not use window.confirm. The ... button sits inside the card button, so it cannot take focus itself; keyboard users get the same menu from the Menu key or Shift+F10. The pane's hidden state is stored beside its width, and a collapse by dragging does not overwrite the saved width, so reopening restores the previous size.
+
+## 106. Review is a choice, made for sharing · _v0.15.0 (editor/collab-state.ts collab.watch; editor/commands.ts review-enable, review-disable, review-toggle; editor/inspector.ts; ui/dialogs-share.ts)
+
+The owner ruled that review makes no sense for one person, so it is a per-deck flag the person turns on when they mean to share, and it travels in the file so a received deck shows review if its sender turned it on. 0.14.0's rule (on when the network or relay was on, or agents allowed) was dropped with the /api/share reads it needed, which had also been asking macOS for Local Network access at every start. Turning it off hides the tools but keeps statuses and comments in the deck, so nothing is lost by a misclick.
+
+## 107. Editing keys as PowerPoint maps them · _v0.15.0 (editor/stage.ts copy drag, resize modifiers, hover box, multi box, nudgeSize, rotateBy, startText; app.ts arrow keys; editor/commands.ts change-case, clear-format)
+
+Ctrl or Cmd is the copy modifier while moving, so on a Mac snapping is skipped with Alt while moving and with Cmd only while resizing; on Windows and Linux Alt always skips snapping and Ctrl resizes from the centre, as Microsoft documents. Ctrl+Arrow converts one screen pixel to points at the current zoom, which is what PowerPoint's fine nudge means. The multi-selection box scales unrotated frames about the box, so rotated members are approximate. The hover outline is one node moved on pointermove, never created per object.
+
+## 108. Slide show keys and picture tools · _v0.15.0 (present/show.ts KEYS, stepZoom, help, all-slides, hotspots; editor/crop-tool.ts CROP_SHAPES, crop-aspect-*, picture-reset-size; ui/dialogs-compress.ts; ui/dialogs-replace-fonts.ts; ui/dialogs-file.ts dpi)
+
+Minus ended the show, which is how a presenter zooming out lost the room; it now zooms out as in PowerPoint and only Esc ends. Picture export offers dpi because PowerPoint's default is 96 dpi (1280 by 720 for widescreen) and people compare file sizes in those terms. Compress Pictures re-encodes in the engine with Pillow and keeps the original when the result is not smaller.
