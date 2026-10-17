@@ -4,7 +4,7 @@ description: "Builds and edits slide decks in FormDeck (formerly formsld) throug
 license: Apache-2.0
 metadata:
   author: nodemode-ai
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
 # FormDeck harness

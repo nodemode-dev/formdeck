@@ -4,7 +4,7 @@ description: "Guides development of the FormDeck (formerly formsld) codebase: it
 license: Apache-2.0
 metadata:
   author: nodemode-ai
-  version: "0.4.1"
+  version: "0.4.2"
 ---
 
 # FormDeck skillset
