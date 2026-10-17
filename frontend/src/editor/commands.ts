@@ -116,6 +116,32 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     const allOn = els.length > 0 && els.every((e) => styledRuns(e).every(({ r, p }) => (r.caps ?? levelStyle(chain(ed.doc.deck, s, e), p.lvl ?? 0).caps) === mode));
     apply(runStyleOps(ed.doc.deck, s, els, { caps: allOn ? undefined : mode }), mode === 'all' ? 'All caps' : 'Small caps');
   };
+  const caseMode = (all: string): 'lower' | 'upper' | 'title' => (all === all.toLowerCase() ? 'upper' : all === all.toUpperCase() ? 'title' : 'lower');
+  const recase = (mode: 'lower' | 'upper' | 'title') => (t: string, prev: string): string => {
+    if (mode === 'lower') return t.toLowerCase();
+    if (mode === 'upper') return t.toUpperCase();
+    let last = prev;
+    let out = '';
+    for (const ch of t) { out += last === '' || /\s/.test(last) ? ch.toUpperCase() : ch.toLowerCase(); last = ch; }
+    return out;
+  };
+  const changeCase = (): void => {
+    const ed = E();
+    const s = slide();
+    if (!ed || !s) return;
+    if (ed.stage.editing && ed.stage.editMapText((all) => recase(caseMode(all)))) return;
+    ed.stage.commit();
+    const els = textSel().filter((e) => e.text?.paras.length);
+    if (!els.length) return;
+    const mode = caseMode(els.map((e) => (e.text?.paras ?? []).map((p) => p.runs.map((r) => r.t).join('')).join('\n')).join('\n'));
+    const ops: Op[] = els.map((e) => {
+      const fn = recase(mode);
+      const paras = structuredClone(e.text?.paras ?? []);
+      for (const p of paras) { let prev = ''; for (const r of p.runs) { r.t = fn(r.t, prev); prev = r.t.slice(-1) || prev; } }
+      return { op: 'set', path: [...elPath(s.id, e.id), 'text', 'paras'], value: paras } as Op;
+    });
+    apply([...ops, ...dirtyOp(s)], 'Change case');
+  };
   const runOn = (key: 'b' | 'i' | 'u' | 's'): boolean => {
     const ed = E();
     const s = slide();
@@ -249,7 +275,8 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'strike', label: 'Strikethrough', keys: ['Shift+Mod+X'], icon: 'strike', enabled: () => textSel().length > 0 || editing(), checked: () => runOn('s'), run: () => runStyle('s', 'strikeThrough', 'Strikethrough') },
     { id: 'grow-font', label: 'Increase Font Size', keys: ['Shift+Mod+.'], enabled: () => textSel().length > 0, run: () => sizeStep(1) },
     { id: 'shrink-font', label: 'Decrease Font Size', keys: ['Shift+Mod+,'], enabled: () => textSel().length > 0, run: () => sizeStep(-1) },
-    { id: 'clear-format', label: 'Clear Formatting', keys: ['Mod+\\'], icon: 'clearFormat', enabled: () => textSel().length > 0, run: () => { const s = slide(); const ed = E(); if (s && ed) apply(runStyleOps(ed.doc.deck, s, textSel(), { b: undefined, i: undefined, u: undefined, s: undefined, color: undefined, sz: undefined, font: undefined, hl: undefined }), 'Clear formatting'); } },
+    { id: 'change-case', label: 'Change Case', keys: ['Shift+F3'], icon: 'allCaps', enabled: () => textSel().length > 0 || editing(), run: changeCase },
+    { id: 'clear-format', label: 'Clear Formatting', keys: ['Mod+\\', 'Mod+Space'], icon: 'clearFormat', enabled: () => textSel().length > 0, run: () => { const s = slide(); const ed = E(); if (ed?.stage.editing && ed.stage.editFormat('removeFormat')) return; if (s && ed) apply(runStyleOps(ed.doc.deck, s, textSel(), { b: undefined, i: undefined, u: undefined, s: undefined, color: undefined, sz: undefined, font: undefined, hl: undefined }), 'Clear formatting'); } },
     { id: 'text-color', label: 'Text Colour...', icon: 'textColor', enabled: () => textSel().length > 0 || editing(), run: () => h.textColor() },
     { id: 'highlight', label: 'Highlight...', icon: 'highlight', enabled: () => textSel().length > 0 || editing(), run: () => h.highlight() },
     { id: 'superscript', label: 'Superscript', keys: ['Shift+Mod+='], icon: 'superscript', enabled: () => textSel().length > 0 || editing(), checked: () => textSel().some((e) => (e.text?.paras ?? []).some((p) => p.runs.some((r) => r.t && r.sup))), run: () => scriptToggle('sup', 'Superscript') },

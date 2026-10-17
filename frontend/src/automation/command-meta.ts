@@ -86,6 +86,7 @@ const ROWS: Record<string, Row> = {
   'strike': ['Use when the selected text should be struck through.'],
   'grow-font': ['Use when the selected text should be one size bigger.'],
   'shrink-font': ['Use when the selected text should be one size smaller.'],
+  'change-case': ['Use when selected text should switch between lowercase, UPPERCASE and Capitalize Each Word.'],
   'clear-format': ['Use when text should lose its manual formatting and follow the layout again.'],
   'format-painter': ['Use when the look of one element should be copied onto others; double-click keeps it on.'],
   'format-painter-frame': ['Use when Format Painter should also copy size and rotation, and position when painting one element.'],

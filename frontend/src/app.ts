@@ -8,7 +8,7 @@ import { brandMark } from './ui/brand';
 import { pickColor } from './ui/colorpop';
 import { Commands, comboOf } from './ui/commands';
 import { anyDialogOpen } from './ui/dialogs';
-import { mountOnce, q, revealApp, setClass, setDisabled, setHidden, setText, setStyleVar, setValue } from './ui/dom';
+import { isMac, mountOnce, q, revealApp, setClass, setDisabled, setHidden, setText, setStyleVar, setValue } from './ui/dom';
 import { enhanceAllSelects } from './ui/dropdown';
 import { Home } from './ui/home';
 import { icon } from './ui/icons';
@@ -51,6 +51,7 @@ import { registerSlideZoomCommands } from './editor/slide-zoom';
 import { registerDesignIdeas } from './editor/design-ideas';
 import { registerCameraCommands } from './editor/camera';
 import { setMarqueeRule } from './editor/stage';
+import { aidPrefs } from './editor/rulers';
 import { groupChain } from './editor/actions';
 import { guest, guestName } from './io/guest';
 import type { TerminalDock } from './ui/terminal-dock';
@@ -387,7 +388,7 @@ export async function startApp(): Promise<void> {
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
     { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-collapse', 'ribbon-simplified', 'qat-below', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
-    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
+    { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'change-case', 'clear-format', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'design-ideas', 'reset-slide', 'reset-placeholder', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
     { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock', '-', 'component-create', 'component-update', 'component-detach', '-', 'selection-pane'] },
     { label: 'Review', items: ['spelling', 'language', '-', 'check-deck', 'review-activity', 'review-compare', '-', 'review-enable', 'review-disable', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
@@ -469,6 +470,11 @@ export async function startApp(): Promise<void> {
         commands.run(combo === 'Mod+`' ? 'view-terminal' : combo === 'Shift+Mod+P' ? 'command-palette' : 'claude-code');
         return;
       }
+      if (t.isContentEditable && ['Shift+F3', 'Mod+Space', 'Mod+\\'].includes(combo)) {
+        e.preventDefault();
+        commands.run(combo === 'Shift+F3' ? 'change-case' : 'clear-format');
+        return;
+      }
       if (t.isContentEditable && ['Mod+Z', 'Shift+Mod+Z', 'Mod+S', 'Mod+P', 'Mod+K'].includes(combo)) {
         if (combo === 'Mod+Z' || combo === 'Shift+Mod+Z') return;
         e.preventDefault();
@@ -476,8 +482,26 @@ export async function startApp(): Promise<void> {
       }
       return;
     }
+    const modHeld = isMac ? e.metaKey : e.ctrlKey;
+    if (ed && ed.selection.length && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && (modHeld || e.altKey || e.shiftKey) && !(isMac ? e.ctrlKey : e.metaKey) && !(modHeld && e.altKey)) {
+      const pf = aidPrefs();
+      const base = pf.snapGrid && pf.spacing > 0 ? pf.spacing : 1;
+      const sx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+      const sy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+      if (e.altKey && !e.shiftKey) {
+        if (sx) { e.preventDefault(); ed.stage.rotateBy(sx * 15); }
+        return;
+      }
+      e.preventDefault();
+      if (modHeld) {
+        const px = 1 / Math.max(0.01, ed.stage.k);
+        ed.nudge(sx * px, sy * px);
+      } else ed.stage.nudgeSize(sx * base, sy * base);
+      return;
+    }
     if (ed && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      const step = e.shiftKey ? 10 : 1;
+      const pf = aidPrefs();
+      const step = pf.snapGrid && pf.spacing > 0 ? pf.spacing : 1;
       if (ed.selection.length && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         e.preventDefault();
         ed.nudge(e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0, e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0);
@@ -493,11 +517,16 @@ export async function startApp(): Promise<void> {
         ed.select(chain.length ? [chain[chain.length - 1].id] : []);
         return;
       }
+      if (e.key === 'F2' && ed.selection.length === 1) {
+        e.preventDefault();
+        ed.stage.startText(ed.selection[0]);
+        return;
+      }
       if (e.key === 'Enter' && ed.selection.length === 1) {
         const one = ed.selected()[0];
         if (one.type === 'shape') { e.preventDefault(); ed.stage.beginEdit(one.id); return; }
       }
-      if (e.key === 'Tab' && (t === document.body || !!t.closest?.('.fd-stage'))) {
+      if (e.key === 'Tab' && (t === document.body || !!t.closest?.('.fd-stage, .fd-viewport'))) {
         const els = (ed.slide?.elements ?? []).filter((x) => !x.hidden);
         if (els.length) {
           e.preventDefault();

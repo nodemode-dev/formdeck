@@ -2,6 +2,7 @@
 html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 .fd-app { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 .fd-viewport { touch-action: none; }
+.fd-viewport:focus { outline: none; }
 .fd-sheet-scrim, .fd-sheet-close, .fd-st-strip, .fd-st-props, .fd-pager-btn, .fd-mode-btn { display: none; }
 .fd-st-strip[aria-pressed="true"], .fd-st-props[aria-pressed="true"], .fd-pager-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-ink); }
 .fd-pager-btn:disabled { opacity: 0.35; }

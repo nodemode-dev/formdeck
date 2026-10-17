@@ -57,6 +57,8 @@ export class Home {
   private readonly tplGridFull: HTMLElement;
   private readonly recentGrid: HTMLElement;
   private readonly recentGridFull: HTMLElement;
+  private pinned: string[] = [];
+  private hiddenRecent: string[] = [];
   private readonly preview: TemplatePreviewDialog;
   private trashed: TrashedDeck[] = [];
   private readonly selected = new Set<string>();
@@ -237,7 +239,9 @@ export class Home {
   }
 
   async load(): Promise<void> {
-    const [t, l, tr] = await Promise.all([api.templates(), api.library(), api.trash().catch(() => ({ decks: [] as TrashedDeck[] }))]);
+    const [t, l, tr, st] = await Promise.all([api.templates(), api.library(), api.trash().catch(() => ({ decks: [] as TrashedDeck[] })), api.settings().catch(() => ({} as Record<string, unknown>))]);
+    this.pinned = Array.isArray(st.pinned) ? st.pinned.filter((x): x is string => typeof x === 'string') : [];
+    this.hiddenRecent = Array.isArray(st.recentHidden) ? st.recentHidden.filter((x): x is string => typeof x === 'string') : [];
     this.templates = t.templates;
     this.categories = ['All', ...t.categories];
     this.decks = l.decks;
@@ -275,6 +279,9 @@ export class Home {
       rows.push(['Open', 'open', () => this.hooks.openDeck(id)]);
       rows.push(['Duplicate', 'dup', () => { void api.duplicate(id).then(() => this.load()).then(() => toast('Duplicated.')).catch((e) => toast(`Could not duplicate: ${e instanceof Error ? e.message : e}`, 'error')); }]);
     }
+    const allPinned = ids.every((x) => this.pinned.includes(x));
+    rows.push([allPinned ? 'Unpin from list' : 'Pin to list', 'pin', () => this.setPinned(ids, !allPinned)]);
+    rows.push(['Remove from list', 'hide', () => this.setHiddenRecent(ids, true)]);
     rows.push([many ? `Delete ${ids.length} decks` : 'Delete', 'del', () => this.requestDelete(ids)]);
     this.menu.textContent = '';
     for (const [label, key, run] of rows) {
@@ -290,6 +297,23 @@ export class Home {
     this.menu.style.top = `${Math.round(Math.max(4, Math.min(y, window.innerHeight - h - 4)))}px`;
     this.menu.style.visibility = '';
     (this.menu.firstElementChild as HTMLElement | null)?.focus();
+  }
+
+  private saveRecent(): void {
+    this.renderDecks();
+    void api.setSettings({ pinned: this.pinned, recentHidden: this.hiddenRecent }).catch((e) => toast(`Could not save the list: ${e instanceof Error ? e.message : e}`, 'error'));
+  }
+
+  private setPinned(ids: string[], on: boolean): void {
+    this.pinned = on ? [...this.pinned.filter((x) => !ids.includes(x)), ...ids] : this.pinned.filter((x) => !ids.includes(x));
+    if (on) this.hiddenRecent = this.hiddenRecent.filter((x) => !ids.includes(x));
+    this.saveRecent();
+  }
+
+  private setHiddenRecent(ids: string[], on: boolean): void {
+    this.hiddenRecent = on ? [...this.hiddenRecent.filter((x) => !ids.includes(x)), ...ids] : this.hiddenRecent.filter((x) => !ids.includes(x));
+    if (on) this.pinned = this.pinned.filter((x) => !ids.includes(x));
+    this.saveRecent();
   }
 
   private setSelected(id: string, on: boolean): void {
@@ -453,13 +477,16 @@ export class Home {
       const r = d.review ?? {};
       const total = d.slides;
       const status = !d.reviewOn ? '' : total && r.approved === total ? 'Approved' : r.changes ? 'Changes' : r.review ? 'In review' : '';
-      setText(n.querySelector('.fd-card-meta'), `${d.slides} slide${d.slides === 1 ? '' : 's'} · ${ago(d.modified)}${status ? ` · ${status}` : ''}`);
+      setText(n.querySelector('.fd-card-meta'), `${this.pinned.includes(d.id) ? 'Pinned · ' : ''}${d.slides} slide${d.slides === 1 ? '' : 's'} · ${ago(d.modified)}${status ? ` · ${status}` : ''}`);
+      setClass(n, 'is-pinned', this.pinned.includes(d.id));
     };
     const make = (d: DeckSummary): HTMLElement => { const n = card(d); update(n, d); return n; };
-    patchList(this.recentGrid, this.decks.slice(0, 5), { key: (d) => d.id, create: make, update });
-    patchList(this.recentGridFull, this.decks, { key: (d) => d.id, create: make, update });
+    const pinnedFirst = (list: DeckSummary[]): DeckSummary[] => [...list.filter((d) => this.pinned.includes(d.id)), ...list.filter((d) => !this.pinned.includes(d.id))];
+    const recent = pinnedFirst(this.decks.filter((d) => !this.hiddenRecent.includes(d.id)));
+    patchList(this.recentGrid, recent.slice(0, 5), { key: (d) => d.id, create: make, update });
+    patchList(this.recentGridFull, pinnedFirst(this.decks), { key: (d) => d.id, create: make, update });
     const none = this.recentGrid.querySelector<HTMLElement>('.fd-card.is-empty');
-    if (none) setHidden(none, this.decks.length > 0);
+    if (none) setHidden(none, recent.length > 0);
   }
 }
 

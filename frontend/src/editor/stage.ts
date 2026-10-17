@@ -1,29 +1,29 @@
 import type { Para, Slide, SlideElement, TableElement } from '../engine/model';
 import { chain, frameOf, geomOf, adjOf, type Frame } from '../engine/resolve';
 import { handleAdjust, presetGeometry } from '../engine/geometry/presets';
-import { elPath, type Op, type Touched } from '../engine/ops';
+import { elPath, slidePath, type Op, type Touched } from '../engine/ops';
 import { holderOf, layoutUsage, type HolderKind } from '../engine/holders';
 import { SlideView } from '../render/slide';
 import { cellOrigin, cellRange, tableGrid, type TableGrid } from '../render/table';
 import { fitText, readParas } from '../render/text';
 import { anyDialogOpen } from '../ui/dialogs';
-import { el as html, setClass, setHidden, setText } from '../ui/dom';
+import { el as html, isMac, setClass, setHidden, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import type { Editor } from './editor';
-import { bounds, dirtyOp, fillPlaceholderOps, groupChain, refitGroupOps, setFrameOps } from './actions';
+import { bounds, clone, dirtyOp, fillPlaceholderOps, groupChain, refitGroupOps, resolvedFrame, setFrameOps } from './actions';
 import { clearCellsOps, fitFrameOps, insertRowOps } from './table-edit';
 import type { ConnEnd, ConnKind, Connection, ShapeElement } from '../engine/model';
 import { connectorMid, lineEnds, nearestSite, routeConnector, slideToLocal, type Site } from '../engine/geometry/connectors';
 import type { Pt } from '../engine/geometry/path';
-import { endPoint, geometryOps, glueOps, isLineLike, kindOf, sitesOf, targetAt, xfOf } from './connectors';
+import { endPoint, geometryOps, glueOps, isLineLike, kindOf, remapCopies, sitesOf, targetAt, xfOf } from './connectors';
 import { buzz, installInputKind, isTouchInput, Press } from '../ui/touch';
 import { aidPrefs, noteContextPoint, StageAids } from './rulers';
 import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
 
 type Drag =
-  | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean; edit?: { id: string; x: number; y: number }; pick?: string }
-  | { kind: 'resize'; id: string; h: string; f0: Frame; rot: number; aspect: number; x0: number; y0: number }
+  | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean; edit?: { id: string; x: number; y: number }; pick?: string; copy?: boolean; toggle?: string; delta?: { dx: number; dy: number } }
+  | { kind: 'resize'; id: string; h: string; f0: Frame; rot: number; aspect: number; x0: number; y0: number; multi?: Map<string, Frame> }
   | { kind: 'rotate'; id: string; cx: number; cy: number }
   | { kind: 'adjust'; id: string; index: number; key: string; f: Frame }
   | { kind: 'marquee'; x0: number; y0: number; add: boolean; base: string[]; tap?: boolean }
@@ -84,6 +84,9 @@ export class Stage {
   private readonly canvas: HTMLDivElement;
   private readonly overlay: HTMLDivElement;
   private readonly hint: HTMLDivElement;
+  private readonly hover: HTMLDivElement;
+  private hoverId: string | null = null;
+  private ghost: Frame[] | null = null;
   private readonly banner: HTMLElement;
   view: SlideView | null = null;
   zoom: number | 'fit' = 'fit';
@@ -128,12 +131,18 @@ export class Stage {
     this.hint = document.createElement('div');
     this.hint.className = 'fd-ctx-hint';
     this.hint.hidden = true;
-    this.viewport.append(this.canvas, this.overlay, this.hint);
+    this.hover = document.createElement('div');
+    this.hover.className = 'fd-hover-box';
+    this.hover.hidden = true;
+    this.viewport.tabIndex = -1;
+    this.viewport.append(this.canvas, this.overlay, this.hover, this.hint);
     root.prepend(this.viewport);
     this.banner = html(`<div class="fd-master-banner" hidden role="status"><span class="fd-master-banner-icon">${icon('layout', 14)}</span><span class="fd-master-banner-title">Slide Master</span><span class="fd-master-banner-name"></span><button class="fd-btn fd-btn-sm" type="button" data-cmd="close-master">${icon('close', 14)}<span>Close Master View</span></button></div>`);
     this.viewport.after(this.banner);
     new ResizeObserver(() => this.layout()).observe(root);
     this.viewport.addEventListener('pointerdown', (e) => this.down(e));
+    this.viewport.addEventListener('pointermove', (e) => this.hoverAt(e));
+    this.viewport.addEventListener('pointerleave', () => this.hoverHide());
     this.viewport.addEventListener('dblclick', (e) => this.dbl(e));
     this.viewport.addEventListener('wheel', (e) => this.wheel(e), { passive: false });
     this.viewport.addEventListener('contextmenu', (e) => this.context(e));
@@ -294,6 +303,7 @@ export class Stage {
   drawOverlay(): void {
     const slide = this.slide();
     const sel = this.ed.selection;
+    if (this.hoverId) this.hoverHide();
     if (this.cells && !(sel.length === 1 && sel[0] === this.cells.el)) this.cells = null;
     const parts: string[] = [];
     if (slide && this.view) {
@@ -344,6 +354,20 @@ export class Stage {
           }
         }
       }
+      const free = els.filter((x) => !x.locked);
+      if (free.length > 1 && !this.editing) {
+        const mb = bounds(free.map((x) => this.frameOf(x)));
+        const mw = mb.w * k, mh = mb.h * k;
+        parts.push(`<div class="fd-sel is-parent" style="left:${this.ox + mb.x * k}px;top:${this.oy + mb.y * k}px;width:${mw}px;height:${mh}px"></div>`);
+        const mpos: Record<string, [number, number]> = { nw: [0, 0], n: [mw / 2, 0], ne: [mw, 0], e: [mw, mh / 2], se: [mw, mh], s: [mw / 2, mh], sw: [0, mh], w: [0, mh / 2] };
+        const msmall = mw < 24 || mh < 24;
+        const mhit = isTouchInput() ? `;--hit:${Math.round(Math.max(20, Math.min(44, Math.min(mw, mh) / 2)))}px` : '';
+        for (const h of HANDLES) {
+          if (msmall && ['n', 's', 'e', 'w'].includes(h)) continue;
+          parts.push(`<div class="fd-handle" data-h="${h}" style="left:${this.ox + mb.x * k + mpos[h][0]}px;top:${this.oy + mb.y * k + mpos[h][1]}px${mhit}"></div>`);
+        }
+      }
+      if (this.ghost) for (const f of this.ghost) parts.push(`<div class="fd-hover-box" style="left:${this.ox + f.x * k}px;top:${this.oy + f.y * k}px;width:${f.w * k}px;height:${f.h * k}px"></div>`);
       if (this.guides.length) for (const g of this.guides) parts.push(g.axis === 'v' ? `<div class="fd-guide is-v" style="left:${this.ox + g.at * k}px;top:${this.oy + g.from * k}px;height:${(g.to - g.from) * k}px"></div>` : `<div class="fd-guide is-h" style="top:${this.oy + g.at * k}px;left:${this.ox + g.from * k}px;width:${(g.to - g.from) * k}px"></div>`);
       for (const g of this.gaps) parts.push(g.axis === 'h' ? `<div class="fd-gap is-h" style="left:${this.ox + g.from * k}px;top:${this.oy + g.at * k}px;width:${(g.to - g.from) * k}px"></div>` : `<div class="fd-gap is-v" style="top:${this.oy + g.from * k}px;left:${this.ox + g.at * k}px;height:${(g.to - g.from) * k}px"></div>`);
       if (this.marquee) parts.push(`<div class="fd-marquee" style="left:${this.ox + this.marquee.x * k}px;top:${this.oy + this.marquee.y * k}px;width:${this.marquee.w * k}px;height:${this.marquee.h * k}px"></div>`);
@@ -405,7 +429,32 @@ export class Stage {
     return { id: node.dataset.id || null, ph: node.dataset.ph || null, node };
   }
 
+  private hoverHide(): void {
+    this.hoverId = null;
+    if (!this.hover.hidden) this.hover.hidden = true;
+  }
+
+  private hoverAt(e: PointerEvent): void {
+    const slide = this.slide();
+    if (this.drag || this.editing || e.pointerType === 'touch' || !slide || !this.view || this.viewOnly() || e.buttons) { if (this.hoverId) this.hoverHide(); return; }
+    const hit = this.hitElement(e.target);
+    const el = hit.id && !hit.ph ? this.ed.element(hit.id) : undefined;
+    if (!el || this.ed.selection.includes(el.id) || el.hidden) { if (this.hoverId) this.hoverHide(); return; }
+    if (this.hoverId === el.id && !this.hover.hidden) return;
+    const f = this.frameOf(el);
+    const k = this.k;
+    const s = this.hover.style;
+    s.left = `${this.ox + f.x * k}px`;
+    s.top = `${this.oy + f.y * k}px`;
+    s.width = `${f.w * k}px`;
+    s.height = `${f.h * k}px`;
+    s.transform = `rotate(${this.rotOf(el)}deg)`;
+    this.hoverId = el.id;
+    this.hover.hidden = false;
+  }
+
   private down(e: PointerEvent): void {
+    this.hoverHide();
     if (e.button === 1 || (e.button === 0 && this.space)) {
       this.drag = { kind: 'pan', x0: e.clientX, y0: e.clientY, px: this.panX, py: this.panY };
       e.preventDefault();
@@ -435,6 +484,19 @@ export class Stage {
     }
     if (handle) {
       e.preventDefault();
+      if (!this.editing) this.viewport.focus({ preventScroll: true });
+      if (this.ed.selection.length > 1) {
+        const multi = new Map<string, Frame>();
+        for (const sid of this.ed.selection) {
+          const sel = this.ed.element(sid);
+          if (sel && !sel.locked) multi.set(sid, this.frameOf(sel));
+        }
+        if (multi.size < 2) return;
+        const box = bounds(Array.from(multi.values()));
+        const mp = this.toSlide(e);
+        this.drag = { kind: 'resize', id: '', h: handle.dataset.h ?? '', f0: box, rot: 0, aspect: box.w / Math.max(1, box.h), x0: mp.x, y0: mp.y, multi };
+        return;
+      }
       const id = this.ed.selection[0];
       const el = this.ed.element(id);
       if (!el) return;
@@ -484,6 +546,7 @@ export class Stage {
       }
       this.endEdit();
     }
+    this.viewport.focus({ preventScroll: true });
     const hit = this.hitElement(target);
     if (hit.ph?.startsWith('v:')) {
       e.preventDefault();
@@ -517,6 +580,8 @@ export class Stage {
         return;
       }
       const add = e.shiftKey || e.metaKey || e.ctrlKey;
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      const copying = mod && !e.shiftKey && this.ed.selection.includes(hit.id);
       let sel = this.ed.selection;
       const hitEl = this.ed.element(hit.id);
       const drill = !add && !sel.includes(hit.id) && groupChain(slide.elements, hit.id).some((g) => sel.includes(g.id));
@@ -524,7 +589,8 @@ export class Stage {
       const single = !sel.includes(hit.id) || sel.length === 1;
       const clickEdit = !add && !drill && textual && single && this.overText(hit.id, e.clientX, e.clientY);
       const reduce = !add && !drill && sel.length > 1 && sel.includes(hit.id);
-      if (add) sel = sel.includes(hit.id) ? sel.filter((x) => x !== hit.id) : [...sel, hit.id];
+      if (copying) sel = this.ed.selection;
+      else if (add) sel = sel.includes(hit.id) ? sel.filter((x) => x !== hit.id) : [...sel, hit.id];
       else if (!drill && !sel.includes(hit.id)) sel = [hit.id];
       this.ed.select(sel);
       if (tc && sel.length === 1 && !drill) this.setCells(hit.id, tc.r, tc.c, tc.r, tc.c, false);
@@ -533,7 +599,7 @@ export class Stage {
         const el = this.ed.element(id);
         if (el && !el.locked) frames.set(id, this.frameOf(el));
       }
-      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined, pick: drill || reduce ? hit.id : undefined };
+      this.drag = { kind: 'move', x0: p.x, y0: p.y, frames, moved: false, edit: clickEdit ? { id: hit.id, x: e.clientX, y: e.clientY } : undefined, pick: drill || reduce ? hit.id : undefined, copy: copying, toggle: copying ? hit.id : undefined };
       if (e.pointerType === 'touch') this.armPress(e);
       return;
     }
@@ -777,6 +843,13 @@ export class Stage {
       const sdy = dy + snapped.dy;
       this.guides = snapped.guides;
       this.gaps = snapped.gaps;
+      if (d.copy) {
+        d.delta = { dx: sdx, dy: sdy };
+        this.ghost = frames.map((f) => ({ x: f.x + sdx, y: f.y + sdy, w: f.w, h: f.h }));
+        this.tip = { x: e.clientX - this.root.getBoundingClientRect().left, y: e.clientY - this.root.getBoundingClientRect().top + 14, text: `${Math.round(b.x + sdx)}, ${Math.round(b.y + sdy)}` };
+        this.drawOverlay();
+        return;
+      }
       for (const [id, f] of d.frames) {
         const el = this.ed.element(id);
         this.pendingOps.set(id, { ...f, x: f.x + sdx, y: f.y + sdy, rot: el?.rot });
@@ -786,13 +859,26 @@ export class Stage {
       return;
     }
     if (d.kind === 'resize') {
+      const center = isMac ? e.altKey : e.ctrlKey;
+      const noSnap = isMac ? e.metaKey : e.altKey;
+      if (d.multi) {
+        const box = this.resized(d, p, e.shiftKey, center);
+        const sx = box.w / Math.max(0.01, d.f0.w), sy = box.h / Math.max(0.01, d.f0.h);
+        for (const [id, f] of d.multi) {
+          const mel = this.ed.element(id);
+          this.pendingOps.set(id, { x: box.x + (f.x - d.f0.x) * sx, y: box.y + (f.y - d.f0.y) * sy, w: Math.max(1, f.w * sx), h: Math.max(1, f.h * sy), rot: mel?.rot });
+        }
+        this.tip = { x: e.clientX - this.root.getBoundingClientRect().left, y: e.clientY - this.root.getBoundingClientRect().top + 14, text: `${Math.round(box.w)} × ${Math.round(box.h)}` };
+        this.schedule('Resize', `resize:${Array.from(d.multi.keys()).join(',')}`, true);
+        return;
+      }
       const el = this.ed.element(d.id);
       if (!el) return;
       const keep = (el.lockAspect ?? el.type === 'image') !== e.shiftKey;
-      let f = this.resized(d, p, keep, e.altKey);
+      let f = this.resized(d, p, keep, center);
       this.guides = [];
       this.gaps = [];
-      if (!keep && !e.altKey && !d.rot) {
+      if (!keep && !noSnap && !center && !d.rot) {
         const only = { x: d.h.includes('w') ? [0] : d.h.includes('e') ? [2] : [], y: d.h.includes('n') ? [0] : d.h.includes('s') ? [2] : [] };
         const sn = this.snap(f, new Set([d.id]), only);
         this.guides = sn.guides;
@@ -964,7 +1050,10 @@ export class Stage {
     this.gaps = [];
     this.marquee = null;
     this.tip = null;
+    this.ghost = null;
+    if (d.kind === 'move' && d.copy && d.moved && d.delta && e?.type === 'pointerup') this.copyBy(Array.from(d.frames.keys()), d.delta.dx, d.delta.dy);
     this.drawOverlay();
+    if (d.kind === 'move' && !d.moved && d.toggle) this.ed.select(this.ed.selection.filter((x) => x !== d.toggle));
     if (d.kind === 'move' && !d.moved && d.pick) this.ed.select([d.pick]);
     if ((d.kind === 'marquee' || d.kind === 'pan') && d.tap) this.ed.select([]);
     if (d.kind === 'move' && !d.moved && d.edit && this.editing !== d.edit.id) {
@@ -974,6 +1063,88 @@ export class Stage {
     }
     const tapped = d.kind === 'move' ? !d.moved : (d.kind === 'marquee' || d.kind === 'pan') && !!d.tap;
     if (e?.pointerType === 'touch' && tapped && e.type === 'pointerup') this.touchTap(e);
+  }
+
+  private copyBy(ids: string[], dx: number, dy: number): void {
+    const s = this.slide();
+    if (!s || (!dx && !dy)) return;
+    const ed = this.ed;
+    const used = ed.doc.usedIds();
+    const items = ids.map((id) => ed.element(id)).filter((x): x is SlideElement => !!x).map((x) => ({ ...clone(x), ...resolvedFrame(ed.doc.deck, s, x) }) as SlideElement);
+    const fresh: string[] = [];
+    const copies = items.map((src) => {
+      const c = clone(src);
+      c.id = ed.doc.nextId('e', used);
+      if (c.type === 'group') for (const ch of c.children) ch.id = ed.doc.nextId('e', used);
+      if (s.elements.some((x) => x.ph && c.ph && x.ph.type === c.ph.type && (x.ph.idx ?? 0) === (c.ph.idx ?? 0))) { delete c.ph; delete c.slot; }
+      c.x = (c.x ?? 0) + dx;
+      c.y = (c.y ?? 0) + dy;
+      fresh.push(c.id);
+      return c;
+    });
+    if (!copies.length) return;
+    remapCopies(items, copies);
+    const ops: Op[] = copies.map((c) => ({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: c }) as Op);
+    if (ed.apply([...ops, ...dirtyOp(s)], 'Copy')) ed.select(fresh);
+  }
+
+  nudgeSize(dw: number, dh: number): void {
+    const s = this.slide();
+    if (!s) return;
+    const ops: Op[] = [];
+    const kids = new Map<string, Frame>();
+    for (const x of this.ed.selected()) {
+      if (x.locked) continue;
+      const f = resolvedFrame(this.ed.doc.deck, s, x);
+      const to = { x: f.x, y: f.y, w: f.w < 4 ? f.w : Math.max(4, f.w + dw), h: f.h < 4 ? f.h : Math.max(4, f.h + dh) };
+      ops.push(...setFrameOps(this.ed.doc.deck, s, x, to));
+      if (!s.elements.includes(x)) kids.set(x.id, to);
+    }
+    if (kids.size) ops.push(...refitGroupOps(s, kids));
+    if (ops.length) this.ed.apply([...ops, ...dirtyOp(s)], 'Resize', 'nudge-size');
+  }
+
+  rotateBy(deg: number): void {
+    const s = this.slide();
+    if (!s) return;
+    const ops = this.ed.selected().filter((x) => !x.locked).map((x) => ({ op: 'set', path: [...elPath(s.id, x.id), 'rot'], value: ((((x.rot ?? 0) + deg) % 360) + 360) % 360 }) as Op);
+    if (ops.length) this.ed.apply([...ops, ...dirtyOp(s)], 'Rotate', 'nudge-rotate');
+  }
+
+  startText(id: string): void {
+    const s = this.slide();
+    const x = this.ed.element(id);
+    if (!s || !x || x.locked) return;
+    if (x.type === 'table') { this.beginEdit(id); return; }
+    if (x.type !== 'shape') return;
+    if (!x.text) this.ed.apply([{ op: 'set', path: [...elPath(s.id, x.id), 'text'], value: { paras: [{ runs: [{ t: '' }], align: 'c' }], anchor: 'm' } }], 'Add text');
+    requestAnimationFrame(() => this.beginEdit(id));
+  }
+
+  editMapText(pick: (all: string) => (t: string, prev: string) => string): boolean {
+    const flow = this.editFlow();
+    const sel = window.getSelection();
+    if (!this.editing || !flow || !sel || !sel.rangeCount || sel.isCollapsed || !flow.contains(sel.anchorNode)) return false;
+    const range = sel.getRangeAt(0);
+    const fn = pick(sel.toString());
+    const sc = range.startContainer, so = range.startOffset, ec = range.endContainer, eo = range.endOffset;
+    const walker = document.createTreeWalker(flow, NodeFilter.SHOW_TEXT);
+    let prev = '';
+    for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
+      if (!range.intersectsNode(n)) continue;
+      const from = n === sc ? so : 0;
+      const to = n === ec ? eo : n.data.length;
+      if (to <= from) continue;
+      const mid = n.data.slice(from, to);
+      const before = n.data.slice(0, from);
+      const after = n.data.slice(to);
+      n.data = before + fn(mid, from > 0 ? before.slice(-1) : prev) + after;
+      prev = mid.slice(-1);
+    }
+    range.setStart(sc, so);
+    range.setEnd(ec, eo);
+    this.onInput(flow);
+    return true;
   }
 
   private touchTap(e: PointerEvent): void {
@@ -1152,7 +1323,7 @@ export class Stage {
     this.savedRange = { id: this.editing, range: sel.getRangeAt(0).cloneRange() };
   }
 
-  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName' | 'fontSize' | 'createLink' | 'unlink' | 'superscript' | 'subscript', value?: string): boolean {
+  editFormat(cmd: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'foreColor' | 'hiliteColor' | 'fontName' | 'fontSize' | 'createLink' | 'unlink' | 'superscript' | 'subscript' | 'removeFormat', value?: string): boolean {
     if (!this.editing) return false;
     const flow = this.editFlow();
     if (!flow) return false;
@@ -1439,7 +1610,7 @@ export class Stage {
     const sel = this.ed.selected();
     if (sel.length !== 1) return;
     const el = sel[0];
-    if (e.key === 'F2' && el.type === 'shape' && el.text) { e.preventDefault(); this.beginEdit(el.id); return; }
+    if (e.key === 'F2') { e.preventDefault(); if (el.type === 'shape') this.startText(el.id); else if (el.type === 'table') this.beginEdit(el.id); return; }
     if (el.type !== 'table') return;
     const stop = (): void => { e.preventDefault(); e.stopPropagation(); };
     if (e.key === 'Enter' || e.key === 'F2') { stop(); this.beginEdit(el.id); return; }
