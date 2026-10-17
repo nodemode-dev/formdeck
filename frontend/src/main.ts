@@ -1,6 +1,6 @@
-import { startApp } from './app';
 import { initLanguage } from './i18n';
 import { detectGuest, guest, guestName, setGuestName, shareRefused } from './io/guest';
+import { syncUiSettings } from './io/ui-settings';
 import { promptName } from './ui/dialogs';
 import { toast } from './ui/toast';
 
@@ -22,7 +22,7 @@ async function nameGuest(): Promise<void> {
   setGuestName(name?.trim() || 'Guest');
 }
 
-void initLanguage().catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => nameGuest().catch(() => undefined)).then(() => {
+void syncUiSettings().catch(() => undefined).then(() => initLanguage()).catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => nameGuest().catch(() => undefined)).then(() => {
   if (shareRefused()) {
     const note = document.createElement('p');
     note.className = 'fd-share-refused';
@@ -31,5 +31,5 @@ void initLanguage().catch(() => undefined).then(() => detectGuest((text) => toas
     return;
   }
   if (new URLSearchParams(location.search).get('audience') === '1') void import('./present/show').then((m) => m.bootAudience());
-  else void startApp();
+  else void import('./app').then((m) => m.startApp());
 });

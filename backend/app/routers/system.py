@@ -1,4 +1,5 @@
 import platform
+import re
 import sys
 
 from fastapi import APIRouter
@@ -6,6 +7,7 @@ from fastapi import APIRouter
 from app.core import config
 
 router = APIRouter()
+UI_KEY = re.compile(r"^formdeck[._][\w.:-]{1,100}$")
 
 
 def _available(module: str) -> bool:
@@ -49,10 +51,21 @@ def get_settings() -> dict:
 
 @router.post("/settings")
 def set_settings(patch: dict) -> dict:
-    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts", "marquee", "pinned", "recentHidden"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
+    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts", "marquee", "pinned", "recentHidden", "ui"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
     for key in ("pinned", "recentHidden"):
         if key in allowed:
             allowed[key] = [str(i)[:80] for i in allowed[key] if isinstance(i, str)][:500] if isinstance(allowed[key], list) else []
+    if "ui" in allowed:
+        ui = config.read_settings().get("ui")
+        ui = dict(ui) if isinstance(ui, dict) else {}
+        for k, v in (allowed["ui"] if isinstance(allowed["ui"], dict) else {}).items():
+            if not UI_KEY.match(str(k)):
+                continue
+            if v is None:
+                ui.pop(k, None)
+            elif isinstance(v, str) and len(v) <= 65536:
+                ui[k] = v
+        allowed["ui"] = dict(list(ui.items())[-400:])
     if "marquee" in allowed:
         allowed["marquee"] = "enclose" if allowed["marquee"] == "enclose" else "touch"
     if "defaultSize" in allowed:
