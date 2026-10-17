@@ -153,6 +153,12 @@ export function fitText(box: HTMLElement, flow: HTMLElement, mode: 'none' | 'shr
   return k;
 }
 
+export function fitScaleOf(root: ParentNode, id: string): number {
+  const tx = root.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"] .fd-tx[data-autofit="shrink"], [data-id="${CSS.escape(id)}"].fd-tx[data-autofit="shrink"]`);
+  const k = parseFloat((tx?.firstElementChild as HTMLElement | null)?.style.getPropertyValue('--k') ?? '');
+  return k > 0 && k < 1 ? k : 1;
+}
+
 const probe = typeof document === 'undefined' ? null : document.createElement('span');
 
 function cssHex(v: string): string | undefined {

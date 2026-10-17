@@ -1,6 +1,7 @@
 import type { Layout, ShapeElement } from '../engine/model';
 import { chain, colorCss, levelStyle, masterOf } from '../engine/resolve';
 import { BUNDLED_FONTS, SIZE_PRESETS, ensureFont, loadSystemFonts } from '../render/fonts';
+import { fitScaleOf } from '../render/text';
 import type { Commands } from '../ui/commands';
 import { el, setClass, setDisabled, setHidden, setText, setValue, setStyleVar } from '../ui/dom';
 import { enhanceSelect } from '../ui/dropdown';
@@ -574,7 +575,9 @@ export class Toolbar {
       for (const f of this.fonts) { this.ensureFontOption(f, fontKey); setValue(f, fontKey); }
       const sizes = new Set<number>();
       for (const pp of t.text?.paras ?? []) for (const r of pp.runs) if (r.t) sizes.add(Math.round((r.sz ?? levelStyle(c, pp.lvl ?? 0).sz ?? 18) * 10) / 10);
-      const sizeText = sizes.size > 1 ? '' : String(sizes.size ? [...sizes][0] : Math.round((run?.sz ?? lvl.sz ?? 18) * 10) / 10);
+      const storedSize = sizes.size > 1 ? null : sizes.size ? [...sizes][0] : Math.round((run?.sz ?? lvl.sz ?? 18) * 10) / 10;
+      const fitK = t.text?.autofit === 'shrink' ? fitScaleOf(ed.stage.root, t.id) : 1;
+      const sizeText = storedSize === null ? '' : String(fitK < 1 ? Math.round(storedSize * fitK * 2) / 2 : storedSize);
       for (const z of this.sizes) setValue(z, sizeText);
       const theme = c.master.theme ?? ed.doc.deck.theme;
       this.paint('text-color', colorCss(run?.color ?? lvl.color ?? 'tx1', theme));

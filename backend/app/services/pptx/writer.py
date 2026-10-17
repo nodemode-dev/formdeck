@@ -17,7 +17,7 @@ from .write_context import WriteContext
 from .write_elements import ElementWriter
 from .write_anim import insert_timing, write_mapped
 from .show_props import write_show
-from .guides import write_guides
+from .guides import write_guides, write_part_guides
 from .write_slide import append_presentation_ext, insert_transition, sections_element
 from .write_style import background_element
 from .write_text import level_element
@@ -205,6 +205,7 @@ class _Exporter:
         for index, level in enumerate((styles.get("other") or [])[:9]):
             if isinstance(level, dict) and level and default_style is not None:
                 self._set_level(default_style, index, level_element(level, index, self.ctx))
+        write_part_guides(root, master.get("guides"))
 
     @staticmethod
     def _set_level(style_el, index: int, new_level) -> None:
@@ -266,6 +267,7 @@ class _Exporter:
         self._set_background(c_sld, layout.get("background"))
         writer = ElementWriter(self.ctx, master_elements=master.get("elements"), layout_part=True)
         writer.write_all(layout.get("elements") or [], sp_tree)
+        write_part_guides(root, layout.get("guides"))
         return part
 
     def _create_slides(self) -> list:

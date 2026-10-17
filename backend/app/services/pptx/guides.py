@@ -24,6 +24,12 @@ def write_guides(prs_part, deck: dict) -> None:
         append_presentation_ext(prs_part._element, ext)
 
 
+def write_part_guides(part_el, guides) -> None:
+    ext = guides_ext(guides)
+    if ext is not None:
+        append_presentation_ext(part_el, ext)
+
+
 def read_guides(prs_el) -> list[dict]:
     out = []
     for guide in xpath(prs_el, f"p:extLst/p:ext[@uri='{GUIDE_EXT_URI}']/p15:sldGuideLst/p15:guide"):
