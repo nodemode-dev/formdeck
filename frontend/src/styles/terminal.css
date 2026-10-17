@@ -18,6 +18,10 @@
 .fd-dock-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
 .fd-term { position: absolute; inset: 6px 4px 0 10px; }
 .fd-term[hidden] { display: none; }
+.fd-dock-chat-pane { position: absolute; inset: 6px 10px 8px 10px; display: flex; flex-direction: column; min-height: 0; }
+.fd-dock-chat-pane[hidden] { display: none; }
+.fd-dock-chat-pane .fd-chat { flex: 1 1 auto; height: auto; }
+.fd-dock-tab.is-chat .icon { color: var(--accent-color); }
 .fd-term .xterm-viewport { background: transparent; }
 .fd-dock-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--text-muted); font-size: var(--fd-12); }
 .fd-dock-empty[hidden] { display: none; }

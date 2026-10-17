@@ -1,5 +1,6 @@
 import type { DeckDoc } from './engine/doc';
 import type { Color } from './engine/model';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { api } from './io/api';
 import { LiveClient } from './live/socket';
 import { ensureFonts, fontsOfDeck } from './render/fonts';
@@ -36,6 +37,7 @@ import * as dialogs from './ui/app-dialogs';
 import { AgentBridge } from './automation/agent-bridge';
 import { installCatalogue, runCatalogueCommand } from './automation/catalogue';
 import { CommandPalette } from './ui/command-palette';
+import { ChatPanel } from './ui/chat-panel';
 import { fidelityReport } from './ui/report-dialog';
 import { registerFontCommands } from './editor/font-commands';
 import { registerSvgCommands } from './editor/svg-import';
@@ -62,7 +64,7 @@ const SHELL = `<div class="fd-app">
 <div class="fd-title-tools">
 <button class="fd-icon-btn" type="button" data-cmd="undo" title="Undo">${icon('undo', 16)}</button>
 <button class="fd-icon-btn" type="button" data-cmd="redo" title="Redo">${icon('redo', 16)}</button>
-<span class="fd-sep"></span><button class="fd-tt-btn" type="button" data-cmd="command-palette" title="Find a Command">${icon('commandPalette', 16)}</button><button class="fd-tt-btn" type="button" data-cmd="view-terminal" title="Terminal and Claude Code">${icon('terminal', 16)}</button><button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
+<span class="fd-sep"></span><button class="fd-tt-btn" type="button" data-cmd="command-palette" title="Find a Command">${icon('commandPalette', 16)}</button><button class="fd-tt-btn" type="button" data-cmd="agent-chat" title="Chat with Claude">${icon('agentChat', 16)}</button><button class="fd-tt-btn" type="button" data-cmd="view-terminal" title="Terminal and Claude Code">${icon('terminal', 16)}</button><button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
 <button class="fd-tt-btn" type="button" data-cmd="add-comment" title="Comment">${icon('comment', 16)}</button>
 <button class="fd-share-btn" type="button" data-act="share">${icon('download', 14)}<span>Export</span></button>
 <div class="fd-present-btn"><button class="fd-present-main" type="button" data-cmd="present-current">${icon('play', 14)}<span>Present</span></button><button class="fd-present-more" type="button" aria-expanded="false" aria-label="Present options" data-act="present-menu">${icon('chevronDown', 14)}</button></div>
@@ -306,6 +308,7 @@ export async function startApp(): Promise<void> {
     templates: () => hooks.templates(), background: () => hooks.background(), slideSize: () => hooks.slideSize(),
     comment: (text, assignee) => { const ed = editor; if (ed) dialogs.addComment(ed, text, assignee); },
     agentsAllowed: () => agentsAllowed, setAgents, copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null), mcpStatus: () => (agentsAllowed ? 'On' : 'Off'), openClaude: (resume) => { if (resume) void showDock().then((d) => d.claude(undefined, resume)); else commands.run('claude-code'); },
+    openChat: () => commands.run('agent-chat'),
   };
   registerCommands(commands, hooks);
   registerTableCommands(commands, () => editor);
@@ -354,6 +357,12 @@ export async function startApp(): Promise<void> {
       const sel = ed.selection;
       return `FormDeck window: deck ${ed.doc.id} "${ed.doc.deck.title ?? ''}", slide ${ed.doc.slideIndex(ed.current) + 1} (${ed.current})${sel.length ? `, selected element ids ${sel.slice(0, 40).join(', ')}` : ''}`;
     };
+    dock.makeChat = (host) => {
+      void new ChatPanel(host, () => editor?.doc.id ?? null, {
+        copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null),
+        openClaude: (resume) => void showDock().then((d) => d.claude(undefined, resume)),
+      });
+    };
     return dock;
   };
   const showDock = async (): Promise<TerminalDock> => {
@@ -366,13 +375,14 @@ export async function startApp(): Promise<void> {
     { id: 'view-terminal', label: 'Terminal', icon: 'terminal', keys: ['Mod+`'], checked: dockOpen, run: () => { if (dockOpen()) setDock(false); else void showDock().then((d) => d.ensure()); } },
     { id: 'new-terminal', label: 'New Terminal', icon: 'terminal', run: () => { const was = dockOpen(); void showDock().then((d) => (was ? d.open() : d.ensure())); } },
     { id: 'claude-code', label: 'Claude Code', icon: 'agent', keys: ['Shift+Mod+`'], run: () => void showDock().then((d) => d.claude()) },
+    { id: 'agent-chat', label: 'Chat with Claude', icon: 'agentChat', keys: ['Alt+Mod+J'], run: () => void showDock().then((d) => d.showChat()) },
     { id: 'command-palette', label: 'Find a Command...', icon: 'commandPalette', keys: ['Shift+Mod+P'], run: () => { palette ??= new CommandPalette(() => catalogue.list(), (id) => { commands.run(id); syncChrome(); }); palette.show(); } },
   );
 
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
-    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'command-palette', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-collapse', 'ribbon-simplified', 'qat-below', '-', 'ribbon-customize', 'qat-customize'] }] },
+    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-collapse', 'ribbon-simplified', 'qat-below', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'clear-format', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'design-ideas', 'reset-slide', 'reset-placeholder', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
@@ -556,6 +566,20 @@ export async function startApp(): Promise<void> {
     }
   }
   (window as unknown as { __formdeckOpen?: (paths: string[]) => void }).__formdeckOpen = (paths) => void openPaths(paths);
+  if ('__TAURI_INTERNALS__' in window) {
+    const dropOverlay = q(root, '.fd-drop');
+    void getCurrentWebview().onDragDropEvent((ev) => {
+      const p = ev.payload;
+      if (p.type === 'enter' || p.type === 'over') setHidden(dropOverlay, false);
+      else if (p.type === 'leave') setHidden(dropOverlay, true);
+      else {
+        setHidden(dropOverlay, true);
+        const docs = p.paths.filter((f) => /\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(f));
+        if (docs.length) void openPaths(docs);
+        else if (p.paths.length) toast('Drop a .pptx, .potx, .odp or .fdec file to open it. To add pictures or videos, use Insert.', 'info');
+      }
+    }).catch(() => undefined);
+  }
 
   enhanceAllSelects(document);
   try {

@@ -28,12 +28,16 @@ export class TerminalDock {
   private readonly tabs = new Map<string, Tab>();
   private active: string | null = null;
   private loaded = false;
+  makeChat: ((host: HTMLElement) => void) | null = null;
+  private chatPane: HTMLElement | null = null;
+  private chatTab: HTMLElement | null = null;
 
   constructor(readonly root: HTMLElement, private readonly app: HTMLElement, onHide: () => void) {
     root.append(el(`<div class="fd-dock-rsz" role="separator" aria-orientation="horizontal" aria-label="Resize the terminal"></div>`),
       el(`<div class="fd-dock-head">
 <div class="fd-dock-tabs" role="tablist" aria-label="Terminals"></div>
 <span class="fd-dock-spacer"></span>
+<button type="button" class="fd-tt-btn fd-dock-chat" title="Chat with Claude about this deck" aria-label="Chat">${icon('agentChat', 15)}</button>
 <button type="button" class="fd-tt-btn fd-dock-new" title="New Terminal" aria-label="New Terminal">${icon('plus', 15)}</button>
 <button type="button" class="fd-tt-btn fd-dock-claude" title="Claude Code" aria-label="Claude Code">${icon('agent', 15)}</button>
 <button type="button" class="fd-tt-btn fd-dock-restart" title="Restart this tab" aria-label="Restart this tab" disabled>${icon('refresh', 15)}</button>
@@ -49,6 +53,7 @@ export class TerminalDock {
     this.stage = q(root, '.fd-dock-stage');
     this.empty = q(root, '.fd-dock-empty');
     this.ask = q<HTMLInputElement>(root, '.fd-dock-ask-input');
+    q(root, '.fd-dock-chat').addEventListener('click', () => this.showChat());
     q(root, '.fd-dock-new').addEventListener('click', () => void this.open());
     q(root, '.fd-dock-claude').addEventListener('click', () => void this.claude());
     q(root, '.fd-dock-restart').addEventListener('click', () => void this.restart());
@@ -72,7 +77,40 @@ export class TerminalDock {
   }
 
   focus(): void {
-    if (this.active) this.tabs.get(this.active)?.term.focus();
+    if (this.active === 'chat') this.chatPane?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+    else if (this.active) this.tabs.get(this.active)?.term.focus();
+  }
+
+  showChat(): void {
+    if (!this.chatPane) {
+      this.chatPane = el(`<div class="fd-dock-chat-pane" hidden></div>`);
+      this.stage.appendChild(this.chatPane);
+      this.makeChat?.(this.chatPane);
+    }
+    if (!this.chatTab) {
+      const tab = el(`<button type="button" class="fd-dock-tab is-chat" role="tab" aria-selected="false">${icon('agentChat', 13)}<span class="fd-dock-tab-title">Chat</span><span class="fd-dock-tab-x" role="button" aria-label="Close the Chat tab">${icon('close', 11)}</span></button>`);
+      tab.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.fd-dock-tab-x')) this.closeChat();
+        else this.select('chat');
+      });
+      this.tabsEl.prepend(tab);
+      this.chatTab = tab;
+    }
+    setHidden(this.empty, true);
+    this.select('chat');
+  }
+
+  private closeChat(): void {
+    this.chatTab?.remove();
+    this.chatTab = null;
+    if (this.chatPane) setHidden(this.chatPane, true);
+    if (this.active === 'chat') {
+      this.active = null;
+      const next = [...this.tabs.keys()].pop();
+      if (next) this.select(next);
+      else setDisabled(q<HTMLButtonElement>(this.root, '.fd-dock-restart'), true);
+    }
+    setHidden(this.empty, this.tabs.size > 0);
   }
 
   async open(): Promise<void> {
@@ -169,7 +207,11 @@ export class TerminalDock {
       t.tab.classList.toggle('is-on', on);
       t.tab.setAttribute('aria-selected', String(on));
     }
-    setDisabled(q<HTMLButtonElement>(this.root, '.fd-dock-restart'), false);
+    const chat = id === 'chat';
+    if (this.chatPane) setHidden(this.chatPane, !chat);
+    if (this.chatTab) { this.chatTab.classList.toggle('is-on', chat); this.chatTab.setAttribute('aria-selected', String(chat)); }
+    setHidden(q(this.root, '.fd-dock-ask'), chat);
+    setDisabled(q<HTMLButtonElement>(this.root, '.fd-dock-restart'), chat);
     this.fitActive();
     this.focus();
   }
@@ -197,9 +239,10 @@ export class TerminalDock {
       this.active = null;
       const next = [...this.tabs.keys()].pop();
       if (next) this.select(next);
+      else if (this.chatTab) this.select('chat');
       else setDisabled(q<HTMLButtonElement>(this.root, '.fd-dock-restart'), true);
     }
-    setHidden(this.empty, this.tabs.size > 0);
+    setHidden(this.empty, this.tabs.size > 0 || !!this.chatTab);
   }
 
   private installResize(handle: HTMLElement): void {
