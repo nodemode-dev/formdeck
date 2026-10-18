@@ -189,7 +189,14 @@ function inlineDelta(node: HTMLElement, base: string | undefined): Partial<Run> 
 
 export function readParas(flow: HTMLElement, original: Para[]): Para[] {
   const out: Para[] = [];
-  const ps = Array.from(flow.querySelectorAll<HTMLElement>(':scope > p.fd-p'));
+  const ps: HTMLElement[] = [];
+  let lead: HTMLElement | null = null;
+  for (const n of Array.from(flow.childNodes)) {
+    if (n instanceof HTMLElement && (n.tagName === 'P' || n.tagName === 'DIV')) { lead = null; ps.push(n); continue; }
+    if (n.nodeType === Node.TEXT_NODE && !(n.textContent ?? '')) continue;
+    if (!lead) { lead = document.createElement('p'); ps.push(lead); }
+    lead.appendChild(n.cloneNode(true));
+  }
   ps.forEach((pEl, i) => {
     const base = original[i] ?? original[original.length - 1] ?? { runs: [] };
     const runs: Run[] = [];
