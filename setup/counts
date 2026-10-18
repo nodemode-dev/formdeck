@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+py="$(fd_python)" || fd_die "Python 3.12+ is required"
+exec "$py" "$FORMDECK_ROOT/setup/line_counts.py" "$@"

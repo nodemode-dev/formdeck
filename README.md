@@ -6,6 +6,8 @@ The PDF workbench that shipped with FormDeck up to 0.5.1 is now its own app, for
 
 Version 0.22.0 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
+**Stack.** Vanilla TypeScript and Vite · Python 3.12 and FastAPI · Tauri 2. Code size, in lines: about 40,100 of TypeScript, 2,400 of CSS, 24,000 of Python, 274 of Rust (product code, tests excluded; `./formdeck counts` prints this, and `./formdeck counts --check` verifies it).
+
 ## What it does
 
 | Area | In 0.8.0 |

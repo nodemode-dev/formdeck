@@ -19,6 +19,7 @@ usage: ./formdeck [command] [options]
   freeze              freeze the backend into the Tauri sidecar binary
   desktop dev|build|check  run, bundle (the same as ./build_app) or check the toolchain for the desktop app
   doctor              check the toolchain, installs and ports
+  counts [--check]    the README's code sizes (--check: exit 1 if README.md has drifted)
   claude [args]       Claude Code in this terminal with FormDeck's MCP tools attached
   cli list|describe|run|batch  the editor's command catalogue from a terminal: list [text], run <id> (the window must be open)
   i18n check|scan|export|import  the translations: check for gaps, find new strings, or a language as CSV for a native reviewer and back
@@ -52,6 +53,7 @@ case "$cmd" in
       *) usage; exit 2 ;;
     esac ;;
   doctor) exec setup/doctor "$@" ;;
+  counts) exec setup/counts "$@" ;;
   claude) exec python3 setup/claude_launch.py "$@" ;;
   cli) exec python3 setup/catalogue.py "$@" ;;
   i18n) exec python3 setup/i18n_tool.py "$@" ;;
