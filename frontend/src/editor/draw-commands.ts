@@ -27,7 +27,7 @@ export function registerDrawCommands(cmds: Commands, E: () => Editor | null, pro
   const slideView = (): boolean => { const ed = E(); return !!ed && !!ed.slide && ed.view === 'normal'; };
   const pts = (): Editor['stage']['points'] | null => E()?.stage.points ?? null;
   const ptsOn = (): boolean => !!pts()?.active;
-  const nodeCtx = (): boolean => ptsOn() && pts()?.ctx?.kind === 'node';
+  const nodeCtx = (): boolean => ptsOn() && !!pts()?.node;
   const segCtx = (): boolean => ptsOn() && pts()?.ctx?.kind === 'seg';
   const list: Command[] = LINE_TOOLS.map((t) => ({
     id: t.id, label: t.label, enabled: slideView, checked: () => same(E()?.stage.draw.mode ?? null, t.mode),
@@ -46,7 +46,7 @@ export function registerDrawCommands(cmds: Commands, E: () => Editor | null, pro
     { id: 'points-delete', label: 'Delete Point', enabled: nodeCtx, run: () => pts()?.deleteNode() },
     { id: 'points-add', label: 'Add Point', enabled: segCtx, run: () => pts()?.addPoint() },
     { id: 'points-open', label: 'Open Path', enabled: () => segCtx() && !!pts()?.ctxClosed(), run: () => pts()?.toggleOpen() },
-    { id: 'points-close', label: 'Close Path', enabled: () => segCtx() && !pts()?.ctxClosed(), run: () => pts()?.toggleOpen() },
+    { id: 'points-close', label: 'Close Path', enabled: () => (segCtx() || nodeCtx()) && !pts()?.ctxClosed(), run: () => pts()?.toggleOpen() },
     { id: 'points-exit', label: 'Exit Edit Points', enabled: ptsOn, run: () => pts()?.end() },
     { id: 'view-ruler', label: 'Ruler', keys: ['Alt+Shift+F9'], icon: 'ruler', checked: () => aidPrefs().ruler, run: () => setAidPrefs({ ruler: !aidPrefs().ruler }) },
     { id: 'view-gridlines', label: 'Gridlines', keys: ['Shift+F9'], icon: 'grid', checked: () => aidPrefs().grid, run: () => setAidPrefs({ grid: !aidPrefs().grid }) },

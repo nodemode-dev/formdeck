@@ -323,8 +323,14 @@ export class PointsEdit {
 
   private minNodes(sp: SubPath): number { return sp.closed ? 3 : 2; }
 
+  get node(): { sub: number; node: number } | null {
+    const c = this.ctx;
+    const at = c?.kind === 'node' ? { sub: c.sub, node: c.node } : this.sel;
+    return at && this.subs[at.sub]?.nodes[at.node] ? at : null;
+  }
+
   deleteNode(): void {
-    const sel = this.sel;
+    const sel = this.node;
     if (!sel) return;
     const sp = this.subs[sel.sub];
     if (!sp || sp.nodes.length <= this.minNodes(sp)) { toast(sp?.closed ? 'A closed shape keeps at least three points.' : 'A line keeps at least two points.'); return; }
@@ -357,6 +363,12 @@ export class PointsEdit {
 
   toggleOpen(): void {
     const c = this.ctx;
+    const at = this.node;
+    if (c?.kind !== 'seg' && at && !this.subs[at.sub]?.closed) {
+      this.subs[at.sub].closed = true;
+      this.commit('Close path');
+      return;
+    }
     if (c?.kind !== 'seg') return;
     const sp = this.subs[c.seg.sub];
     if (!sp) return;
@@ -368,15 +380,16 @@ export class PointsEdit {
   }
 
   ctxNodeKind(): NodeKind | null {
-    const c = this.ctx;
-    if (c?.kind !== 'node') return null;
-    const n = this.subs[c.sub]?.nodes[c.node];
+    const at = this.node;
+    const n = at ? this.subs[at.sub]?.nodes[at.node] : null;
     return n ? n.kind ?? inferKind(n) : null;
   }
 
   ctxClosed(): boolean {
     const c = this.ctx;
-    return c?.kind === 'seg' ? !!this.subs[c.seg.sub]?.closed : false;
+    if (c?.kind === 'seg') return !!this.subs[c.seg.sub]?.closed;
+    const at = this.node;
+    return at ? !!this.subs[at.sub]?.closed : false;
   }
 
   private context(e: MouseEvent): void {
