@@ -329,13 +329,14 @@ class ElementWriter:
         nv.append(self._c_nv_pr(el, default_name))
         sub(sub(nv, "p:cNvGraphicFramePr"), "a:graphicFrameLocks", {"noGrp": True})
         nv.append(self._nv_pr(el))
-        xfrm = self._xfrm({**el, "rot": None, "flipH": None, "flipV": None, **({} if has_frame(el) else {k: el.get(k) or 0 for k in FRAME_KEYS})}, "p:xfrm")
+        src = self._effective_frame(el) or el
+        xfrm = self._xfrm({**el, "rot": None, "flipH": None, "flipV": None, **{k: src.get(k) or 0 for k in FRAME_KEYS}}, "p:xfrm")
         frame.append(xfrm)
         sub(frame, "a:graphic").append(data)
 
     def _table(self, el: dict, container) -> None:
         table = el.get("table") if isinstance(el.get("table"), dict) else {}
-        x, y, w, h = frame_of(el)
+        x, y, w, h = frame_of(self._effective_frame(el) or el)
         self._graphic_frame(el, container, table_graphic_data(table, w, h, self.ctx), "Table")
 
     def _chart(self, el: dict, container) -> None:
