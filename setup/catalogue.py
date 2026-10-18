@@ -57,7 +57,7 @@ def show_list(text: str, group: str) -> int:
     if body.get("hint"):
         print(body["hint"], file=sys.stderr)
     for c in body.get("commands", []):
-        flags = (" risky" if c.get("risky") else "") + ("" if c.get("mutates") else " read-only") + (" params " + ",".join(p.get("name", "") for p in c["params"]) if c.get("params") else "")
+        flags = (" risky" if c.get("risky") else "") + ("" if c.get("mutates") else " read-only") + (" params " + ",".join(c["params"]) if c.get("params") else "")
         print(f"{c['id']:<34} {c.get('label', ''):<36} {c.get('group', '')}{flags}")
     print(f"\n{body.get('shown', 0)} of {body.get('size', 0)} commands" + ("" if body.get("live") else " (no window is open now; run needs one)"))
     return 0

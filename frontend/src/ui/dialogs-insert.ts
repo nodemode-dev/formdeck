@@ -1265,7 +1265,7 @@ class ShapesPop {
       if (!b) return;
       this.close();
       const draw = this.commands.get('draw-shape');
-      if (draw?.runWith && this.commands.enabled(draw)) draw.runWith({ geom: b.dataset.geom });
+      if (draw && this.commands.enabled(draw)) this.commands.run('draw-shape', { geom: b.dataset.geom });
       else this.commands.run(`shape:${b.dataset.geom}`);
     });
     document.addEventListener('pointerdown', (e) => {

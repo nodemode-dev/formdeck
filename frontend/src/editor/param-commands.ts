@@ -1,7 +1,7 @@
 import type { Color, Dash, Line, SlideElement } from '../engine/model';
 import { elPath, type Op } from '../engine/ops';
 import { runWithParams } from '../automation/catalogue';
-import type { Command, Commands, ParamSpec } from '../ui/commands';
+import type { Command, CommandParam, Commands } from '../ui/commands';
 import { Dialog } from '../ui/dialogs';
 import { el, escapeHtml } from '../ui/dom';
 import { toast } from '../ui/toast';
@@ -30,11 +30,11 @@ class ParamDialog extends Dialog {
   show(cmd: Command, title: string): void {
     this.cmd = cmd;
     this.setTitle(title);
-    const rows = (cmd.params ?? []).map((p) => {
-      const ctl = p.type === 'enum'
-        ? `<select class="fd-input" data-p="${p.name}"><option value=""></option>${(p.values ?? []).map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')}</select>`
-        : `<input class="fd-input" type="${p.type === 'number' ? 'number' : 'text'}" data-p="${p.name}"${p.min !== undefined ? ` min="${p.min}"` : ''}${p.max !== undefined ? ` max="${p.max}"` : ''} placeholder="${escapeHtml(p.hint ?? '')}">`;
-      return `<label class="fd-field"><span>${escapeHtml(p.label)}</span>${ctl}</label>`;
+    const rows = Object.entries(cmd.params ?? {}).map(([name, p]) => {
+      const ctl = p.enum
+        ? `<select class="fd-input" data-p="${name}"><option value=""></option>${p.enum.map((v) => `<option value="${escapeHtml(String(v))}">${escapeHtml(String(v))}</option>`).join('')}</select>`
+        : `<input class="fd-input" type="${p.type === 'number' || p.type === 'integer' ? 'number' : 'text'}" data-p="${name}"${p.min !== undefined ? ` min="${p.min}"` : ''}${p.max !== undefined ? ` max="${p.max}"` : ''} placeholder="${escapeHtml(p.example ?? '')}">`;
+      return `<label class="fd-field"><span>${escapeHtml(p.description ?? name)}</span>${ctl}</label>`;
     }).join('');
     this.box.replaceChildren(...Array.from(el(`<div>${rows}</div>`).children));
     this.open(this.box.querySelector<HTMLElement>('[data-p]'));
@@ -61,31 +61,31 @@ export function registerParamCommands(cmds: Commands, editor: () => Editor | nul
     if (!ed || !ed.slide || !els.length) throw new Error(`Select ${what} first.`);
     return { ed, els };
   };
-  const add = (id: string, label: string, params: ParamSpec[], enabled: () => boolean, runWith: (p: Record<string, unknown>) => string): void => {
-    const cmd: Command = { id, label: `${label}...`, params, enabled, runWith, run: () => { dlg ??= new ParamDialog(); dlg.show(cmd, label); } };
+  const add = (id: string, label: string, params: Record<string, CommandParam>, enabled: () => boolean, act: (p: Record<string, unknown>) => string): void => {
+    const cmd: Command = { id, label: `${label}...`, params, enabled, run: (p) => { if (p) return act(p); dlg ??= new ParamDialog(); dlg.show(cmd, label); return undefined; } };
     cmds.add(cmd);
   };
 
-  add('set-font-size', 'Set Font Size', [{ name: 'size', type: 'number', label: 'Size (pt)', required: true, min: 1, max: 400, hint: '24' }],
+  add('set-font-size', 'Set Font Size', { size: { type: 'number', description: 'Size (pt)', required: true, min: 1, max: 400, example: '24' } },
     () => sel().some(texty) || !!editor()?.stage.editing,
     (p) => { const { ed } = need((e) => texty(e) || e.id === editor()?.stage.editing, 'a text box'); applyRunFx(ed, { sz: p.size as number }, 'Font size'); return `Font size is now ${p.size} pt.`; });
 
-  add('set-font', 'Set Font', [{ name: 'font', type: 'string', label: 'Font family', required: true, hint: 'Inter' }],
+  add('set-font', 'Set Font', { font: { type: 'string', description: 'Font family', required: true, example: 'Inter' } },
     () => sel().some(texty) || !!editor()?.stage.editing,
     (p) => { const { ed } = need((e) => texty(e) || e.id === editor()?.stage.editing, 'a text box'); applyRunFx(ed, { font: p.font as string }, 'Font'); return `Font is now ${p.font}.`; });
 
   const colorCmd = (id: string, label: string, kind: 'text' | 'fill' | 'line', pick: (e: SlideElement) => boolean, what: string): void => add(id, label,
-    [{ name: 'color', type: 'color', label: 'Colour', required: true, hint: '#3366FF or accent1' }],
+    { color: { type: 'string', format: 'color', description: 'Colour', required: true, example: '#3366FF or accent1' } },
     () => sel().some(pick),
     (p) => { const { ed } = need(pick, what); const ops = colorOps(ed, kind, p.color as Color); if (!ops.length) throw new Error('Nothing in the selection takes this colour.'); ed.apply(ops, label); return `${label}: ${p.color}.`; });
   colorCmd('set-text-color', 'Set Text Colour', 'text', texty, 'a text box');
   colorCmd('set-fill-color', 'Set Fill Colour', 'fill', (e) => e.type === 'shape', 'a shape');
 
-  add('set-outline', 'Set Outline', [
-    { name: 'weight', type: 'number', label: 'Weight (pt), 0 for none', required: true, min: 0, max: 100, hint: '1.5' },
-    { name: 'dash', type: 'enum', label: 'Dash', values: DASHES },
-    { name: 'color', type: 'color', label: 'Colour', hint: '#111111 or tx1' },
-  ], () => sel().some(lined), (p) => {
+  add('set-outline', 'Set Outline', {
+    weight: { type: 'number', description: 'Weight (pt), 0 for none', required: true, min: 0, max: 100, example: '1.5' },
+    dash: { type: 'string', description: 'Dash', enum: DASHES },
+    color: { type: 'string', format: 'color', description: 'Colour', example: '#111111 or tx1' },
+  }, () => sel().some(lined), (p) => {
     const { ed, els } = need(lined, 'a shape or picture');
     const s = ed.slide!;
     const w = p.weight as number;
@@ -100,12 +100,12 @@ export function registerParamCommands(cmds: Commands, editor: () => Editor | nul
     return w === 0 ? 'Outline removed.' : `Outline is now ${w} pt${p.dash ? ` ${p.dash}` : ''}.`;
   });
 
-  add('set-position-size', 'Set Position and Size', [
-    { name: 'x', type: 'number', label: 'Left (pt)', min: -10000, max: 10000 },
-    { name: 'y', type: 'number', label: 'Top (pt)', min: -10000, max: 10000 },
-    { name: 'w', type: 'number', label: 'Width (pt)', min: 1, max: 10000 },
-    { name: 'h', type: 'number', label: 'Height (pt)', min: 1, max: 10000 },
-  ], () => sel().length > 0, (p) => {
+  add('set-position-size', 'Set Position and Size', {
+    x: { type: 'number', description: 'Left (pt)', min: -10000, max: 10000 },
+    y: { type: 'number', description: 'Top (pt)', min: -10000, max: 10000 },
+    w: { type: 'number', description: 'Width (pt)', min: 1, max: 10000 },
+    h: { type: 'number', description: 'Height (pt)', min: 1, max: 10000 },
+  }, () => sel().length > 0, (p) => {
     if (p.x === undefined && p.y === undefined && p.w === undefined && p.h === undefined) throw new Error('Give at least one of x, y, w, h (points; the slide is deck size.w by size.h).');
     const { ed, els } = need(() => true, 'an element');
     const s = ed.slide!;
@@ -118,7 +118,7 @@ export function registerParamCommands(cmds: Commands, editor: () => Editor | nul
     return `${els.length === 1 ? 'The element' : `${els.length} elements`} moved or resized.`;
   });
 
-  add('set-rotation', 'Set Rotation', [{ name: 'degrees', type: 'number', label: 'Rotation (degrees)', required: true, min: -360, max: 360, hint: '15' }],
+  add('set-rotation', 'Set Rotation', { degrees: { type: 'number', description: 'Rotation (degrees)', required: true, min: -360, max: 360, example: '15' } },
     () => sel().length > 0, (p) => {
       const { ed, els } = need(() => true, 'an element');
       const s = ed.slide!;
@@ -127,7 +127,7 @@ export function registerParamCommands(cmds: Commands, editor: () => Editor | nul
       return `Rotation is now ${d} degrees.`;
     });
 
-  add('set-opacity', 'Set Opacity', [{ name: 'percent', type: 'number', label: 'Opacity (%)', required: true, min: 0, max: 100, hint: '80' }],
+  add('set-opacity', 'Set Opacity', { percent: { type: 'number', description: 'Opacity (%)', required: true, min: 0, max: 100, example: '80' } },
     () => sel().length > 0, (p) => {
       const { ed, els } = need(() => true, 'an element');
       const s = ed.slide!;
@@ -136,7 +136,7 @@ export function registerParamCommands(cmds: Commands, editor: () => Editor | nul
       return `Opacity is now ${p.percent}%.`;
     });
 
-  add('go-to-slide', 'Go to Slide', [{ name: 'number', type: 'number', label: 'Slide number', required: true, min: 1, max: 100000, hint: '1' }],
+  add('go-to-slide', 'Go to Slide', { number: { type: 'integer', description: 'Slide number', required: true, min: 1, max: 100000, example: '1' } },
     () => !!editor() && (editor()?.doc.deck.slides.length ?? 0) > 0, (p) => {
       const ed = editor();
       const slides = ed?.doc.deck.slides ?? [];

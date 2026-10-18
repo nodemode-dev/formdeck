@@ -1,52 +1,59 @@
 import { api } from '../io/api';
-import type { Command, Commands, ParamSpec } from '../ui/commands';
+import type { Command, CommandParam, Commands } from '../ui/commands';
 import type { MenuDef, MenuItem } from '../ui/menu';
 import { metaFor } from './command-meta';
 import type { ToolResult } from './agent-bridge';
 
-export interface CatalogueEntry { id: string; label: string; group: string; description: string; when: string; keys: string[]; mutates: boolean; risky: boolean; enabled: boolean; checked?: boolean; params?: ParamSpec[] }
+export interface CatalogueEntry { id: string; label: string; group: string; description: string; when: string; keys: string[]; mutates: boolean; risky: boolean; enabled: boolean; checked?: boolean; params?: Record<string, CommandParam> }
 
 const SCHEME = ['dk1', 'lt1', 'dk2', 'lt2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6', 'hlink', 'folHlink', 'tx1', 'bg1', 'tx2', 'bg2'];
 
-export function checkParams(spec: ParamSpec[], given: Record<string, unknown>): { values: Record<string, unknown>; error: string } {
+export function checkParams(spec: Record<string, CommandParam>, given: Record<string, unknown>): { values: Record<string, unknown>; error: string } {
   const values: Record<string, unknown> = {};
-  const known = new Set(spec.map((p) => p.name));
-  const extra = Object.keys(given).filter((k) => !known.has(k));
-  if (extra.length) return { values, error: `Unknown parameter ${extra.join(', ')}. This command takes ${spec.map((p) => p.name).join(', ')}.` };
-  for (const p of spec) {
-    const raw = given[p.name];
+  const names = Object.keys(spec);
+  const extra = Object.keys(given).filter((k) => !(k in spec));
+  if (extra.length) return { values, error: `Unknown parameter ${extra.join(', ')}. This command takes ${names.join(', ')}.` };
+  for (const [name, p] of Object.entries(spec)) {
+    const raw = given[name];
     if (raw === undefined || raw === null || raw === '') {
-      if (p.required) return { values, error: `${p.name} is required (${p.label}).` };
+      if (p.required) return { values, error: `${name} is required${p.description ? ` (${p.description})` : ''}.` };
       continue;
     }
-    if (p.type === 'number') {
+    if (p.type === 'number' || p.type === 'integer') {
       const n = typeof raw === 'number' ? raw : Number(String(raw).trim());
-      if (!Number.isFinite(n)) return { values, error: `${p.name} must be a number.` };
-      if ((p.min !== undefined && n < p.min) || (p.max !== undefined && n > p.max)) return { values, error: `${p.name} must be between ${p.min ?? '-'} and ${p.max ?? '-'}.` };
-      values[p.name] = n;
-    } else if (p.type === 'color') {
+      if (!Number.isFinite(n) || (p.type === 'integer' && !Number.isInteger(n))) return { values, error: `${name} must be ${p.type === 'integer' ? 'a whole number' : 'a number'}.` };
+      if ((p.min !== undefined && n < p.min) || (p.max !== undefined && n > p.max)) return { values, error: `${name} must be between ${p.min ?? '-'} and ${p.max ?? '-'}.` };
+      values[name] = n;
+    } else if (p.type === 'boolean') {
+      const s = String(raw).trim().toLowerCase();
+      if (typeof raw !== 'boolean' && !['true', 'false', 'yes', 'no', '1', '0'].includes(s)) return { values, error: `${name} must be true or false.` };
+      values[name] = typeof raw === 'boolean' ? raw : ['true', 'yes', '1'].includes(s);
+    } else if (p.format === 'color') {
       const s = String(raw).trim();
       const hex = /^#?([0-9a-f]{6})$/i.exec(s);
       const slot = SCHEME.find((k) => k.toLowerCase() === s.toLowerCase());
-      if (!hex && !slot) return { values, error: `${p.name} must be a hex colour such as #3366FF or a theme slot (${SCHEME.join(', ')}).` };
-      values[p.name] = hex ? `#${hex[1].toUpperCase()}` : slot;
-    } else if (p.type === 'enum') {
+      if (!hex && !slot) return { values, error: `${name} must be a hex colour such as #3366FF or a theme slot (${SCHEME.join(', ')}).` };
+      values[name] = hex ? `#${hex[1].toUpperCase()}` : slot;
+    } else if (p.enum) {
       const s = String(raw).trim();
-      const hit = (p.values ?? []).find((v) => v.toLowerCase() === s.toLowerCase());
-      if (!hit) return { values, error: `${p.name} must be one of ${(p.values ?? []).join(', ')}.` };
-      values[p.name] = hit;
+      const hit = p.enum.find((v) => String(v).toLowerCase() === s.toLowerCase());
+      if (hit === undefined) return { values, error: `${name} must be one of ${p.enum.join(', ')}.` };
+      values[name] = hit;
     } else {
-      values[p.name] = String(raw).slice(0, 400);
+      values[name] = String(raw).slice(0, 400);
     }
   }
   return { values, error: '' };
 }
 
 export function runWithParams(cmd: Command, given: Record<string, unknown>): { ok: boolean; text: string } {
-  if (!cmd.params || !cmd.runWith) return { ok: false, text: 'This command takes no parameters.' };
+  if (!cmd.params) return { ok: false, text: 'This command takes no parameters.' };
   const { values, error } = checkParams(cmd.params, given);
   if (error) return { ok: false, text: error };
-  try { return { ok: true, text: cmd.runWith(values) }; } catch (e) { return { ok: false, text: e instanceof Error ? e.message : String(e) }; }
+  try {
+    const out = cmd.run(values);
+    return { ok: true, text: typeof out === 'string' ? out : 'Done.' };
+  } catch (e) { return { ok: false, text: e instanceof Error ? e.message : String(e) }; }
 }
 
 const ok = (text: string, data?: Record<string, unknown>): ToolResult => ({ content: [{ type: 'text', text }], ...(data ? { structuredContent: data } : {}) });
@@ -74,12 +81,12 @@ export function buildCatalogue(cmds: Commands, menus: MenuDef[]): { entries: Cat
   for (const c of cmds.all()) {
     const label = cmds.label(c).replace(/\.\.\.$|…$/, '');
     const m = metaFor(c.id, groups.get(c.id));
-    if (!m.known && !m.when) missing.push(c.id);
+    if (!m.known && !m.when && !c.when) missing.push(c.id);
     let enabled = true;
     try { enabled = cmds.enabled(c); } catch { enabled = false; }
     let checked: boolean | undefined;
     try { checked = c.checked ? !!c.checked() : undefined; } catch { checked = undefined; }
-    entries.push({ id: c.id, label, group: m.group, description: `${label}.`, when: m.when || `Use when you want ${label.toLowerCase()}.`, keys: [...(c.keys ?? [])], mutates: m.mutates, risky: m.risky, enabled, ...(checked === undefined ? {} : { checked }), ...(c.params ? { params: c.params } : {}) });
+    entries.push({ id: c.id, label, group: c.group ?? m.group, description: c.description ?? `${label}.`, when: c.when || m.when || `Use when you want ${label.toLowerCase()}.`, keys: [...(c.keys ?? [])], mutates: c.mutates ?? m.mutates, risky: c.risky ?? m.risky, enabled, ...(checked === undefined ? {} : { checked }), ...(c.params ? { params: c.params } : {}) });
   }
   entries.sort((a, b) => a.group.localeCompare(b.group) || a.id.localeCompare(b.id));
   return { entries, missing };
@@ -92,7 +99,7 @@ export function runCatalogueCommand(cmds: Commands, args: Record<string, unknown
   const name = cmds.label(cmd).replace(/\.\.\.$|…$/, '');
   if (!cmds.enabled(cmd)) return fail(`${name} is not available right now: it needs an open deck, a selection or a view where it applies. Open a deck or select an element first, then retry.`);
   const given = args.params && typeof args.params === 'object' ? args.params as Record<string, unknown> : {};
-  if (cmd.params && cmd.runWith) {
+  if (cmd.params) {
     const r = runWithParams(cmd, given);
     return r.ok ? ok(r.text, { result: r.text }) : fail(`${name}: ${r.text}`);
   }

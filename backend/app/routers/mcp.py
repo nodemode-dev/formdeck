@@ -1714,14 +1714,14 @@ async def t_chat_reply(a: Agent, args: dict) -> dict:
 
 
 def _param_line(c: dict) -> str:
-    ps = c.get("params") or []
-    if not ps:
+    ps = c.get("params") or {}
+    if not isinstance(ps, dict) or not ps:
         return ""
-    def one(p: dict) -> str:
-        kind = "|".join(p.get("values") or []) if p.get("type") == "enum" else p.get("type", "string")
+    def one(name: str, p: dict) -> str:
+        kind = "|".join(str(v) for v in p["enum"]) if p.get("enum") else ("colour" if p.get("format") == "color" else p.get("type", "string"))
         rng = f" {p['min']}..{p['max']}" if p.get("min") is not None and p.get("max") is not None else ""
-        return f"{p.get('name')}{'' if p.get('required') else '?'}: {kind}{rng}"
-    return " · params {" + ", ".join(one(p) for p in ps) + "}"
+        return f"{name}{'' if p.get('required') else '?'}: {kind}{rng}"
+    return " · params {" + ", ".join(one(n, p) for n, p in ps.items()) + "}"
 
 
 async def t_list_commands(a: Agent, args: dict) -> dict:
