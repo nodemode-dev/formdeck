@@ -3,7 +3,7 @@ import type { Editor } from '../editor/editor';
 import { addMaster } from '../editor/master-view';
 import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
 import { documentDir } from '@tauri-apps/api/path';
-import { save } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import { api, type TemplateSummary } from '../io/api';
 import { BUNDLED_FONTS, ensureFonts, fontsOfDeck } from '../render/fonts';
 import { setMarqueeRule } from '../editor/stage';
@@ -120,6 +120,86 @@ async function browseSave(input: HTMLInputElement, ext: string, label: string): 
     if (picked) { input.value = withExt(picked, ext); input.dispatchEvent(new Event('input', { bubbles: true })); }
   } catch (e) {
     toast(`Could not open the save dialog: ${errText(e)}`, 'error');
+  }
+}
+
+type SaveTarget = { path: string } | { handle: FileSystemFileHandle } | { download: true };
+type PickerType = { description: string; accept: Record<string, string[]> };
+type Picker = (o: { suggestedName: string; types: PickerType[] }) => Promise<FileSystemFileHandle>;
+
+const MIME: Record<string, string> = {
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', potx: 'application/vnd.openxmlformats-officedocument.presentationml.template',
+  odp: 'application/vnd.oasis.opendocument.presentation', pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', zip: 'application/zip',
+  gif: 'image/gif', mp4: 'video/mp4', webm: 'video/webm', txt: 'text/plain', rtf: 'application/rtf', fdec: 'application/octet-stream',
+};
+
+async function pickTarget(name: string, kinds: Array<{ label: string; ext: string }>, defaultPath?: string): Promise<SaveTarget | null> {
+  if (isTauri()) {
+    try {
+      const picked = await save({ defaultPath: defaultPath || name, filters: kinds.map((k) => ({ name: k.label, extensions: [k.ext] })) });
+      if (!picked) return null;
+      const ext = kinds.find((k) => picked.toLowerCase().endsWith(`.${k.ext}`))?.ext ?? kinds[0].ext;
+      return { path: withExt(picked, ext) };
+    } catch (e) {
+      toast(`Could not open the save dialog: ${errText(e)}`, 'error');
+      return null;
+    }
+  }
+  const picker = (window as unknown as { showSaveFilePicker?: Picker }).showSaveFilePicker;
+  if (!picker) return { download: true };
+  try {
+    return { handle: await picker({ suggestedName: name, types: kinds.map((k) => ({ description: k.label, accept: { [MIME[k.ext] ?? 'application/octet-stream']: [`.${k.ext}`] } })) }) };
+  } catch (e) {
+    return e instanceof DOMException && e.name === 'AbortError' ? null : { download: true };
+  }
+}
+
+async function pickFolder(near: string, ext: string): Promise<SaveTarget | null> {
+  try {
+    const dir = await open({ directory: true, defaultPath: near ? near.replace(/[\\/][^\\/]*$/, '') : undefined, title: 'Choose a folder for the slide pictures' });
+    return typeof dir === 'string' && dir ? { path: `${dir.replace(/[\\/]+$/, '')}/slides.${ext}` } : null;
+  } catch (e) {
+    toast(`Could not open the folder dialog: ${errText(e)}`, 'error');
+    return null;
+  }
+}
+
+async function deliver(t: SaveTarget, url: string): Promise<string> {
+  if ('handle' in t) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(res.statusText || `HTTP ${res.status}`);
+    const out = await t.handle.createWritable();
+    await out.write(await res.blob());
+    await out.close();
+    return t.handle.name;
+  }
+  download(url);
+  return '';
+}
+
+export async function saveAsFile(ed: Editor): Promise<void> {
+  const deck = ed.doc.deck;
+  const linked = deck.meta.file as { path?: string; format?: string } | undefined;
+  const first = linked?.format === 'pptx' ? 'pptx' : 'fdec';
+  const kinds = [{ label: 'FormDeck', ext: 'fdec' }, { label: 'PowerPoint', ext: 'pptx' }].sort((a, b) => (a.ext === first ? -1 : b.ext === first ? 1 : 0));
+  const tauri = isTauri();
+  const t = await pickTarget(`${safeName(deck.title)}.${first}`, kinds, tauri ? linked?.path || await exportPath(deck.title, first) : undefined);
+  if (!t) return;
+  try {
+    if ('path' in t) {
+      const format = t.path.toLowerCase().endsWith('.pptx') ? 'pptx' : 'fdec';
+      const r = await api.save(deck.id, { path: t.path, format });
+      savedToast('Saved to', r.saved);
+    } else if ('handle' in t) {
+      const format = t.handle.name.toLowerCase().endsWith('.pptx') ? 'pptx' : 'fdec';
+      const name = await deliver(t, api.downloadUrl(deck.id, format));
+      toast(`Saved ${name}`);
+    } else {
+      saveAsDlg ??= new SaveAsDialog();
+      saveAsDlg.show(ed);
+    }
+  } catch (e) {
+    toast(`Could not save: ${errText(e)}`, 'error');
   }
 }
 
@@ -738,10 +818,14 @@ class SaveAsDialog extends Dialog {
 }
 
 let saveAsDlg: SaveAsDialog | null = null;
+export function saveCopyDialog(ed: Editor): void {
+  saveAsDlg ??= new SaveAsDialog();
+  saveAsDlg.show(ed);
+}
+
 export async function saveDialog(ed: Editor, saveAs: boolean): Promise<void> {
   if (saveAs) {
-    saveAsDlg ??= new SaveAsDialog();
-    saveAsDlg.show(ed);
+    await saveAsFile(ed);
     return;
   }
   try {
@@ -816,6 +900,7 @@ class ExportDialog extends Dialog {
   private scale = 96 / 72;
   private touched = false;
   private running = false;
+  private target: SaveTarget | null = null;
   private res = 720;
   private embed: 'off' | 'used' | 'all' = 'off';
   private fontList = '';
@@ -914,7 +999,7 @@ class ExportDialog extends Dialog {
     this.path.addEventListener('input', () => { this.touched = true; });
     q<HTMLButtonElement>(this.pathRow, '.fd-dlg-browse').addEventListener('click', () => void browseSave(this.path, this.ext(), EXPORTS[this.fmt].label));
     for (const input of [this.custom, this.path]) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.run(); } });
-    setHidden(this.pathRow, !isTauri());
+    setHidden(this.pathRow, true);
   }
 
   show(ed: Editor, format: string, bridge: AgentBridge): void {
@@ -1021,8 +1106,6 @@ class ExportDialog extends Dialog {
     const deck = ed.doc.deck;
     const f = this.fmt;
     const tauri = isTauri();
-    const path = tauri ? this.path.value.trim() : '';
-    if (tauri && !path) { this.status.error('Type where to save the file.'); this.path.focus(); return; }
     let slides: string[] = [];
     if (isRaster(f)) {
       const ids = this.slideIds(ed);
@@ -1030,6 +1113,12 @@ class ExportDialog extends Dialog {
       if (!ids.length) { this.status.error('There are no slides to export with these settings.'); return; }
       slides = ids;
     }
+    const ext = this.ext();
+    const kind = ext === 'zip' ? `${EXPORTS[f].label} pictures` : EXPORTS[f].label;
+    const target = tauri && ext === 'zip' ? await pickFolder(this.path.value.trim(), f === 'jpeg' ? 'jpg' : 'png') : await pickTarget(`${safeName(deck.title)}${ext === 'zip' ? '' : `.${ext}`}`, [{ label: kind, ext }], tauri ? this.path.value.trim() || undefined : undefined);
+    if (!target) return;
+    const path = 'path' in target ? target.path : '';
+    this.target = target;
     holdFocus(this);
     this.running = true;
     setDisabled(this.go, true);
@@ -1041,7 +1130,7 @@ class ExportDialog extends Dialog {
         this.status.done();
         this.close();
         if (tauri) savedToast('Exported to', r.path);
-        else { download(r.url); toast(`Exported the outline as ${f === 'rtf' ? 'Rich Text' : 'plain text'}`); }
+        else { await deliver(target, r.url); toast(`Exported the outline as ${f === 'rtf' ? 'Rich Text' : 'plain text'}`); }
       } else if (isMotion(f)) {
         await this.runMotion(deck, f, path);
       } else if (isRaster(f)) {
@@ -1050,7 +1139,7 @@ class ExportDialog extends Dialog {
         this.status.done();
         this.close();
         if (tauri) savedToast('Exported to', r.path);
-        else { download(r.url); toast(`Exported ${plural(slides.length, 'slide')} as ${EXPORTS[f].label}`); }
+        else { await deliver(target, r.url); toast(`Exported ${plural(slides.length, 'slide')} as ${EXPORTS[f].label}`); }
       } else if (tauri) {
         this.status.busy(f === 'fdec' ? 'Packing the deck' : f === 'odp' ? 'Writing the OpenDocument file' : 'Writing the PowerPoint file');
         const r = await api.export(deck.id, f, path, undefined, this.embedArg());
@@ -1059,7 +1148,7 @@ class ExportDialog extends Dialog {
         savedToast('Exported to', r.path);
         fidelityReport('export', r.path.split(/[\\/]/).pop() ?? r.path, r.warnings);
       } else {
-        download(api.downloadUrl(deck.id, f, this.embedArg()));
+        await deliver(target, api.downloadUrl(deck.id, f, this.embedArg()));
         this.close();
         toast(`Downloading ${safeName(deck.title)}.${EXPORTS[f].ext}`);
       }
@@ -1103,7 +1192,7 @@ class ExportDialog extends Dialog {
       this.status.done();
       this.close();
       if (isTauri()) savedToast('Exported to', r.path);
-      else { download(r.url); toast(`Exported ${plural(frames.length, 'frame')} as an animated GIF`); }
+      else { await deliver(this.target ?? { download: true }, r.url); toast(`Exported ${plural(frames.length, 'frame')} as an animated GIF`); }
       return;
     }
     const blob = await m.recordVideo(frames, total, narration, o, fmt as { mime: string });
@@ -1120,8 +1209,13 @@ class ExportDialog extends Dialog {
       savedToast('Exported to', r.path);
     } else {
       this.close();
-      saveBlob(blob, name);
-      toast(`Exported the video as ${name}`);
+      const t = this.target;
+      if (t && 'handle' in t) {
+        const out = await t.handle.createWritable();
+        await out.write(blob);
+        await out.close();
+      } else saveBlob(blob, name);
+      toast(`Exported the video as ${t && 'handle' in t ? t.handle.name : name}`);
     }
   }
 }
