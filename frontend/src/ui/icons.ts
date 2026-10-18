@@ -87,6 +87,7 @@ export const ICONS: Record<string, string> = {
   slide: L('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h10M7 13.5h6"/>'),
   slideAdd: L('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M12 9v6M9 12h6"/>'),
   slides: L('<rect x="7.5" y="3.5" width="13" height="7" rx="1.2"/><rect x="7.5" y="13.5" width="13" height="7" rx="1.2"/><path d="M3.5 4.5v5"/>'),
+  presentation: L('<path d="M3 4h18"/><path d="M4.5 4v9.5A1.5 1.5 0 0 0 6 15h12a1.5 1.5 0 0 0 1.5-1.5V4"/><path d="M12 15v2.5M8.5 20.5l3.5-3 3.5 3"/><path d="M8 11.5l2.6-2.6 2 2 3.4-3.4"/>'),
   present: L('<path d="M3 4h18"/><path d="M4.5 4v9.5A1.5 1.5 0 0 0 6 15h12a1.5 1.5 0 0 0 1.5-1.5V4"/><path d="M12 15v2.5M8.5 20.5l3.5-3 3.5 3"/><path d="M10.5 7.2v4.6l3.8-2.3z"/>'),
   presentFromHere: L('<path d="M5 5v14"/><path d="M9.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.3-6.2a.8.8 0 0 0 0-1.4l-9.3-6.2a.8.8 0 0 0-1.2.7z"/>'),
   presenter: L('<rect x="3" y="4" width="18" height="12.5" rx="1.8"/><rect x="5.8" y="6.8" width="7.4" height="5.2" rx=".8"/><path d="M15.8 7.5h2.4M15.8 10.5h2.4M5.8 14h12.4M9 20.5h6M12 16.5v4"/>'),
