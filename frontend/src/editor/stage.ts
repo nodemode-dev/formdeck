@@ -1251,8 +1251,22 @@ export class Stage {
     const original = this.ed.displayParas(el);
     const paras = readParas(flow, original);
     if (JSON.stringify(paras) !== JSON.stringify(original)) {
-      this.ed.apply([{ op: 'set', path: [...elPath(slide.id, id), 'text', 'paras'], value: paras }, ...dirtyOp(slide)], 'Typing', `text:${id}`);
+      this.ed.apply([{ op: 'set', path: [...elPath(slide.id, id), 'text', 'paras'], value: paras }, ...this.textGrowOps(id), ...dirtyOp(slide)], 'Typing', `text:${id}`);
     }
+  }
+
+  textGrowOps(id: string): Op[] {
+    const slide = this.slide();
+    const el = this.ed.element(id);
+    const tx = this.view?.nodeFor(id)?.querySelector<HTMLElement>('.fd-tx');
+    const flow = tx?.firstElementChild as HTMLElement | null;
+    if (!slide || !el || el.type !== 'shape' || !tx || !flow || tx.dataset.autofit !== 'grow' || (el.rot ?? 0) % 180 !== 0) return [];
+    const f = this.frameOf(el);
+    const h = Math.round((f.h + flow.scrollHeight - tx.clientHeight) * 100) / 100;
+    if (!(h > 1) || Math.abs(h - f.h) < 0.5) return [];
+    const p = elPath(slide.id, id);
+    if (typeof el.h === 'number') return [{ op: 'set', path: [...p, 'h'], value: h }];
+    return (['x', 'y', 'w'] as const).map((k) => ({ op: 'set', path: [...p, k], value: f[k] }) as Op).concat({ op: 'set', path: [...p, 'h'], value: h });
   }
 
   endEdit(commit = true): void {

@@ -288,7 +288,12 @@ export class Inspector {
       if (seg === 'fit' && e2.type === 'image') ops.push({ op: 'set', path: [...elPath(s.id, e2.id), 'fit'], value: v }, { op: 'set', path: [...elPath(s.id, e2.id), 'crop'] });
       if (seg === 'mask' && e2.type === 'image') ops.push(v === 'rect' ? { op: 'set', path: [...elPath(s.id, e2.id), 'mask'], value: 'rect' } : { op: 'set', path: [...elPath(s.id, e2.id), 'mask'], value: v }, ...(v === 'roundRect' ? [{ op: 'set', path: [...elPath(s.id, e2.id), 'adj'], value: { adj: 8000 } } as Op] : []));
     }
-    ed.apply([...ops, ...dirtyOp(s)], 'Format');
+    const grow = seg === 'autofit' && v === 'grow';
+    ed.apply([...ops, ...dirtyOp(s)], 'Format', grow ? 'autofit-grow' : undefined);
+    if (grow) {
+      const more = ed.selected().flatMap((e2) => ed.stage.textGrowOps(e2.id));
+      if (more.length) ed.apply(more, 'Format', 'autofit-grow');
+    }
   }
 
   private formatChange(t: HTMLInputElement, live = false): void {
