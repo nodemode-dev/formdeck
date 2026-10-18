@@ -125,11 +125,43 @@ export class AgentBridge {
       if (name === 'measure') return await this.measure(args);
       if (name === 'export_raster') return await this.exclusive(() => this.exportTool(args));
       if (name === 'focus') return await this.focus(args);
+      if (name === 'video_frame') return await this.videoFrame(args);
       if (name === 'consent') return await this.consent(args);
       if (name === 'run_command' && this.h.command) return await this.h.command(args);
       return fail(`The FormDeck window has no tool named ${name}.`);
     } catch (e) {
       return fail(`${name} did not finish: ${errText(e)}`);
+    }
+  }
+
+  private async videoFrame(args: Record<string, unknown>): Promise<ToolResult> {
+    const id = String(args.media ?? '');
+    if (!/^[a-z]{3}_[0-9a-f]{8,16}$/.test(id)) return fail('video_frame needs a media id.');
+    const v = document.createElement('video');
+    v.muted = true;
+    v.preload = 'auto';
+    v.playsInline = true;
+    try {
+      await new Promise<void>((res, rej) => {
+        const t = window.setTimeout(() => rej(new Error('the video took too long to load')), 20000);
+        v.addEventListener('loadeddata', () => { window.clearTimeout(t); res(); }, { once: true });
+        v.addEventListener('error', () => { window.clearTimeout(t); rej(new Error('this window cannot play the video')); }, { once: true });
+        v.src = api.mediaUrl(id);
+      });
+      const at = typeof args.t === 'number' ? args.t : Math.min(1, (v.duration || 0) / 10);
+      if (at > 0) await new Promise<void>((res) => { const t = window.setTimeout(res, 8000); v.addEventListener('seeked', () => { window.clearTimeout(t); res(); }, { once: true }); v.currentTime = at; });
+      if (!v.videoWidth || !v.videoHeight) return fail('The video has no picture to take a frame from.');
+      const c = document.createElement('canvas');
+      c.width = v.videoWidth;
+      c.height = v.videoHeight;
+      c.getContext('2d')?.drawImage(v, 0, 0);
+      const blob = await toBlob(c, 'image/jpeg', 0.9);
+      c.width = 0;
+      const [meta] = await api.upload([new File([blob], `poster-${id}.jpg`, { type: 'image/jpeg' })]);
+      return { content: [{ type: 'text', text: JSON.stringify(meta) }] };
+    } finally {
+      v.removeAttribute('src');
+      v.load();
     }
   }
 

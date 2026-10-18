@@ -64,8 +64,8 @@ class Ctx:
         if not mid:
             return None
         meta = self.media.info(mid) or {}
-        self.deck.setdefault("media", {})[mid] = {k: meta[k] for k in ("name", "mime", "w", "h", "bytes", "frames") if k in meta}
-        out = {"src": mid, "w": info.get("w") or meta.get("w"), "h": info.get("h") or meta.get("h"), "alt": spec.get("alt") or info.get("alt") or "", "class": info.get("class")}
+        self.deck.setdefault("media", {})[mid] = {k: meta[k] for k in ("name", "mime", "w", "h", "bytes", "frames", "duration") if k in meta}
+        out = {"src": mid, "w": info.get("w") or meta.get("w"), "h": info.get("h") or meta.get("h"), "alt": spec.get("alt") or info.get("alt") or "", "class": info.get("class"), "mime": meta.get("mime")}
         if spec.get("fit"):
             out["fit"] = spec["fit"]
         if spec.get("focus"):
@@ -259,7 +259,27 @@ def body_paras(spec: dict) -> list[dict]:
     return []
 
 
+def _media_el(ctx: Ctx, img: dict, box) -> dict:
+    kind = "video" if str(img.get("mime")).startswith("video/") else "audio"
+    el = {"id": ctx.eid(), "type": "media", "kind": kind, "src": img["src"], "alt": img.get("alt", "")}
+    x, y, w, h = box
+    if kind == "audio":
+        s = min(w, h, 64)
+        x, y, w, h = x + (w - s) / 2, y + (h - s) / 2, s, s
+    elif img.get("w") and img.get("h"):
+        r = min(w / img["w"], h / img["h"])
+        x, y, w, h = x + (w - img["w"] * r) / 2, y + (h - img["h"] * r) / 2, img["w"] * r, img["h"] * r
+    el.update({"x": round(x, 2), "y": round(y, 2), "w": round(w, 2), "h": round(h, 2)})
+    return el
+
+
+def _is_av(img: dict) -> bool:
+    return str(img.get("mime") or "").startswith(("video/", "audio/"))
+
+
 def _image_el(ctx: Ctx, img: dict, lay_el: dict | None, box=None) -> dict:
+    if box and _is_av(img):
+        return _media_el(ctx, img, box)
     el = {"id": ctx.eid(), "type": "image", "src": img["src"], "alt": img.get("alt", ""), "fit": img.get("fit") or ("contain" if img.get("class") in ("logo", "icon", "screenshot", "chart") else "cover")}
     if img.get("focus"):
         el["focus"] = img["focus"]
@@ -596,7 +616,7 @@ def compile_slide(ctx: Ctx, spec: dict, index: int, total: int) -> dict:
         pic_slots = [sl[s] for s in ("image", "image2", "image3", "image4") if s in sl]
         if len(images) == len(pic_slots) or (len(images) == 1 and pic_slots):
             for img, lay_el in zip(images, pic_slots):
-                els.append(_image_el(ctx, img, lay_el))
+                els.append(_media_el(ctx, img, frame(deck, layout, lay_el)) if _is_av(img) else _image_el(ctx, img, lay_el))
         else:
             if pic_slots:
                 boxes = [frame(deck, layout, e) for e in pic_slots]

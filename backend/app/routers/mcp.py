@@ -297,6 +297,8 @@ async def _consent(a: Agent) -> str | None:
         res = await bridge.window_call("consent", {"agent": a.name}, None, 120)
         if res is None:
             return None
+        if res.get("isError"):
+            return "FormDeck is still asking the person in its window whether you may edit decks; nobody has answered yet. Tell them to choose Allow in the FormDeck window, then retry."
         if (res.get("structuredContent") or {}).get("allowed"):
             config.write_settings({"agentsAllowed": True})
             return None
@@ -1758,13 +1760,72 @@ async def t_run_command(a: Agent, args: dict) -> dict:
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}
 
 
+POSTER_TOOLS = {"build_deck", "add_slides", "update_slide", "edit_elements", "apply_ops", "open_file"}
+
+
+def _bare_videos(deck: dict) -> list[tuple[dict, list]]:
+    out: list[tuple[dict, list]] = []
+
+    def walk(els: list, base: list) -> None:
+        for el in els or []:
+            p = base + [{"id": el.get("id")}]
+            if el.get("type") == "media" and el.get("kind") == "video" and not el.get("poster") and el.get("src"):
+                out.append((el, p))
+            if el.get("type") == "group":
+                walk(el.get("children", []), p + ["children"])
+
+    for s in deck.get("slides", []):
+        walk(s.get("elements", []), ["slides", {"id": s["id"]}, "elements"])
+    return out
+
+
+async def _posters(a: Agent, deck_id: str) -> str:
+    try:
+        deck = _deck(deck_id)
+    except ToolError:
+        return ""
+    bare = _bare_videos(deck)
+    if not bare:
+        return ""
+    if not bridge.window_connected():
+        return f"\nPoster frames: {len(bare)} video(s) have none, so thumbnails and exports show a blank frame; open the FormDeck window and repeat the call, or set poster with edit_elements."
+    ops, got, missed = [], {}, []
+    for src in dict.fromkeys(el["src"] for el, _ in bare):
+        res = await bridge.window_call("video_frame", {"media": src}, deck_id, 40)
+        try:
+            meta = json.loads(res["content"][0]["text"]) if res and not res.get("isError") else None
+        except (KeyError, IndexError, TypeError, ValueError):
+            meta = None
+        if not meta or not meta.get("id"):
+            missed.append(f"{src} ({_clip(res['content'][0]['text'], 80) if res and res.get('content') else 'no answer'})")
+            continue
+        got[src] = meta["id"]
+        if meta["id"] not in (deck.get("media") or {}):
+            ops.append({"op": "set", "path": ["media", meta["id"]], "value": {k: meta[k] for k in ("name", "mime", "w", "h", "bytes") if k in meta}})
+    for el, p in bare:
+        if el["src"] in got:
+            ops.append({"op": "set", "path": [*p, "poster"], "value": got[el["src"]]})
+    if ops:
+        await _apply(a, deck_id, ops, "poster frames")
+    note = f"\nPoster frames: {sum(1 for el, _ in bare if el['src'] in got)} video(s) got a poster from the window." if got else ""
+    if missed:
+        note += f"\nPoster frames not made for {'; '.join(missed)}; set poster with edit_elements."
+    return note
+
+
 async def call_tool(a: Agent, name: str, args: dict) -> dict:
     if _mutating(name, args):
         refused = await _consent(a)
         if refused:
             return _fail(refused)
     try:
-        return await HANDLERS[name](a, args)
+        out = await HANDLERS[name](a, args)
+        if name in POSTER_TOOLS and not out.get("isError"):
+            did = args.get("deck") or (out.get("structuredContent") or {}).get("deck")
+            note = await _posters(a, str(did)) if did else ""
+            if note and out.get("content"):
+                out["content"][0]["text"] += note
+        return out
     except ToolError as exc:
         return _fail(str(exc))
     except (ValueError, TypeError, KeyError) as exc:
