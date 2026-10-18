@@ -1,5 +1,10 @@
 import asyncio
+import secrets
+import shutil
 import tempfile
+import time
+import urllib.parse
+import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException, Request, UploadFile
@@ -132,3 +137,82 @@ def media_info(media_id: str) -> dict:
     if info is None:
         raise HTTPException(404, "no such media")
     return info
+
+
+DECK_EXT = {"fdec", "fsld", "pptx", "potx", "ppsx", "pptm", "odp", "otp"}
+UNPACK_MAX_FILES = 300
+
+
+def _unpack_root() -> Path:
+    root = config.data_dir() / "Unpacked"
+    root.mkdir(parents=True, exist_ok=True)
+    cutoff = time.time() - 86400
+    for old in root.iterdir():
+        try:
+            if old.is_dir() and old.stat().st_mtime < cutoff:
+                shutil.rmtree(old, ignore_errors=True)
+        except OSError:
+            continue
+    return root
+
+
+def _unpack(source) -> dict:
+    try:
+        zf = zipfile.ZipFile(source)
+    except zipfile.BadZipFile:
+        raise HTTPException(400, "That .zip file could not be read.")
+    uid = secrets.token_hex(6)
+    dest = _unpack_root() / uid
+    dest.mkdir()
+    entries, skipped, total, used = [], 0, 0, set()
+    with zf:
+        for info in zf.infolist():
+            name = info.filename.replace("\\", "/")
+            base = name.rsplit("/", 1)[-1]
+            if info.is_dir() or not base or base.startswith(".") or "__MACOSX/" in name:
+                continue
+            ext = base.rsplit(".", 1)[-1].lower() if "." in base else ""
+            kind = "deck" if ext in DECK_EXT else "media" if ext in FROM_PATH_EXT else ""
+            if not kind or len(entries) >= UNPACK_MAX_FILES:
+                skipped += 1
+                continue
+            total += info.file_size
+            if info.file_size > config.MAX_UPLOAD_BYTES or total > 4 * config.MAX_UPLOAD_BYTES:
+                raise HTTPException(413, "That .zip file holds more than FormDeck can unpack at once.")
+            stem, n, safe = base, 2, base
+            while safe.lower() in used:
+                safe = f"{stem.rsplit('.', 1)[0]} ({n}).{ext}"
+                n += 1
+            used.add(safe.lower())
+            target = dest / safe
+            with zf.open(info) as src, open(target, "wb") as out:
+                shutil.copyfileobj(src, out)
+            entries.append({"name": safe, "kind": kind, "path": str(target), "url": f"/api/unpack/{uid}/{urllib.parse.quote(safe)}"})
+    entries.sort(key=lambda e: e["name"].lower())
+    return {"id": uid, "entries": entries, "skipped": skipped}
+
+
+@router.post("/unpack")
+async def unpack_upload(file: UploadFile) -> dict:
+    with tempfile.SpooledTemporaryFile(max_size=64 * 1024 * 1024) as tmp:
+        await asyncio.to_thread(shutil.copyfileobj, file.file, tmp)
+        tmp.seek(0)
+        return await asyncio.to_thread(_unpack, tmp)
+
+
+@router.post("/unpack-path")
+async def unpack_path(request: Request, body: dict = Body(...)) -> dict:
+    require_local(request)
+    path = Path(str(body.get("path") or "")).expanduser()
+    if not path.is_absolute() or not path.is_file() or path.suffix.lower() != ".zip":
+        raise HTTPException(400, f"{path.name or 'That path'} is not a .zip file that exists.")
+    return await asyncio.to_thread(_unpack, str(path))
+
+
+@router.get("/unpack/{uid}/{name}")
+def unpacked_file(uid: str, name: str) -> FileResponse:
+    root = config.data_dir() / "Unpacked"
+    target = (root / uid / name).resolve()
+    if not uid.isalnum() or target.parent != (root / uid).resolve() or not target.is_file():
+        raise HTTPException(404, "no such unpacked file")
+    return FileResponse(target, filename=name)
