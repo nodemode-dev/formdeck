@@ -334,9 +334,13 @@ def _cells_words(el: dict) -> int:
 
 
 def _check_image(out, deck, slide, n, el, frame, scale):
-    if not str(el.get("alt") or "").strip():
-        _issue(out, slide, n, "alt", "warn", "picture without alt text", el["id"])
     meta = (deck.get("media") or {}).get(el.get("src")) or {}
+    alt = str(el.get("alt") or "").strip()
+    name = str(meta.get("name") or "").strip()
+    if not alt:
+        _issue(out, slide, n, "alt", "warn", "picture without alt text", el["id"])
+    elif name and alt.lower() in (name.lower(), name.rsplit(".", 1)[0].lower()):
+        _issue(out, slide, n, "alt", "warn", "picture whose alt text is only its file name", el["id"])
     sw, sh = meta.get("w"), meta.get("h")
     if not sw or not sh or None in frame or meta.get("mime") == "image/svg+xml" or frame[2] <= 0 or frame[3] <= 0:
         return
