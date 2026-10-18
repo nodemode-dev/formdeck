@@ -31,9 +31,9 @@ function runCss(run: Run | null, lvl: LevelStyle, tc: TextCtx): string {
   const b = r.b ?? lvl.b;
   if (b) parts.push('font-weight:700');
   if (r.i ?? lvl.i) parts.push('font-style:italic');
-  const deco = [r.u ? 'underline' : '', r.s ? 'line-through' : ''].filter(Boolean).join(' ');
+  const deco = [r.u || r.link ? 'underline' : '', r.s ? 'line-through' : ''].filter(Boolean).join(' ');
   if (deco) parts.push(`text-decoration:${deco}`);
-  parts.push(`color:${colorCss(r.color ?? lvl.color ?? 'tx1', tc.theme)}`);
+  parts.push(`color:${colorCss(r.color ?? (r.link ? 'hlink' : lvl.color ?? 'tx1'), tc.theme)}`);
   if (r.hl) parts.push(`background:${colorCss(r.hl, tc.theme)}`);
   const spc = r.spc ?? lvl.spc;
   if (spc) parts.push(`letter-spacing:${px(spc)}`);
