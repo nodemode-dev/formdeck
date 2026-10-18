@@ -349,3 +349,7 @@ Restore writes meta.template back, or removes it when the version had none, sinc
 ## 73. Unpacking dropped zips, placeholder frames · _v0.20.0 (routers/media.py _unpack, /unpack, /unpack-path, /unpack/{uid}/{name}; services/pptx/write_elements.py _graphic_frame, _table)
 
 A dropped zip is unpacked into data/Unpacked/[id] and the folders inside it are flattened to base names, so an entry like ../x or a/b/x can never write outside that folder; clashing names get " (2)". Only decks and media are kept, hidden files and __MACOSX are skipped, and the count and total size are capped. Folders older than a day are removed on the next unpack. The path form is loopback-only, like media from-path. Charts and tables that sit in a placeholder carry no frame of their own, so their graphic frame is written from the effective frame the layout gives them; before this they exported at 0 by 0.
+
+## 74. The PDF text layer keeps to itself · _v0.20.1 (routers/exports.py _pdf text layer)
+
+The searchable text layer is drawn in render mode 3 (invisible), and the render mode is graphics state that outlives the text object, so every live-text run drawn after it on the same page came out invisible too: a stat row showed its first value and lost the rest, and a title drawn after a caption vanished. The layer is now drawn inside saveState and restoreState. Setting mode 0 on the live text does not work, because reportlab writes a mode only when it differs from the fresh text object's own 0.

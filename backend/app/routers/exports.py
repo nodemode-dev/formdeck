@@ -141,7 +141,9 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
                         t.setHorizScale(max(20.0, min(300.0, w / width * 100)))
                     t.setTextOrigin(x, ph - (y + sz) - k * sz * 1.2)
                     t.textLine(line)
+                    c.saveState()
                     c.drawText(t)
+                    c.restoreState()
             c._code.append("EMC")
         if notes is not None:
             k = pw / 960
