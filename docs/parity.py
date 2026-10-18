@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 
 F, P, N = "full", "partial", "none"
 V = {F: 1.0, P: 0.5, N: 0.0}
@@ -194,6 +195,8 @@ WINDOW = {
     "Autosave to a library of recent decks": "0.17.0: Recent list on Home, Pin to list and Remove from list, imported decks sort first, delete to Trash and restore",
     "Full-screen show, keyboard navigation, go to slide by number": "0.13.0: Esc ends the slide show, End Show button, media keys; 0.15.0: + and - zoom",
 }
+with open(Path(__file__).with_name("parity_window.json"), encoding="utf-8") as _f:
+    WINDOW.update(json.load(_f))
 
 
 def score(rows, key):
