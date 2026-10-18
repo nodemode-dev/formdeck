@@ -7,7 +7,7 @@ import { promptName, confirmAction } from '../ui/dialogs';
 import { toast } from '../ui/toast';
 import type { Editor } from './editor';
 import { stepSize } from '../render/fonts';
-import { alignOps, bodyPropOps, deleteSlideOps, dirtyOp, distributeOps, groupOps, newShape, newTextBox, paraStyleOps, runStyleOps, ungroupOps, zOrderOps } from './actions';
+import { alignOps, bodyPropOps, changeLayoutOps, deleteSlideOps, dirtyOp, distributeOps, groupOps, newShape, newTextBox, paraStyleOps, runStyleOps, ungroupOps, zOrderOps } from './actions';
 import { tableColorOps } from './table-edit';
 import { isPreviewing, selectedMedia, togglePreview } from './media-preview';
 import { collab } from './collab-state';
@@ -348,7 +348,7 @@ export function layoutCommands(cmds: Commands, ed: Editor): void {
       id, label: l.name, checked: () => ed.slide?.layout === l.id,
       run: () => {
         const ids = ed.slideSel.length ? ed.slideSel : [ed.current];
-        ed.apply(ids.map((sid) => ({ op: 'set', path: [...slidePath(sid), 'layout'], value: l.id }) as Op), 'Change layout');
+        ed.apply(ids.flatMap((sid) => { const s = ed.doc.slide(sid); return s ? changeLayoutOps(ed.doc.deck, s, l) : []; }), 'Change layout');
       },
     });
   }

@@ -10,6 +10,22 @@ export function resolvedFrame(deck: Deck, slide: Slide, el: SlideElement): Frame
   return frameOf(chain(deck, slide, el), deck);
 }
 
+const BODYISH = new Set(['body', 'obj', 'subTitle']);
+
+export function changeLayoutOps(deck: Deck, slide: Slide, layout: Layout): Op[] {
+  const ops: Op[] = [];
+  for (const e of slide.elements) {
+    const ph = e.ph;
+    if (!ph || (e.x !== undefined && e.y !== undefined && e.w !== undefined && e.h !== undefined)) continue;
+    const kept = layout.elements.some((l) => l.ph && (l.ph.idx ?? 0) === (ph.idx ?? 0) && (l.ph.type === ph.type || (BODYISH.has(l.ph.type) && BODYISH.has(ph.type)) || (TITLE_KINDS.has(l.ph.type) && TITLE_KINDS.has(ph.type))));
+    if (kept) continue;
+    const f = resolvedFrame(deck, slide, e);
+    for (const k of ['x', 'y', 'w', 'h'] as const) ops.push({ op: 'set', path: [...elPath(slide.id, e.id), k], value: f[k] });
+  }
+  ops.push({ op: 'set', path: [...slidePath(slide.id), 'layout'], value: layout.id });
+  return ops;
+}
+
 export function dirtyOp(slide: Slide): Op[] {
   return slide.spec && !(slide.spec as { dirty?: boolean }).dirty ? [{ op: 'set', path: [...slidePath(slide.id), 'spec', 'dirty'], value: true }] : [];
 }
