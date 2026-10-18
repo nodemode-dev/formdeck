@@ -179,19 +179,26 @@ step "freezing the engine into the app"
 SEP=":"
 EXTRA=()
 [ -d backend/app/fonts ] && EXTRA+=(--add-data "$ROOT/backend/app/fonts${SEP}fonts")
-(
-  cd backend
-  rm -rf build/pyinstaller dist-engine
-  "$VPY" -m PyInstaller --noconfirm --clean --onefile --log-level WARN --name formdeck-engine \
-    --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \
-    --add-data "$ROOT/frontend/dist${SEP}frontend_dist" \
-    --add-data "$ROOT/addins${SEP}addins" \
-    --add-data "$ROOT/backend/app/services/odp/presets.json${SEP}app/services/odp" \
-    --collect-submodules app --collect-submodules uvicorn \
-    --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 --collect-all latex2mathml \
-    ${EXTRA[@]+"${EXTRA[@]}"} \
-    "$ROOT/backend/formdeck_engine.py"
-)
+freeze() {
+  (
+    cd backend
+    rm -rf build/pyinstaller build/pyinstaller-cache dist-engine
+    PYINSTALLER_CONFIG_DIR="$ROOT/backend/build/pyinstaller-cache" \
+    "$VPY" -m PyInstaller --noconfirm --clean --onefile --log-level WARN --name formdeck-engine \
+      --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \
+      --add-data "$ROOT/frontend/dist${SEP}frontend_dist" \
+      --add-data "$ROOT/addins${SEP}addins" \
+      --add-data "$ROOT/backend/app/services/odp/presets.json${SEP}app/services/odp" \
+      --collect-submodules app --collect-submodules uvicorn \
+      --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 --collect-all latex2mathml \
+      ${EXTRA[@]+"${EXTRA[@]}"} \
+      "$ROOT/backend/formdeck_engine.py"
+  )
+}
+if ! freeze; then
+  say "PyInstaller stopped; clearing its cache and freezing the engine once more"
+  freeze || die "freezing the engine failed twice; the log above shows the error"
+fi
 SIDECAR="src-tauri/binaries/formdeck-engine-$TRIPLE"
 cp backend/dist-engine/formdeck-engine "$SIDECAR"
 chmod +x "$SIDECAR"
@@ -229,6 +236,12 @@ OUT="src-tauri/target/$([ "$DEBUG" = 1 ] && echo debug || echo release)/bundle"
 step "done in $(( (SECONDS - START) / 60 )) min $(( (SECONDS - START) % 60 )) s"
 find "$OUT" -maxdepth 2 \( -name '*.dmg' -o -name '*.app' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) 2>/dev/null | while read -r f; do say "$ROOT/$f"; done
 if [ "$OS" = macos ]; then
+  LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+  if [ -d "$OUT/macos/FormDeck.app" ] && [ -x "$LSREG" ]; then
+    "$LSREG" -f "$ROOT/$OUT/macos/FormDeck.app" >/dev/null 2>&1 || true
+    qlmanage -r cache >/dev/null 2>&1 || true
+    say "registered the new app with macOS so .fdec files show its icon (Finder may need a relaunch: Option+right-click Finder in the Dock, Relaunch)"
+  fi
   say "open it: open \"$ROOT/$OUT/macos/FormDeck.app\""
 else
   DEB="$(ls -t "$OUT"/deb/*.deb 2>/dev/null | head -n1 || true)"
