@@ -59,10 +59,10 @@ function ribbonTabs(): TabDef[] {
     { id: 'home', label: 'Home', groups: [
       G('clipboard', 'Clipboard', L('paste', 'Paste'), R([T('cut', 'Cut')], [T('copy', 'Copy')], [T('duplicate', 'Duplicate')]), L('format-painter', 'Format Painter')),
       G('slides', 'Slides', L('new-slide', 'New Slide'), R([S('layout')], [T('reset-slide', 'Reset'), T('add-section', 'Section')], [T('hide-slide', 'Hide'), T('delete-slide', 'Delete')])),
-      G('font', 'Font', R([S('font'), S('size'), I('grow-font'), I('shrink-font'), I('clear-format')], [I('bold'), I('italic'), I('underline'), I('strike'), I('superscript'), I('subscript'), I('all-caps'), A('text-color', 'textColor', 'Font Colour', { swatch: true }), A('highlight', 'highlight', 'Highlight', { swatch: true })], [I('small-caps'), I('text-effects'), I('insert-link')])),
+      { ...G('font', 'Font', R([S('font'), S('size'), I('grow-font'), I('shrink-font'), I('clear-format')], [I('bold'), I('italic'), I('underline'), I('strike'), I('superscript'), I('subscript'), I('all-caps'), A('text-color', 'textColor', 'Font Colour', { swatch: true }), A('highlight', 'highlight', 'Highlight', { swatch: true })], [I('small-caps'), I('text-effects'), I('insert-link')])), rank: -1 },
       G('paragraph', 'Paragraph', R([I('bullets'), I('numbering'), I('outdent'), I('indent')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('anchor-t'), I('anchor-m'), I('anchor-b')])),
       G('drawing', 'Drawing', A('shapes', 'shapes', 'Shapes'), M('arrange', 'arrange', 'Arrange', ARRANGE_ITEMS), R([A('fill', 'fill', 'Shape Fill', { text: true, swatch: true })], [A('line', 'pen', 'Shape Outline', { text: true, swatch: true })], [T('edit-points', 'Edit Points')])),
-      G('editing', 'Editing', R([T('find', 'Find')], [T('replace-fonts', 'Replace Fonts')], [T('select-all', 'Select All')], [T('selection-pane', 'Selection Pane')])),
+      G('editing', 'Editing', R([T('find', 'Find')], [T('replace-fonts', 'Replace Fonts')], [M('select', 'selectAll', 'Select', ['select-all', 'selection-pane'], { text: true })])),
       G('addins', 'Add-ins', L('addins-dialog', 'Add-ins')),
     ] },
     { id: 'insert', label: 'Insert', groups: [
@@ -114,7 +114,7 @@ function ribbonTabs(): TabDef[] {
       G('show', 'Show', R([T('view-ruler', 'Ruler')], [T('view-gridlines', 'Gridlines')], [T('view-guides', 'Guides')]), R([T('toggle-strip', 'Slides Panel')], [T('toggle-props', 'Properties Panel')], [T('toggle-notes', 'Speaker Notes')]), L('grid-guides', 'Grid and Guides', { icon: 'grid' })),
       G('zoom', 'Zoom', L('zoom-in', 'Zoom In'), L('zoom-out', 'Zoom Out'), L('zoom-fit', 'Fit to Window'), L('zoom-100', '100%', { icon: 'maximize' })),
       G('macros', 'Macros', L('macro-dialog', 'Macros'), L('macro-editor', 'Macro Editor')),
-      G('ribbon', 'Ribbon', L('ribbon-simplified', 'Simplified Ribbon'), L('ribbon-collapse', 'Collapse Ribbon'), L('ribbon-customize', 'Customize Ribbon'), L('qat-customize', 'Customize Quick Access'), L('qat-below', 'Quick Access Position')),
+      G('ribbon', 'Ribbon', L('ribbon-compact', 'Icons-Only Ribbon'), L('ribbon-simplified', 'Simplified Ribbon'), L('ribbon-collapse', 'Collapse Ribbon'), L('ribbon-customize', 'Customize Ribbon'), L('qat-customize', 'Customize Quick Access')),
     ] },
     { id: 'addins', label: 'Add-ins', groups: [
       G('manage', 'Manage', L('addins-store', 'Get Add-ins'), L('addins-mine', 'My Add-ins')),
@@ -279,7 +279,7 @@ export class Toolbar {
       { id: 'ribbon-simplified', label: 'Simplified Ribbon', icon: 'ribbon', checked: () => !!this.ribbon?.simplified, run: () => { const r = rb(); r.setSimplified(!r.simplified); } },
       { id: 'ribbon-customize', label: 'Customize the Ribbon...', icon: 'settings', run: () => void this.customize('ribbon') },
       { id: 'qat-customize', label: 'Customize Quick Access Toolbar...', icon: 'qat', run: () => void this.customize('qat') },
-      { id: 'qat-below', label: () => (this.qat.below ? 'Show Quick Access Toolbar Above the Ribbon' : 'Show Quick Access Toolbar Below the Ribbon'), icon: 'qat', checked: () => this.qat.below, run: () => this.qat.setBelow(!this.qat.below) },
+      { id: 'ribbon-compact', label: 'Icons-Only Ribbon', icon: 'iconRail', enabled: () => !this.ribbon?.simplified, checked: () => !!this.ribbon?.compact, run: () => { const r = rb(); r.setCompact(!r.compact); } },
       { id: 'key-tips', label: 'Show Key Tips', enabled: () => !this.ribbon?.simplified, run: () => requestAnimationFrame(() => this.tips?.toggle()) },
     );
   }
@@ -312,6 +312,7 @@ export class Toolbar {
       after: () => this.sync(),
       fileItems: () => this.fileItems,
       customize: (what) => void this.customize(what),
+      qatHost: () => this.host.closest('.fd-app')?.querySelector<HTMLElement>('.fd-status-left') ?? null,
     });
     return this.ribbon;
   }

@@ -170,6 +170,8 @@ body.theme-light .fd-seg button.is-on { color: color-mix(in srgb, var(--accent-c
 
 .fd-status { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-width: 0; padding: 0 var(--space-3) 0 var(--space-4); background: var(--bg-secondary); border-top: 1px solid var(--line-0); color: var(--text-muted); font-size: var(--fd-11); white-space: nowrap; overflow: hidden; }
 .fd-status-left { display: flex; align-items: center; gap: var(--space-4); flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.fd-status:has(.fd-qat) { padding-left: var(--space-2); }
+.fd-status-left > .fd-qat { margin-right: calc(var(--space-4) * -1 + var(--space-3)); }
 .fd-status-right { display: flex; align-items: center; gap: var(--space-3); flex: none; }
 .fd-st { display: inline-flex; align-items: center; gap: 6px; flex: none; font-variant-numeric: tabular-nums; }
 .fd-st-slide { min-width: 84px; }

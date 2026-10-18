@@ -93,7 +93,7 @@ html[data-input="touch"] .fd-handle::after { content: ''; position: absolute; le
 .fd-app.is-view-only .fd-main > .fd-strip-col { display: none; }
 .fd-app.is-view-only.is-pager-strip .fd-main > .fd-strip-col { display: flex; }
 .fd-app.is-view-only .fd-status { gap: 0; padding: 0 var(--space-2); }
-.fd-app.is-view-only .fd-status-right, .fd-app.is-view-only .fd-st-save, .fd-app.is-view-only .fd-st-hint, .fd-app.is-view-only .fd-st-agent { display: none; }
+.fd-app.is-view-only .fd-status-right, .fd-app.is-view-only .fd-st-save, .fd-app.is-view-only .fd-st-hint, .fd-app.is-view-only .fd-st-agent, .fd-app.is-view-only .fd-qat { display: none; }
 .fd-app.is-view-only .fd-status-left { order: 2; flex: 1 1 auto; justify-content: center; }
 .fd-app.is-view-only .fd-st-slide { min-width: 0; font-size: var(--fd-12); }
 .fd-app.is-view-only .fd-pager-btn { display: inline-flex; width: 44px; height: 100%; border-radius: 0; }

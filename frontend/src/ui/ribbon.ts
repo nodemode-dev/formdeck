@@ -23,6 +23,7 @@ export interface RibbonOpts {
   after: () => void;
   fileItems: () => MenuItem[];
   customize: (what: 'ribbon' | 'qat') => void;
+  qatHost: () => HTMLElement | null;
 }
 
 interface Step { lv: number; gal: number }
@@ -83,12 +84,13 @@ const readJson = <T,>(key: string): Partial<T> => {
   try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as Partial<T>) : {}; } catch { return {}; }
 };
 
-interface Saved extends Partial<RibbonConfig> { collapsed?: boolean; simplified?: boolean; tab?: string }
+interface Saved extends Partial<RibbonConfig> { collapsed?: boolean; simplified?: boolean; compact?: boolean; tab?: string }
 
 export class Ribbon {
   readonly root: HTMLElement;
   collapsed = false;
   simplified = false;
+  compact = false;
   tab = 'home';
   config: RibbonConfig = { hiddenTabs: [], hiddenGroups: [], custom: [] };
   private float = false;
@@ -106,7 +108,7 @@ export class Ribbon {
   private readonly actions = new ActionMenu();
   private fileMenu: PopupMenu | null = null;
   private readonly collapseBtn: HTMLButtonElement;
-  private readonly simpleBtn: HTMLButtonElement;
+  private readonly compactBtn: HTMLButtonElement;
   private readonly fileBtn: HTMLButtonElement;
   private mark = '';
   private readonly gpop: HTMLElement;
@@ -121,10 +123,11 @@ export class Ribbon {
     const s = readJson<Saved>(RIBBON_KEY);
     this.collapsed = !!s.collapsed;
     this.simplified = !!s.simplified;
+    this.compact = !!s.compact;
     if (typeof s.tab === 'string') this.tab = s.tab;
     this.config = { hiddenTabs: Array.isArray(s.hiddenTabs) ? s.hiddenTabs : [], hiddenGroups: Array.isArray(s.hiddenGroups) ? s.hiddenGroups : [], custom: Array.isArray(s.custom) ? s.custom : [] };
     this.root = el(`<div class="fd-rb">
-<div class="fd-rb-tabs"><button class="fd-rb-file" type="button" aria-haspopup="menu" aria-expanded="false">File</button><div class="fd-rb-tablist" role="tablist" aria-label="Ribbon tabs"></div><div class="fd-rb-tools"><button class="fd-rb-tool" type="button" data-tool="simplified" aria-pressed="false" aria-label="Simplified ribbon" title="Simplified ribbon">${icon('menu', 14)}</button><button class="fd-rb-tool" type="button" data-tool="collapse" aria-expanded="true" aria-label="Collapse the ribbon (Ctrl+F1)" title="Collapse the ribbon (Ctrl+F1)">${icon('chevronUp', 14)}</button></div></div>
+<div class="fd-rb-tabs"><button class="fd-rb-file" type="button" aria-haspopup="menu" aria-expanded="false">File</button><div class="fd-rb-tablist" role="tablist" aria-label="Ribbon tabs"></div><div class="fd-rb-tools"><button class="fd-rb-tool" type="button" data-tool="compact" aria-pressed="false" aria-label="Icons-only ribbon" title="Icons-only ribbon">${icon('iconRail', 14)}</button><button class="fd-rb-tool" type="button" data-tool="collapse" aria-expanded="true" aria-label="Collapse the ribbon (Ctrl+F1)" title="Collapse the ribbon (Ctrl+F1)">${icon('chevronUp', 14)}</button></div></div>
 <div class="fd-rb-body"></div>
 </div>`);
     this.tabsEl = this.root.querySelector('.fd-rb-tabs') as HTMLElement;
@@ -132,10 +135,11 @@ export class Ribbon {
     this.body = this.root.querySelector('.fd-rb-body') as HTMLElement;
     this.fileBtn = this.root.querySelector('.fd-rb-file') as HTMLButtonElement;
     this.collapseBtn = this.root.querySelector('[data-tool="collapse"]') as HTMLButtonElement;
-    this.simpleBtn = this.root.querySelector('[data-tool="simplified"]') as HTMLButtonElement;
+    this.compactBtn = this.root.querySelector('[data-tool="compact"]') as HTMLButtonElement;
     this.gpop = el('<div class="fd-rb-gpop" role="toolbar" hidden></div>');
     this.root.appendChild(this.gpop);
-    this.root.insertBefore(qat.node, this.tabsEl);
+    const qh = opts.qatHost();
+    if (qh) qh.prepend(qat.node); else this.root.insertBefore(qat.node, this.tabsEl);
     host.append(this.root, opts.simple);
     for (const t of opts.tabs) this.buildTab(t);
     this.buildCustom();
@@ -288,7 +292,7 @@ export class Ribbon {
     }
     if (t.closest('.fd-rb-file')) { this.openFile(); return; }
     const tool = t.closest<HTMLElement>('.fd-rb-tool');
-    if (tool) { if (tool.dataset.tool === 'collapse') this.setCollapsed(!this.collapsed); else this.setSimplified(!this.simplified); return; }
+    if (tool) { if (tool.dataset.tool === 'collapse') this.setCollapsed(!this.collapsed); else this.setCompact(!this.compact); return; }
     const b = t.closest<HTMLButtonElement>('.fd-rb-btn');
     if (!b || b.disabled) return;
     if (b.dataset.group) { this.openPop(b.closest('.fd-rb-group') as HTMLElement); return; }
@@ -471,7 +475,7 @@ export class Ribbon {
       const on = this.qat.has(id);
       rows.push({ label: on ? 'Remove from Quick Access Toolbar' : 'Add to Quick Access Toolbar', run: () => this.qat.toggle(id) }, { label: '', sep: true });
     }
-    rows.push({ label: 'Customize Quick Access Toolbar...', run: () => this.opts.customize('qat') }, { label: this.qat.below ? 'Show Quick Access Toolbar Above the Ribbon' : 'Show Quick Access Toolbar Below the Ribbon', run: () => this.qat.setBelow(!this.qat.below) }, { label: '', sep: true }, { label: 'Customize the Ribbon...', run: () => this.opts.customize('ribbon') }, { label: this.collapsed ? 'Expand the Ribbon' : 'Collapse the Ribbon', run: () => this.setCollapsed(!this.collapsed) }, { label: 'Simplified Ribbon', checked: this.simplified, run: () => this.setSimplified(!this.simplified) });
+    rows.push({ label: 'Customize Quick Access Toolbar...', run: () => this.opts.customize('qat') }, { label: '', sep: true }, { label: 'Customize the Ribbon...', run: () => this.opts.customize('ribbon') }, { label: this.collapsed ? 'Expand the Ribbon' : 'Collapse the Ribbon', run: () => this.setCollapsed(!this.collapsed) }, { label: 'Icons-Only Ribbon', checked: this.compact, run: () => this.setCompact(!this.compact) }, { label: 'Simplified Ribbon', checked: this.simplified, run: () => this.setSimplified(!this.simplified) });
     this.actions.open(rows, x, y);
   }
 
@@ -479,7 +483,7 @@ export class Ribbon {
     if (this.actions.isOpen) { this.actions.close(false); return; }
     const common = ['new-deck', 'open', 'save', 'print', 'undo', 'redo', 'present-start', 'present-current', 'spelling', 'new-slide'];
     const rows: MenuRow[] = common.filter((id) => !!this.commands.get(id)).map((id) => ({ label: plainLabel(this.commands, id), checked: this.qat.has(id), run: () => this.qat.toggle(id) }));
-    rows.push({ label: '', sep: true }, { label: 'More Commands...', run: () => this.opts.customize('qat') }, { label: this.qat.below ? 'Show Above the Ribbon' : 'Show Below the Ribbon', run: () => this.qat.setBelow(!this.qat.below) }, { label: this.collapsed ? 'Expand the Ribbon' : 'Collapse the Ribbon', run: () => this.setCollapsed(!this.collapsed) });
+    rows.push({ label: '', sep: true }, { label: 'More Commands...', run: () => this.opts.customize('qat') }, { label: this.collapsed ? 'Expand the Ribbon' : 'Collapse the Ribbon', run: () => this.setCollapsed(!this.collapsed) });
     const r = anchor.getBoundingClientRect();
     this.actions.open(rows, r.left, r.bottom + 2, anchor);
   }
@@ -547,6 +551,16 @@ export class Ribbon {
     this.sync();
   }
 
+  setCompact(on: boolean): void {
+    if (this.compact === on) return;
+    this.compact = on;
+    this.rev++;
+    this.applyMode();
+    this.persist();
+    this.sync();
+    this.opts.after();
+  }
+
   setSimplified(on: boolean): void {
     this.simplified = on;
     this.applyMode();
@@ -557,19 +571,17 @@ export class Ribbon {
   private applyMode(): void {
     setClass(this.root, 'is-collapsed', this.collapsed);
     setClass(this.root, 'is-float', this.collapsed && this.float);
-    setClass(this.root, 'is-below', this.qat.below);
+    setClass(this.root, 'is-compact', this.compact);
     setHidden(this.root, this.simplified);
     setHidden(this.opts.simple, !this.simplified);
-    if (this.simplified) { if (this.qat.node.parentElement !== this.opts.simple) this.opts.simple.prepend(this.qat.node); } else if (this.qat.node.parentElement !== this.root) this.root.insertBefore(this.qat.node, this.tabsEl);
-    setClass(this.qat.node, 'is-inline', this.simplified);
-    this.simpleBtn.setAttribute('aria-pressed', String(this.simplified));
+    this.compactBtn.setAttribute('aria-pressed', String(this.compact));
     this.collapseBtn.setAttribute('aria-expanded', String(!this.collapsed));
     const lbl = this.collapsed ? 'Expand the ribbon (Ctrl+F1)' : 'Collapse the ribbon (Ctrl+F1)';
     if (this.collapseBtn.title !== lbl) { this.collapseBtn.title = lbl; this.collapseBtn.setAttribute('aria-label', lbl); }
     setHidden(this.body, this.collapsed && !this.float);
     if (this.simplified || this.body.hidden) this.closePop(false);
     this.fit();
-    const v =this.simplified ? 'var(--rb-simple-h)' : this.collapsed ? 'calc(var(--rb-tabs-h) + var(--rb-qat-h))' : 'calc(var(--rb-tabs-h) + var(--rb-qat-h) + var(--rb-body-h))';
+    const v = this.simplified ? 'var(--rb-simple-h)' : this.collapsed ? 'var(--rb-tabs-h)' : this.compact ? 'calc(var(--rb-tabs-h) + var(--rb-rail-h))' : 'calc(var(--rb-tabs-h) + var(--rb-body-h))';
     setStyleVar(document.documentElement, '--fd-options-h', v);
   }
 
@@ -607,7 +619,7 @@ export class Ribbon {
     const cs = getComputedStyle(panel);
     const avail = cw - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 1;
     const groups = Array.from(panel.children).filter((n): n is HTMLElement => n.classList.contains('fd-rb-group') && !(n as HTMLElement).hidden);
-    const key = `${this.tab}|${this.rev}|${Math.round(avail)}|${groups.map((g) => g.dataset.g).join(',')}`;
+    const key = `${this.tab}|${this.rev}|${this.compact ? 'c' : 'f'}|${Math.round(avail)}|${groups.map((g) => g.dataset.g).join(',')}`;
     if (!groups.length || key === this.fitKey) return;
     this.measure(groups);
     const ms = groups.map((g) => this.meas.get(g) as Meas);
@@ -625,6 +637,12 @@ export class Ribbon {
           if (total <= avail) break done;
         }
       }
+      for (const i of [...order].reverse()) {
+        while (pick[i] > 0 && total + ms[i].w[pick[i] - 1] - ms[i].w[pick[i]] <= avail) {
+          total += ms[i].w[pick[i] - 1] - ms[i].w[pick[i]];
+          pick[i]--;
+        }
+      }
     }
     const ae = document.activeElement as HTMLElement | null;
     groups.forEach((g, i) => this.setStep(g, ms[i].steps[pick[i]]));
@@ -636,6 +654,7 @@ export class Ribbon {
   }
 
   private candidates(g: HTMLElement): Step[] {
+    if (this.compact) return g.querySelector('.fd-gal') ? [{ lv: 3, gal: 0 }] : [{ lv: 2, gal: 0 }, { lv: 3, gal: 0 }];
     const gal = g.querySelector('.fd-gal') ? 2 : 0;
     const out: Step[] = [{ lv: 0, gal: 0 }];
     if (gal) out.push({ lv: 0, gal: 4 }, { lv: 0, gal: 3 }, { lv: 0, gal: 2 });
@@ -686,6 +705,6 @@ export class Ribbon {
   }
 
   persist(): void {
-    try { localStorage.setItem(RIBBON_KEY, JSON.stringify({ collapsed: this.collapsed, simplified: this.simplified, tab: this.tab, ...this.config } satisfies Saved)); } catch { return; }
+    try { localStorage.setItem(RIBBON_KEY, JSON.stringify({ collapsed: this.collapsed, simplified: this.simplified, compact: this.compact, tab: this.tab, ...this.config } satisfies Saved)); } catch { return; }
   }
 }

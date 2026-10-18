@@ -200,6 +200,7 @@ export const ICONS: Record<string, string> = {
   arrange: L('<rect x="3.5" y="3.5" width="11" height="11" rx="1.5"/><rect x="9.5" y="9.5" width="11" height="11" rx="1.5"/>'),
   sections: L('<path d="M4 6.5h16M4 12h16M4 17.5h10"/><path d="M17.5 15.5v4M15.5 17.5h4"/>'),
   ribbon: L('<rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18M7 6.8h.01M10 6.8h.01M13 6.8h.01"/>'),
+  iconRail: L('<rect x="2.5" y="9" width="5.5" height="6" rx="1.2"/><rect x="9.25" y="9" width="5.5" height="6" rx="1.2"/><rect x="16" y="9" width="5.5" height="6" rx="1.2"/>'),
   qat: L('<rect x="3" y="5" width="18" height="6" rx="1.5"/><path d="M6.5 8h.01M10 8h.01M13.5 8h.01"/><path d="M12 14v6M9 17l3 3 3-3"/>'),
   tableStyle: L('<rect x="3.5" y="4.5" width="17" height="15" rx="1.8"/><path d="M3.5 9.5h17M9.2 9.5v10M14.8 9.5v10"/><path d="M3.5 9.5V6.3a1.8 1.8 0 0 1 1.8-1.8h13.4a1.8 1.8 0 0 1 1.8 1.8v3.2z" ' + F + ' opacity="0.3"/>'),
   fontGrow: L('<path d="M3.5 19L8.5 6l5 13M5.2 14.5h6.6"/><path d="M17.5 11.5V4.5M15 7l2.5-2.5L20 7"/>'),

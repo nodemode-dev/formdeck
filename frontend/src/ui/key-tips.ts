@@ -163,7 +163,8 @@ export class KeyTips {
       if (b.textContent !== t.code) b.textContent = t.code;
       const small = level === 'tab' && !t.node.classList.contains('is-large') && r.width > 2 * r.height;
       b.style.left = `${Math.round(Math.max(2, Math.min(vw - 24, small ? r.left + 10 : r.left + r.width / 2)))}px`;
-      b.style.top = `${Math.round(level === 'top' ? r.bottom - 4 : small ? r.top + r.height / 2 - 2 : r.bottom - 8)}px`;
+      const below = level === 'top' ? r.bottom - 4 : small ? r.top + r.height / 2 - 2 : r.bottom - 8;
+      b.style.top = `${Math.round(below + 18 > window.innerHeight ? r.top - 14 : below)}px`;
       setHidden(b, !r.width && !r.height);
     });
     this.paint();

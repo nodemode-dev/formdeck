@@ -9,7 +9,7 @@ const ICON_FALLBACK: Record<string, string> = {
   'new-deck': 'newFile', open: 'load', 'save-as': 'save', 'save-version': 'history', 'save-template': 'template', cut: 'cut', copy: 'copy', paste: 'paste', 'select-all': 'selectAll',
   'view-master': 'layout', 'reset-slide': 'refresh', 'add-section': 'sections', 'rename-section': 'sections', 'slide-size': 'maximize', 'show-setup': 'settings', 'custom-shows': 'slides',
   'insert-shapes': 'shapes', 'insert-text': 'textBox', 'grow-font': 'fontGrow', 'shrink-font': 'fontShrink', 'clear-text-effects': 'clearFormat', 'draw-freeform': 'pen', 'draw-scribble': 'pen', 'clear-timing-current': 'delete', 'clear-timing-all': 'delete', 'clear-narration-current': 'delete', 'clear-narration-all': 'delete', 'table-style': 'tableStyle', 'ribbon-collapse': 'ribbon', 'ribbon-simplified': 'ribbon',
-  'ribbon-customize': 'settings', 'qat-customize': 'qat', 'qat-below': 'qat', 'text-align-l': 'alignLeft', 'text-align-c': 'alignCenter', 'text-align-r': 'alignRight', 'text-align-j': 'alignJustify',
+  'ribbon-customize': 'settings', 'qat-customize': 'qat', 'ribbon-compact': 'iconRail', 'text-align-l': 'alignLeft', 'text-align-c': 'alignCenter', 'text-align-r': 'alignRight', 'text-align-j': 'alignJustify',
 };
 
 export function iconOf(cmd: Command | undefined, id: string): string {
@@ -30,12 +30,11 @@ export function plainLabel(commands: Commands, id: string): string {
   return cmd ? commands.label(cmd).replace(/\.\.\.$/, '').replace(/…$/, '') : id;
 }
 
-interface QatState { items: string[]; below: boolean }
+interface QatState { items: string[] }
 
 export class Qat {
   readonly node: HTMLElement;
   items: string[] = [...DEFAULT_QAT];
-  below = false;
   onChange: (() => void) | null = null;
   onContext: ((id: string | null, x: number, y: number) => void) | null = null;
   onMore: ((anchor: HTMLElement) => void) | null = null;
@@ -78,12 +77,11 @@ export class Qat {
       if (!raw) return;
       const s = JSON.parse(raw) as Partial<QatState>;
       if (Array.isArray(s.items)) this.items = s.items.filter((x): x is string => typeof x === 'string');
-      this.below = !!s.below;
     } catch { return; }
   }
 
   private save(): void {
-    try { localStorage.setItem(QAT_KEY, JSON.stringify({ items: this.items, below: this.below } satisfies QatState)); } catch { return; }
+    try { localStorage.setItem(QAT_KEY, JSON.stringify({ items: this.items } satisfies QatState)); } catch { return; }
   }
 
   has(id: string): boolean { return this.items.includes(id); }
@@ -100,13 +98,6 @@ export class Qat {
     this.items = Array.from(new Set(items));
     this.save();
     this.render();
-    this.onChange?.();
-  }
-
-  setBelow(below: boolean): void {
-    if (this.below === below) return;
-    this.below = below;
-    this.save();
     this.onChange?.();
   }
 

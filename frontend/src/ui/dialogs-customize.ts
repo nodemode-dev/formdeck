@@ -37,7 +37,6 @@ export function customizeQat(commands: Commands, qat: Qat): void {
   const dlg = new Dialog('Customize Quick Access Toolbar', 760);
   dlg.scrim.classList.add('fd-cz');
   let items = qat.items.filter((id) => !!commands.get(id));
-  let below = qat.below;
   let sel: string | null = null;
   const left = commandPicker(commands, 'Choose commands');
   const right = el('<div class="fd-cz-col"><div class="fd-cz-cap"><span>Quick Access Toolbar</span></div><div class="fd-cz-list" role="group" aria-label="Quick Access Toolbar commands"></div></div>');
@@ -77,14 +76,10 @@ export function customizeQat(commands: Commands, qat: Qat): void {
   );
   const wrap = el('<div class="fd-cz-grid"></div>');
   wrap.append(left.node, mid, right);
-  const pos = el('<label class="fd-cz-check"><input type="checkbox"><span>Show the Quick Access Toolbar below the ribbon</span></label>');
-  const posBox = pos.querySelector('input') as HTMLInputElement;
-  posBox.checked = below;
-  posBox.addEventListener('change', () => { below = posBox.checked; });
-  dlg.body.append(wrap, pos);
-  dlg.button('Reset', 'ghost', () => { items = DEFAULT_QAT.filter((id) => !!commands.get(id)); below = false; posBox.checked = false; sel = null; render(); }).classList.add('fd-btn-apart');
+  dlg.body.append(wrap);
+  dlg.button('Reset', 'ghost', () => { items = DEFAULT_QAT.filter((id) => !!commands.get(id)); sel = null; render(); }).classList.add('fd-btn-apart');
   dlg.button('Cancel', 'ghost', () => dlg.close());
-  dlg.button('OK', 'primary', () => { qat.set(items); qat.setBelow(below); dlg.close(); });
+  dlg.button('OK', 'primary', () => { qat.set(items); dlg.close(); });
   dlg.onClose = () => dlg.scrim.remove();
   render();
   dlg.open(left.node.querySelector('input'));
