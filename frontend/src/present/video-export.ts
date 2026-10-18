@@ -14,7 +14,7 @@ interface Plan { states: State[]; total: number; narration: Array<{ src: string;
 
 const VIDEO_MIMES: Array<[string, 'mp4' | 'webm']> = [
   ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'mp4'], ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'mp4'], ['video/mp4;codecs=avc1,mp4a.40.2', 'mp4'],
-  ['video/mp4;codecs=avc1,opus', 'mp4'], ['video/mp4', 'mp4'], ['video/webm;codecs=vp9,opus', 'webm'], ['video/webm;codecs=vp8,opus', 'webm'], ['video/webm', 'webm'],
+  ['video/mp4;codecs=avc1,opus', 'mp4'], ['video/webm;codecs=vp9,opus', 'webm'], ['video/webm;codecs=vp8,opus', 'webm'], ['video/webm', 'webm'],
 ];
 const FPS = 30;
 const MAX_FADE = 1.5;
