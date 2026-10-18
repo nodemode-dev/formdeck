@@ -1330,6 +1330,16 @@ export class Stage {
 
   private savedRange: { id: string; range: Range } | null = null;
 
+  restoreSelection(): void {
+    const saved = this.savedRange;
+    const flow = this.editing ? this.editFlow() : null;
+    const sel = window.getSelection();
+    if (!flow || !sel || !saved || saved.id !== this.editing || !flow.contains(saved.range.startContainer) || !flow.contains(saved.range.endContainer)) return;
+    flow.focus({ preventScroll: true });
+    sel.removeAllRanges();
+    sel.addRange(saved.range);
+  }
+
   rememberSelection(): void {
     const flow = this.editing ? this.editFlow() : null;
     const sel = window.getSelection();
