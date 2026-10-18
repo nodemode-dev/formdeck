@@ -171,6 +171,13 @@ CLI_V="$("$TAURI" --version | awk '{print $2}')"
 CRATE_V="$(awk '/^name = "tauri"$/ {getline; gsub(/"/, "", $3); print $3; exit}' src-tauri/Cargo.lock)"
 [ "${CLI_V%.*}" = "${CRATE_V%.*}" ] || die "the Tauri CLI ($CLI_V) and the tauri crate ($CRATE_V) differ; they must match before Tauri will build"
 say "tauri cli $CLI_V, crate $CRATE_V"
+for PKG in frontend/node_modules/@tauri-apps/plugin-*/package.json; do
+  [ -f "$PKG" ] || continue
+  NAME="$(basename "$(dirname "$PKG")")"
+  JS_V="$(node -p "require(process.argv[1]).version" "$ROOT/$PKG")"
+  RS_V="$(awk -v n="tauri-$NAME" '$0 == "name = \"" n "\"" {getline; gsub(/"/, "", $3); print $3; exit}' src-tauri/Cargo.lock)"
+  [ -z "$RS_V" ] || [ "${JS_V%.*}" = "${RS_V%.*}" ] || die "@tauri-apps/$NAME is $JS_V but the tauri-$NAME crate is $RS_V; Tauri builds only when they share major.minor. Set frontend/package.json to $RS_V and run ./build_app --reinstall"
+done
 
 step "building the window"
 ( cd frontend && npm run build )
