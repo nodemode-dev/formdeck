@@ -123,6 +123,8 @@ def _split_combo(part, chart: dict) -> None:
     bar = find(plot_area, "c:barChart")
     series = [s for s in chart.get("series") or [] if isinstance(s, dict)]
     line_idx = {str(i) for i, s in enumerate(series) if s.get("kind") == "line"}
+    if not any(s.get("kind") in ("line", "column") for s in series) and len(series) > 1:
+        line_idx = {str(len(series) - 1)}
     if bar is None or not line_idx or len(line_idx) == len(series):
         return
     line_chart = make("c:lineChart", nsmap=CHART_NSMAP)
