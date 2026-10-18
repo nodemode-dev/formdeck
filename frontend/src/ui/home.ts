@@ -188,12 +188,7 @@ export class Home {
     const hero = this.root.querySelector('.fd-home-hero') as HTMLElement;
     hero.addEventListener('dragover', (e) => { e.preventDefault(); setClass(hero, 'is-drag-over', true); });
     hero.addEventListener('dragleave', () => setClass(hero, 'is-drag-over', false));
-    hero.addEventListener('drop', (e) => {
-      e.preventDefault();
-      setClass(hero, 'is-drag-over', false);
-      const files = Array.from(e.dataTransfer?.files ?? []);
-      if (files.length) this.hooks.openFiles(files);
-    });
+    hero.addEventListener('drop', () => setClass(hero, 'is-drag-over', false));
   }
 
   private pick(material: boolean): void {

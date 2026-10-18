@@ -380,11 +380,12 @@ export async function startApp(): Promise<void> {
     { id: 'new-terminal', label: 'New Terminal', icon: 'terminal', run: () => { const was = dockOpen(); void showDock().then((d) => (was ? d.open() : d.ensure())); } },
     { id: 'claude-code', label: 'Claude Code', icon: 'agent', keys: ['Shift+Mod+`'], run: () => void showDock().then((d) => d.claude()) },
     { id: 'agent-chat', label: 'Chat with Claude', icon: 'agentChat', keys: ['Alt+Mod+J'], run: () => void showDock().then((d) => d.showChat()) },
+    { id: 'save-copy', label: 'Save a Copy in Library...', enabled: () => !!editor, run: () => { if (editor) dialogs.saveCopyDialog(editor); } },
     { id: 'command-palette', label: 'Find a Command...', icon: 'commandPalette', keys: ['Shift+Mod+P'], run: () => { editor?.stage.rememberSelection(); palette ??= new CommandPalette(() => catalogue.list(), (id) => { editor?.stage.restoreSelection(); commands.run(id); syncChrome(); }); palette.show(); } },
   );
 
   const menus: MenuDef[] = [
-    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
+    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
     { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-collapse', 'ribbon-simplified', 'qat-below', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
@@ -559,21 +560,49 @@ export async function startApp(): Promise<void> {
   const drop = q(root, '.fd-drop');
   root.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) { e.preventDefault(); setHidden(drop, false); } });
   root.addEventListener('dragleave', (e) => { if (e.relatedTarget === null || !root.contains(e.relatedTarget as Node)) setHidden(drop, true); });
-  root.addEventListener('drop', (e) => {
+  const isZip = (f: File): boolean => /\.zip$/i.test(f.name) || f.type === 'application/zip' || f.type === 'application/x-zip-compressed';
+  const isMedia = (f: File): boolean => /^(image|video|audio)\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|mp4|mov|m4v|webm|mp3|wav|m4a)$/i.test(f.name);
+  async function unpackFiles(zips: File[]): Promise<File[]> {
+    const out: File[] = [];
+    for (const z of zips) {
+      try {
+        const fd = new FormData();
+        fd.append('file', z, z.name);
+        const res = await fetch('/api/unpack', { method: 'POST', body: fd });
+        if (!res.ok) { let d = res.statusText; try { d = String(((await res.json()) as { detail?: unknown }).detail ?? d); } catch { void 0; } throw new Error(d); }
+        const u = await res.json() as { entries: Array<{ name: string; url: string }>; skipped: number };
+        for (const en of u.entries) { const b = await (await fetch(en.url)).blob(); out.push(new File([b], en.name, { type: b.type })); }
+        if (!u.entries.length) toast(`${z.name} holds no decks, pictures, videos or sounds FormDeck can use.`, 'info');
+        else if (u.skipped) toast(`Opened ${u.entries.length} files from ${z.name}; ${u.skipped} other files were left out.`, 'info');
+      } catch (err) { toast(`Could not unpack ${z.name}: ${err instanceof Error ? err.message : err}`, 'error'); }
+    }
+    return out;
+  }
+  async function dropFiles(dropped: File[], e: DragEvent): Promise<void> {
+    const zips = dropped.filter(isZip);
+    const files = [...dropped.filter((f) => !isZip(f)), ...(zips.length ? await unpackFiles(zips) : [])];
+    if (!files.length) return;
+    const ed = editor;
+    const media = ed ? files.filter(isMedia) : [];
+    if (ed && media.length) {
+      const r = ed.stage.root.getBoundingClientRect();
+      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      const at = inside ? { x: (e.clientX - r.left - ed.stage.ox) / ed.stage.k, y: (e.clientY - r.top - ed.stage.oy) / ed.stage.k } : undefined;
+      const phNode = (e.target as HTMLElement | null)?.closest?.('.fd-el.is-prompt') as HTMLElement | null;
+      await ed.insertFiles(media, at, phNode?.dataset.ph);
+    }
+    const rest = files.filter((f) => !media.includes(f));
+    if (rest.length) await openFiles(rest);
+  }
+  const onDrop = (e: DragEvent): void => {
     e.preventDefault();
     setHidden(drop, true);
     const files = Array.from(e.dataTransfer?.files ?? []);
-    if (!files.length) return;
-    const media = files.filter((f) => /^(image|video|audio)\//.test(f.type));
-    const docs = files.filter((f) => !media.includes(f));
-    const ed = editor;
-    if (ed && media.length && !docs.length) {
-      const r = ed.stage.root.getBoundingClientRect();
-      const at = { x: (e.clientX - r.left - ed.stage.ox) / ed.stage.k, y: (e.clientY - r.top - ed.stage.oy) / ed.stage.k };
-      const phNode = (e.target as HTMLElement).closest('.fd-el.is-prompt') as HTMLElement | null;
-      void ed.insertFiles(media, at, phNode?.dataset.ph);
-    } else if (docs.length) void openFiles(files);
-  });
+    if (files.length) void dropFiles(files, e);
+  };
+  root.addEventListener('drop', onDrop);
+  home.root.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+  home.root.addEventListener('drop', onDrop);
   window.addEventListener('paste', (e) => {
     const ed = editor;
     const t = e.target as HTMLElement;
@@ -612,6 +641,33 @@ export async function startApp(): Promise<void> {
       } catch (err) { toast(`Could not open ${p}: ${err instanceof Error ? err.message : err}`, 'error'); }
     }
   }
+  async function dropDesktop(dropped: string[], pos: { x: number; y: number }): Promise<void> {
+    const paths = dropped.filter((f) => !/\.zip$/i.test(f));
+    for (const z of dropped.filter((f) => /\.zip$/i.test(f))) {
+      try {
+        const res = await fetch('/api/unpack-path', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: z }) });
+        if (!res.ok) { let d = res.statusText; try { d = String(((await res.json()) as { detail?: unknown }).detail ?? d); } catch { void 0; } throw new Error(d); }
+        const u = await res.json() as { entries: Array<{ path: string }>; skipped: number };
+        paths.push(...u.entries.map((en) => en.path));
+        const name = z.split(/[\\/]/).pop() ?? z;
+        if (!u.entries.length) toast(`${name} holds no decks, pictures, videos or sounds FormDeck can use.`, 'info');
+        else if (u.skipped) toast(`Opened ${u.entries.length} files from ${name}; ${u.skipped} other files were left out.`, 'info');
+      } catch (err) { toast(`Could not unpack ${z}: ${err instanceof Error ? err.message : err}`, 'error'); }
+    }
+    const docs = paths.filter((f) => /\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(f));
+    const pics = paths.filter((f) => /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|mp4|mov|m4v|webm|mp3|wav|m4a)$/i.test(f));
+    const other = paths.filter((f) => !docs.includes(f) && !pics.includes(f));
+    const host = editor;
+    if (pics.length && host) dropPaths(pics, pos);
+    if (docs.length) await openPaths(docs);
+    if (pics.length && !host) {
+      try {
+        const files = await Promise.all((await api.mediaFromPaths(pics)).map(async (m) => new File([await (await fetch(`/api/media/${encodeURIComponent(m.id)}`)).blob()], m.name, { type: m.mime })));
+        await openFiles(files);
+      } catch (err) { toast(`Could not read the dropped pictures: ${err instanceof Error ? err.message : err}`, 'error'); }
+    }
+    if (other.length && !docs.length && !pics.length) toast('Drop a .pptx, .potx, .odp, .fdec or .zip file to open it, or a picture or video to add it.', 'info');
+  }
   function dropPaths(paths: string[], pos: { x: number; y: number }): void {
     const ed = editor;
     if (!ed) { toast('Open a deck first, then drop pictures or videos onto a slide.', 'info'); return; }
@@ -630,11 +686,7 @@ export async function startApp(): Promise<void> {
       else if (p.type === 'leave') setHidden(dropOverlay, true);
       else {
         setHidden(dropOverlay, true);
-        const docs = p.paths.filter((f) => /\.(fdec|fsld|pptx|potx|ppsx|pptm|odp|otp)$/i.test(f));
-        const pics = p.paths.filter((f) => /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|mp4|mov|m4v|webm|mp3|wav|m4a)$/i.test(f));
-        if (docs.length) void openPaths(docs);
-        else if (pics.length) dropPaths(pics, p.position);
-        else if (p.paths.length) toast('Drop a .pptx, .potx, .odp or .fdec file to open it, or a picture or video to add it.', 'info');
+        void dropDesktop(p.paths, p.position);
       }
     }).catch(() => undefined);
   }

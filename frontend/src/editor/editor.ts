@@ -353,7 +353,7 @@ export class Editor {
       const maxW = deck.size.w * 0.6, maxH = deck.size.h * 0.6;
       const sc = Math.min(1, maxW / iw, maxH / ih);
       const w = kind === 'audio' ? 48 : iw * sc, h = kind === 'audio' ? 48 : ih * sc;
-      const cx = at ? at.x : deck.size.w / 2 + i * 16, cy = at ? at.y : deck.size.h / 2 + i * 16;
+      const cx = (at ? at.x : deck.size.w / 2) + i * 24, cy = (at ? at.y : deck.size.h / 2) + i * 24;
       const base = { id, x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w: Math.round(w), h: Math.round(h) };
       ops.push({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: kind === 'image' ? { ...base, type: 'image', src: m.id, fit: 'stretch', alt: m.name.replace(/\.[^.]+$/, '') } : { ...base, type: 'media', kind, src: m.id } });
     });
