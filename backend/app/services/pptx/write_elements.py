@@ -114,7 +114,8 @@ class ElementWriter:
         return int(match["ph"].get("idx") or 0) if match is not None else 0
 
     def _xfrm(self, el: dict, tag: str = "a:xfrm", group: bool = False):
-        frame = el if has_frame(el) else self._inherited_frame(el)
+        partial = isinstance(el.get("ph"), dict) and any(isinstance(el.get(k), (int, float)) for k in FRAME_KEYS)
+        frame = el if has_frame(el) else (self._effective_frame(el) if partial else None) or self._inherited_frame(el)
         if frame is None:
             return None
         x, y, w, h = frame_of(frame)
@@ -155,7 +156,7 @@ class ElementWriter:
             return None
         for candidate in (match_layout_ph(ph, self.layout_elements), match_layout_ph({"type": _master_kind(ph.get("type", "body")), "idx": None}, self.master_elements)):
             if candidate is not None and has_frame(candidate):
-                return candidate
+                return {**{k: candidate[k] for k in FRAME_KEYS}, **{k: el[k] for k in FRAME_KEYS if isinstance(el.get(k), (int, float))}}
         return None
 
     def _geometry(self, el: dict, placeholder: bool):
