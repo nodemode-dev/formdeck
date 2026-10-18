@@ -937,7 +937,7 @@ class ExportDialog extends Dialog {
   private ext(): string {
     const f = this.fmt;
     if ((f === 'png' || f === 'jpeg') && this.which === 'all' && (this.ed?.doc.deck.slides.length ?? 0) > 1) return 'zip';
-    if (f === 'video') return typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4') ? 'mp4' : 'webm';
+    if (f === 'video') return typeof MediaRecorder !== 'undefined' && ['avc1.640028,mp4a.40.2', 'avc1.42E01E,mp4a.40.2', 'avc1,mp4a.40.2', 'avc1,opus'].some((c) => MediaRecorder.isTypeSupported(`video/mp4;codecs=${c}`)) ? 'mp4' : 'webm';
     return EXPORTS[f].ext;
   }
 
