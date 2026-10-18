@@ -52,7 +52,7 @@ class Builder:
         return el
 
     def ph(self, kind: str, idx: int, slot: str, x, y, w, h, sz: float, *, color=None, font=None, b=None, align=None, anchor="t", prompt="",
-           bullet=None, caps=False, autofit="shrink", lvls=None, line_spacing=None, i=None, spc=None) -> dict:
+           bullet=None, caps=False, autofit="shrink", lvls=None, line_spacing=None, i=None, spc=None, mar_l=None, indent=None) -> dict:
         lvl0 = {"sz": round(sz, 1)}
         if color is not None:
             lvl0["color"] = color
@@ -66,6 +66,12 @@ class Builder:
             lvl0["align"] = align
         if bullet is not None:
             lvl0["bullet"] = bullet
+            if bullet.get("type") == "none":
+                lvl0["marL"], lvl0["indent"] = 0, 0
+        if mar_l is not None:
+            lvl0["marL"] = mar_l
+        if indent is not None:
+            lvl0["indent"] = indent
         if caps:
             lvl0["caps"] = "all"
         if spc is not None:
@@ -232,8 +238,16 @@ def _master(b: Builder) -> dict:
     return {"id": "m1", "name": d.name, "background": _bg(b, "content"), "elements": els, "textStyles": _text_styles(b)}
 
 
+def _corner_reserve(b: Builder) -> float:
+    if b.d.motif == "shapes":
+        return max(0.0, b.pt(44) * 2.4 + b.pt(16) - b.mx)
+    if b.d.motif == "dots":
+        return max(0.0, b.pt(96) + b.mx * 0.4 + b.pt(16) - b.mx)
+    return 0.0
+
+
 def _title_box(b: Builder, y=None, h=None, align=None, sz=None, color=None, prompt="Click to add title", kind="title"):
-    return b.ph(kind, 0, "title", b.mx, b.my if y is None else y, b.W - 2 * b.mx, h or b.pt(64), sz or b.title_sz(34), font="+mj", color=color,
+    return b.ph(kind, 0, "title", b.mx, b.my if y is None else y, b.W - 2 * b.mx - _corner_reserve(b), h or b.pt(64), sz or b.title_sz(34), font="+mj", color=color,
                 align=align or b.d.title_align, anchor="b" if y is None else "t", prompt=prompt, bullet={"type": "none"})
 
 
@@ -279,8 +293,8 @@ def build_layouts(b: Builder) -> list:
 
     L("section", "Section Header", hero_motif + [
         b.ph("body", 14, "number", tx, H * 0.24, b.pt(200), b.pt(70), b.pt(54), font="+mj", color={"scheme": hf, "alpha": 0.45}, b=True,
-             align="c" if center else "l", prompt="01", bullet={"type": "none"}, autofit="none") if not center else
-        b.ph("body", 14, "number", mx, H * 0.24, W - 2 * mx, b.pt(70), b.pt(54), font="+mj", color={"scheme": hf, "alpha": 0.45}, b=True, align="c", prompt="01", bullet={"type": "none"}, autofit="none"),
+             align="c" if center else "l", prompt="01", bullet={"type": "none"}, autofit="none", line_spacing=1.0) if not center else
+        b.ph("body", 14, "number", mx, H * 0.24, W - 2 * mx, b.pt(70), b.pt(54), font="+mj", color={"scheme": hf, "alpha": 0.45}, b=True, align="c", prompt="01", bullet={"type": "none"}, autofit="none", line_spacing=1.0),
         b.ph("title", 0, "title", tx, H * 0.4, tw, b.pt(110), b.title_sz(44), font="+mj", color=hf, align="c" if center else "l", anchor="t",
              prompt="Section title", bullet={"type": "none"}),
         b.ph("body", 1, "subtitle", tx, H * 0.4 + b.pt(116), tw, b.pt(48), b.pt(18), color={"scheme": hf, "alpha": 0.8}, align="c" if center else "l",
@@ -292,7 +306,7 @@ def build_layouts(b: Builder) -> list:
     L("agenda", "Agenda", [
         _title_box(b, prompt="Agenda"),
         b.ph("body", 1, "body", mx, top, W - 2 * mx, ch, b.pt(22), prompt="Agenda items",
-             bullet={"type": "auto", "scheme": "arabicPeriod", "color": "accent1"}, lvls=[]),
+             bullet={"type": "auto", "scheme": "arabicPeriod", "color": "accent1"}, lvls=[], mar_l=b.pt(36), indent=-b.pt(32)),
     ])
     L("content", "Title and Content", [_title_box(b), b.ph("body", 1, "body", mx, top, W - 2 * mx, ch, b.pt(20), prompt="Click to add text")])
     gap = b.pt(36)
