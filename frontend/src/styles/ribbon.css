@@ -75,6 +75,7 @@ body.theme-light :is(.fd-rb-file, .fd-rb-tab.is-ctx, .fd-rb-btn.is-on, .fd-qat-b
 
 .fd-rb-group[data-big]:is([data-lv="1"], [data-lv="2"]) > .fd-rb-gbody { display: grid; grid-auto-flow: column dense; grid-template-rows: repeat(3, var(--ctl-sm)); align-content: center; justify-content: start; column-gap: 2px; }
 .fd-rb-group[data-big]:is([data-lv="1"], [data-lv="2"]) > .fd-rb-gbody > :is(.fd-rb-stack, .fd-gal, .fd-ai-bar) { grid-row: span 3; }
+.fd-rb-group[data-big]:is([data-lv="1"], [data-lv="2"]) > .fd-rb-gbody:has(> .fd-rb-btn.is-large:only-child) { grid-template-rows: var(--ctl-sm); }
 .fd-rb-group[data-big]:is([data-lv="1"], [data-lv="2"]) > .fd-rb-gbody > .fd-rb-btn.is-large { flex-direction: row; justify-content: flex-start; align-items: center; gap: 6px; min-width: var(--ctl-sm); max-width: none; height: var(--ctl-sm); padding: 0 var(--space-2); border-radius: var(--radius-sm); white-space: nowrap; }
 .fd-rb-group[data-big]:is([data-lv="1"], [data-lv="2"]) > .fd-rb-gbody > .fd-rb-btn.is-large .fd-rb-ic svg { width: 16px; height: 16px; }
 .fd-rb-group[data-big]:is([data-lv="1"], [data-lv="2"]) > .fd-rb-gbody > .fd-rb-btn.is-large .fd-rb-lbl { flex-wrap: nowrap; font-size: var(--fd-12); white-space: nowrap; }

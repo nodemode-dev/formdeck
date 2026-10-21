@@ -57,7 +57,7 @@ const alignText = (): Rows => R([I('text-align-l'), I('text-align-c'), I('text-a
 function ribbonTabs(): TabDef[] {
   return [
     { id: 'home', label: 'Home', groups: [
-      G('clipboard', 'Clipboard', L('paste', 'Paste'), R([T('cut', 'Cut')], [T('copy', 'Copy')], [T('duplicate', 'Duplicate')]), L('format-painter', 'Format Painter')),
+      G('clipboard', 'Clipboard', L('paste', 'Paste'), R([T('cut', 'Cut')], [T('copy', 'Copy'), I('duplicate')], [T('format-painter', 'Format Painter')])),
       G('slides', 'Slides', L('new-slide', 'New Slide'), R([S('layout')], [T('reset-slide', 'Reset'), T('add-section', 'Section')], [T('hide-slide', 'Hide'), T('delete-slide', 'Delete')])),
       { ...G('font', 'Font', R([S('font'), S('size'), I('grow-font'), I('shrink-font'), I('clear-format')], [I('bold'), I('italic'), I('underline'), I('strike'), I('superscript'), I('subscript'), I('all-caps'), A('text-color', 'textColor', 'Font Colour', { swatch: true }), A('highlight', 'highlight', 'Highlight', { swatch: true })], [I('small-caps'), I('text-effects'), I('insert-link')])), rank: -1 },
       G('paragraph', 'Paragraph', R([I('bullets'), I('numbering'), I('outdent'), I('indent')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('anchor-t'), I('anchor-m'), I('anchor-b')])),

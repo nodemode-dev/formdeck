@@ -627,21 +627,28 @@ export class Ribbon {
     let total = ms.reduce((s, m) => s + m.w[0], 0);
     if (total > avail) {
       const order = groups.map((_, i) => i).sort((a, b) => Number(groups[b].dataset.rank ?? 0) - Number(groups[a].dataset.rank ?? 0) || b - a);
-      const most = Math.max(...ms.map((m) => m.steps.length));
-      done: for (let p = 1; p < most; p++) {
+      const tier = (s: Step): number => s.lv * 4 + (s.gal ? 5 - s.gal : 0);
+      const tiers = [...new Set(ms.flatMap((m) => m.steps.map(tier)))].sort((a, b) => a - b);
+      done: for (const t of tiers) {
         for (const i of order) {
-          const to = Math.min(p, ms[i].steps.length - 1);
-          if (to <= pick[i]) continue;
+          let to = pick[i];
+          while (to + 1 < ms[i].steps.length && tier(ms[i].steps[to + 1]) <= t) to++;
+          if (to === pick[i]) continue;
           total += ms[i].w[to] - ms[i].w[pick[i]];
           pick[i] = to;
           if (total <= avail) break done;
         }
       }
-      for (const i of [...order].reverse()) {
-        while (pick[i] > 0 && total + ms[i].w[pick[i] - 1] - ms[i].w[pick[i]] <= avail) {
-          total += ms[i].w[pick[i] - 1] - ms[i].w[pick[i]];
-          pick[i]--;
+      const back = [...order].reverse();
+      for (;;) {
+        let best = -1;
+        for (const i of back) {
+          if (pick[i] === 0 || total + ms[i].w[pick[i] - 1] - ms[i].w[pick[i]] > avail) continue;
+          if (best < 0 || tier(ms[i].steps[pick[i]]) > tier(ms[best].steps[pick[best]])) best = i;
         }
+        if (best < 0) break;
+        total += ms[best].w[pick[best] - 1] - ms[best].w[pick[best]];
+        pick[best]--;
       }
     }
     const ae = document.activeElement as HTMLElement | null;
