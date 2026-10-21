@@ -16,6 +16,7 @@
 .fd-prompt .fd-r { opacity: 0.42; }
 .fd-imgbox { position: absolute; inset: 0; overflow: hidden; }
 .fd-img { position: absolute; max-width: none; max-height: none; user-select: none; -webkit-user-drag: none; }
+.fd-video, .fd-el { -webkit-user-drag: none; }
 .fd-chart { position: absolute; inset: 0; }
 .fd-chart > svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .fd-table { width: 100%; border-collapse: collapse; table-layout: fixed; }

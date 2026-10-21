@@ -146,6 +146,7 @@ export class Stage {
     this.viewport.addEventListener('dblclick', (e) => this.dbl(e));
     this.viewport.addEventListener('wheel', (e) => this.wheel(e), { passive: false });
     this.viewport.addEventListener('contextmenu', (e) => this.context(e));
+    this.viewport.addEventListener('dragstart', (e) => { if (!(e.target instanceof Element && e.target.closest('[contenteditable="true"]'))) e.preventDefault(); });
     window.addEventListener('pointermove', (e) => this.move(e));
     window.addEventListener('pointerup', (e) => this.up(e));
     window.addEventListener('pointercancel', (e) => this.cancelPointer(e));
@@ -751,6 +752,7 @@ export class Stage {
     if (!d) {
       return;
     }
+    if (e.pointerType === 'mouse' && e.buttons === 0) { this.finish(e); return; }
     if (d.kind === 'pan') {
       if (d.tap) {
         if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 8) return;

@@ -251,12 +251,21 @@ fn main() {
                                 )
                             })
                             .unwrap_or(FALLBACK_LOGICAL);
-                        let _ = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
-                            .title("FormDeck")
+                        if let Ok(main) = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
+                            .title("formdeck")
                             .inner_size(width, height)
                             .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
                             .center()
-                            .build();
+                            .accept_first_mouse(true)
+                            .build()
+                        {
+                            let focus = main.clone();
+                            main.on_window_event(move |event| {
+                                if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { .. }) = event {
+                                    let _ = focus.set_focus();
+                                }
+                            });
+                        }
                         close_splash(&handle);
                         check_for_updates(handle.clone());
                     }
