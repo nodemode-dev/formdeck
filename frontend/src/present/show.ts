@@ -976,7 +976,8 @@ class Show {
       return;
     }
     if (elm?.type === 'media') {
-      if (elm.kind === 'audio') { const a = this.audioFor(this.cur, elm); if (a.paused) this.playMedia(a); else a.pause(); }
+      const a = elm.kind === 'audio' ? this.audioFor(this.cur, elm) : node?.querySelector('video');
+      if (a) { if (a.paused) this.playMedia(a); else a.pause(); }
       return;
     }
     if (this.doc.slide(this.cur)?.transition?.advanceOnClick === false || this.kiosk()) return;
@@ -1156,8 +1157,10 @@ class Show {
 
   private async decode(view: SlideView, wait = true): Promise<void> {
     const imgs = Array.from(view.el.querySelectorAll('img'));
-    if (!imgs.length || this.rushing) return;
-    const all = Promise.allSettled(imgs.map((i) => i.decode()));
+    const vids = Array.from(view.el.querySelectorAll('video')).filter((v) => v.readyState < 2 && !v.error);
+    if ((!imgs.length && !vids.length) || this.rushing) return;
+    const frame = (v: HTMLVideoElement): Promise<void> => new Promise<void>((r) => { v.addEventListener('loadeddata', () => r(), { once: true }); v.addEventListener('error', () => r(), { once: true }); });
+    const all = Promise.allSettled([...imgs.map((i) => i.decode()), ...vids.map(frame)]);
     if (!wait) return;
     await Promise.race([all, new Promise<void>((r) => { this.wake = r; window.setTimeout(r, 1500); })]);
     this.wake = null;

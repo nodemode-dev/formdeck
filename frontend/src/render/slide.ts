@@ -182,9 +182,9 @@ function tableBlock(ctx: Ctx, el: TableElement, c: Chain): string {
 function mediaBlock(ctx: Ctx, el: MediaElement): string {
   if (el.kind === 'audio') return `<div class="fd-audio" title="${esc(ctx.deck.media[el.src]?.name ?? 'Audio')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg></div>`;
   const live = ctx.mode === 'show';
-  const still = live && el.autoplay ? undefined : el.poster;
+  const still = live ? undefined : el.poster;
   const poster = still ? ` poster="${mediaUrl(still)}"` : '';
-  return `<video class="fd-video${live && el.autoplay ? ' is-auto' : ''}" src="${mediaUrl(el.src)}${still ? '' : `#t=${el.start ?? 0.1}`}"${poster} preload="${live && el.autoplay ? 'auto' : 'metadata'}" playsinline${live ? (el.autoplay ? ' disablepictureinpicture disableremoteplayback' : ' controls') : ''}${el.loop ? ' loop' : ''}${live && el.autoplay ? ' autoplay' : ''} muted></video>`;
+  return `<video class="fd-video${live ? ' is-auto' : ''}" src="${mediaUrl(el.src)}${still ? '' : `#t=${el.start ?? (live ? 0 : 0.1)}`}"${poster} preload="${live ? 'auto' : 'metadata'}" playsinline${live ? ' disablepictureinpicture disableremoteplayback' : ''}${el.loop ? ' loop' : ''} muted></video>`;
 }
 
 export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: string; kind: string } {

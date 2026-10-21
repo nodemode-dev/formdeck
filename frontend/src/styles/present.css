@@ -7,14 +7,14 @@ body.fd-showing #app { visibility: hidden; }
 .fd-show-stage { position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; overflow: hidden; background: var(--fd-show-black); }
 .fd-show.is-idle:not(.is-presenter) .fd-show-stage, .fd-show.is-laser .fd-show-stage { cursor: none; }
 .fd-show-frame { position: relative; overflow: hidden; background: var(--fd-show-black); }
-.fd-show-layer { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.fd-show-layer { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; pointer-events: none; }
 .fd-show-layer.is-top { z-index: var(--z-raised); }
 .fd-show-layer > .fd-slide { position: absolute; left: 0; top: 0; background: transparent; }
 .fd-show-stash { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; visibility: hidden; pointer-events: none; contain: strict; }
 .fd-show .fd-layer-content { pointer-events: auto; }
 .fd-show .fd-flow { user-select: none; -webkit-user-select: none; cursor: inherit; }
 .fd-show .fd-el.is-link { cursor: pointer; }
-.fd-show .fd-el.fd-media .fd-audio { cursor: pointer; }
+.fd-show .fd-el.fd-media .fd-audio, .fd-show .fd-el.fd-media .fd-video { cursor: pointer; }
 .fd-anim-hidden { visibility: hidden; }
 .fd-show-ink { position: absolute; inset: 0; z-index: var(--z-selected); width: 100%; height: 100%; pointer-events: none; touch-action: none; }
 .fd-show.is-pen .fd-show-ink { pointer-events: auto; cursor: crosshair; }

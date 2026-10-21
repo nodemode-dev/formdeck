@@ -46,8 +46,7 @@ function finish(a: HTMLMediaElement, st: PlayState, natural: boolean): void {
   }
   if (!a.paused) a.pause();
   if (st.m.rewind) {
-    if (st.m.poster && st.m.kind === 'video') a.load();
-    else a.currentTime = s;
+    a.currentTime = s;
     a.style.opacity = '';
   }
 }
@@ -69,10 +68,7 @@ export function preparePlayback(a: HTMLMediaElement, m: MediaElement, node: HTML
   STATE.set(a, st);
   a.loop = !!m.loop && !m.end;
   a.muted = showMuted || !!m.muted;
-  if (a.paused && (reset || !prev)) {
-    if (!m.poster || m.autoplay) a.currentTime = m.start ?? 0;
-    else if (a.currentTime > 0.05) a.load();
-  }
+  if (a.paused && (reset || !prev) && a.readyState > 0 && Math.abs(a.currentTime - (m.start ?? 0)) > 0.05) a.currentTime = m.start ?? 0;
   a.ontimeupdate = null;
   if (a.paused && (reset || !prev)) a.style.opacity = '';
   paint(a, st);
