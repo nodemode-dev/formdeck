@@ -22,6 +22,7 @@ body.nm-home #toast-root { z-index: var(--z-home-preview); }
 .fd-menu-btn { height: var(--ctl-md); padding: 0 var(--space-2); border: 0; border-radius: var(--radius); background: transparent; color: var(--text-secondary); font-size: var(--fd-12); cursor: default; }
 .fd-menu-btn:hover, .fd-menu-btn.is-open { background: var(--bg-tertiary); color: var(--text-primary); }
 .has-native-menus .fd-menubar { display: none; }
+.has-native-menus .fd-titlebar { grid-template-columns: auto minmax(0, 1fr) auto; }
 .fd-doc-title { justify-self: center; width: min(360px, 100%); min-width: 0; height: var(--ctl-md); padding: 0 var(--space-3); border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--fd-13); font-weight: 500; text-align: center; text-overflow: ellipsis; outline: 0; cursor: text; transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast); }
 .fd-doc-title:hover { border-color: var(--line-2); background: var(--surface-1); color: var(--text-primary); }
 .fd-doc-title:focus { border-color: var(--accent-color); background: var(--surface-field); color: var(--text-primary); text-align: left; }

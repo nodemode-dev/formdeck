@@ -54,6 +54,7 @@
   } catch (e) {}
   var p = PROFILES[theme], root = document.documentElement, i;
   if (density) root.classList.add('fd-density-' + density);
+  try { if ('__TAURI_INTERNALS__' in window && /Mac/.test(navigator.platform) && localStorage.getItem('formdeck.menusInWindow') !== '1') root.classList.add('has-native-menus'); } catch (e) {}
   for (i = 0; i < NAMES.length; i++) root.style.setProperty(NAMES[i], p[i]);
   root.style.setProperty('--bg-node', p[10] || p[1]);
   root.style.setProperty('--shadow-lg', LIGHT[theme] ? '0 4px 14px rgba(96, 90, 70, 0.16)' : '0 8px 32px rgba(0, 0, 0, 0.5)');

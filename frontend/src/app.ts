@@ -13,6 +13,7 @@ import { enhanceAllSelects } from './ui/dropdown';
 import { Home } from './ui/home';
 import { icon } from './ui/icons';
 import { MenuBar, PopupMenu, type MenuDef, type MenuItem } from './ui/menu';
+import { NativeMenus, wantsNativeMenus, isMacDesktop, menusInWindow, MENUS_IN_WINDOW_KEY } from './ui/native-menu';
 import { registerModel3dCommands, MODEL3D_MENU } from './editor/model3d-commands';
 import { installModelHandle } from './editor/model3d-handle';
 import { applyTheme } from './ui/themes';
@@ -198,12 +199,14 @@ export async function startApp(): Promise<void> {
 
   let thumbTimer = 0;
   let agentTimer = 0;
+  let nativeMenus: NativeMenus | null = null;
   function scheduleThumb(): void {
     window.clearTimeout(thumbTimer);
     thumbTimer = window.setTimeout(() => { const ed = editor; if (ed) void bridge.uploadThumb(ed).catch(() => undefined); }, 4000);
   }
 
   function syncChrome(): void {
+    nativeMenus?.refresh();
     const ed = editor;
     for (const b of Array.from(root.querySelectorAll<HTMLButtonElement>('.fd-titlebar [data-cmd], .fd-status [data-cmd], .fd-strip-head [data-cmd]'))) {
       const cmd = commands.get(b.dataset.cmd as string);
@@ -380,6 +383,7 @@ export async function startApp(): Promise<void> {
     { id: 'new-terminal', label: 'New Terminal', icon: 'terminal', run: () => { const was = dockOpen(); void showDock().then((d) => (was ? d.open() : d.ensure())); } },
     { id: 'claude-code', label: 'Claude Code', icon: 'agent', keys: ['Shift+Mod+`'], run: () => void showDock().then((d) => d.claude()) },
     { id: 'agent-chat', label: 'Chat with Claude', icon: 'agentChat', keys: ['Alt+Mod+J'], run: () => void showDock().then((d) => d.showChat()) },
+    { id: 'menus-in-window', label: 'Menus in Window', enabled: isMacDesktop, checked: menusInWindow, run: () => { const next = !menusInWindow(); try { localStorage.setItem(MENUS_IN_WINDOW_KEY, next ? '1' : '0'); } catch { return; } toast(next ? 'The menus stay in the window from the next start.' : 'The menus go to the menu bar from the next start.', 'info'); } },
     { id: 'save-copy', label: 'Save a Copy in Library...', enabled: () => !!editor, run: () => { if (editor) dialogs.saveCopyDialog(editor); } },
     { id: 'command-palette', label: 'Find a Command...', icon: 'commandPalette', keys: ['Shift+Mod+P'], run: () => { editor?.stage.rememberSelection(); palette ??= new CommandPalette(() => catalogue.list(), (id) => { editor?.stage.restoreSelection(); commands.run(id); syncChrome(); }); palette.show(); } },
   );
@@ -387,7 +391,7 @@ export async function startApp(): Promise<void> {
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
-    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
+    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', ...(isMacDesktop() ? ['menus-in-window'] : []), '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'change-case', 'clear-format', 'replace-fonts', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', { label: 'Picture', items: ['picture-reset', 'picture-reset-size', 'compress-pictures', '-', 'crop-aspect-1-1', 'crop-aspect-4-3', 'crop-aspect-16-9'] }, 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'design-ideas', 'reset-slide', 'reset-placeholder', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
@@ -398,6 +402,10 @@ export async function startApp(): Promise<void> {
   ];
   toolbar.fileItems = menus[0].items as MenuItem[];
   new MenuBar(q(root, '.fd-menubar'), commands, menus);
+  if (wantsNativeMenus()) {
+    nativeMenus = new NativeMenus(commands, () => menus);
+    void nativeMenus.build().catch(() => undefined);
+  }
   const catalogue = installCatalogue(commands, () => menus);
 
   root.addEventListener('click', (e) => {
