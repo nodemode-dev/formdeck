@@ -65,6 +65,8 @@
 .fd-viewport { position: absolute; inset: 0; overflow: hidden; }
 .fd-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .fd-canvas > .fd-slide { box-shadow: var(--fd-slide-shadow); }
+.fd-canvas > .fd-slide, .fd-canvas > .fd-slide > .fd-slide-inner { overflow: visible; }
+.fd-canvas > .fd-slide { contain: layout; }
 .fd-overlay { position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: visible; pointer-events: none; }
 .fd-sel { position: absolute; box-sizing: border-box; border: 1px solid var(--fd-sel); pointer-events: none; transform-origin: 50% 50%; }
 .fd-sel.is-multi { border-style: dashed; }

@@ -545,3 +545,15 @@ The fit pass used to step every group by the same index into its own list of dis
 ## 123. No sparkle icon · _v0.25.0 (ui/icons.ts ai, effects; editor/toolbar.ts; editor/media-commands.ts; ui/chat-panel.ts)
 
 The owner banned the three-star sparkle. AI picture commands now draw ai, a processor chip with an A on it, which says the work is done by a model without a star. Shape, picture and SmartArt effect menus draw effects, a square with a drop shadow, since what they open is shadows, glows and bevels. Chat tool rows draw the agent robot because a tool row is the agent acting. The sparkle key is removed, so any new use fails the type check. The Tabler library behind Insert > Icons still offers its sparkles icons as slide content; that is the user's material, not interface.
+
+## 124. One row grid across the ribbon, free room spread · _v0.25.0 (styles/ribbon.css panel, group, gbody, stack, row, large button, big-group grid; styles/ribbon-galleries.css tile; ui/ribbon.ts spread)
+
+The owner wanted every row to line up across the whole ribbon and the empty room used. Every group body is now exactly three control rows tall and the panel's vertical padding is what the density leaves over, so the three row lines are the same in every group. Stacks start at the first row instead of centring (a two-row stack used to sit between the lines), the big-group grid has no row gap, and a large button is a two-track grid: its icon centred over rows one and two, its label on row three, on one line. Gallery tiles use the same tracks, so None, Fade and Appear label on row three too. After the fit picks levels, spread measures how much one pixel of gap widens the tab, gives up to half the free room to gaps between buttons (at most 6 px), then the rest as group side padding (at most 40 px each side), so a wide window fills without sparse tabs turning into a few buttons lost in wide groups. Both are CSS variables on the panel, cleared before measuring, so the measured widths stay the unspread ones.
+
+## 125. A drop lands under the pointer · _v0.25.0 (app.ts dropFiles, dropPaths)
+
+A picture dropped onto an empty placeholder used to fill the placeholder, which reads as the drop going somewhere else, so drops now always centre on the release point; clicking a placeholder's prompt still fills it. In the desktop window the drop position was divided by devicePixelRatio, but wry reports it in CSS pixels on macOS and Linux (WKWebView draggingLocation, WebKitGTK) and only WebView2 on Windows reports physical pixels, so on a Retina Mac every drop landed at half its coordinates. Only Windows divides now.
+
+## 126. Content shows on the pasteboard · _v0.25.0 (styles/slides.css .fd-canvas > .fd-slide)
+
+Objects past the slide edge are visible and selectable in the grey area around the slide, as in Google Slides. Only the editor canvas lifts the slide's clip (overflow on the slide and its inner box, paint containment dropped); the background layer is still the slide's size, and thumbnails, the show, the sorter, print and exports keep clipping, so what is off the slide never shows in the presentation.
