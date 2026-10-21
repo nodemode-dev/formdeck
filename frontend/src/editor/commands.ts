@@ -24,6 +24,7 @@ export interface AppHooks {
   present(from: 'start' | 'current', presenter?: boolean): void;
   view(v: 'normal' | 'sorter' | 'outline'): void;
   toggle(part: 'notes' | 'strip' | 'props'): void;
+  shown(part: 'notes' | 'strip' | 'props'): boolean;
   templates(): void;
   insertTable(): void;
   insertChart(): void;
@@ -225,7 +226,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'zoom-out', label: 'Zoom Out', keys: ['Mod+-'], icon: 'zoomOut', enabled: has, run: () => { const st = E()?.stage; if (st) st.setZoom(st.zoomPct / 100 / 1.25); } },
     { id: 'zoom-fit', label: 'Fit to Window', keys: ['Mod+0'], icon: 'zoomFit', enabled: has, run: () => E()?.stage.setZoom('fit') },
     { id: 'zoom-100', label: 'Actual Size', keys: ['Alt+Mod+0'], enabled: has, run: () => E()?.stage.setZoom(1) },
-    { id: 'toggle-notes', label: 'Speaker Notes', icon: 'notes', run: () => h.toggle('notes') },
+    { id: 'toggle-notes', label: 'Speaker Notes', icon: 'notes', checked: () => h.shown('notes'), run: () => h.toggle('notes') },
     { id: 'toggle-strip', label: 'Slides Panel', icon: 'slides', run: () => h.toggle('strip') },
     { id: 'toggle-props', label: 'Properties Panel', icon: 'panelProps', run: () => h.toggle('props') },
     { id: 'new-slide', label: 'New Slide', keys: ['Mod+M'], icon: 'slideAdd', enabled: has, run: () => E()?.addSlide() },

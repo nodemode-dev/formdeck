@@ -83,6 +83,9 @@ export class Home {
 <button class="fd-home-nav-item" type="button" data-a="local" title="Your decks stay on this computer">${icon('cloudOff', 16)}<span>Local only</span></button>
 <button class="fd-home-nav-item" type="button" data-a="prefs">${icon('settings', 16)}<span>Preferences</span></button>
 </div></nav>
+<div class="fd-home-resizer" role="separator" aria-orientation="vertical" aria-label="Resize the side panel"></div>
+<button class="fd-home-nav-hide" type="button" title="Hide the side panel" aria-label="Hide the side panel">${icon('chevronLeft', 14)}</button>
+<button class="fd-home-nav-show" type="button" title="Show the side panel" aria-label="Show the side panel">${icon('chevronRight', 14)}</button>
 <div class="fd-home-main">
 <div class="fd-home-narrow"><button class="fd-home-nav-item" type="button" data-v="start">${icon('presentation', 16)}<span>Start</span></button><button class="fd-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent</span></button><button class="fd-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span></button><button class="fd-home-nav-item" type="button" data-v="trash">${icon('delete', 16)}<span>Trash</span></button></div>
 <div class="fd-home-confirm" role="alertdialog" aria-live="assertive" hidden><span class="fd-home-confirm-text"></span><button class="fd-btn fd-btn-sm" type="button" data-a="confirm-no">Cancel</button><button class="fd-btn fd-btn-sm fd-btn-danger" type="button" data-a="confirm-yes"></button></div>
@@ -123,7 +126,48 @@ export class Home {
     }, { rootMargin: '200px' });
     document.getElementById('app')?.appendChild(this.root);
     this.wire();
+    this.sidePanel();
     this.renderTemplates();
+  }
+
+  private sidePanel(): void {
+    const root = this.root;
+    const bar = root.querySelector<HTMLElement>('.fd-home-resizer');
+    if (!bar) return;
+    const save = (): void => {
+      try {
+        localStorage.setItem('formdeck.homeNav', root.style.getPropertyValue('--fd-home-nav-w'));
+        localStorage.setItem('formdeck.homeNavHidden', root.classList.contains('is-nav-hidden') ? '1' : '0');
+      } catch { return; }
+    };
+    const hide = (on: boolean): void => { setClass(root, 'is-nav-hidden', on); save(); };
+    try {
+      const w = localStorage.getItem('formdeck.homeNav');
+      if (w) root.style.setProperty('--fd-home-nav-w', w.trim());
+      if (localStorage.getItem('formdeck.homeNavHidden') === '1') root.classList.add('is-nav-hidden');
+    } catch { void 0; }
+    root.querySelector('.fd-home-nav-hide')?.addEventListener('click', () => hide(true));
+    root.querySelector('.fd-home-nav-show')?.addEventListener('click', () => hide(false));
+    bar.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const x0 = e.clientX;
+      const start = root.querySelector('.fd-home-nav')?.getBoundingClientRect().width || 232;
+      bar.classList.add('is-dragging');
+      const mv = (ev: PointerEvent): void => {
+        const raw = start + ev.clientX - x0;
+        const collapse = raw < 120;
+        if (root.classList.contains('is-nav-hidden') !== collapse) setClass(root, 'is-nav-hidden', collapse);
+        if (!collapse) root.style.setProperty('--fd-home-nav-w', `${Math.round(Math.max(180, Math.min(420, raw)))}px`);
+      };
+      const up = (): void => {
+        bar.classList.remove('is-dragging');
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', up);
+        save();
+      };
+      window.addEventListener('pointermove', mv);
+      window.addEventListener('pointerup', up);
+    });
   }
 
   private wire(): void {
