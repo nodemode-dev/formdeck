@@ -1,17 +1,17 @@
 ---
 name: formdeck-harness
-description: "Builds and edits slide decks in FormDeck (formerly formsld) through its MCP server. Use whenever the person wants to make, restyle, review or fix a slide deck, pitch deck, presentation, keynote, board or investor update, sales deck, QBR, training deck, all-hands or conference talk, and FormDeck is mentioned or its tools (get_context, ingest, draft_spec, build_deck, render_slides, lint_deck) are available. Covers turning notes, markdown, PDFs, Word docs, spreadsheets, PowerPoint or Google Slides files, images, GIFs and meeting transcripts into slides; choosing or applying a template (Aurora, Studio and 65 more, or a company .pptx or .potx); the markdown slide script and its 21 layouts; contact-sheet and lint checks; fixing overflowing, crowded or off-brand slides; review handoff; and exporting pptx, potx, pdf, png or fdec. Also use when a FormDeck tool fails and the next step is unclear. Not for changing FormDeck's own source code (use formdeck-skillset)."
+description: "Builds and edits slide decks in formdeck (formerly formsld) through its MCP server. Use whenever the person wants to make, restyle, review or fix a slide deck, pitch deck, presentation, keynote, board or investor update, sales deck, QBR, training deck, all-hands or conference talk, and formdeck is mentioned or its tools (get_context, ingest, draft_spec, build_deck, render_slides, lint_deck) are available. Covers turning notes, markdown, PDFs, Word docs, spreadsheets, PowerPoint or Google Slides files, images, GIFs and meeting transcripts into slides; choosing or applying a template (Aurora, Studio and 65 more, or a company .pptx or .potx); the markdown slide script and its 21 layouts; contact-sheet and lint checks; fixing overflowing, crowded or off-brand slides; review handoff; and exporting pptx, potx, pdf, png or fdec. Also use when a formdeck tool fails and the next step is unclear. Not for changing formdeck's own source code (use formdeck-skillset)."
 license: Apache-2.0
 metadata:
   author: nodemode-ai
   version: "0.3.0"
 ---
 
-# FormDeck harness
+# formdeck harness
 
-FormDeck is a presentation editor running on this computer. Its MCP server (`formdeck`) builds and changes decks inside the engine while the person watches the FormDeck window, and every change is an undoable step attributed to you. The tools are the hands; this pack is the method: read the material once, write the story as a slide script, build, look, fix, and hand the deck to the person for approval.
+formdeck is a presentation editor running on this computer. Its MCP server (`formdeck`) builds and changes decks inside the engine while the person watches the formdeck window, and every change is an undoable step attributed to you. The tools are the hands; this pack is the method: read the material once, write the story as a slide script, build, look, fix, and hand the deck to the person for approval.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). In FormDeck a PDF is material for a deck: `ingest` reads it, and in the window Insert > Slides from PDF Pages adds one slide per page.
+PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). In formdeck a PDF is material for a deck: `ingest` reads it, and in the window Insert > Slides from PDF Pages adds one slide per page.
 
 ## Doctrine (applies to every route)
 
@@ -55,7 +55,7 @@ For anything that produces or reshapes a deck, start with `sub-skills/deck-direc
 | Pick a template, restyle, change colours or fonts, use our company .pptx as the template, 4:3 or A4 | `template-curator` |
 | Fix overflowing or crowded slides, lint issues, check how it looks, swap a picture | `visual-qa` |
 | Hand it over, answer comments, undo the agent's changes, export to pptx or pdf, open a .pptx | `review-handoff` |
-| Merge, split, sign, redact, fill or otherwise edit a PDF | Not FormDeck: point the person to formpdf (github.com/nodemode-ai/formpdf) |
+| Merge, split, sign, redact, fill or otherwise edit a PDF | Not formdeck: point the person to formpdf (github.com/nodemode-ai/formpdf) |
 
 ## Before anything
 
@@ -64,14 +64,14 @@ For anything that produces or reshapes a deck, start with `sub-skills/deck-direc
 
 ## When something fails
 
-Every FormDeck error names the next step. Read it, do that, retry once.
+Every formdeck error names the next step. Read it, do that, retry once.
 
 | What you see | Meaning | Do |
 | --- | --- | --- |
-| No FormDeck tools at all | The MCP server is not connected in this client | Ask the person to run `./formdeck agents install` in the FormDeck folder (or approve the FormDeck server in `/mcp`), start FormDeck with `./formdeck`, then restart the client |
-| Connection refused on the FormDeck server | The engine is not running | Ask the person to run `./formdeck` (or open the FormDeck app); the `formdeck-stdio` entry starts the engine itself |
+| No formdeck tools at all | The MCP server is not connected in this client | Ask the person to run `./formdeck agents install` in the formdeck folder (or approve the formdeck server in `/mcp`), start formdeck with `./formdeck`, then restart the client |
+| Connection refused on the formdeck server | The engine is not running | Ask the person to run `./formdeck` (or open the formdeck app); the `formdeck-stdio` entry starts the engine itself |
 | "did not allow agents to edit" | The person answered Not now in the window | Ask them to allow agents (the question in the window, or Preferences), then retry; refusals are cached for 120 seconds |
-| "needs the FormDeck window" | render_slides, measured lint or pdf/png export with no window | Ask the person to open FormDeck; meanwhile `get_deck {detail: "text"}` and `lint_deck` (static) still work |
+| "needs the formdeck window" | render_slides, measured lint or pdf/png export with no window | Ask the person to open formdeck; meanwhile `get_deck {detail: "text"}` and `lint_deck` (static) still work |
 | "There is no deck / slide / element ..." | A stale or mistyped id | `get_context` or `get_deck {detail: "text"}` and use the ids it gives |
 | "No tool named ..." | A near-miss tool name | Use the exact names in `references/tools.md` |
 | "The last change ... was made by the person" | undo refuses to revert their work | Fix forward with set_text or update_slide |
@@ -88,4 +88,4 @@ To tell a usage problem from a server problem, call `get_context` directly. If t
 
 ## Setup, for the person
 
-In the FormDeck folder: `./formdeck agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` and copies this skill for Claude Code, Codex and Cursor; `./formdeck` starts the engine (127.0.0.1:8197) and the window (http://localhost:5197). Claude Code alone: `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp`. The first edit asks the person once, in the window, to allow agents.
+In the formdeck folder: `./formdeck agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` and copies this skill for Claude Code, Codex and Cursor; `./formdeck` starts the engine (127.0.0.1:8197) and the window (http://localhost:5197). Claude Code alone: `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp`. The first edit asks the person once, in the window, to allow agents.

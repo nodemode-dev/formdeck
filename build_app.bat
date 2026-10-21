@@ -36,6 +36,6 @@ echo [formdeck] the build stopped at the step above; fix what it says and run bu
 exit /b 1
 
 :usage
-echo build_app.bat           build FormDeck's desktop app on Windows, start to finish
+echo build_app.bat           build formdeck's desktop app on Windows, start to finish
 echo   --open                open the folder with the installers when the build is done
 exit /b 0

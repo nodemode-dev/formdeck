@@ -335,7 +335,7 @@ export class ChatPanel {
   private buildEmpty(): void {
     this.empty.innerHTML = `<div class="fd-chat-empty-in"><div class="fd-chat-empty-title">${icon('agent', 16)}<span>Chat with an assistant about this deck</span></div>
 <p class="fd-chat-empty-lead"></p>
-<ol class="fd-chat-steps"><li>Connect your agent once: paste the prompt below into Claude Code, Codex or Cursor, or add FormDeck as an MCP server.</li><li>Ask it to check the FormDeck chat. It reads your messages and answers here, and its edits are undoable.</li></ol>
+<ol class="fd-chat-steps"><li>Connect your agent once: paste the prompt below into Claude Code, Codex or Cursor, or add formdeck as an MCP server.</li><li>Ask it to check the formdeck chat. It reads your messages and answers here, and its edits are undoable.</li></ol>
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt for your agent</button><button class="fd-btn fd-btn-sm" type="button" data-a="copy-cmd">${icon('link', 14)}Copy MCP command</button></div>
 <div class="fd-chat-hints"><button class="fd-chat-hint" type="button" data-a="hint" data-t="Tighten the wording on this slide.">Tighten the wording on this slide</button><button class="fd-chat-hint" type="button" data-a="hint" data-t="Suggest a stronger title for every slide.">Suggest stronger titles</button></div></div>`;
   }
@@ -351,7 +351,7 @@ export class ChatPanel {
     setHidden(acts, !connected);
     setHidden(this.empty.querySelector('.fd-chat-hints') as HTMLElement, connected);
     setText(this.empty.querySelector('.fd-chat-empty-lead'), connected
-      ? 'No key needed. Your own Claude Code, Codex or Cursor session answers here over MCP; FormDeck sends nothing anywhere.'
+      ? 'No key needed. Your own Claude Code, Codex or Cursor session answers here over MCP; formdeck sends nothing anywhere.'
       : `Using ${PROVIDER_NAME[this.cfg.provider]}. Ask for edits in plain words; each edit is an undoable agent turn and follows the Allow switch above.`);
   }
 
@@ -364,9 +364,9 @@ export class ChatPanel {
   private async adopt(): Promise<void> {
     try {
       const r = await call<{ sessions: Array<{ id: string; title: string; modified: number; messages: number }> }>('/api/chat/claude/sessions');
-      if (!r.sessions.length) { toast('No Claude Code conversation in FormDeck yet. Open one in the terminal dock (Shift+Ctrl or Cmd+`) first.', 'error'); return; }
+      if (!r.sessions.length) { toast('No Claude Code conversation in formdeck yet. Open one in the terminal dock (Shift+Ctrl or Cmd+`) first.', 'error'); return; }
       const when = (s: number): string => new Date(s * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const got = await pickFrom('Continue a Claude Code Conversation', r.sessions.map((s) => ({ id: s.id, label: s.title || 'Untitled', note: `${when(s.modified)} · ${s.messages}` })), 'No Claude Code conversation in FormDeck yet.');
+      const got = await pickFrom('Continue a Claude Code Conversation', r.sessions.map((s) => ({ id: s.id, label: s.title || 'Untitled', note: `${when(s.modified)} · ${s.messages}` })), 'No Claude Code conversation in formdeck yet.');
       if (!got) return;
       await call(`/api/chat/${encodeURIComponent(this.cid)}/adopt`, 'POST', { session: got });
       if (this.cfg && this.cfg.provider !== 'claudecode') toast('Switch Assistant to Claude Code (your sign-in) to continue it here.');
@@ -393,9 +393,9 @@ export class ChatPanel {
 <label class="fd-chat-lab">API key</label><div class="fd-chat-keyrow"><input class="fd-input" type="password" data-key="${p}" autocomplete="new-password" spellcheck="false" placeholder="Paste a key"><button class="fd-btn fd-btn-sm" type="button" data-a="save-key" data-p="${p}">Save</button><button class="fd-btn fd-btn-sm" type="button" data-a="remove-key" data-p="${p}">Remove</button></div>
 <div class="fd-note fd-chat-keynote" data-keynote="${p}"></div></div>`;
     this.settings.innerHTML = `<div class="fd-chat-set-in"><label class="fd-chat-lab">Assistant</label><select class="fd-input" data-f="provider" aria-label="Assistant">${MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}</select>
-<div class="fd-chat-sec" data-p="connected"><div class="fd-note">Your Claude Code, Codex or Cursor session connects over MCP and answers in this panel. No key, nothing sent by FormDeck.</div>
+<div class="fd-chat-sec" data-p="connected"><div class="fd-note">Your Claude Code, Codex or Cursor session connects over MCP and answers in this panel. No key, nothing sent by formdeck.</div>
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt</button><button class="fd-btn fd-btn-sm" type="button" data-a="copy-cmd">${icon('link', 14)}Copy MCP command</button></div></div>
-<div class="fd-chat-sec" data-p="claudecode" hidden><div class="fd-note">FormDeck runs your own Claude Code (claude -p) with FormDeck's tools only. It uses your Claude sign-in; no key is stored here. Run claude once in a terminal to sign in.</div>
+<div class="fd-chat-sec" data-p="claudecode" hidden><div class="fd-note">formdeck runs your own Claude Code (claude -p) with formdeck's tools only. It uses your Claude sign-in; no key is stored here. Run claude once in a terminal to sign in.</div>
 <label class="fd-chat-lab">Model</label><select class="fd-input" data-f="claudecode.model" aria-label="Claude Code model"><option value="">Claude Code default</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option><option value="haiku">Haiku</option></select>
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="claude-terminal">${icon('terminal', 14)}Continue in the terminal</button><button class="fd-btn fd-btn-sm" type="button" data-a="claude-adopt" title="Bring a conversation you had in a Claude Code tab into this chat">From Claude Code...</button></div></div>
 ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https://api.openai.com/v1')}
@@ -443,7 +443,7 @@ ${keyBlock('anthropic', 'https://api.anthropic.com')}${keyBlock('openai', 'https
     this.settings.querySelectorAll<HTMLElement>('.fd-chat-sec').forEach((s) => setHidden(s, s.dataset.p !== c.provider));
     setHidden(this.settings.querySelector('.fd-chat-testrow') as HTMLElement, c.provider === 'connected');
     for (const p of ['anthropic', 'openai'] as const) {
-      setText(this.settings.querySelector(`[data-keynote="${p}"]`), c.hasKey[p] ? 'A key is saved on this computer. It is never shown again or sent anywhere except this provider.' : p === 'openai' ? 'Optional for local OpenAI-compatible servers. Stored only on this computer.' : 'Stored only on this computer, in the FormDeck data folder.');
+      setText(this.settings.querySelector(`[data-keynote="${p}"]`), c.hasKey[p] ? 'A key is saved on this computer. It is never shown again or sent anywhere except this provider.' : p === 'openai' ? 'Optional for local OpenAI-compatible servers. Stored only on this computer.' : 'Stored only on this computer, in the formdeck data folder.');
       const rm = this.settings.querySelector<HTMLButtonElement>(`[data-a="remove-key"][data-p="${p}"]`);
       if (rm) rm.disabled = !c.hasKey[p];
     }

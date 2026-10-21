@@ -96,7 +96,7 @@ def build_history(c: cv.Convo) -> list:
 
 def system_prompt(deck_id: str | None) -> str:
     from app.routers import mcp
-    lines = ["You are the FormDeck assistant inside the FormDeck presentation editor. You build and edit slide decks for the person using the tools provided; every edit you make is an undoable agent turn the person can review. Be brief, act with the tools instead of describing what you would do, and say what you changed in one or two sentences. Ask before destructive changes."]
+    lines = ["You are the formdeck assistant inside the formdeck presentation editor. You build and edit slide decks for the person using the tools provided; every edit you make is an undoable agent turn the person can review. Be brief, act with the tools instead of describing what you would do, and say what you changed in one or two sentences. Ask before destructive changes."]
     if deck_id:
         try:
             deck = STORE.session(deck_id).deck
@@ -113,8 +113,8 @@ def system_prompt(deck_id: str | None) -> str:
 def _agent(c: cv.Convo, label: str):
     from app.routers import mcp
     if c.agent is None:
-        c.agent = mcp.Agent(f"chat-{c.id}", "FormDeck chat")
-    c.agent.name = f"FormDeck chat ({label})"
+        c.agent = mcp.Agent(f"chat-{c.id}", "formdeck chat")
+    c.agent.name = f"formdeck chat ({label})"
     STORE.seen_agent(c.agent.name, c.agent.key)
     return c.agent
 
@@ -144,7 +144,7 @@ def adopt(c: cv.Convo, sid: str) -> int:
     listed = claude_code.sessions()
     pick = next((s for s in listed if s["id"] == sid), None) if sid else (listed[0] if listed else None)
     if pick is None:
-        raise LookupError("No Claude Code conversation was found in FormDeck's agent folder. Open one with Claude Code in the terminal dock first.")
+        raise LookupError("No Claude Code conversation was found in formdeck's agent folder. Open one with Claude Code in the terminal dock first.")
     now = time.time()
     msgs: list[dict] = []
     for i, m in enumerate(claude_code.transcript(pick["id"])):
@@ -169,7 +169,7 @@ async def _run_claude(c: cv.Convo, cfg: dict, deck_id: str | None, text: str) ->
     tools: dict[str, dict] = {}
     result: dict | None = None
     exit_info: dict | None = None
-    where = f"The person has deck {deck_id} open in FormDeck." if deck_id else "No deck is open in FormDeck."
+    where = f"The person has deck {deck_id} open in formdeck." if deck_id else "No deck is open in formdeck."
     try:
         async for ev in claude_code.stream_chat(f"{text}\n\n({where})", getattr(c, "claude_session", None), cfg["claudecode"]["model"]):
             t = ev.get("type")

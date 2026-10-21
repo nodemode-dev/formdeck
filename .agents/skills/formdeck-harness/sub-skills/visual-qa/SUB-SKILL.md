@@ -1,6 +1,6 @@
 ---
 name: visual-qa
-description: "Checks and fixes FormDeck slides by eye and by measurement: render_slides contact sheets, lint_deck issue kinds (overflow, shrunk, tiny, overlap, offslide, empty, words, bullets, placeholder, contrast, alt, upscale and the rest) with the fix for each, picture fit and consistency checks, and the fix loop with set_text, update_slide, edit_elements and apply_ops. Use when a deck was just built or edited, when the person says slides overflow or look wrong, or when a lint issue needs a fix."
+description: "Checks and fixes formdeck slides by eye and by measurement: render_slides contact sheets, lint_deck issue kinds (overflow, shrunk, tiny, overlap, offslide, empty, words, bullets, placeholder, contrast, alt, upscale and the rest) with the fix for each, picture fit and consistency checks, and the fix loop with set_text, update_slide, edit_elements and apply_ops. Use when a deck was just built or edited, when the person says slides overflow or look wrong, or when a lint issue needs a fix."
 ---
 
 # Visual QA

@@ -1,6 +1,6 @@
-# FormDeck add-ins
+# formdeck add-ins
 
-An add-in is a small package that adds commands and, optionally, a task pane to FormDeck. People find add-ins in Home > Add-ins (also Insert > Get Add-ins and Insert > My Add-ins), the same place PowerPoint keeps its Office Add-ins. The Store tab lists the catalog, My Add-ins lists what is installed, and every install shows the permissions the add-in asks for before anything is written to disk.
+An add-in is a small package that adds commands and, optionally, a task pane to formdeck. People find add-ins in Home > Add-ins (also Insert > Get Add-ins and Insert > My Add-ins), the same place PowerPoint keeps its Office Add-ins. The Store tab lists the catalog, My Add-ins lists what is installed, and every install shows the permissions the add-in asks for before anything is written to disk.
 
 Add-ins run in the macro sandbox (see Macros in [FORMAT.md](FORMAT.md)): a dedicated Web Worker with no DOM and no network, a 10 second watchdog, and one undo step per run. Nothing else runs add-in code.
 
@@ -69,7 +69,7 @@ What the entry function returns is passed back as JSON (up to 256 KB). A string 
 
 ## Task panes
 
-The pane is a page from the package shown in an iframe with `sandbox="allow-scripts"` and no `allow-same-origin`, so it has an opaque origin and cannot touch FormDeck's page or storage. The files are served with `Content-Security-Policy: sandbox allow-scripts; default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'`, so the pane cannot make network requests either. It talks to the add-in only through `postMessage` to its parent:
+The pane is a page from the package shown in an iframe with `sandbox="allow-scripts"` and no `allow-same-origin`, so it has an opaque origin and cannot touch formdeck's page or storage. The files are served with `Content-Security-Policy: sandbox allow-scripts; default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'`, so the pane cannot make network requests either. It talks to the add-in only through `postMessage` to its parent:
 
 | Direction | Message |
 | --- | --- |
@@ -94,7 +94,7 @@ The Store reads a JSON index. The address is the engine setting `addins.indexUrl
       "id": "ai.nodemode.agenda",
       "name": "Agenda Builder",
       "version": "1.0.0",
-      "author": "FormDeck",
+      "author": "formdeck",
       "description": "Adds an agenda slide after your title slide, built from the section names in your deck.",
       "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 40 40\">...</svg>",
       "permissions": ["read", "edit"],
@@ -109,11 +109,11 @@ The Store reads a JSON index. The address is the engine setting `addins.indexUrl
 
 ### Publishing your own catalog
 
-Anyone can publish a catalog in the same format at any `https://` address (a static file host is enough). People add its address in Add-ins > Catalogs...; the engine keeps the list in the setting `addins.catalogs` (at most ten) and `PUT /api/addins/catalogs {"urls": [...]}` replaces it. Entries from other catalogs are marked with the catalog's host, never replace an add-in id that FormDeck's catalog lists, and are installed with the source `publisher:<host>`. Downloads are checked exactly as above, so publish the `sha256` of each `.zip` and keep `id`, `version` and `permissions` identical in the entry and the package.
+Anyone can publish a catalog in the same format at any `https://` address (a static file host is enough). People add its address in Add-ins > Catalogs...; the engine keeps the list in the setting `addins.catalogs` (at most ten) and `PUT /api/addins/catalogs {"urls": [...]}` replaces it. Entries from other catalogs are marked with the catalog's host, never replace an add-in id that formdeck's catalog lists, and are installed with the source `publisher:<host>`. Downloads are checked exactly as above, so publish the `sha256` of each `.zip` and keep `id`, `version` and `permissions` identical in the entry and the package.
 
 ## Where add-ins are stored
 
-Each add-in lives in `FormDeck/AddIns/[id]/`. The engine pins the SHA-256 of every file at install time (`.addin.json`). A file that is changed, added or removed on disk afterwards marks the add-in as modified: it is switched off and its files are no longer served until it is removed and added again.
+Each add-in lives in `formdeck/AddIns/[id]/`. The engine pins the SHA-256 of every file at install time (`.addin.json`). A file that is changed, added or removed on disk afterwards marks the add-in as modified: it is switched off and its files are no longer served until it is removed and added again.
 
 ## Engine endpoints
 

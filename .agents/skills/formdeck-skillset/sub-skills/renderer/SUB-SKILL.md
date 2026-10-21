@@ -1,6 +1,6 @@
 ---
 name: renderer
-description: "FormDeck's slide renderer in frontend/src/render: SlideView (DOM at 1px per point, layered background, master, layout and content, keyed patching by touched paths), text HTML with bullets and autonumbering, shrink autofit via one --k scale, shapes from 150 presets as inline SVG, paint helpers, charts as SVG, tables, bundled fonts, and the Canvas 2D raster display list used for thumbnails, contact sheets, PNG and PDF export. Use when text measures or wraps wrong, autofit misbehaves, a shape, chart or table draws wrong, thumbnails or exports differ from the stage, or fonts load late."
+description: "formdeck's slide renderer in frontend/src/render: SlideView (DOM at 1px per point, layered background, master, layout and content, keyed patching by touched paths), text HTML with bullets and autonumbering, shrink autofit via one --k scale, shapes from 150 presets as inline SVG, paint helpers, charts as SVG, tables, bundled fonts, and the Canvas 2D raster display list used for thumbnails, contact sheets, PNG and PDF export. Use when text measures or wraps wrong, autofit misbehaves, a shape, chart or table draws wrong, thumbnails or exports differ from the stage, or fonts load late."
 ---
 
 # Renderer

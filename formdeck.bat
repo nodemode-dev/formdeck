@@ -72,7 +72,7 @@ echo   freeze              freeze the backend into the Tauri sidecar binary
 echo   desktop dev^|build   run or bundle the desktop app
 echo   doctor              check the toolchain, installs and ports
 echo   counts [--check]    the README's code sizes (--check: exit 1 if README.md has drifted)
-echo   claude [args]       Claude Code in this terminal with FormDeck's MCP tools attached
+echo   claude [args]       Claude Code in this terminal with formdeck's MCP tools attached
 echo   cli list^|describe^|run^|batch  the editor's command catalogue from a terminal (the window must be open)
 echo   i18n check^|scan^|export^|import  the translations: check for gaps, find new strings, or a language as CSV for a native reviewer and back
 echo   pdf-check FILE.pdf  validate an exported PDF as PDF/UA-1 with veraPDF (installed separately, needs Java)

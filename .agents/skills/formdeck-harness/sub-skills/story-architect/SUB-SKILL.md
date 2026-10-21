@@ -1,6 +1,6 @@
 ---
 name: story-architect
-description: "Plans the story of a FormDeck deck: the arc for the deck type (pitch, board or investor update, sales, product launch, QBR, training, conference talk, report readout, all-hands, project kickoff), slide count, titles written as claims, one idea per slide, agenda and section rules, and speaker notes. Use when outlining a new deck, rewriting draft_spec output, or when the person asks to make a deck shorter, punchier or more like a pitch."
+description: "Plans the story of a formdeck deck: the arc for the deck type (pitch, board or investor update, sales, product launch, QBR, training, conference talk, report readout, all-hands, project kickoff), slide count, titles written as claims, one idea per slide, agenda and section rules, and speaker notes. Use when outlining a new deck, rewriting draft_spec output, or when the person asks to make a deck shorter, punchier or more like a pitch."
 ---
 
 # Story architect

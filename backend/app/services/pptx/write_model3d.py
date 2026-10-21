@@ -184,7 +184,7 @@ def write_model3d(writer, el: dict, container, poster_rid: str) -> bool:
     etree.SubElement(trans, _a("rot"), {f"a{axis}": str(int(round(float(rot[i]) * ANGLE))) for i, axis in enumerate("xyz")})
     _vec(trans, "postTrans", float(pan[0]) * vis_h * aspect, -float(pan[1]) * vis_h, 0, False)
 
-    raster = etree.SubElement(m3d, _a("raster"), {"rName": "FormDeck", "rVer": "1.0"})
+    raster = etree.SubElement(m3d, _a("raster"), {"rName": "formdeck", "rVer": "1.0"})
     etree.SubElement(raster, qn("a:blip"), {qn("r:embed"): poster_rid})
     etree.SubElement(m3d, _a("objViewport"), {"viewportSz": str(pt_emu(max(w, h)))})
 

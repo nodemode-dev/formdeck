@@ -1,6 +1,6 @@
 ---
 name: intake
-description: "FormDeck's intake pipeline: files and folders to a structured intake with stable src, asset and table ids, the token-lean digest, and get_source paging (backend/app/services/intake, routers/intake.py). Covers type detection, readers for markdown, text, meeting notes, pdf, docx, pptx, csv, xlsx, images, gifs, video and audio, numbers extraction, picture classification and the digest's level-of-detail budget. Use when adding a file type, changing what the digest says, fixing a misread file, or changing the /api/intake contract."
+description: "formdeck's intake pipeline: files and folders to a structured intake with stable src, asset and table ids, the token-lean digest, and get_source paging (backend/app/services/intake, routers/intake.py). Covers type detection, readers for markdown, text, meeting notes, pdf, docx, pptx, csv, xlsx, images, gifs, video and audio, numbers extraction, picture classification and the digest's level-of-detail budget. Use when adding a file type, changing what the digest says, fixing a misread file, or changing the /api/intake contract."
 ---
 
 # Intake

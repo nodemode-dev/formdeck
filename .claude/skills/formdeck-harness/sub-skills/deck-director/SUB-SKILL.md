@@ -1,6 +1,6 @@
 ---
 name: deck-director
-description: "Entry route for building or reshaping a FormDeck deck end to end: intake questions only when truly ambiguous, then get_context, list_templates, ingest, draft_spec, rewrite, build_deck, render_slides, lint_deck, fix and review handoff, closed by a completion gate. Use for any deck request by default, and let it pull in the specialists."
+description: "Entry route for building or reshaping a formdeck deck end to end: intake questions only when truly ambiguous, then get_context, list_templates, ingest, draft_spec, rewrite, build_deck, render_slides, lint_deck, fix and review handoff, closed by a completion gate. Use for any deck request by default, and let it pull in the specialists."
 ---
 
 # Deck director
@@ -11,7 +11,7 @@ Own the outcome: a deck in the person's template, built from their material, che
 
 ## Preconditions
 
-The FormDeck tools are reachable (`get_context` answers). Nothing else: this is the entry route.
+The formdeck tools are reachable (`get_context` answers). Nothing else: this is the entry route.
 
 ## Procedure
 
@@ -23,7 +23,7 @@ Load `references/intake-protocol.md`. Ask only what changes the deck and cannot 
 
 Each step names its tool; the argument shapes are in `references/tools.md` at the pack root.
 
-1. **Context.** `get_context`. Note `window` and `agentsAllowed`. No window: you can build, but rendering and pdf export wait for the person to open FormDeck; say so once.
+1. **Context.** `get_context`. Note `window` and `agentsAllowed`. No window: you can build, but rendering and pdf export wait for the person to open formdeck; say so once.
 2. **Template.** Named by the person: use its id. Otherwise `list_templates {query}` with one or two words from the brief (`"pitch"`, `"dark"`, `"report"`) and choose by `sub-skills/template-curator/SUB-SKILL.md`. Default: the `defaultTemplate` from get_context.
 3. **Ingest.** `ingest {paths: [absolute paths], brief}` with every file and folder at once (`notes` for pasted text, `paths: []` if there are no files). Keep the intake id. Read the digest by `sub-skills/intake-reader/SUB-SKILL.md`; call `get_source` only for gaps the story needs.
 4. **Draft.** `draft_spec {intake, template, slides}`. It is a heuristic first pass (about 80 percent): topic titles, generic agenda, stock closing.
@@ -53,5 +53,5 @@ Deck id, title, template, slide count, lint score and counts, the review state, 
 ## Owned resources
 
 - `references/intake-protocol.md` what to ask, when not to ask, and the defaults. Open at the start of every new deck.
-- `references/worked-run.md` a real run of the loop against a live engine with every call and result shape. Open the first time you drive FormDeck, or when a result looks unexpected.
+- `references/worked-run.md` a real run of the loop against a live engine with every call and result shape. Open the first time you drive formdeck, or when a result looks unexpected.
 - `checklists/completion-gate.md` the pre-handoff gate. Run before telling the person it is ready.

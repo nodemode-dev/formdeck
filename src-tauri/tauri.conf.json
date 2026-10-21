@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "FormDeck",
+  "productName": "formdeck",
   "version": "0.23.0",
   "identifier": "ai.nodemode.formdeck",
   "build": {
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "splash",
-        "title": "FormDeck",
+        "title": "formdeck",
         "url": "splash.html",
         "width": 360,
         "height": 180,
@@ -28,7 +28,7 @@
     "targets": "all",
     "category": "Productivity",
     "shortDescription": "Presentations and decks",
-    "longDescription": "FormDeck is a presentation editor in the NodeMode design system: slides, layouts, masters and templates in its own .fdec decks, PowerPoint, Keynote and Google Slides exchange through .pptx, PDF export, and agent automation that builds and edits decks in plain language.",
+    "longDescription": "formdeck is a presentation editor in the NodeMode design system: slides, layouts, masters and templates in its own .fdec decks, PowerPoint, Keynote and Google Slides exchange through .pptx, PDF export, and agent automation that builds and edits decks in plain language.",
     "copyright": "Copyright 2026 nodemode-ai.",
     "externalBin": ["binaries/formdeck-engine"],
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
@@ -50,8 +50,8 @@
       }
     },
     "fileAssociations": [
-      { "ext": ["fdec"], "name": "FormDeck Deck", "description": "FormDeck presentation deck", "role": "Editor", "mimeType": "application/x-formdeck" },
-      { "ext": ["fsld"], "name": "FormDeck Deck (older)", "description": "FormDeck presentation deck saved by formsld", "role": "Editor", "mimeType": "application/x-formsld" },
+      { "ext": ["fdec"], "name": "formdeck Deck", "description": "formdeck presentation deck", "role": "Editor", "mimeType": "application/x-formdeck" },
+      { "ext": ["fsld"], "name": "formdeck Deck (older)", "description": "formdeck presentation deck saved by formsld", "role": "Editor", "mimeType": "application/x-formsld" },
       { "ext": ["pptx"], "name": "PowerPoint Presentation", "description": "PowerPoint presentation", "role": "Editor", "rank": "Alternate", "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
       { "ext": ["odp"], "name": "OpenDocument Presentation", "description": "OpenDocument presentation", "role": "Editor", "rank": "Alternate", "mimeType": "application/vnd.oasis.opendocument.presentation" }
     ],

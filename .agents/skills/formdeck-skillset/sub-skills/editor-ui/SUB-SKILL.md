@@ -1,6 +1,6 @@
 ---
 name: editor-ui
-description: "The FormDeck window shell and editor: the composition root (app.ts), menus, toolbar, inspector panels, filmstrip, stage (selection, drag, resize, rotate, adjust handles, snapping, text editing), slide sorter and outline views, home and template picker, dialogs, commands and shortcuts, toasts, colour picker, UI themes, design tokens, z-index scale and the zero-flash DOM rules. Use for any panel, menu, toolbar, dialog, command, shortcut, stage interaction, style or theme change, then run ui-verification."
+description: "The formdeck window shell and editor: the composition root (app.ts), menus, toolbar, inspector panels, filmstrip, stage (selection, drag, resize, rotate, adjust handles, snapping, text editing), slide sorter and outline views, home and template picker, dialogs, commands and shortcuts, toasts, colour picker, UI themes, design tokens, z-index scale and the zero-flash DOM rules. Use for any panel, menu, toolbar, dialog, command, shortcut, stage interaction, style or theme change, then run ui-verification."
 ---
 
 # Editor UI

@@ -622,7 +622,7 @@ def _bundled_catalog() -> list[dict]:
 
 
 async def _get(url: str, limit: int) -> bytes:
-    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, max_redirects=MAX_REDIRECTS, headers={"User-Agent": f"FormDeck/{config.VERSION} (add-in catalog)"}) as client:
+    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, max_redirects=MAX_REDIRECTS, headers={"User-Agent": f"formdeck/{config.VERSION} (add-in catalog)"}) as client:
         async with client.stream("GET", url) as res:
             if res.status_code != 200:
                 raise AddinError(502, f"The catalog server answered {res.status_code}.")
@@ -690,7 +690,7 @@ async def catalog() -> dict:
         source = "bundled"
         host = urlparse(url).netloc or url
         why = e.message if isinstance(e, AddinError) else "it could not be reached"
-        note = f"Could not load the catalog from {host} ({why.rstrip('.')}). Showing the copy that ships with FormDeck."
+        note = f"Could not load the catalog from {host} ({why.rstrip('.')}). Showing the copy that ships with formdeck."
         entries = _bundled_catalog()
     for item in entries:
         item["official"] = True

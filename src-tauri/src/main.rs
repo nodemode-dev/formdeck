@@ -70,7 +70,7 @@ fn check_for_updates(handle: tauri::AppHandle) {
         let Ok(Some(update)) = updater.check().await else { return };
         let install = handle
             .dialog()
-            .message(format!("FormDeck {} is available. Install it and restart?", update.version))
+            .message(format!("formdeck {} is available. Install it and restart?", update.version))
             .title("Update available")
             .buttons(MessageDialogButtons::OkCancel)
             .blocking_show();
@@ -117,7 +117,7 @@ async fn open_presenter(app: tauri::AppHandle, url: String) -> Result<(), String
         }
         return existing.set_focus().map_err(|e| e.to_string());
     }
-    let builder = WebviewWindowBuilder::new(&app, "presenter", WebviewUrl::External(target)).title("FormDeck slide show");
+    let builder = WebviewWindowBuilder::new(&app, "presenter", WebviewUrl::External(target)).title("formdeck slide show");
     let builder = match &other {
         Some(m) => {
             let scale = m.scale_factor();
@@ -198,7 +198,7 @@ fn main() {
                 .env("FORMDECK_PORT", "0")
                 .env("FORMDECK_PORT_PREFER", "8297")
                 .spawn()
-                .expect("the FormDeck engine failed to spawn");
+                .expect("the formdeck engine failed to spawn");
             app.state::<Backend>().0.lock().unwrap().replace(child);
             let from_args: Vec<String> = std::env::args()
                 .skip(1)
@@ -273,7 +273,7 @@ fn main() {
                         close_splash(&handle);
                         handle
                             .dialog()
-                            .message("The FormDeck engine failed to start. Please relaunch the app.")
+                            .message("The formdeck engine failed to start. Please relaunch the app.")
                             .blocking_show();
                         kill_backend(&handle);
                         std::process::exit(1);

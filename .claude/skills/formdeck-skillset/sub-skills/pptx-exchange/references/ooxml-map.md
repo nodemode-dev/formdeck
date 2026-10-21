@@ -35,7 +35,7 @@ The twelve scheme slots map one to one to `clrScheme` (dk1, lt1, dk2, lt2, accen
 
 ## Elements
 
-| FormDeck | OOXML |
+| formdeck | OOXML |
 | --- | --- |
 | shape with `geom` preset and `adj` | `p:sp` with `a:prstGeom` and `a:avLst` (`geom.py` maps names) |
 | shape with `path` (custom) | `a:custGeom` |

@@ -274,7 +274,7 @@ def import_bytes(data: bytes, name: str, as_template: bool = False) -> dict:
         if not deck.get("title") or deck["title"] in ("PowerPoint Presentation", ""):
             deck["title"] = Path(name).stem
         return model.normalize(deck)
-    raise ValueError(f"{name}: FormDeck opens .fdec (and older .fsld), .pptx, .potx, .ppsx, .pptm and .odp decks here.")
+    raise ValueError(f"{name}: formdeck opens .fdec (and older .fsld), .pptx, .potx, .ppsx, .pptm and .odp decks here.")
 
 
 @router.post("/import")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """./formdeck pdf-check FILE.pdf [--flavour ua1|ua2|2b|...]: validates a PDF with veraPDF, the PDF Association's validator.
 
-FormDeck does not ship veraPDF. Install it from https://verapdf.org (it needs Java), or set VERAPDF to its launcher.
-The default flavour is ua1 (PDF/UA-1), the level FormDeck's PDF export declares."""
+formdeck does not ship veraPDF. Install it from https://verapdf.org (it needs Java), or set VERAPDF to its launcher.
+The default flavour is ua1 (PDF/UA-1), the level formdeck's PDF export declares."""
 import os
 import re
 import shutil

@@ -9,7 +9,7 @@
 "Allow other computers on this network",
 "{0}Create Link",
 "No links for this deck yet.",
-"Off: FormDeck answers only this computer. Turn it on to give people on the same network a link to this deck.",
+"Off: formdeck answers only this computer. Turn it on to give people on the same network a link to this deck.",
 "On, but port {0} could not be opened.",
 "No network address found",
 "Link copied.",

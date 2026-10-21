@@ -204,7 +204,7 @@ export class Toolbar {
     host.classList.add('fd-rb-host');
     host.setAttribute('role', 'region');
     host.setAttribute('aria-label', 'Ribbon');
-    host.appendChild(el('<h1 class="fd-rb-sr">FormDeck editor</h1>'));
+    host.appendChild(el('<h1 class="fd-rb-sr">formdeck editor</h1>'));
     this.qat = new Qat(commands);
     collab.subscribe(() => this.sync());
     this.simple = el('<div class="fd-rb-simple" hidden></div>');
@@ -538,7 +538,7 @@ export class Toolbar {
       const sep = this.root.querySelector<HTMLElement>(`.fd-sep[data-g="${g}"]`);
       if (sep) setHidden(sep, !show[g]);
     }
-    const names: Record<Ctx, [string, string]> = { slide: ['Slide', 'slide'], text: ['Text', 'textBox'], shape: ['Shape', 'shapes'], image: ['Picture', 'image'], table: ['Table', 'table'], chart: ['Chart', 'chart'], multi: ['Objects', 'group'], none: ['FormDeck', 'slides'] };
+    const names: Record<Ctx, [string, string]> = { slide: ['Slide', 'slide'], text: ['Text', 'textBox'], shape: ['Shape', 'shapes'], image: ['Picture', 'image'], table: ['Table', 'table'], chart: ['Chart', 'chart'], multi: ['Objects', 'group'], none: ['formdeck', 'slides'] };
     const media = ctx === 'image' ? selectedMedia(ed) : null;
     const [label, ic] = media ? [media.kind === 'video' ? 'Video' : 'Audio', 'video'] : names[ctx];
     setText(this.title.querySelector('.fd-tb-title-text'), label);

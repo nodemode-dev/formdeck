@@ -30,9 +30,9 @@ def _title(deck_id: str) -> str:
 
 def _author(deck_id: str) -> str:
     try:
-        return (STORE.session(deck_id).deck.get("meta") or {}).get("author") or "FormDeck"
+        return (STORE.session(deck_id).deck.get("meta") or {}).get("author") or "formdeck"
     except KeyError:
-        return "FormDeck"
+        return "formdeck"
 
 
 def _notes_of(deck_id: str) -> dict:
@@ -79,7 +79,7 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
     c.setTitle(title)
     c.setAuthor(author)
     c.setSubject(f"{title} · {len(images)} slides")
-    c.setCreator(f"FormDeck {config.VERSION}")
+    c.setCreator(f"formdeck {config.VERSION}")
     slides = meta.get("slides") or []
     layer = pdf_fonts.text_layer({ch for s in slides if isinstance(s, dict) for it in s.get("text") or [] for ch in str(it.get("text") or "")})
     note_font, notes_ok = pdf_fonts.visible({ch for v in (notes or {}).values() for ch in str(v)} | set("(no notes)")) if notes is not None else (pdf_fonts.FALLBACK, True)
@@ -184,7 +184,7 @@ def _pdf(title: str, author: str, meta: dict, images: list[bytes], notes: dict |
     lang = lang if _LANG.match(lang) else "en-US"
     figs = [e for s in sects for e in s.walk() if e.role == "Figure"]
     try:
-        return pdf_tags.tag(raw, sects, title=title, author=author, creator=f"FormDeck {config.VERSION}", lang=lang, ua=notes_ok and layer != pdf_fonts.FALLBACK and all(f.alt for f in figs))
+        return pdf_tags.tag(raw, sects, title=title, author=author, creator=f"formdeck {config.VERSION}", lang=lang, ua=notes_ok and layer != pdf_fonts.FALLBACK and all(f.alt for f in figs))
     except ImportError:
         return raw
 
@@ -226,7 +226,7 @@ def _handouts(title: str, author: str, meta: dict, images: list[bytes]) -> bytes
     c = canvas.Canvas(buf, pagesize=(pw, ph))
     c.setTitle(str(meta.get("title") or "").strip() or title)
     c.setAuthor(author)
-    c.setCreator(f"FormDeck {config.VERSION}")
+    c.setCreator(f"formdeck {config.VERSION}")
     slides = meta.get("slides") or []
     for start in range(0, len(images), per):
         for k in range(start, min(start + per, len(images))):
@@ -515,7 +515,7 @@ async def gif_from_window(deck: dict, picked: list[int] | None, width: int = 960
         payload = {"deck": deck["id"], "format": "png", "slides": [s["id"] for s in slides], "path": str(tmp), "scale": scale}
         res = await bridge.window_call("export_raster", payload, deck["id"], 300)
         if res is None or res.get("isError"):
-            raise ValueError(((res or {}).get("content") or [{}])[0].get("text") or "the FormDeck window closed before rendering")
+            raise ValueError(((res or {}).get("content") or [{}])[0].get("text") or "the formdeck window closed before rendering")
         pngs: list[bytes] = []
         for f in sorted(tmp.iterdir()):
             if f.suffix.lower() == ".zip":

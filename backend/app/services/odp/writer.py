@@ -1167,7 +1167,7 @@ class OdpWriter:
         self.font_decls(content, refresh=True)
         meta = _el("office:document-meta", {"office:version": "1.3"})
         m = _el("office:meta", {}, meta)
-        _el("meta:generator", {}, m, f"FormDeck/{config.VERSION}")
+        _el("meta:generator", {}, m, f"formdeck/{config.VERSION}")
         _el("dc:title", {}, m, str(deck.get("title") or ""))
         info = deck.get("meta") or {}
         if info.get("author"):

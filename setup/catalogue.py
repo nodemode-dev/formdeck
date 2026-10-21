@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""./formdeck cli: the command catalogue of the open FormDeck window, through the engine.
+"""./formdeck cli: the command catalogue of the open formdeck window, through the engine.
 
   list [text] [--group NAME]          every command: id, label, group, when to use it
   groups                              the groups
@@ -34,7 +34,7 @@ def call(method: str, path: str, body: dict | None = None) -> tuple[int, dict]:
         except ValueError:
             return exc.code, {}
     except (urllib.error.URLError, OSError):
-        print(f"The FormDeck engine is not answering at {URL}. Start it with ./formdeck boot, then retry.", file=sys.stderr)
+        print(f"The formdeck engine is not answering at {URL}. Start it with ./formdeck boot, then retry.", file=sys.stderr)
         sys.exit(3)
 
 
@@ -73,7 +73,7 @@ def run_one(cid: str, params: dict, yes: bool) -> int:
         result = body.get("result")
         print(f"{cid}: {result if isinstance(result, str) else json.dumps(result)}")
         return 0
-    print(body.get("error") or body.get("detail") or "FormDeck gave no reason.", file=sys.stderr)
+    print(body.get("error") or body.get("detail") or "formdeck gave no reason.", file=sys.stderr)
     return 1
 
 

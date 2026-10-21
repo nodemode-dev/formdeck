@@ -1,6 +1,6 @@
 ---
 name: compiler-and-autodraft
-description: "FormDeck's slide compiler and the heuristic first draft: the markdown slide-script parser (compiler/spec.py), spec to slides in any template with layout choice, fallbacks, slot filling, synthesized stats, steps, people and grids, overflow splitting and frozen asset ids (compiler/compile.py), and autodraft (intake plus brief to a script, no model). Use when changing script syntax, a layout heuristic, how a slot is filled, overflow limits, or draft quality from draft_spec, /api/intake/{id}/draft or build-deck."
+description: "formdeck's slide compiler and the heuristic first draft: the markdown slide-script parser (compiler/spec.py), spec to slides in any template with layout choice, fallbacks, slot filling, synthesized stats, steps, people and grids, overflow splitting and frozen asset ids (compiler/compile.py), and autodraft (intake plus brief to a script, no model). Use when changing script syntax, a layout heuristic, how a slot is filled, overflow limits, or draft quality from draft_spec, /api/intake/{id}/draft or build-deck."
 ---
 
 # Compiler and autodraft

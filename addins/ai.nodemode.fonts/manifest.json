@@ -2,7 +2,7 @@
   "id": "ai.nodemode.fonts",
   "name": "Replace Fonts",
   "version": "1.0.0",
-  "author": "FormDeck",
+  "author": "formdeck",
   "description": "Lists the fonts used across your deck and swaps one for another everywhere in a single undoable step.",
   "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 40 40\"><rect x=\"3\" y=\"3\" width=\"34\" height=\"34\" rx=\"8\" fill=\"#8b5cf6\"/><path d=\"M10 29 17 11h2.4L26.4 29h-3l-1.6-4.4h-7.6L12.6 29zm5.1-6.9h5.8L18 14.2z\" fill=\"#ffffff\"/><path d=\"M27 12.5h6m0 0-2.4-2.4M33 12.5l-2.4 2.4M33 20h-6m0 0 2.4-2.4M27 20l2.4 2.4\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
   "homepage": "https://github.com/nodemode-ai/formdeck/tree/main/addins/ai.nodemode.fonts",

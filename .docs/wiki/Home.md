@@ -1,6 +1,6 @@
-# FormDeck
+# formdeck
 
-FormDeck makes presentations and pitch decks. It is an open alternative to PowerPoint, Keynote and Google Slides, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live in the window, then hand it to you for review. It runs in the browser or as a Tauri desktop app, with a local engine that holds every deck.
+formdeck makes presentations and pitch decks. It is an open alternative to PowerPoint, Keynote and Google Slides, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live in the window, then hand it to you for review. It runs in the browser or as a Tauri desktop app, with a local engine that holds every deck.
 
 | Page | What it covers |
 | --- | --- |
@@ -20,6 +20,6 @@ The full documents live in the repository:
 - [docs/PARITY.md](https://github.com/nodemode-ai/formdeck/blob/main/docs/PARITY.md): parity with PowerPoint, Keynote and Google Slides, row by row, traced to code.
 - [README.md](https://github.com/nodemode-ai/formdeck/blob/main/README.md): what ships, quick start, known gaps.
 
-Status at 0.8.0: by the parity count FormDeck covers 87.0% of the PowerPoint rows, 91.5% of the Keynote rows and 87.5% of the Google Slides rows, and leads all three on agent automation. FormDeck was called formsld through 0.7.0; older `.fsld` decks and `~/Formsld` libraries still open. The PDF workbench of earlier versions is now its own app, [formpdf](https://github.com/nodemode-ai/formpdf); in FormDeck a PDF is material for a deck.
+Status at 0.8.0: by the parity count formdeck covers 87.0% of the PowerPoint rows, 91.5% of the Keynote rows and 87.5% of the Google Slides rows, and leads all three on agent automation. formdeck was called formsld through 0.7.0; older `.fsld` decks and `~/Formsld` libraries still open. The PDF workbench of earlier versions is now its own app, [formpdf](https://github.com/nodemode-ai/formpdf); in formdeck a PDF is material for a deck.
 
 These pages are the source of truth in the repository under `.docs/wiki/`. Edit them there; the wiki workflow publishes them.

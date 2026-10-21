@@ -64,7 +64,7 @@ Only permissive dependencies already present. Frontend: @fontsource families, @t
 
 ## Ports, Vite and the engine
 
-- Engine 127.0.0.1:8197 (`FORMDECK_PORT`), Vite 5197 with `host: false` and `strictPort`, proxying `/api` and `/mcp` to the engine. Data in `~/FormDeck` (`FORMDECK_DATA_DIR`).
+- Engine 127.0.0.1:8197 (`FORMDECK_PORT`), Vite 5197 with `host: false` and `strictPort`, proxying `/api` and `/mcp` to the engine. Data in `~/formdeck` (`FORMDECK_DATA_DIR`).
 - The engine is authoritative: every deck change is a step of JSON ops through `STORE.step`; no code mutates a stored deck outside it.
 - Every `setup/` script has a `.bat` twin; change both.
 

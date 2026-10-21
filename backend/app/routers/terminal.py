@@ -27,7 +27,7 @@ def origin_ok(origin: str | None, host: str | None) -> bool:
 
 def require_local(request: Request) -> None:
     if not origin_ok(request.headers.get("origin"), request.headers.get("host")):
-        raise HTTPException(status_code=403, detail="Only the FormDeck window on this computer may use the terminals.")
+        raise HTTPException(status_code=403, detail="Only the formdeck window on this computer may use the terminals.")
 
 
 class OpenBody(BaseModel):

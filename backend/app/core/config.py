@@ -6,7 +6,7 @@ from pathlib import Path
 from app import __version__
 
 APP_NAME = "formdeck"
-APP_TITLE = "FormDeck"
+APP_TITLE = "formdeck"
 VERSION = __version__
 FRONTEND_PORT = 5197
 PREVIEW_PORT = 5297
@@ -47,12 +47,13 @@ def _ensure(path: Path) -> Path:
 
 def _default_data_dir() -> Path:
     home = Path.home()
-    current, legacy = home / "FormDeck", home / "Formsld"
-    if not current.exists() and legacy.is_dir():
-        try:
-            legacy.rename(current)
-        except OSError:
-            return legacy
+    current = home / "formdeck"
+    for legacy in (home / "FormDeck", home / "Formsld"):
+        if not current.exists() and legacy.is_dir():
+            try:
+                legacy.rename(current)
+            except OSError:
+                return legacy
     return current
 
 

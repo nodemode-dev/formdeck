@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""./formdeck claude: Claude Code in this terminal with FormDeck's MCP tools attached (starts the engine through the stdio bridge when needed)."""
+"""./formdeck claude: Claude Code in this terminal with formdeck's MCP tools attached (starts the engine through the stdio bridge when needed)."""
 
 import json
 import os

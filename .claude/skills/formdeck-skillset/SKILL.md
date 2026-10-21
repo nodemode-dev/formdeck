@@ -1,17 +1,17 @@
 ---
 name: formdeck-skillset
-description: "Guides development of the FormDeck (formerly formsld) codebase: its FastAPI engine, vanilla TypeScript and Vite editor, and Tauri desktop shell. Use whenever a task changes, fixes, reviews or explains FormDeck code: the deck store, ops and live channel, compiler and autodraft, intake, templates, pptx import and export, slides from PDF pages, the MCP server and window tools, the renderer and text autofit, stage, filmstrip, thumbnails, inspector, slide sorter, slideshow and presenter view, the .fdec and deck.json format, the sidecar freeze, or a UI flicker, flash or rebuild bug. Trigger on FormDeck or formsld with backend/app, frontend/src, src-tauri, setup, HASHOUT_LOG, docs/FORMAT.md, port 8197 or 5197, or adding an MCP tool, a layout, a template or an op. Encodes the repo laws: surgical edits, near-zero comments, no emoji or em dashes, tokens-only z-index, inline SVG icons, Conventional Commits with the version bump last. Not for building decks with FormDeck (use formdeck-harness)."
+description: "Guides development of the formdeck (formerly formsld) codebase: its FastAPI engine, vanilla TypeScript and Vite editor, and Tauri desktop shell. Use whenever a task changes, fixes, reviews or explains formdeck code: the deck store, ops and live channel, compiler and autodraft, intake, templates, pptx import and export, slides from PDF pages, the MCP server and window tools, the renderer and text autofit, stage, filmstrip, thumbnails, inspector, slide sorter, slideshow and presenter view, the .fdec and deck.json format, the sidecar freeze, or a UI flicker, flash or rebuild bug. Trigger on formdeck or formsld with backend/app, frontend/src, src-tauri, setup, HASHOUT_LOG, docs/FORMAT.md, port 8197 or 5197, or adding an MCP tool, a layout, a template or an op. Encodes the repo laws: surgical edits, near-zero comments, no emoji or em dashes, tokens-only z-index, inline SVG icons, Conventional Commits with the version bump last. Not for building decks with formdeck (use formdeck-harness)."
 license: Apache-2.0
 metadata:
   author: nodemode-ai
   version: "0.4.3"
 ---
 
-# FormDeck skillset
+# formdeck skillset
 
-Route every change to FormDeck's code through this file. It maps the subsystems, states the laws that hold everywhere, and names the specialist to load. FormDeck is a presentation editor: a Python 3.12 FastAPI engine (`backend/`, port 8197) that owns every deck, a vanilla TypeScript 7 and Vite 8 window (`frontend/`, port 5197, no framework) that renders and edits through JSON ops over a WebSocket, and a Tauri 2 shell (`src-tauri/`) that runs the frozen engine as a sidecar.
+Route every change to formdeck's code through this file. It maps the subsystems, states the laws that hold everywhere, and names the specialist to load. formdeck is a presentation editor: a Python 3.12 FastAPI engine (`backend/`, port 8197) that owns every deck, a vanilla TypeScript 7 and Vite 8 window (`frontend/`, port 5197, no framework) that renders and edits through JSON ops over a WebSocket, and a Tauri 2 shell (`src-tauri/`) that runs the frozen engine as a sidecar.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). FormDeck keeps only PDF as material (the intake reader), Insert > Slides from PDF Pages and Export > PDF of a deck.
+PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). formdeck keeps only PDF as material (the intake reader), Insert > Slides from PDF Pages and Export > PDF of a deck.
 
 ## Subsystem map
 

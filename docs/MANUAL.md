@@ -1,6 +1,6 @@
-# FormDeck manual
+# formdeck manual
 
-FormDeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.6.0. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-ai/formpdf); in FormDeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > FormDeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formdeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.6.0. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-ai/formpdf); in formdeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formdeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -20,9 +20,9 @@ Other commands from `./formdeck help`:
 | `./formdeck backend`, `./formdeck frontend` | boot one half only |
 | `./formdeck build`, `./formdeck serve` | build the frontend into `frontend/dist`, then serve it from the engine on 127.0.0.1:8197 |
 | `./build_app` (or `./formdeck desktop build`; Windows `build_app.bat`) | build the desktop app from a fresh checkout in one step: checks and installs what it needs, then bundles the app (see The desktop app) |
-| `./formdeck claude` | Claude Code in this terminal with FormDeck's MCP tools attached |
+| `./formdeck claude` | Claude Code in this terminal with formdeck's MCP tools attached |
 | `./formdeck cli list [text]`, `run <id> [key=value ...]`, `counts` | the editor's command catalogue from a terminal; the window must be open. Commands that need values take them as parameters, for example `./formdeck cli set-font-size size=32` or `set-fill-color color=#1D5BD8` (a hex colour or a theme slot such as accent1). `counts` lists commands per group and fails if any lacks a use-when line |
-| `./formdeck pdf-check FILE.pdf [--flavour ua1]` | validate an exported PDF with veraPDF (install it from verapdf.org, it needs Java; or set `VERAPDF` to its launcher). FormDeck's PDF export declares PDF/UA-1 and passes that profile (slides are written as live, embedded text wherever the font can be embedded, otherwise as a picture with an invisible text layer on that page); the command prints the rule and check counts and each failed rule |
+| `./formdeck pdf-check FILE.pdf [--flavour ua1]` | validate an exported PDF with veraPDF (install it from verapdf.org, it needs Java; or set `VERAPDF` to its launcher). formdeck's PDF export declares PDF/UA-1 and passes that profile (slides are written as live, embedded text wherever the font can be embedded, otherwise as a picture with an invisible text layer on that page); the command prints the rule and check counts and each failed rule |
 | `./formdeck i18n check`, `scan [--write]`, `export LANG FILE.csv`, `import LANG FILE.csv` | the translations: `check` fails when a string has no translation or the code has a string the keys lack; `scan --write` adds new strings as the next keys part; `export` gives a native reviewer one language as CSV (english, current, corrected, note) and `import` brings the corrected column back (kept in keys and locales `part99.json`, which wins over earlier parts) |
 | `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop check` | install PyInstaller and check the toolchain, run the desktop app from source, explain toolchain problems |
 | `./formdeck freeze` | freeze the engine into the desktop sidecar |
@@ -32,23 +32,23 @@ Other commands from `./formdeck help`:
 | `./formdeck templates export [dir]` | write the built-in templates as .pptx files |
 | `./formdeck clean [--all]` | remove build output (`--all` also the venv and node_modules) |
 
-`FORMDECK_PORT` moves the engine off 8197 and `FORMDECK_DATA_DIR` moves the library off `~/FormDeck`.
+`FORMDECK_PORT` moves the engine off 8197 and `FORMDECK_DATA_DIR` moves the library off `~/formdeck`.
 
 ### The desktop app
 
-The desktop app needs no Python or Node: the engine travels inside it and starts on a free local port when the window opens. To build it yourself, run `./build_app` in the FormDeck folder on macOS or Linux; it installs what it needs and leaves the app in `src-tauri/target/release/bundle` (on a Mac, `macos/FormDeck.app` and `dmg/`). Install the package for your system:
+The desktop app needs no Python or Node: the engine travels inside it and starts on a free local port when the window opens. To build it yourself, run `./build_app` in the formdeck folder on macOS or Linux; it installs what it needs and leaves the app in `src-tauri/target/release/bundle` (on a Mac, `macos/formdeck.app` and `dmg/`). Install the package for your system:
 
-- **macOS**: open the .dmg and drag FormDeck to Applications. If the build is not notarised, macOS blocks the first start; allow it in System Settings > Privacy & Security > Open Anyway.
+- **macOS**: open the .dmg and drag formdeck to Applications. If the build is not notarised, macOS blocks the first start; allow it in System Settings > Privacy & Security > Open Anyway.
 - **Windows**: run the setup .exe or the .msi.
-- **Debian and Ubuntu**: `sudo apt install ./FormDeck_<version>_amd64.deb` (apt also pulls the GStreamer plugins that play video).
-- **Fedora and openSUSE**: `sudo dnf install ./FormDeck-<version>-1.x86_64.rpm`.
-- **Any Linux**: make the .AppImage executable and run it, or `flatpak install --user FormDeck.flatpak`. The Flatpak can read and write your home folder, where the library lives, and reach the network for agent chat.
+- **Debian and Ubuntu**: `sudo apt install ./formdeck_<version>_amd64.deb` (apt also pulls the GStreamer plugins that play video).
+- **Fedora and openSUSE**: `sudo dnf install ./formdeck-<version>-1.x86_64.rpm`.
+- **Any Linux**: make the .AppImage executable and run it, or `flatpak install --user formdeck.flatpak`. The Flatpak can read and write your home folder, where the library lives, and reach the network for agent chat.
 
-The package registers .fdec, .fsld, .pptx and .odp files with FormDeck. Uninstalling leaves the library in `~/FormDeck`.
+The package registers .fdec, .fsld, .pptx and .odp files with formdeck. Uninstalling leaves the library in `~/formdeck`.
 
 ## Home
 
-Home opens when no deck is open, and from the FormDeck mark in the title bar or File > Home (Alt+Mod+H).
+Home opens when no deck is open, and from the formdeck mark in the title bar or File > Home (Alt+Mod+H).
 
 - **Start** greets you with three ways in: Choose files (opens the material dialog), Paste text (notes, a brief, an outline or a slide script, sent to the same dialog as `pasted.md`) and Use your agent (the Agents dialog). Open file and Blank deck sit at the top right. Below are your recent decks and the template gallery.
 - **Recent decks** lists everything in the library, newest first. Decks save as you work.
@@ -70,11 +70,11 @@ The material dialog (New deck from files) turns your documents into a drafted de
 Then choose:
 
 - **Draft the deck** (or Mod+Enter). The engine reads every source, drafts a slide script and builds the deck in your template in a few seconds, then opens it. A toast says how many slides it made and whether there are warnings to check. Expect a strong first draft, not a finished deck: titles, bullets, numbers, quotes, tables, charts and pictures land on suitable layouts, and you edit from there.
-- **Hand to an agent.** The material is uploaded as an intake and the dialog shows a ready prompt naming the intake id, template, slide count and size. Copy it into Claude Code, Codex or Cursor with the FormDeck MCP server connected, and watch the slides arrive in the window. Connect an agent to FormDeck opens the setup.
+- **Hand to an agent.** The material is uploaded as an intake and the dialog shows a ready prompt naming the intake id, template, slide count and size. Copy it into Claude Code, Codex or Cursor with the formdeck MCP server connected, and watch the slides arrive in the window. Connect an agent to formdeck opens the setup.
 
 ## Templates
 
-FormDeck ships 67 original templates in 9 categories: Pitch, Business, Minimal, Creative, Tech, Education, Report, Marketing and Event. Each has a layout for all 21 semantic layouts (title, section, agenda, content, two content, comparison, picture left and right, full picture, gallery, big number, stats, quote, timeline, process, team, chart, table, title only, closing, blank) and a 17-slide sample deck.
+formdeck ships 67 original templates in 9 categories: Pitch, Business, Minimal, Creative, Tech, Education, Report, Marketing and Event. Each has a layout for all 21 semantic layouts (title, section, agenda, content, two content, comparison, picture left and right, full picture, gallery, big number, stats, quote, timeline, process, team, chart, table, title only, closing, blank) and a 17-slide sample deck.
 
 - **Change template** (Slide > Change Template, the Design tab, or the template button on the toolbar) restyles every slide with the new layouts, colours and fonts. Text, pictures, charts and notes stay; one Undo takes it back. Double-click a template to apply it at once. Download as .pptx saves the highlighted template.
 - **Design Ideas** (Design > Design Ideas, or Slide > Design Ideas...) shows the current slide in the other layouts of its master, best fit first: layouts whose placeholders take the slide's title, text and pictures without leaving content out or slots empty come first. Pictures move into a layout's picture placeholders and fill them. Click one to apply it; one Undo brings the slide back.
@@ -93,7 +93,7 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 
 | Menu | Holds |
 | --- | --- |
-| File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, OpenDocument Presentation, PDF, Pictures, FormDeck file, Video, Animated GIF, Outline as Text, Outline as Rich Text), Print or Save as PDF, Delete Deck |
+| File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, OpenDocument Presentation, PDF, Pictures, formdeck file, Video, Animated GIF, Outline as Text, Outline as Rich Text), Print or Save as PDF, Delete Deck |
 | Edit | Undo, Redo, Undo Agent Turn, Cut, Copy, Paste, Duplicate, Delete, Select All, Find and Replace |
 | View | Normal, Slide Sorter, Outline, Slide Master, zoom, Ruler, Gridlines, Guides, Grid and Guides, show or hide the slides panel, properties panel and speaker notes |
 | Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Connector, Freeform and Scribble, Table, Table (rows, columns, merge, split, distribute, header and banded rows), Chart, WordArt, Equation, Icons, Slides from PDF Pages, Link, New Comment |
@@ -102,7 +102,7 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 | Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock, Selection Pane |
 | Review | Spelling, Language, Check Deck, Activity, Compare, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
 | Present | From Beginning, From Current Slide, Presenter View, Custom Shows, Set Up Show, Record, Clear timings and narration |
-| Help | FormDeck Help, Keyboard Shortcuts, Show Key Tips, Preferences |
+| Help | formdeck Help, Keyboard Shortcuts, Show Key Tips, Preferences |
 
 Right-click a slide thumbnail, an object or the empty slide for the matching short menu.
 
@@ -118,7 +118,7 @@ The Quick Access Toolbar sits at the left of the status bar at the bottom and ho
 
 On a touch screen: tap to select, tap again or double-tap to type, drag to move, drag a handle to resize (the handles take a fingertip even though they look small), pinch with two fingers to zoom and pan, and press and hold for the right-click menu. In the slides panel, tap a slide to go to it, and press and hold, then drag, to move it. In a slide show, swipe left or right to change slides, tap to advance, and tap with two fingers (or the menu button) for the controls; Presenter View stacks the slide, the next slide and the notes on a tablet held upright.
 
-Narrow windows rearrange themselves: from 1280 pixels the properties panel opens as a sheet over the slide (the Properties button in the status bar toggles it); under 900 the slides panel moves to a strip along the bottom and the notes fold into a bar; under 600, or on a phone-sized screen, FormDeck opens a viewer with swipe between slides, notes, comments, Present and an Edit button that switches to the tablet layout. A phone or tablet needs to reach a FormDeck engine to open decks; today the engine accepts only the computer it runs on.
+Narrow windows rearrange themselves: from 1280 pixels the properties panel opens as a sheet over the slide (the Properties button in the status bar toggles it); under 900 the slides panel moves to a strip along the bottom and the notes fold into a bar; under 600, or on a phone-sized screen, formdeck opens a viewer with swipe between slides, notes, comments, Present and an Edit button that switches to the tablet layout. A phone or tablet needs to reach a formdeck engine to open decks; today the engine accepts only the computer it runs on.
 
 ### Slides panel and sections
 
@@ -142,7 +142,7 @@ Use the toolbar or Format menu for font, size, bold, italic, underline, striketh
 
 **Transform** (Transform in the Text effects section, or Format > Transform Text): pick a shape. Follow-path shapes (Arch up, Arch down, Circle, Button) bend each line along a curve and keep its size; warp shapes (Square, Wave, Inflate, Slant, Chevron, Can and the rest) stretch the text to fill the shape, so resizing the box reshapes the words. Drag the pink diamond, or use the Amount sliders, to bend it more or less. While you type, the text shows flat with its effects. No transform puts it back. WordArt, effects and transforms travel to PowerPoint as native WordArt.
 
-**Equations** (Insert > Equation, Alt+=, or Equation on the toolbar): type LaTeX such as `\frac{a+b}{2}`, or switch to Linear and type `(a+b)/2`; the preview updates as you type, and a mistake is described under it. Click a structure (fraction, script, radical, integral, large operator, bracket, function, accent, limit, matrix) to see its variants and click one to insert it at the cursor; selected text goes into its first slot. Symbols are grouped below. While you are typing in a text box, the equation goes in at the cursor and takes that text's size and colour; otherwise FormDeck adds a new equation box. Tick "Display equation on its own line" for a centred display equation. Double-click an equation to change it. Equations travel to PowerPoint as real equations PowerPoint can edit; Keynote, Google Slides and LibreOffice show the picture PowerPoint files carry with them.
+**Equations** (Insert > Equation, Alt+=, or Equation on the toolbar): type LaTeX such as `\frac{a+b}{2}`, or switch to Linear and type `(a+b)/2`; the preview updates as you type, and a mistake is described under it. Click a structure (fraction, script, radical, integral, large operator, bracket, function, accent, limit, matrix) to see its variants and click one to insert it at the cursor; selected text goes into its first slot. Symbols are grouped below. While you are typing in a text box, the equation goes in at the cursor and takes that text's size and colour; otherwise formdeck adds a new equation box. Tick "Display equation on its own line" for a centred display equation. Double-click an equation to change it. Equations travel to PowerPoint as real equations PowerPoint can edit; Keynote, Google Slides and LibreOffice show the picture PowerPoint files carry with them.
 
 ### Shapes
 
@@ -166,11 +166,11 @@ Insert > 3D Models places a .glb file (or a .gltf with everything inside it; sav
 
 Insert > Picture, drop, or paste a picture. In the Format tab: Fit (Fill, Fit, Stretch), Shape (Square, Round, Circle), Grayscale, Brightness, Contrast, Saturation, Blur, Crop (a percentage off each side), Reset picture and Alt text. Replace Picture keeps the frame and swaps the file. Animated GIFs play on the slide and in the show. Picture Format > Crop works on the slide as in PowerPoint: drag the black handles to trim and drag the picture to move it inside the frame, then press Enter or click outside (Esc cancels); Fill, Fit and Crop to Shape sit beside it.
 
-**Stock Images** (Insert > Stock Images) searches free photos and illustrations from Openverse. Filters choose the licence (by default only pictures you may use commercially and change), the shape and the kind; select one or more and press Insert. Each picture keeps its credit (title, creator and licence) in its alt text, as an Image credit line in the slide notes and in the deck's media list; CC BY licences require that credit wherever the slide is shown. Searching needs an internet connection; FormDeck's engine makes the requests, so the window never talks to the service directly.
+**Stock Images** (Insert > Stock Images) searches free photos and illustrations from Openverse. Filters choose the licence (by default only pictures you may use commercially and change), the shape and the kind; select one or more and press Insert. Each picture keeps its credit (title, creator and licence) in its alt text, as an Image credit line in the slide notes and in the deck's media list; CC BY licences require that credit wherever the slide is shown. Searching needs an internet connection; formdeck's engine makes the requests, so the window never talks to the service directly.
 
 **Generate with AI** (Insert > Generate with AI) makes pictures from a description: pick the shape (it starts at the slide's), one to four variants and an optional style, press Generate (Ctrl+Enter), choose a result and Insert. **Edit with AI** (Picture Format, with one picture selected) changes the picture from a description; paint over the part to change, or leave it unpainted to change the whole picture, or choose Remove background. The result replaces the picture in one step, so Undo brings the original back. Both use the OpenAI-compatible address and key set in Preferences > Chat: an OpenAI key, or the address of an image server on your own computer that speaks the same API. Anthropic and Ollama models do not make pictures. The description is kept as the picture's alt text.
 
-Shapes have 3-D Format and 3-D Rotation in the Format pane's Effects section, the same controls as for text effects, and Shape Effects and Picture Effects menus on their ribbon tabs. The Transitions and Animations tabs hold galleries of every transition and animation FormDeck has, with Effect Options, Duration, Delay, Start, Apply To All, Add Animation, Move Earlier and Move Later; they change the same settings as the Animate pane.
+Shapes have 3-D Format and 3-D Rotation in the Format pane's Effects section, the same controls as for text effects, and Shape Effects and Picture Effects menus on their ribbon tabs. The Transitions and Animations tabs hold galleries of every transition and animation formdeck has, with Effect Options, Duration, Delay, Start, Apply To All, Add Animation, Move Earlier and Move Later; they change the same settings as the Animate pane.
 
 ### Tables
 
@@ -245,18 +245,18 @@ Edit > Find and Replace (Mod+F) searches every text box, speaker notes included,
 
 ### Sharing on this network
 
-FormDeck answers only the computer it runs on, and that is the default. To work on a deck with people on the same network (an office or home Wi-Fi), open File > Share Deck and tick **Allow other computers on this network**. FormDeck then also listens on port 8198 (set `FORMDECK_LAN_PORT` to change it) and the dialog shows this computer's address.
+formdeck answers only the computer it runs on, and that is the default. To work on a deck with people on the same network (an office or home Wi-Fi), open File > Share Deck and tick **Allow other computers on this network**. formdeck then also listens on port 8198 (set `FORMDECK_LAN_PORT` to change it) and the dialog shows this computer's address.
 
 - **Create Link** makes a link for this deck that **Can view**, **Can comment** or **Can edit**, and copies it. Send it to the person; they open it in any modern browser, with nothing to install. The first time, their browser asks for the name others will see beside their selection and their questions.
 - People with an edit link change the deck with you live, and you see where they are working. A view link follows along but cannot change anything; a comment link can add and reply to comments only. The engine enforces this, whatever the other browser tries.
 - A link opens that one deck only. It never reaches your other decks, settings, the terminal, agents, files on this computer or the chat.
 - **Presenting to them.** When you start a slide show, everyone who has the deck open through a link (any of the three kinds) follows it: their window switches to the show at your current slide, moves when you move, shows your ink, laser and blank screen, and returns to the deck when you end. People who open the link mid-show join at the current slide. They can type a question, with their name, in the bar at the bottom right; it appears under Questions in Presenter View (one question every few seconds per person, up to 500 characters). Their own arrow keys only move their view until your next slide change.
 - **Remove** stops a link at once and disconnects anyone using it. Unticking the switch closes port 8198 and stops every link.
-- The links work only for computers that can reach this one on the network; anyone who can reach it and has the link gets the link's access, so share links as you would a key. Your firewall may ask to allow FormDeck the first time.
+- The links work only for computers that can reach this one on the network; anyone who can reach it and has the link gets the link's access, so share links as you would a key. Your firewall may ask to allow formdeck the first time.
 
 ### Sharing through a relay (optional)
 
-For people outside your network, tick **Also share through a relay** in the same dialog, enter the relay's address and a token, and press Connect. A relay is a small server that you or your organisation run (relay/README.md in the FormDeck source: one Python file, behind HTTPS); FormDeck connects out to it, so nothing on this computer has to be opened to the internet. The dialog says Connected, and every link then shows two addresses: **Anywhere** (through the relay) and **This network** (when local sharing is also on). Roles, presenting and questions work the same way, and the same engine rules decide what a guest may do; the relay only passes requests along and keeps nothing. Unticking the relay, removing a link or closing FormDeck stops access at once. Local-network sharing does not need a relay and stays the default.
+For people outside your network, tick **Also share through a relay** in the same dialog, enter the relay's address and a token, and press Connect. A relay is a small server that you or your organisation run (relay/README.md in the formdeck source: one Python file, behind HTTPS); formdeck connects out to it, so nothing on this computer has to be opened to the internet. The dialog says Connected, and every link then shows two addresses: **Anywhere** (through the relay) and **This network** (when local sharing is also on). Roles, presenting and questions work the same way, and the same engine rules decide what a guest may do; the relay only passes requests along and keeps nothing. Unticking the relay, removing a link or closing formdeck stops access at once. Local-network sharing does not need a relay and stays the default.
 
 ### Comments and review status
 
@@ -276,11 +276,11 @@ Review > Check Deck runs the same checks agents use: text that overflows (measur
 
 ### Macros
 
-View > Macros (Alt+F8) lists the macros stored in the deck, with Run, Edit, Create and Delete; the Macro Editor (Alt+F11) has the code with line numbers, Run, Stop, an output console and an API reference. Macros are JavaScript and are saved in the deck (.fdec), not in .pptx; the VBA in a .pptm is listed in the import warnings and never run. A macro runs in a sandbox with no network and no access to the page, stops after 10 seconds, and all its changes are one undo step. Macros never run on open, and the first time you run macros that came from somewhere else FormDeck asks you to confirm.
+View > Macros (Alt+F8) lists the macros stored in the deck, with Run, Edit, Create and Delete; the Macro Editor (Alt+F11) has the code with line numbers, Run, Stop, an output console and an API reference. Macros are JavaScript and are saved in the deck (.fdec), not in .pptx; the VBA in a .pptm is listed in the import warnings and never run. A macro runs in a sandbox with no network and no access to the page, stops after 10 seconds, and all its changes are one undo step. Macros never run on open, and the first time you run macros that came from somewhere else formdeck asks you to confirm.
 
 ### Add-ins
 
-Home > Add-ins, or the Add-ins tab (Get Add-ins, My Add-ins), opens the Add-ins dialog. **Store** lists the add-ins in the catalog with what each may do in plain words; Add shows those permissions again and asks before installing. **My Add-ins** turns each one on or off, removes it, or adds your own (Upload my add-in takes a .zip or a folder). An add-in's commands appear in the Add-ins tab and under Insert > Add-ins; a command can open a task pane at the right of the window. Add-ins run in the same sandbox as macros, with no network and no access to the page, and only with the permissions they declared: read the deck, change the deck, read the selection. Every change an add-in makes is one undo step labelled with its name. Installed add-ins live in `~/FormDeck/AddIns`; each is checked against the fingerprint taken when it was installed, and one whose files changed is turned off. The catalog address is the `addins.indexUrl` setting; without a connection the Store shows the catalog that ships with FormDeck. **Catalogs...** adds catalogs from other publishers (up to ten addresses): their add-ins appear in the Store with a dashed border and the publisher's address, the Add dialog warns that FormDeck has not reviewed them, and they still go through the checksum, permission and sandbox checks. When an add-in id appears in both, FormDeck's catalog wins. None are added by default. Writing an add-in, or publishing your own catalog: docs/ADDINS.md.
+Home > Add-ins, or the Add-ins tab (Get Add-ins, My Add-ins), opens the Add-ins dialog. **Store** lists the add-ins in the catalog with what each may do in plain words; Add shows those permissions again and asks before installing. **My Add-ins** turns each one on or off, removes it, or adds your own (Upload my add-in takes a .zip or a folder). An add-in's commands appear in the Add-ins tab and under Insert > Add-ins; a command can open a task pane at the right of the window. Add-ins run in the same sandbox as macros, with no network and no access to the page, and only with the permissions they declared: read the deck, change the deck, read the selection. Every change an add-in makes is one undo step labelled with its name. Installed add-ins live in `~/formdeck/AddIns`; each is checked against the fingerprint taken when it was installed, and one whose files changed is turned off. The catalog address is the `addins.indexUrl` setting; without a connection the Store shows the catalog that ships with formdeck. **Catalogs...** adds catalogs from other publishers (up to ten addresses): their add-ins appear in the Store with a dashed border and the publisher's address, the Add dialog warns that formdeck has not reviewed them, and they still go through the checksum, permission and sandbox checks. When an add-in id appears in both, formdeck's catalog wins. None are added by default. Writing an add-in, or publishing your own catalog: docs/ADDINS.md.
 
 ### Spelling and language
 
@@ -336,11 +336,11 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | Present | From Beginning | F5 |
 | | From Current Slide | Shift+F5 |
 | | Presenter View | Alt+F5 |
-| Help | FormDeck Help | F1 |
+| Help | formdeck Help | F1 |
 | | Keyboard Shortcuts | Mod+/ |
 | | Preferences | Mod+, |
 
-Every shortcut can be changed: in Help > Keyboard Shortcuts, click a command's keys and press the new combination (Backspace clears it, Esc cancels). A combination another command had moves to the new one, and FormDeck says which. Your changes are kept for every deck; Reset All goes back to these defaults.
+Every shortcut can be changed: in Help > Keyboard Shortcuts, click a command's keys and press the new combination (Backspace clears it, Esc cancels). A combination another command had moves to the new one, and formdeck says which. Your changes are kept for every deck; Reset All goes back to these defaults.
 
 Key tips reach every ribbon command from the keyboard. On Windows and Linux press and release Alt (or press F10); on any computer Help > Show Key Tips does the same. Letters appear on File (F), the Quick Access Toolbar (1 to 9) and the tabs (Home H, Insert N, Design G, Transitions K, Animations A, Slide Show S, Review R, View W, Add-ins X, Slide Master M, and two letters starting with J for the format tabs). Type a tab's letter and its commands get letters; type a command's letters to run it. A group folded into one button opens and labels its contents. Esc steps back one level, Alt or a click hides the tips.
 
@@ -384,7 +384,7 @@ Links on slides open in the show. Videos and audio play with their start, end an
 - Next Slide at the top right and your notes under it, with the two A buttons at the lower left of the notes to make the text larger or smaller; drag the line between the slide and the notes (or focus it and use the arrow keys) to give either more room;
 - Display Settings (Swap Presenter View and Slide Show, Duplicate Slide Show) and End Slide Show along the top.
 
-Zoom into the slide shows a box: click the part to enlarge, drag to move around, and press Esc or right-click to zoom back out; the audience sees the same zoom. Ink, the laser and blanking are mirrored to the audience. With one display, Alt+F5 (or More > Show Presenter View during a show) shows Presenter View on that display for practice, and More > Hide Presenter View returns to the slides. In the browser, FormDeck asks once for permission to use your displays so it can put the slides on the second one; allow pop-ups for FormDeck. The desktop app opens the slides full screen on the other display by itself.
+Zoom into the slide shows a box: click the part to enlarge, drag to move around, and press Esc or right-click to zoom back out; the audience sees the same zoom. Ink, the laser and blanking are mirrored to the audience. With one display, Alt+F5 (or More > Show Presenter View during a show) shows Presenter View on that display for practice, and More > Hide Presenter View returns to the slides. In the browser, formdeck asks once for permission to use your displays so it can put the slides on the second one; allow pop-ups for formdeck. The desktop app opens the slides full screen on the other display by itself.
 
 **Rehearse Timings** (Slide Show tab, or Present > Rehearse Timings) runs the show from the beginning and records how long each slide takes; at the end choose Keep timings to save them as each slide's automatic advance, or discard them. Transitions and their durations are set in the Slide tab.
 
@@ -398,19 +398,19 @@ Zoom into the slide shows a box: click the part to enlarge, drag to move around,
 
 **Subtitles**: in the show, click CC or press J and your speech appears on the slide and on the audience window. Slide Show > Subtitle Settings (also in the show's More menu) sets the spoken language, the subtitle language, the position (bottom or top over the slide, or below or above it, which makes the slide smaller to leave room), the size, and Always use subtitles. When the subtitle language differs from the spoken one, each finished phrase is translated: Chrome's built-in translator does it on your computer when it has that language pair (Download language pack fetches it), otherwise the chat model set in Preferences > Chat (an Anthropic or OpenAI key, a compatible server, or Ollama) does. A phrase shows in a lighter style until its translation arrives, and if translation fails the original text stays. With Connected agent as the chat model there is nothing to translate with, and the dialog says so. Subtitles need Chrome or Edge, a microphone and a network connection; elsewhere the button is off and says so.
 
-## PDFs in FormDeck
+## PDFs in formdeck
 
-FormDeck no longer edits PDFs; that moved to formpdf (github.com/nodemode-ai/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In FormDeck a PDF is one of two things:
+formdeck no longer edits PDFs; that moved to formpdf (github.com/nodemode-ai/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In formdeck a PDF is one of two things:
 
-- **Material for a deck.** Open a .pdf (File > Open or Home > Open file) or drop one on the window and Start from your material opens with the PDF attached. Add a brief, pick a template and Draft: FormDeck reads the PDF's headings, text, tables and pictures and drafts real, editable slides. Scanned PDFs without a text layer arrive as page pictures. The first time this happens a note says so.
+- **Material for a deck.** Open a .pdf (File > Open or Home > Open file) or drop one on the window and Start from your material opens with the PDF attached. Add a brief, pick a template and Draft: formdeck reads the PDF's headings, text, tables and pictures and drafts real, editable slides. Scanned PDFs without a text layer arrive as page pictures. The first time this happens a note says so.
 - **Slides from PDF pages.** In an open deck, Insert > Slides from PDF Pages asks for a PDF and adds one slide per page at the end of the deck (up to 300 pages), leaving you on the slide you were on: each slide shows the page as a picture fitted to the slide on white, and the page's text goes into the speaker notes, so it stays searchable and an agent can read it. The new slides start in Draft and the whole import is one Undo step. Use it when the slides must look exactly like the PDF, for example last year's talk that only survives as a handout; use the material route when you want slides you can edit. A password-protected PDF is refused; unlock it in formpdf first.
 
 Exporting a deck as PDF and printing are unchanged (see Import, export and print).
 
 ## Import, export and print
 
-- **Open** (Mod+O): .fdec (and older .fsld), .pptx, .potx, .ppsx, .pptm, .odp and .otp open as decks (Save writes an .odp back to its file); a .pdf opens Start from your material with the PDF attached. A toast lists anything PowerPoint content FormDeck could not keep (for example ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fdec file (or choosing Open With FormDeck for a .pptx) opens it in the editor; the desktop app does not register for .pdf files.
-- **Slides from PDF pages** (Insert > Slides from PDF Pages): one picture slide per PDF page with the page text in the notes (see PDFs in FormDeck).
+- **Open** (Mod+O): .fdec (and older .fsld), .pptx, .potx, .ppsx, .pptm, .odp and .otp open as decks (Save writes an .odp back to its file); a .pdf opens Start from your material with the PDF attached. A toast lists anything PowerPoint content formdeck could not keep (for example ink, embedded fonts, or SmartArt, which arrives as grouped shapes). In the desktop app, double-clicking a .fdec file (or choosing Open With formdeck for a .pptx) opens it in the editor; the desktop app does not register for .pdf files.
+- **Slides from PDF pages** (Insert > Slides from PDF Pages): one picture slide per PDF page with the page text in the notes (see PDFs in formdeck).
 - **Google Slides**: download your presentation as .pptx and open it; to go back, export .pptx and upload it to Drive, then Open with Google Slides.
 - **Export** (File > Export or the Export button):
   - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts: choose Do not embed (the computer that opens it needs the template's fonts or substitutes similar ones), Only characters used or All characters, as in PowerPoint's Embed fonts in the file. Embedded fonts are the deck's regular, bold, italic and bold italic styles, skipped with a warning when the font's license forbids embedding. A .pptx that embeds fonts brings them in with the deck, including the compressed fonts PowerPoint and Google Slides write; a font that cannot be read is listed in the toast and the deck opens without it.
@@ -418,7 +418,7 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
   - OpenDocument Presentation (.odp): for LibreOffice Impress and other OpenDocument apps. It keeps masters and layouts (as master pages), text formatting, bullets and numbering, shapes, freeforms, lines and connectors, pictures with cropping, tables, charts, speaker notes, transitions, hidden slides and comments; equations become formula objects, or readable linear text inside sentences. OpenDocument cannot carry text transparency, soft edges or gradients with more than two colours. In this release an .odp also flattens several masters into one, leaves out WordArt transforms, glow and text outlines, and leaves out media trim, fades and poster frames; the slides still look right, and .pptx keeps all of it.
   - PDF: one page per slide with searchable text and an outline of slide titles. Choose All, Current, Selected or Custom slides (`1-3, 5, 8-`), Standard or High quality, and whether to include hidden slides. Publish chooses Slides, Handouts (1, 2, 3, 4, 6 or 9 per page, horizontal or vertical order, Automatic, Letter or A4 paper, with the same outline) or Notes pages; Frame slides draws a thin border. When the deck has open comments, Include comments adds each one, with its replies, as a PDF comment note on its slide. The PDF is tagged for screen readers: each slide is a section in its reading order (the order in the selection pane's Reading order view), titles are headings, bullets are lists, tables keep header cells, and pictures and charts are figures with their alt text; decorative pictures, footers and slide numbers are skipped. Add alt text to every picture before exporting. The slide itself is a picture with an invisible text layer and the fonts are not embedded, so a strict PDF/UA checker may still report issues.
   - PNG or JPEG: the current slide or all slides at 1x, 2x or 3x; several slides arrive as a .zip.
-  - FormDeck (.fdec): one file with every slide, picture and the template.
+  - formdeck (.fdec): one file with every slide, picture and the template.
   - Video (MP4 where the browser can record it, otherwise WebM; 720p or 1080p) and Animated GIF (480, 720 or 960 px wide): seconds per slide for slides without a timing, recorded timings and narration, animations as build steps and transitions as fades. A video records in real time, so keep the window open; Cancel stops it. Hidden slides are skipped.
   - Web page (File > Export > Publish as Web Page): one .html file with every slide (or hidden slides too) that plays in any browser, offline or from any web host, with arrow keys, clicks, full screen and optional auto-advance and looping; slide text is included for screen readers. Copy Embed Code gives an iframe to paste into a page that sits next to the file. Nothing is uploaded.
   - Outline as Text (.txt) or Rich Text (.rtf): each slide's title with its bullets indented by level, optionally with the speaker notes and hidden slides; the .rtf opens in Word's outline view.
@@ -427,27 +427,27 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
 
 ## Agents
 
-Claude Code, Codex, Cursor and Claude Desktop can build and edit decks through FormDeck's MCP server. They work on the same deck you see, live.
+Claude Code, Codex, Cursor and Claude Desktop can build and edit decks through formdeck's MCP server. They work on the same deck you see, live.
 
 ### Setup
 
-Start FormDeck first (`./formdeck`). Then pick one:
+Start formdeck first (`./formdeck`). Then pick one:
 
-- **All at once**: `./formdeck agents install` writes `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) in the FormDeck folder and in the folder you ran it from, and installs the FormDeck skills into `~/.claude/skills` and `~/.agents/skills`. `--dry-run` shows what it would do.
+- **All at once**: `./formdeck agents install` writes `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) in the formdeck folder and in the folder you ran it from, and installs the formdeck skills into `~/.claude/skills` and `~/.agents/skills`. `--dry-run` shows what it would do.
 - **Claude Code**: `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp`.
 - **Codex**: add `[mcp_servers.formdeck]` with `url = "http://127.0.0.1:8197/mcp"` to `~/.codex/config.toml`, then restart Codex.
 - **Cursor**: add `{"mcpServers": {"formdeck": {"url": "http://127.0.0.1:8197/mcp"}}}` to `~/.cursor/mcp.json` or a project's `.cursor/mcp.json`.
-- **Claude Desktop**: it starts local servers over stdio. In `claude_desktop_config.json` add `{"mcpServers": {"formdeck": {"command": "/path/to/formdeck/formdeck", "args": ["mcp"]}}}` with the full path to your FormDeck folder.
+- **Claude Desktop**: it starts local servers over stdio. In `claude_desktop_config.json` add `{"mcpServers": {"formdeck": {"command": "/path/to/formdeck/formdeck", "args": ["mcp"]}}}` with the full path to your formdeck folder.
 
 The Agents dialog (title bar, Review > Agents and MCP, or Home) shows the same snippets with Copy buttons, the MCP address and the engine's port and library folder, and Copy a starter prompt (for the open deck, or for a new one).
 
 ### Consent
 
-Agents can read decks, but the first time one tries to change something FormDeck asks in the window: **Allow agents to edit?** with Allow and Not now. The switch lives in Preferences > Agents, the Agents dialog and the Agent tab; turning it off stops all agent edits. The server listens on 127.0.0.1 only.
+Agents can read decks, but the first time one tries to change something formdeck asks in the window: **Allow agents to edit?** with Allow and Not now. The switch lives in Preferences > Agents, the Agents dialog and the Agent tab; turning it off stops all agent edits. The server listens on 127.0.0.1 only.
 
 ### Working with an agent
 
-Ask in plain language, for example: "Use FormDeck. Build an investor update from ./notes.md, ./q3.pdf and the pictures in ./shots, in the Aurora template, 12 slides." The agent ingests the files, drafts a slide script, builds the deck in the window, renders contact sheets of its slides, checks them for overflow, overlap and contrast, fixes what it finds, and leaves each slide in Review for you.
+Ask in plain language, for example: "Use formdeck. Build an investor update from ./notes.md, ./q3.pdf and the pictures in ./shots, in the Aurora template, 12 slides." The agent ingests the files, drafts a slide script, builds the deck in the window, renders contact sheets of its slides, checks them for overflow, overlap and contrast, fixes what it finds, and leaves each slide in Review for you.
 
 - Agent edits show in the Agent tab's Activity list, and other windows and agents on the same deck show where they are working.
 - **Edit > Undo Agent Turn** takes back the agent's whole last turn (every change it made within 90 seconds of the one before) in one step. Plain Undo steps back one change at a time.
@@ -458,10 +458,10 @@ Ask in plain language, for example: "Use FormDeck. Build an investor update from
 
 The Agent tab has a chat. The assistant it talks to is your choice, shown at the top of the chat (the gear opens the settings):
 
-- **Connected agent** (the default, no key): connect Claude Code, Codex or Cursor as in Setup (Copy a prompt for your agent or Copy MCP command), then ask it to check the FormDeck chat. It reads your messages with `chat_inbox` and answers with `chat_reply`; the chat shows when it last read.
+- **Connected agent** (the default, no key): connect Claude Code, Codex or Cursor as in Setup (Copy a prompt for your agent or Copy MCP command), then ask it to check the formdeck chat. It reads your messages with `chat_inbox` and answers with `chat_reply`; the chat shows when it last read.
 - **API key**: paste an Anthropic key, or an OpenAI-compatible service's base URL, model and key. The key is stored only on this computer, is never shown again and is sent only to that service. Local OpenAI-compatible servers may need no key.
 - **Local model**: set the Ollama address (default `http://127.0.0.1:11434`) and pick an installed model. Nothing leaves your computer. Models without tool support can chat but not edit.
-- **Claude Code (your sign-in)**: FormDeck runs your own Claude Code with FormDeck's tools only, using your Claude sign-in (run `claude` once in a terminal to sign in); no key is stored. **Continue in the terminal** opens the same conversation in a Claude Code tab of the terminal dock; **From Claude Code...** goes the other way, listing the conversations you had in Claude Code tabs (newest first) and bringing the chosen one into the chat, where your next message carries it on.
+- **Claude Code (your sign-in)**: formdeck runs your own Claude Code with formdeck's tools only, using your Claude sign-in (run `claude` once in a terminal to sign in); no key is stored. **Continue in the terminal** opens the same conversation in a Claude Code tab of the terminal dock; **From Claude Code...** goes the other way, listing the conversations you had in Claude Code tabs (newest first) and bringing the chosen one into the chat, where your next message carries it on.
 
 Every edit the assistant makes is an agent turn: it follows the Allow switch, shows in Activity and Undo Agent Turn takes it back. Enter sends, Shift+Enter starts a new line, Stop cancels a reply and the bin clears the conversation. Conversations are kept per deck on this computer, not in the deck file.
 
@@ -470,7 +470,7 @@ Every edit the assistant makes is an agent turn: it follows the Allow switch, sh
 `./formdeck agents install` (and `./formdeck agents sync` after an update) installs two skills:
 
 - **formdeck-harness**, for building decks: the full loop from intake to handoff, with sub-skills for the deck director, intake reader, story architect, slide-script author (syntax and an example per layout), template curator, visual QA and review handoff. PDF editing is not part of these skills; it lives in formpdf.
-- **formdeck-skillset**, for developing FormDeck itself.
+- **formdeck-skillset**, for developing formdeck itself.
 
 The MCP resource `formdeck://guide` is the short guide agents read first, and the server offers a `build-deck` prompt.
 
@@ -504,9 +504,9 @@ Help > Preferences (Mod+,): Appearance (theme, accent colour, language, and dens
 
 ## The data folder
 
-FormDeck was called formsld through 0.7.0: on first start an existing `~/Formsld` is moved to `~/FormDeck`, and `FORMSLD_*` settings are still read until 0.9.0.
+formdeck was called formsld through 0.7.0: on first start an existing `~/Formsld` is moved to `~/formdeck`, and `FORMSLD_*` settings are still read until 0.9.0.
 
-Everything lives in `~/FormDeck` (or `FORMDECK_DATA_DIR`):
+Everything lives in `~/formdeck` (or `FORMDECK_DATA_DIR`):
 
 ```
 Decks/<deck id>/deck.json        each deck (docs/FORMAT.md)
@@ -525,12 +525,12 @@ engine.json                      the running engine's port and process, removed 
 
 ## When something goes wrong
 
-- **"The FormDeck engine is not answering yet"** or the status bar says **Offline, reconnecting**: the engine is not running or is starting. Run `./formdeck` (or `./formdeck backend`) and the window reconnects by itself. `./formdeck doctor` shows what is missing and whether the ports are taken.
-- **Port in use**: another FormDeck or app is on 8197 or 5197. Stop it, or set `FORMDECK_PORT`.
+- **"The formdeck engine is not answering yet"** or the status bar says **Offline, reconnecting**: the engine is not running or is starting. Run `./formdeck` (or `./formdeck backend`) and the window reconnects by itself. `./formdeck doctor` shows what is missing and whether the ports are taken.
+- **Port in use**: another formdeck or app is on 8197 or 5197. Stop it, or set `FORMDECK_PORT`.
 - **Presenter view runs in one window**: the browser blocked the pop-up. Allow pop-ups for localhost:5197, or use the desktop app.
 - **Fonts look different in PowerPoint**: fonts are not embedded in .pptx. Install the template's fonts (shown in the Design tab and the export dialog) on that computer.
 - **Something was missing after opening a .pptx**: the toast lists what could not be kept. Animations, ink, embedded fonts and linked media are the usual ones; SmartArt arrives as grouped shapes.
-- **An agent cannot connect**: check that FormDeck is running, that the address in the Agents dialog matches your agent's config, and that Let agents read and edit decks is on. Claude Desktop needs the stdio entry (`./formdeck mcp`), not the URL. In Claude Code, `/mcp` shows the server's state.
+- **An agent cannot connect**: check that formdeck is running, that the address in the Agents dialog matches your agent's config, and that Let agents read and edit decks is on. Claude Desktop needs the stdio entry (`./formdeck mcp`), not the URL. In Claude Code, `/mcp` shows the server's state.
 - **An agent's edits went wrong**: Edit > Undo Agent Turn, or File > Save Version before a big request and restore it from Version history.
-- **A PDF opens the material dialog instead of a viewer**: that is by design since 0.6.0. FormDeck uses PDFs as material or as slides; to view or edit the PDF itself, use formpdf.
+- **A PDF opens the material dialog instead of a viewer**: that is by design since 0.6.0. formdeck uses PDFs as material or as slides; to view or edit the PDF itself, use formpdf.
 - **Slides from PDF Pages refuses a PDF**: if it is password protected, unlock it in formpdf first; otherwise it may be damaged. A `Pdf` folder left in the data folder by an older version is no longer used and can be moved to formpdf's folder or deleted.

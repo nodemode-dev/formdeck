@@ -1,6 +1,6 @@
 # Deck arcs
 
-Ten deck types, each with its beats in order, a slide range for a typical slot, and the layouts that carry each beat. Counts include the title and closing slides. Layout names are FormDeck's semantic layouts.
+Ten deck types, each with its beats in order, a slide range for a typical slot, and the layouts that carry each beat. Counts include the title and closing slides. Layout names are formdeck's semantic layouts.
 
 ## Contents
 

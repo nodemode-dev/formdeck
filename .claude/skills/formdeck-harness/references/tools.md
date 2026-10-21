@@ -1,6 +1,6 @@
-# FormDeck MCP tools
+# formdeck MCP tools
 
-The 24 tools of the FormDeck MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
+The 24 tools of the formdeck MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
 
 ## Contents
 
@@ -19,7 +19,7 @@ The 24 tools of the FormDeck MCP server (engine 0.2.0), taken from a live `tools
 - Paths are absolute (`~` works). Asset ids (`a1`) come from an intake, media ids (`img_...`) from add_media or an intake.
 - A tool that cannot act answers with `isError: true` and a sentence naming the next step. Read it and do that.
 - Mutating tools are recorded as agent steps labelled `Agent: ...`; calls less than 90 seconds apart join one turn, and `undo` reverts a whole turn by default.
-- render_slides, measured lint and pdf or png export need the FormDeck window. Everything else works headless.
+- render_slides, measured lint and pdf or png export need the formdeck window. Everything else works headless.
 
 ## Look
 
@@ -133,7 +133,7 @@ Returns: what changed and the full outline. Duplicates start in draft.
 - duration, delay: seconds (0 to 60); the effect's default duration when omitted (motion paths 2 s)
 - dir: fly and wipe take l, r, u, d; float u or d; split l (vertical) or u (horizontal); spin r (clockwise) or l; line the direction of travel (default d); arc d or u (travels right, bulging down or up), l or r (travels down, bulging left or right); turn d (right then down), u (right then up), r (down then right), l (up then right)
 - path: class path only, SVG path data in slide points relative to the element's centre where the motion starts (`M 0 0 L 240 0` moves it 240 pt right; 16:9 slides are 960 x 540). Required for custom; line, arc, turn and circle get their preset shape (a third of the slide's shorter edge) unless you pass one. M, L, H, V, C, S, Q, T, A and Z are accepted and stored as M, L, C, Z.
-- rotate: class path, turns the element to follow the path (plays in FormDeck only, not kept in pptx); reverse: travels from the path's end back to its start
+- rotate: class path, turns the element to follow the path (plays in formdeck only, not kept in pptx); reverse: travels from the path's end back to its start
 - byParagraph: boolean, text elements only (each paragraph enters on its own click, or one after another)
 - id: the animation id for update, remove, move; to: 1-based position for move (or add)
 Returns: `Slide 3 (s3): 2 animations, 2 clicks` then one line each `1 · a1 · click 1 · entrance fadeIn · 0.5s · e68 [body] First point` (a motion path line reads `motion path line r [M 0 0 L 180 0] · 2s`). Structured `{slide, animations}`. update replaces only the fields you pass (changing a preset's effect or dir redraws its path); animations play in the show and export to PowerPoint (pptx) and back. A motion path leaves the element at its end point until the slide is left, and a second path on the same element starts where the first ended.
@@ -175,7 +175,7 @@ Returns: `Undo Agent: theme (11 steps) · deck now 8 slides`. Refuses when the n
 
 ### export_deck
 - deck, format (required): pptx | potx | odp | fdec | pdf | png | gif | txt | rtf
-- path: absolute file or existing folder (default the Exports folder in the FormDeck data folder)
+- path: absolute file or existing folder (default the Exports folder in the formdeck data folder)
 - slides: array (pdf, png and gif)
 - notes: boolean, txt and rtf include the speaker notes
 - width: integer, gif frame width in pixels
@@ -186,7 +186,7 @@ Returns: `Wrote /path/file.pptx (70 KB, 9 slides).` or `Exported 9 slides as PDF
 - asTemplate: boolean, save it as a reusable template instead
 Returns: `Opened d_... · N slides` with the outline and import notes, or `Saved template id (21 layouts: ...)`.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf); FormDeck has no pdf tool. A PDF reaches a deck through `ingest`, and export_deck writes a deck as PDF.
+PDF editing lives in formpdf (github.com/nodemode-ai/formpdf); formdeck has no pdf tool. A PDF reaches a deck through `ingest`, and export_deck writes a deck as PDF.
 
 ## Resources and prompt
 

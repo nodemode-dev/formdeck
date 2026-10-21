@@ -1,6 +1,6 @@
 ---
 name: slide-script-author
-description: "Writes the markdown slide script that FormDeck's compiler parses: front matter, slide separators, titles, directives (layout, section, kicker, caption, transition, background, subtitle, number, by), bullets, stats, steps, team, quotes, tables, chart fences, pictures by asset id and speaker notes, with a verified example for each of the 21 semantic layouts. Use when writing or repairing a script for build_deck, add_slides or update_slide."
+description: "Writes the markdown slide script that formdeck's compiler parses: front matter, slide separators, titles, directives (layout, section, kicker, caption, transition, background, subtitle, number, by), bullets, stats, steps, team, quotes, tables, chart fences, pictures by asset id and speaker notes, with a verified example for each of the 21 semantic layouts. Use when writing or repairing a script for build_deck, add_slides or update_slide."
 ---
 
 # Slide script author

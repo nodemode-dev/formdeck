@@ -25,7 +25,7 @@ The engine also writes `engine.json` (port, pid, version, desktop) in the data f
 
 ## What the bundle carries
 
-The frozen engine (Python, dependencies, the built frontend, fonts) and the Tauri shell. User data stays in `~/FormDeck` (or `FORMDECK_DATA_DIR`), shared with the browser version.
+The frozen engine (Python, dependencies, the built frontend, fonts) and the Tauri shell. User data stays in `~/formdeck` (or `FORMDECK_DATA_DIR`), shared with the browser version.
 
 ## Updater and signing
 
@@ -33,13 +33,13 @@ The updater plugin checks `releases/latest/download/latest.json`; updater artifa
 
 ## File associations
 
-`.fdec` (editor, `application/x-formdeck`) and `.pptx` (alternate editor). Since 0.6.0 FormDeck no longer claims `.pdf`; PDFs belong to formpdf. `main.rs` filters opened paths with `openable` (.fdec, .pptx, .potx, .ppsx, .pptm) and hands them to the page's `__formdeckOpen`, which calls `POST /api/open-path`; keep the importers accepting what the associations promise.
+`.fdec` (editor, `application/x-formdeck`) and `.pptx` (alternate editor). Since 0.6.0 formdeck no longer claims `.pdf`; PDFs belong to formpdf. `main.rs` filters opened paths with `openable` (.fdec, .pptx, .potx, .ppsx, .pptm) and hands them to the page's `__formdeckOpen`, which calls `POST /api/open-path`; keep the importers accepting what the associations promise.
 
 ## Common failures
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| "The FormDeck engine failed to start" | The sidecar crashed or printed no URL | Run the binary with `--selfcheck`; run it bare and read its log; a missing hidden import shows up as an ImportError |
+| "The formdeck engine failed to start" | The sidecar crashed or printed no URL | Run the binary with `--selfcheck`; run it bare and read its log; a missing hidden import shows up as an ImportError |
 | `sidecar binary is bundled` panic | No `formdeck-engine-[triple]` in `src-tauri/binaries` | `./formdeck freeze` for the host triple, or set `FORMDECK_TARGET` |
 | Blank main window | `frontend_dist` missing from the bundle | Build the frontend before freezing; check `dist_bundled` in selfcheck |
 | Presenter window refused | URL not on loopback, or the permission missing | `open_presenter` accepts only loopback URLs; check `allow-open-presenter` in the capability |

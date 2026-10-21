@@ -128,7 +128,7 @@ class ShareGate:
         await send({"type": "http.response.body", "body": body})
 
     async def _page(self, send, status: int, text: str) -> None:
-        body = f"<!doctype html><meta charset=utf-8><title>FormDeck</title><body style='font:16px system-ui;background:#111;color:#eee;padding:48px'><p>{text}</p>".encode()
+        body = f"<!doctype html><meta charset=utf-8><title>formdeck</title><body style='font:16px system-ui;background:#111;color:#eee;padding:48px'><p>{text}</p>".encode()
         await send({"type": "http.response.start", "status": status, "headers": [(b"content-type", b"text/html; charset=utf-8"), (b"content-length", str(len(body)).encode())]})
         await send({"type": "http.response.body", "body": body})
 

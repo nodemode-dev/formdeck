@@ -1,5 +1,5 @@
 [
-"From {0}, a catalog you added. FormDeck has not reviewed it; add it only if you trust this publisher.",
+"From {0}, a catalog you added. formdeck has not reviewed it; add it only if you trust this publisher.",
 "Add-in Catalogs",
 "Catalogs...",
 "Also showing 1 catalog you added; its add-ins are marked with their publisher.",
@@ -10,14 +10,14 @@
 "Relay address",
 "Relay token",
 "Token saved",
-"Off. A relay is a small server you or your organisation run (relay/README.md); FormDeck connects out to it, and links then work from anywhere with the same roles.",
+"Off. A relay is a small server you or your organisation run (relay/README.md); formdeck connects out to it, and links then work from anywhere with the same roles.",
 "Connected to {0}. Links below also work from anywhere through the relay; turning this off stops them.",
 "Connecting...",
 "Anywhere",
 "This network",
 "Turn on sharing on this network or the relay to use this link.",
 "Share Deck...",
-"No catalogs added. The Store shows FormDeck's own add-ins.",
+"No catalogs added. The Store shows formdeck's own add-ins.",
 "Add Catalog",
-"FormDeck's own catalog is always shown. Add catalogs from other publishers to list their add-ins too; each still shows its permissions, is checked against its checksum and runs in the sandbox, but FormDeck has not reviewed it."
+"formdeck's own catalog is always shown. Add catalogs from other publishers to list their add-ins too; each still shows its permissions, is checked against its checksum and runs in the sandbox, but formdeck has not reviewed it."
 ]

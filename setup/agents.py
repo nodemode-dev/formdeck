@@ -14,7 +14,7 @@ LEGACY_SERVERS = ("formsld", "formsld-stdio")
 PORT = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 8197)
 PY = "python" if os.name == "nt" else "python3"
 USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
-       ./formdeck agents sync [--check]       copy the FormDeck skills again (and mirror .claude/skills to .agents/skills)"""
+       ./formdeck agents sync [--check]       copy the formdeck skills again (and mirror .claude/skills to .agents/skills)"""
 
 
 def home() -> Path:
@@ -152,10 +152,10 @@ def install(dry: bool) -> int:
         where = caller()
         print(f"""
 Next:
-  1. Start FormDeck: ./formdeck (the window at http://localhost:5197; the engine at http://127.0.0.1:{PORT}).
+  1. Start formdeck: ./formdeck (the window at http://localhost:5197; the engine at http://127.0.0.1:{PORT}).
   2. Open Claude Code, Codex or Cursor in {where} and approve the formdeck MCP server
      (Claude Code: /mcp; the formdeck-stdio entry starts the engine itself when it is not running).
-  3. Ask: "Build a 10 slide deck from ./notes in the studio template". The first edit asks you once, in the FormDeck window, to allow agents.""")
+  3. Ask: "Build a 10 slide deck from ./notes in the studio template". The first edit asks you once, in the formdeck window, to allow agents.""")
     return 0
 
 

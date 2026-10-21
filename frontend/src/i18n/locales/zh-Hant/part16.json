@@ -1,11 +1,11 @@
 {
- "0": "FormDeck 中還沒有 Claude Code 對話。請先在終端機面板中開啟一個（Shift+Ctrl 或 Cmd+`）。",
+ "0": "formdeck 中還沒有 Claude Code 對話。請先在終端機面板中開啟一個（Shift+Ctrl 或 Cmd+`）。",
  "1": "繼續 Claude Code 對話",
  "2": "未命名",
- "3": "FormDeck 中還沒有 Claude Code 對話。",
+ "3": "formdeck 中還沒有 Claude Code 對話。",
  "4": "將助理切換為 Claude Code（使用您的登入），即可在此繼續。",
  "5": "來自 Claude Code...",
  "6": "將您在 Claude Code 分頁中的對話帶入此聊天",
  "7": "已從 Claude Code 繼續。您的下一則訊息將接著這段對話。",
- "8": "在 FormDeck 的代理程式資料夾中找不到 Claude Code 對話。請先用 Claude Code 在終端機面板中開啟一個。"
+ "8": "在 formdeck 的代理程式資料夾中找不到 Claude Code 對話。請先用 Claude Code 在終端機面板中開啟一個。"
 }

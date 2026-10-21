@@ -51,7 +51,7 @@ engine handler -> bridge.window_call(name, args, deck, timeout)
   -> {t: "toolResult", id, result} -> TOOL_RESULTS[id] resolves -> handler returns or wraps it
 ```
 
-No window: `window_call` returns None, so return `_fail("[tool] needs the FormDeck window ... ask the person to open it")`. Timeout: an isError result naming the tool and the seconds.
+No window: `window_call` returns None, so return `_fail("[tool] needs the formdeck window ... ask the person to open it")`. Timeout: an isError result naming the tool and the seconds.
 
 ## Adding a lint check
 

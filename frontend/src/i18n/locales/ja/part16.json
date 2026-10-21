@@ -1,11 +1,11 @@
 {
- "0": "FormDeck にはまだ Claude Code の会話がありません。先にターミナルドック（Shift+Ctrl または Cmd+`）で開いてください。",
+ "0": "formdeck にはまだ Claude Code の会話がありません。先にターミナルドック（Shift+Ctrl または Cmd+`）で開いてください。",
  "1": "Claude Code の会話を続ける",
  "2": "無題",
- "3": "FormDeck にはまだ Claude Code の会話がありません。",
+ "3": "formdeck にはまだ Claude Code の会話がありません。",
  "4": "ここで続けるには、アシスタントを Claude Code（自分のサインイン）に切り替えてください。",
  "5": "Claude Code から...",
  "6": "Claude Code のタブでの会話をこのチャットに取り込みます",
  "7": "Claude Code から続けています。次のメッセージでこの会話が続きます。",
- "8": "FormDeck のエージェントフォルダに Claude Code の会話が見つかりませんでした。先にターミナルドックで Claude Code を使って開いてください。"
+ "8": "formdeck のエージェントフォルダに Claude Code の会話が見つかりませんでした。先にターミナルドックで Claude Code を使って開いてください。"
 }

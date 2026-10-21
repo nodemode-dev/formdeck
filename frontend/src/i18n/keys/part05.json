@@ -205,7 +205,7 @@
 "PUT",
 "[live] bad message",
 "A change did not apply: {0}. The deck was refreshed.",
-"FormDeck has no window tools ready.",
+"formdeck has no window tools ready.",
 "Arabic",
 "Bulgarian",
 "Bengali",

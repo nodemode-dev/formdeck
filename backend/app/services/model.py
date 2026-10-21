@@ -11,7 +11,7 @@ SEMANTICS = ["title", "section", "agenda", "content", "twoContent", "comparison"
 SIZES = {"16:9": (960, 540), "widescreen": (960, 540), "gslides": (720, 405), "4:3": (720, 540), "standard": (720, 540), "16:10": (960, 600),
          "a4": (842, 595), "a4p": (595, 842), "letter": (792, 612), "square": (720, 720), "story": (540, 960)}
 DEFAULT_THEME = {
-    "name": "FormDeck",
+    "name": "formdeck",
     "colors": {"dk1": "#111111", "lt1": "#FFFFFF", "dk2": "#1F2937", "lt2": "#F3F4F6", "accent1": "#F97316", "accent2": "#3B82F6", "accent3": "#10B981",
                "accent4": "#A855F7", "accent5": "#EAB308", "accent6": "#EF4444", "hlink": "#2563EB", "folHlink": "#7C3AED"},
     "fonts": {"major": "Inter", "minor": "Inter"},
@@ -68,7 +68,7 @@ def new_deck(title: str = "Untitled deck", size: str | tuple | dict = "16:9", th
         "theme": copy.deepcopy(theme or DEFAULT_THEME),
         "masters": [{"id": "m1", "name": "Default", "background": {"type": "solid", "color": "lt1"}, "elements": [], "textStyles": default_text_styles()}],
         "layouts": [], "slides": [], "sections": [], "comments": [], "media": {},
-        "meta": {"created": stamp, "modified": stamp, "author": config.read_settings().get("author", ""), "app": f"FormDeck {config.VERSION}"},
+        "meta": {"created": stamp, "modified": stamp, "author": config.read_settings().get("author", ""), "app": f"formdeck {config.VERSION}"},
     }
 
 

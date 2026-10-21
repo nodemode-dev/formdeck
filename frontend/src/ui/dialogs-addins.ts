@@ -43,7 +43,7 @@ class Consent extends Dialog {
     setText(this.by, `${s.author} · version ${s.version}`);
     setText(this.desc, s.description);
     const other = s.official === false && !!s.publisher;
-    setText(this.third, other ? `From ${s.publisher}, a catalog you added. FormDeck has not reviewed it; add it only if you trust this publisher.` : '');
+    setText(this.third, other ? `From ${s.publisher}, a catalog you added. formdeck has not reviewed it; add it only if you trust this publisher.` : '');
     setHidden(this.third, !other);
     this.list.textContent = '';
     for (const p of s.permissions) {
@@ -68,7 +68,7 @@ class Consent extends Dialog {
 
 class CatalogsDialog extends Dialog {
   private readonly list = el('<div class="fd-ai-cats" role="list"></div>');
-  private readonly empty = el(`<p class="fd-note">No catalogs added. The Store shows FormDeck's own add-ins.</p>`);
+  private readonly empty = el(`<p class="fd-note">No catalogs added. The Store shows formdeck's own add-ins.</p>`);
   private readonly input = el<HTMLInputElement>('<input class="fd-input" type="url" spellcheck="false" placeholder="https://example.com/formdeck-addins/index.json" aria-label="Catalog address">');
   private urls: string[] = [];
   onSaved: (() => void) | null = null;
@@ -78,7 +78,7 @@ class CatalogsDialog extends Dialog {
     const add = el('<div class="fd-ai-cat-add"></div>');
     const btn = el<HTMLButtonElement>(`<button class="fd-btn fd-btn-sm" type="button">Add Catalog</button>`);
     add.append(this.input, btn);
-    this.body.append(el(`<p class="fd-note">FormDeck's own catalog is always shown. Add catalogs from other publishers to list their add-ins too; each still shows its permissions, is checked against its checksum and runs in the sandbox, but FormDeck has not reviewed it.</p>`), this.list, this.empty, add);
+    this.body.append(el(`<p class="fd-note">formdeck's own catalog is always shown. Add catalogs from other publishers to list their add-ins too; each still shows its permissions, is checked against its checksum and runs in the sandbox, but formdeck has not reviewed it.</p>`), this.list, this.empty, add);
     btn.addEventListener('click', () => void this.add());
     this.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void this.add(); } });
     this.list.addEventListener('click', (e) => {

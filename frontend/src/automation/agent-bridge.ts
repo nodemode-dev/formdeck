@@ -98,7 +98,7 @@ class Consent extends Dialog {
   }
   ask(agent: string): Promise<boolean> {
     this.setTitle(`Allow ${agent} to edit your decks?`);
-    setText(this.lead, `${agent} is connected to FormDeck and asks to create and change decks for you.`);
+    setText(this.lead, `${agent} is connected to formdeck and asks to create and change decks for you.`);
     this.open(this.allowBtn);
     return new Promise((r) => { this.resolve = r; });
   }
@@ -128,7 +128,7 @@ export class AgentBridge {
       if (name === 'video_frame') return await this.videoFrame(args);
       if (name === 'consent') return await this.consent(args);
       if (name === 'run_command' && this.h.command) return await this.h.command(args);
-      return fail(`The FormDeck window has no tool named ${name}.`);
+      return fail(`The formdeck window has no tool named ${name}.`);
     } catch (e) {
       return fail(`${name} did not finish: ${errText(e)}`);
     }

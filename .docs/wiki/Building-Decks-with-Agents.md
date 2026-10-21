@@ -1,6 +1,6 @@
 # Building Decks with Agents
 
-FormDeck's engine is an MCP server with 24 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formdeck mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
+formdeck's engine is an MCP server with 24 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formdeck mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
 
 ## Setup
 
@@ -30,7 +30,7 @@ The first agent edit asks the person once in the window: Allow agents to edit? T
 
 ## Skills
 
-`formdeck-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff) and `formdeck-skillset` (developing FormDeck). The MCP resource `formdeck://guide` is the short version, and the server offers a `build-deck` prompt.
+`formdeck-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff) and `formdeck-skillset` (developing formdeck). The MCP resource `formdeck://guide` is the short version, and the server offers a `build-deck` prompt.
 
 ## Without the window
 

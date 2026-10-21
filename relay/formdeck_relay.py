@@ -36,13 +36,13 @@ class Host:
             await self.ws.send_text(json.dumps(msg))
 
 
-app = FastAPI(title="FormDeck relay", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="formdeck relay", docs_url=None, redoc_url=None, openapi_url=None)
 hosts: dict[str, Host] = {}
 ids = itertools.count(1)
 
 
 def page(status: int, text: str) -> HTMLResponse:
-    return HTMLResponse(f"<!doctype html><meta charset=utf-8><title>FormDeck</title><body style='font:16px system-ui;background:#111;color:#eee;padding:48px'><p>{text}</p>", status_code=status)
+    return HTMLResponse(f"<!doctype html><meta charset=utf-8><title>formdeck</title><body style='font:16px system-ui;background:#111;color:#eee;padding:48px'><p>{text}</p>", status_code=status)
 
 
 @app.websocket("/tunnel")
@@ -128,7 +128,7 @@ async def forward(request: Request, rest: str) -> Response:
     name, path, entry = route("/" + rest, request.cookies)
     host = hosts.get(name)
     if not host:
-        return page(404 if name else 400, "This FormDeck is not connected to the relay right now. Ask the person who shared the deck to open FormDeck." if name else "Open the share link you were given.")
+        return page(404 if name else 400, "This formdeck is not connected to the relay right now. Ask the person who shared the deck to open formdeck." if name else "Open the share link you were given.")
     body = await request.body()
     if len(body) > MAX_BODY:
         return page(413, "Too large.")
@@ -144,7 +144,7 @@ async def forward(request: Request, rest: str) -> Response:
     except (asyncio.TimeoutError, asyncio.CancelledError):
         host.pending.pop(sid, None)
         host.streams.pop(sid, None)
-        return page(504, "FormDeck did not answer in time.")
+        return page(504, "formdeck did not answer in time.")
 
     async def chunks():
         while True:

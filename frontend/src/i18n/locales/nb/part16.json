@@ -1,11 +1,11 @@
 {
- "0": "Ingen Claude Code-samtale i FormDeck ennå. Åpne en i terminaldokken først (Shift+Ctrl eller Cmd+`).",
+ "0": "Ingen Claude Code-samtale i formdeck ennå. Åpne en i terminaldokken først (Shift+Ctrl eller Cmd+`).",
  "1": "Fortsett en Claude Code-samtale",
  "2": "Uten tittel",
- "3": "Ingen Claude Code-samtale i FormDeck ennå.",
+ "3": "Ingen Claude Code-samtale i formdeck ennå.",
  "4": "Bytt Assistent til Claude Code (din innlogging) for å fortsette den her.",
  "5": "Fra Claude Code...",
  "6": "Ta med en samtale fra en Claude Code-fane inn i denne chatten",
  "7": "Fortsatt fra Claude Code. Neste melding fra deg fortsetter denne samtalen.",
- "8": "Fant ingen Claude Code-samtale i FormDecks agentmappe. Åpne en med Claude Code i terminaldokken først."
+ "8": "Fant ingen Claude Code-samtale i formdecks agentmappe. Åpne en med Claude Code i terminaldokken først."
 }

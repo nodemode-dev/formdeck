@@ -41,7 +41,7 @@ class ShareDialog extends Dialog {
     super('Share Deck', 560);
     const box = el(`<div class="fd-dlg-stack fd-share">
 <label class="fd-check"><input type="checkbox" data-f="lan"><span>Allow other computers on this network</span></label>
-<p class="fd-note">This only lets people on the same network open the decks you share with a link. FormDeck does not search your network, collect information about you or your devices, or send anything anywhere. On a Mac, turning this on makes macOS ask once for Local Network access.</p>
+<p class="fd-note">This only lets people on the same network open the decks you share with a link. formdeck does not search your network, collect information about you or your devices, or send anything anywhere. On a Mac, turning this on makes macOS ask once for Local Network access.</p>
 <p class="fd-note" data-f="status"></p>
 <label class="fd-check"><input type="checkbox" data-f="relay"><span>Also share through a relay, for people outside this network</span></label>
 <div class="fd-share-relay" data-f="relayform"><input class="fd-input" type="url" spellcheck="false" data-f="rurl" aria-label="Relay address" placeholder="https://relay.example.com"><input class="fd-input" type="password" autocomplete="off" data-f="rtoken" aria-label="Relay token" placeholder="Relay token"><button class="fd-btn fd-btn-sm" type="button" data-a="relay-save">Connect</button></div>
@@ -88,7 +88,7 @@ class ShareDialog extends Dialog {
   private paint(s: ShareState): void {
     this.lan.checked = s.lan;
     setText(this.status, !s.lan
-      ? 'Off: FormDeck answers only this computer. Turn it on to give people on the same network a link to this deck.'
+      ? 'Off: formdeck answers only this computer. Turn it on to give people on the same network a link to this deck.'
       : s.listening
         ? `On: links work for computers on this network (port ${s.port}${s.addresses.length ? `, ${s.addresses.join(', ')}` : ''}). Turn it off to stop every link at once.`
         : `On, but port ${s.port} could not be opened.`);
@@ -98,7 +98,7 @@ class ShareDialog extends Dialog {
     if (document.activeElement !== this.relayUrl && this.relayUrl.value !== r.url) this.relayUrl.value = r.url;
     this.relayToken.placeholder = r.hasToken ? 'Token saved' : 'Relay token';
     setText(this.relayStatus, !r.on
-      ? 'Off. A relay is a small server you or your organisation run (relay/README.md); FormDeck connects out to it, and links then work from anywhere with the same roles.'
+      ? 'Off. A relay is a small server you or your organisation run (relay/README.md); formdeck connects out to it, and links then work from anywhere with the same roles.'
       : r.connected
         ? `Connected to ${r.url}. Links below also work from anywhere through the relay; turning this off stops them.`
         : r.error || 'Connecting...');

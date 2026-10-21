@@ -43,7 +43,7 @@ def base_url() -> str:
 
 
 def _headers() -> dict:
-    return {"User-Agent": f"FormDeck/{config.VERSION} (stock image search)", "Accept": "application/json, image/*;q=0.9"}
+    return {"User-Agent": f"formdeck/{config.VERSION} (stock image search)", "Accept": "application/json, image/*;q=0.9"}
 
 
 def license_label(code: str, version: str) -> str:

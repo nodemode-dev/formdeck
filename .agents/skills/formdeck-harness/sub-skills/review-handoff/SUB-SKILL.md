@@ -1,6 +1,6 @@
 ---
 name: review-handoff
-description: "Hands a FormDeck deck to the person and works their feedback: review statuses (draft, review, changes, approved), agent comments, the handoff summary, answering and resolving the person's comments, undoing an agent turn or step, export_deck to pptx, potx, pdf, png or fdec, and open_file for existing .pptx, .potx and .fdec files. Use when a deck is ready for review, when the person left comments or asked for changes, when they want the agent's edits undone, or when they ask to export or open a file."
+description: "Hands a formdeck deck to the person and works their feedback: review statuses (draft, review, changes, approved), agent comments, the handoff summary, answering and resolving the person's comments, undoing an agent turn or step, export_deck to pptx, potx, pdf, png or fdec, and open_file for existing .pptx, .potx and .fdec files. Use when a deck is ready for review, when the person left comments or asked for changes, when they want the agent's edits undone, or when they ask to export or open a file."
 ---
 
 # Review handoff
@@ -36,7 +36,7 @@ A deck that passed the visual-qa gate (or a request that only needs export, undo
 
 ### Export
 
-`export_deck {deck, format, path}`. Formats: pptx (PowerPoint and Google Slides import), potx (a PowerPoint template), fdec (FormDeck's own package with media), pdf (each slide a full-page picture at deck size, with an invisible searchable text layer and one outline entry per slide), png (one slide is a .png, several are a .zip). `path` is an absolute file path or an existing folder; without it the file goes to the FormDeck Exports folder. pdf and png are drawn by the window, so they need it open; pptx, potx and fdec do not. `slides` limits pdf and png to named slides; hidden slides are skipped by default. Report the exact path from the result.
+`export_deck {deck, format, path}`. Formats: pptx (PowerPoint and Google Slides import), potx (a PowerPoint template), fdec (formdeck's own package with media), pdf (each slide a full-page picture at deck size, with an invisible searchable text layer and one outline entry per slide), png (one slide is a .png, several are a .zip). `path` is an absolute file path or an existing folder; without it the file goes to the formdeck Exports folder. pdf and png are drawn by the window, so they need it open; pptx, potx and fdec do not. `slides` limits pdf and png to named slides; hidden slides are skipped by default. Report the exact path from the result.
 
 ### Open an existing file
 

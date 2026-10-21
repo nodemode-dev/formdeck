@@ -653,7 +653,7 @@ class Show {
     this.muted = false;
     setClass(this.root, 'is-presenter', false);
     setHidden(this.consoleEl, true);
-    toast('The slide show window could not open, so the show runs in this window. Allow pop-ups for FormDeck to use Presenter View with a second display.');
+    toast('The slide show window could not open, so the show runs in this window. Allow pop-ups for formdeck to use Presenter View with a second display.');
     void this.fullscreen(true);
     this.layout(true);
     this.syncUi();
@@ -684,7 +684,7 @@ class Show {
     }
     const url = this.audienceUrl(Math.max(0, this.curIndex));
     this.audienceWin = window.open(url, 'formdeck-audience', 'popup');
-    if (!this.audienceWin) toast('The audience window was blocked. Allow pop-ups for FormDeck.');
+    if (!this.audienceWin) toast('The audience window was blocked. Allow pop-ups for formdeck.');
   }
 
   private async fullscreen(on: boolean): Promise<void> {
@@ -2056,7 +2056,7 @@ export async function bootAudience(): Promise<void> {
   const start = Math.max(0, Number(p.get('slide') ?? '0') || 0);
   const from = p.get('from') === 'current' ? 'current' as const : p.get('from') === 'start' ? 'start' as const : undefined;
   const custom = p.get('custom') || undefined;
-  document.title = 'FormDeck audience';
+  document.title = 'formdeck audience';
   const live = new LiveClient('audience');
   const ready = new Promise<void>((ok) => { live.onStatus = (on) => { if (on) { live.onStatus = null; ok(); } }; });
   live.onNotice = (t, kind) => toast(t, kind);

@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>FormDeck uses the microphone for narration, subtitles and Speaker Coach while you present or rehearse.</string>
+  <string>formdeck uses the microphone for narration, subtitles and Speaker Coach while you present or rehearse.</string>
   <key>NSCameraUsageDescription</key>
-  <string>FormDeck shows your camera in camera shapes on slides during the slide show.</string>
+  <string>formdeck shows your camera in camera shapes on slides during the slide show.</string>
   <key>NSLocalNetworkUsageDescription</key>
-  <string>FormDeck uses your local network only when you turn on Share Deck, so people on the same network can open the decks you share with a link. It does not search your network or collect or send any information about you.</string>
+  <string>formdeck uses your local network only when you turn on Share Deck, so people on the same network can open the decks you share with a link. It does not search your network or collect or send any information about you.</string>
 </dict>
 </plist>

@@ -1,6 +1,6 @@
 # Worked run
 
-A real run of the loop against FormDeck 0.2.0 with the window open: one markdown file of product notes and two PNG screenshots, brief "Q3 product update for the leadership team, 8 slides", template Aurora. Results are abridged; ids are the ones that run produced and will differ for you.
+A real run of the loop against formdeck 0.2.0 with the window open: one markdown file of product notes and two PNG screenshots, brief "Q3 product update for the leadership team, 8 slides", template Aurora. Results are abridged; ids are the ones that run produced and will differ for you.
 
 ## Contents
 
@@ -18,7 +18,7 @@ A real run of the loop against FormDeck 0.2.0 with the window open: one markdown
 `get_context {}`
 
 ```
-FormDeck 0.2.0 · engine at /mcp · client claude-code
+formdeck 0.2.0 · engine at /mcp · client claude-code
 Window: connected · agents not yet allowed (your first edit asks the person)
 Templates: 67 · default studio (list_templates)
 ```

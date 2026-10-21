@@ -5,7 +5,7 @@
  "3": "文件夹",
  "4": "第一条消息",
  "5": "自动查找；或 claude 的完整路径",
- "6": "Claude Code 的启动位置；默认为 FormDeck Agent 文件夹",
+ "6": "Claude Code 的启动位置；默认为 formdeck Agent 文件夹",
  "7": "若已设置，在终端中打开 Claude Code 时发送",
  "8": "未找到。请从 claude.com/claude-code 安装，并运行一次 claude 来登录。"
 }

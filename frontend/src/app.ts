@@ -59,7 +59,7 @@ import { VERSION } from './version';
 
 const SHELL = `<div class="fd-app">
 <header class="fd-titlebar">
-<div class="fd-brand" role="button" tabindex="0" title="Home" data-cmd="home">${brandMark(20)}<span class="fd-brand-name">FormDeck</span></div>
+<div class="fd-brand" role="button" tabindex="0" title="Home" data-cmd="home">${brandMark(20)}<span class="fd-brand-name">formdeck</span></div>
 <nav class="fd-menubar" aria-label="Main menu"></nav>
 <input class="fd-doc-title" value="" aria-label="Deck title" spellcheck="false" placeholder="Untitled deck">
 <div class="fd-title-tools">
@@ -357,9 +357,9 @@ export async function startApp(): Promise<void> {
     dock.onFail = (err) => toast(err instanceof Error ? err.message : String(err), 'error');
     dock.context = () => {
       const ed = editor;
-      if (!ed) return 'FormDeck window: no deck open';
+      if (!ed) return 'formdeck window: no deck open';
       const sel = ed.selection;
-      return `FormDeck window: deck ${ed.doc.id} "${ed.doc.deck.title ?? ''}", slide ${ed.doc.slideIndex(ed.current) + 1} (${ed.current})${sel.length ? `, selected element ids ${sel.slice(0, 40).join(', ')}` : ''}`;
+      return `formdeck window: deck ${ed.doc.id} "${ed.doc.deck.title ?? ''}", slide ${ed.doc.slideIndex(ed.current) + 1} (${ed.current})${sel.length ? `, selected element ids ${sel.slice(0, 40).join(', ')}` : ''}`;
     };
     dock.makeChat = (host) => {
       void new ChatPanel(host, () => editor?.doc.id ?? null, {
@@ -572,7 +572,7 @@ export async function startApp(): Promise<void> {
         if (!res.ok) { let d = res.statusText; try { d = String(((await res.json()) as { detail?: unknown }).detail ?? d); } catch { void 0; } throw new Error(d); }
         const u = await res.json() as { entries: Array<{ name: string; url: string }>; skipped: number };
         for (const en of u.entries) { const b = await (await fetch(en.url)).blob(); out.push(new File([b], en.name, { type: b.type })); }
-        if (!u.entries.length) toast(`${z.name} holds no decks, pictures, videos or sounds FormDeck can use.`, 'info');
+        if (!u.entries.length) toast(`${z.name} holds no decks, pictures, videos or sounds formdeck can use.`, 'info');
         else if (u.skipped) toast(`Opened ${u.entries.length} files from ${z.name}; ${u.skipped} other files were left out.`, 'info');
       } catch (err) { toast(`Could not unpack ${z.name}: ${err instanceof Error ? err.message : err}`, 'error'); }
     }
@@ -650,7 +650,7 @@ export async function startApp(): Promise<void> {
         const u = await res.json() as { entries: Array<{ path: string }>; skipped: number };
         paths.push(...u.entries.map((en) => en.path));
         const name = z.split(/[\\/]/).pop() ?? z;
-        if (!u.entries.length) toast(`${name} holds no decks, pictures, videos or sounds FormDeck can use.`, 'info');
+        if (!u.entries.length) toast(`${name} holds no decks, pictures, videos or sounds formdeck can use.`, 'info');
         else if (u.skipped) toast(`Opened ${u.entries.length} files from ${name}; ${u.skipped} other files were left out.`, 'info');
       } catch (err) { toast(`Could not unpack ${z}: ${err instanceof Error ? err.message : err}`, 'error'); }
     }
@@ -699,7 +699,7 @@ export async function startApp(): Promise<void> {
     const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
     for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));
     setMarqueeRule(settings.marquee);
-  } catch { toast('The FormDeck engine is not answering yet; retrying.', 'error'); }
+  } catch { toast('The formdeck engine is not answering yet; retrying.', 'error'); }
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');
   const files = params.getAll('open').filter(Boolean);
@@ -710,5 +710,5 @@ export async function startApp(): Promise<void> {
     void openPaths(files);
   }
   revealApp();
-  document.title = `FormDeck ${VERSION}`;
+  document.title = `formdeck ${VERSION}`;
 }

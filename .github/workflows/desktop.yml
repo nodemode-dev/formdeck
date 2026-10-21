@@ -110,7 +110,7 @@ jobs:
         run: cp "$(ls linux-x64/deb/*.deb | head -1)" src-tauri/flatpak/formdeck.deb
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: FormDeck.flatpak
+          bundle: formdeck.flatpak
           manifest-path: src-tauri/flatpak/ai.nodemode.formdeck.yml
           cache-key: flatpak-builder-${{ github.sha }}
           upload-artifact: false
@@ -118,7 +118,7 @@ jobs:
         with:
           name: formdeck-flatpak
           if-no-files-found: error
-          path: FormDeck.flatpak
+          path: formdeck.flatpak
 
   release:
     needs: [build, flatpak]
@@ -146,7 +146,7 @@ jobs:
                       platforms[key] = {'signature': open(f + '.sig').read().strip(), 'url': base + os.path.basename(f)}
                       break
           if platforms:
-              feed = {'version': tag.lstrip('v'), 'notes': f'FormDeck {tag}', 'platforms': platforms,
+              feed = {'version': tag.lstrip('v'), 'notes': f'formdeck {tag}', 'platforms': platforms,
                       'pub_date': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}
               json.dump(feed, open('bundles/latest.json', 'w'), indent=2)
               print('latest.json written for', ', '.join(platforms))

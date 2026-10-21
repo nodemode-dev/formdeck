@@ -68,7 +68,7 @@ async def upload_from_path(request: Request, body: dict = Body(...)) -> dict:
         if not path.is_absolute() or not path.is_file():
             raise HTTPException(400, f"{path.name or 'That path'} is not a file that exists.")
         if path.suffix.lower().lstrip(".") not in FROM_PATH_EXT:
-            raise HTTPException(415, f"{path.name} is not a picture, video or audio file FormDeck can add.")
+            raise HTTPException(415, f"{path.name} is not a picture, video or audio file formdeck can add.")
         if path.stat().st_size > config.MAX_UPLOAD_BYTES:
             raise HTTPException(413, f"{path.name} is larger than 1 GB")
         data = await asyncio.to_thread(path.read_bytes)
@@ -178,7 +178,7 @@ def _unpack(source) -> dict:
                 continue
             total += info.file_size
             if info.file_size > config.MAX_UPLOAD_BYTES or total > 4 * config.MAX_UPLOAD_BYTES:
-                raise HTTPException(413, "That .zip file holds more than FormDeck can unpack at once.")
+                raise HTTPException(413, "That .zip file holds more than formdeck can unpack at once.")
             stem, n, safe = base, 2, base
             while safe.lower() in used:
                 safe = f"{stem.rsplit('.', 1)[0]} ({n}).{ext}"

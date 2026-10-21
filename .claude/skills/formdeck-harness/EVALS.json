@@ -1,6 +1,6 @@
 {
   "skill_name": "formdeck-harness",
-  "notes": "Run with the FormDeck engine and window open (./formdeck) and the FormDeck MCP server connected. Fixture paths are examples; any equivalent files work. Expected behaviours are observable in the tool calls and the final deck.",
+  "notes": "Run with the formdeck engine and window open (./formdeck) and the formdeck MCP server connected. Fixture paths are examples; any equivalent files work. Expected behaviours are observable in the tool calls and the final deck.",
   "evals": [
     {
       "id": 1,
@@ -107,18 +107,18 @@
       "prompt": "Merge contract-a.pdf and contract-b.pdf in ~/Legal into one file, then split out pages 1-3 of the merged one as a summary",
       "files": ["~/Legal/contract-a.pdf", "~/Legal/contract-b.pdf"],
       "expected_behavior": [
-        "Says that FormDeck no longer edits PDFs and that PDF editing lives in formpdf (github.com/nodemode-ai/formpdf)",
-        "Does not call ingest, build_deck or any other FormDeck tool for this request",
+        "Says that formdeck no longer edits PDFs and that PDF editing lives in formpdf (github.com/nodemode-ai/formpdf)",
+        "Does not call ingest, build_deck or any other formdeck tool for this request",
         "Does not build a deck"
       ]
     },
     {
       "id": 10,
       "name": "pdf-handout-to-slides-keep-look",
-      "prompt": "I only have the PDF of last year's keynote, I need it as slides I can present from FormDeck, it should look exactly the same",
+      "prompt": "I only have the PDF of last year's keynote, I need it as slides I can present from formdeck, it should look exactly the same",
       "files": ["~/Talks/keynote-2025.pdf"],
       "expected_behavior": [
-        "Explains that Insert > Slides from PDF Pages in the FormDeck window adds one slide per page with the page picture and its text in the speaker notes, which keeps the look",
+        "Explains that Insert > Slides from PDF Pages in the formdeck window adds one slide per page with the page picture and its text in the speaker notes, which keeps the look",
         "Offers ingest and build_deck for an editable rebuild in a template instead",
         "Does not claim a pdf tool exists"
       ]
@@ -160,7 +160,7 @@
     {
       "id": 14,
       "name": "adjacent-code-change-should-route-away",
-      "prompt": "add a new MCP tool to FormDeck that duplicates a deck",
+      "prompt": "add a new MCP tool to formdeck that duplicates a deck",
       "files": [],
       "expected_behavior": [
         "Does not drive the deck-building loop or call build_deck",
@@ -169,7 +169,7 @@
     }
   ],
   "trigger_evals": [
-    { "query": "Turn these meeting notes into a 10-slide deck in FormDeck", "should_trigger": true },
+    { "query": "Turn these meeting notes into a 10-slide deck in formdeck", "should_trigger": true },
     { "query": "make me a pitch deck from my notes.md using the aurora template", "should_trigger": true },
     { "query": "can u fix the overflowing slides in my deck", "should_trigger": true },
     { "query": "Please prepare a board presentation from the attached spreadsheet and PDF report.", "should_trigger": true },
@@ -178,8 +178,8 @@
     { "query": "use our company .potx as the template for the sales deck", "should_trigger": true },
     { "query": "render_slides failed, what do I do now", "should_trigger": true },
     { "query": "turn the screenshots and the gif in this folder into a product launch keynote", "should_trigger": true },
-    { "query": "fix the text autofit bug in FormDeck's renderer", "should_trigger": false },
-    { "query": "add a new MCP tool to the FormDeck engine", "should_trigger": false },
+    { "query": "fix the text autofit bug in formdeck's renderer", "should_trigger": false },
+    { "query": "add a new MCP tool to the formdeck engine", "should_trigger": false },
     { "query": "write a python-pptx script that generates slides from a csv", "should_trigger": false },
     { "query": "convert this Word document to a PDF", "should_trigger": false },
     { "query": "design a poster for our conference", "should_trigger": false },

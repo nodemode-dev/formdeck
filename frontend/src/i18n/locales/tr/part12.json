@@ -5,7 +5,7 @@
  "3": "Klasör",
  "4": "İlk mesaj",
  "5": "Otomatik bulunur; veya claude için tam yol",
- "6": "Claude Code'un başladığı yer; varsayılan olarak FormDeck Agent klasörü",
+ "6": "Claude Code'un başladığı yer; varsayılan olarak formdeck Agent klasörü",
  "7": "Ayarlanmışsa, Claude Code terminalde açıldığında gönderilir",
  "8": "Bulunamadı. claude.com/claude-code adresinden kurun ve oturum açmak için claude'u bir kez çalıştırın."
 }

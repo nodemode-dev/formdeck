@@ -22,8 +22,11 @@ def data_dir() -> Path:
     raw = os.environ.get("FORMDECK_DATA_DIR") or os.environ.get("FORMSLD_DATA_DIR")
     if raw:
         return Path(raw).expanduser()
-    current, legacy = Path.home() / "FormDeck", Path.home() / "Formsld"
-    return legacy if legacy.is_dir() and not current.exists() else current
+    current = Path.home() / "formdeck"
+    for legacy in (Path.home() / "FormDeck", Path.home() / "Formsld"):
+        if legacy.is_dir() and not current.exists():
+            return legacy
+    return current
 
 
 def port() -> int:

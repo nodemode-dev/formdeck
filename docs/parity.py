@@ -172,10 +172,10 @@ row(a, "Agent consent and on/off switch", 0, 0, 0, F, "`agent-bridge.ts` consent
 row(a, "Skills shipped for Claude Code, Codex and Cursor", 0, 0, 0, F, "`.claude/skills/formdeck-harness`, `setup/agents.py install`")
 row(a, "Headless build from files on the command line", 0, 0, 0, F, "`setup/cli.py` (`./formdeck build-deck`)")
 row(a, "Scripting and macros", 1, 0, 1, F, "View > Macros (Alt+F8) and the Macro Editor (Alt+F11) in `ui/dialogs-macros.ts`: JavaScript macros saved in the deck, run in a locked-down Worker with a deck API and a 10 s limit, each run one undoable step, a trust prompt for macros from elsewhere (`editor/macros.ts`, `macro-worker.ts`); raw ops also through `mcp.py apply_ops`; VBA in .pptm is listed, not run")
-row(a, "Add-in marketplace", 1, 0, 1, P, "Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; FormDeck's catalog plus catalogs from other publishers that a person adds (`services/addins.py third_party_urls`); no reviews or ratings")
+row(a, "Add-in marketplace", 1, 0, 1, P, "Home > Add-ins and the Add-ins tab (`ui/dialogs-addins.ts`, `editor/addins.ts`, `services/addins.py`): a Store from a catalog index with permissions shown before install, sha256-checked downloads, My Add-ins, upload, commands on the ribbon and task panes, run in the macro sandbox with declared permissions only; formdeck's catalog plus catalogs from other publishers that a person adds (`services/addins.py third_party_urls`); no reviews or ratings")
 row(a, "Find and run any command by name", 1, 0, 1, F, "Find a Command, Shift+Ctrl or Cmd+P (`ui/command-palette.ts`), over the catalogue of every ribbon, menu and shortcut command (`automation/catalogue.ts`)")
 row(a, "Every command callable by agents and scripts, with exact values", 0, 0, 0, F, "MCP list_commands and run_command, `/api/commands`, `./formdeck cli` (`routers/commands.py`, `automation/catalogue.ts checkParams`, `editor/param-commands.ts`)")
-row(a, "Terminal in the window with Claude Code attached", 0, 0, 0, F, "the dock, Ctrl or Cmd+` (`ui/terminal-dock.ts`, `services/terminal.py`, `services/claude_code.py`): shell and Claude Code tabs with FormDeck's tools; the chat hands its conversation to a tab and takes one back (`routers/chat.py adopt`)")
+row(a, "Terminal in the window with Claude Code attached", 0, 0, 0, F, "the dock, Ctrl or Cmd+` (`ui/terminal-dock.ts`, `services/terminal.py`, `services/claude_code.py`): shell and Claude Code tabs with formdeck's tools; the chat hands its conversation to a tab and takes one back (`routers/chat.py adopt`)")
 
 a = "Platform"
 row(a, "Desktop app", 1, 1, 0, F, "Tauri 2 app in `src-tauri/` with the engine as a frozen sidecar: .deb, .rpm and .AppImage built, installed and run on Linux (Home, a new deck, typing, video playback, saving); .dmg and .app for Apple silicon and Intel, .msi and NSIS for Windows, arm64 Linux and a Flatpak (`src-tauri/flatpak/`) from `.github/workflows/desktop.yml`, those not run here; signing optional; no FreeBSD build")
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         for area in AREAS:
             rows = [r for r in R if r["area"] == area]
             lines.append(f"### {area}\n")
-            lines.append("| Capability | PowerPoint | Keynote | Slides | FormDeck | Seen working | Evidence |")
+            lines.append("| Capability | PowerPoint | Keynote | Slides | formdeck | Seen working | Evidence |")
             lines.append("| --- | --- | --- | --- | --- | --- | --- |")
             for r in rows:
                 lines.append(f"| {r['cap']} | {mark(r['ppt'])} | {mark(r['kn'])} | {mark(r['gs'])} | {word[r['st']]} | {WINDOW.get(r['cap'], 'not yet')} | {r['ev']} |")

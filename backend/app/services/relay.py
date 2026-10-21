@@ -85,7 +85,7 @@ async def _run() -> None:
     delay = 1.0
     while enabled():
         try:
-            headers = {"Authorization": f"Bearer {settings().get('token')}", "X-FormDeck-Host": host_id()}
+            headers = {"Authorization": f"Bearer {settings().get('token')}", "X-formdeck-Host": host_id()}
             async with websockets.connect(_tunnel_url(), additional_headers=headers, max_size=MAX_BODY * 2, ping_interval=20) as ws:
                 _state["ws"], _state["connected"], _state["error"] = ws, True, ""
                 delay = 1.0
@@ -181,7 +181,7 @@ async def _http(ws, msg: dict) -> None:
     except Exception:
         if not started["on"]:
             await _send(ws, {"t": "res", "id": sid, "status": 502, "headers": [["content-type", "text/plain"]], "stream": True})
-            await _send(ws, {"t": "body", "id": sid, "body": base64.b64encode(b"FormDeck could not answer this request.").decode()})
+            await _send(ws, {"t": "body", "id": sid, "body": base64.b64encode(b"formdeck could not answer this request.").decode()})
     await _send(ws, {"t": "end", "id": sid})
 
 

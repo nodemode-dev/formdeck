@@ -1,11 +1,11 @@
 {
   "skill_name": "formdeck-skillset",
-  "notes": "Run inside the FormDeck repository. Expected behaviours are observable in the files read, the edits made and the hand-back.",
+  "notes": "Run inside the formdeck repository. Expected behaviours are observable in the files read, the edits made and the hand-back.",
   "evals": [
     {
       "id": 1,
       "name": "add-mcp-tool-duplicate-deck",
-      "prompt": "Add an MCP tool duplicate_deck to FormDeck so agents can copy a deck before a risky restyle.",
+      "prompt": "Add an MCP tool duplicate_deck to formdeck so agents can copy a deck before a risky restyle.",
       "files": [],
       "expected_behavior": [
         "Loads mcp-tool-author and reads backend/app/routers/mcp.py before editing",
@@ -30,7 +30,7 @@
     {
       "id": 3,
       "name": "stats-semantic-lost-on-pptx-reimport",
-      "prompt": "When I export a FormDeck deck to pptx and import it as a template, the stats layout disappears. Why, and fix it.",
+      "prompt": "When I export a formdeck deck to pptx and import it as a template, the stats layout disappears. Why, and fix it.",
       "files": [],
       "expected_behavior": [
         "Loads pptx-exchange and templates and traces the Statistics layout name to read_layouts.py STRONG_NAMES matching bigNumber first",
@@ -63,7 +63,7 @@
     {
       "id": 6,
       "name": "release-commit-shape",
-      "prompt": "Commit the work and bump FormDeck to 0.2.1.",
+      "prompt": "Commit the work and bump formdeck to 0.2.1.",
       "files": [],
       "expected_behavior": [
         "Uses Conventional Commits type(scope): summary (0.2.1) with a body for each logical change",
@@ -85,7 +85,7 @@
     {
       "id": 8,
       "name": "desktop-file-association-gap",
-      "prompt": "Double-clicking a .fdec file opens FormDeck but not the file. Fix it.",
+      "prompt": "Double-clicking a .fdec file opens formdeck but not the file. Fix it.",
       "files": [],
       "expected_behavior": [
         "Loads desktop-shell and identifies that main.rs handles neither RunEvent::Opened nor file arguments",
@@ -96,7 +96,7 @@
     {
       "id": 9,
       "name": "harness-question-should-route-away",
-      "prompt": "Make me a 10 slide pitch deck from notes.md in FormDeck.",
+      "prompt": "Make me a 10 slide pitch deck from notes.md in formdeck.",
       "files": [],
       "expected_behavior": [
         "Does not edit repository code",
@@ -106,7 +106,7 @@
     {
       "id": 10,
       "name": "powerpoint-behaviour-from-the-spec",
-      "prompt": "In FormDeck, make Esc and clicking on a text box work the way they do in PowerPoint.",
+      "prompt": "In formdeck, make Esc and clicking on a text box work the way they do in PowerPoint.",
       "files": [],
       "expected_behavior": [
         "Loads references/powerpoint-parity.md before editing and names the Selection rows it implements",
@@ -117,20 +117,20 @@
     }
   ],
   "trigger_evals": [
-    { "query": "add an MCP tool to FormDeck that duplicates a deck", "should_trigger": true },
-    { "query": "fix the text autofit bug in FormDeck's renderer", "should_trigger": true },
+    { "query": "add an MCP tool to formdeck that duplicates a deck", "should_trigger": true },
+    { "query": "fix the text autofit bug in formdeck's renderer", "should_trigger": true },
     { "query": "the slide sorter rebuilds every thumbnail when an agent edits, fix the flicker", "should_trigger": true },
-    { "query": "pptx import loses the stats layout in FormDeck", "should_trigger": true },
+    { "query": "pptx import loses the stats layout in formdeck", "should_trigger": true },
     { "query": "add a new template to backend/app/services/templates", "should_trigger": true },
-    { "query": "the FormDeck sidecar fails to start in the desktop build", "should_trigger": true },
+    { "query": "the formdeck sidecar fails to start in the desktop build", "should_trigger": true },
     { "query": "add a field to docs/FORMAT.md and the TS model", "should_trigger": true },
     { "query": "write the HASHOUT_LOG entry and commit with the version bump", "should_trigger": true },
-    { "query": "build me a pitch deck from these notes in FormDeck", "should_trigger": false },
-    { "query": "export my FormDeck deck to pdf", "should_trigger": false },
+    { "query": "build me a pitch deck from these notes in formdeck", "should_trigger": false },
+    { "query": "export my formdeck deck to pdf", "should_trigger": false },
     { "query": "fix the layers panel in formvis", "should_trigger": false },
     { "query": "write a FastAPI endpoint for a todo app", "should_trigger": false },
     { "query": "how do I make a Tauri app from scratch", "should_trigger": false },
     { "query": "merge these two PDFs", "should_trigger": false },
-    { "query": "add a redaction tool to the FormDeck PDF workbench", "should_trigger": false }
+    { "query": "add a redaction tool to the formdeck PDF workbench", "should_trigger": false }
   ]
 }

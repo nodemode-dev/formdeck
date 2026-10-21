@@ -95,7 +95,7 @@ export function buildCatalogue(cmds: Commands, menus: MenuDef[]): { entries: Cat
 export function runCatalogueCommand(cmds: Commands, args: Record<string, unknown>): ToolResult {
   const id = typeof args.id === 'string' ? args.id.trim() : '';
   const cmd = id ? cmds.get(id) : undefined;
-  if (!cmd) return fail(`The FormDeck window has no command ${id || '(none given)'}. list_commands {text} finds one.`);
+  if (!cmd) return fail(`The formdeck window has no command ${id || '(none given)'}. list_commands {text} finds one.`);
   const name = cmds.label(cmd).replace(/\.\.\.$|…$/, '');
   if (!cmds.enabled(cmd)) return fail(`${name} is not available right now: it needs an open deck, a selection or a view where it applies. Open a deck or select an element first, then retry.`);
   const given = args.params && typeof args.params === 'object' ? args.params as Record<string, unknown> : {};

@@ -1,6 +1,6 @@
 ---
 name: present
-description: "FormDeck's slideshow in frontend/src/present: the Show (two fixed layers and cached SlideViews for previous, current and next, picture decode before transitions), twelve transitions including morph, entrance, emphasis and exit animation builds, pen, eraser and laser, black screen, slide grid, rehearsed timings, presenter view with notes and timers, and the audience window synced over a BroadcastChannel (or a Tauri presenter window). Use for any change to presenting, transitions, animations, presenter or audience behaviour."
+description: "formdeck's slideshow in frontend/src/present: the Show (two fixed layers and cached SlideViews for previous, current and next, picture decode before transitions), twelve transitions including morph, entrance, emphasis and exit animation builds, pen, eraser and laser, black screen, slide grid, rehearsed timings, presenter view with notes and timers, and the audience window synced over a BroadcastChannel (or a Tauri presenter window). Use for any change to presenting, transitions, animations, presenter or audience behaviour."
 ---
 
 # Present

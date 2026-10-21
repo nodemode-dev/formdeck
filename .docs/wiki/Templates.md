@@ -1,6 +1,6 @@
 # Templates
 
-FormDeck ships 67 original templates in 9 categories (Pitch 8, Business 8, Minimal 8, Creative 8, Tech 8, Education 8, Report 7, Marketing 7, Event 5). They are generated from code in `backend/app/services/templates/` (`catalog.py` holds the designs, `generator.py` builds the master and layouts, `samples.py` the sample slides), so every template answers to the same 21 semantic layouts:
+formdeck ships 67 original templates in 9 categories (Pitch 8, Business 8, Minimal 8, Creative 8, Tech 8, Education 8, Report 7, Marketing 7, Event 5). They are generated from code in `backend/app/services/templates/` (`catalog.py` holds the designs, `generator.py` builds the master and layouts, `samples.py` the sample slides), so every template answers to the same 21 semantic layouts:
 
 title, section, agenda, content, twoContent, comparison, imageLeft, imageRight, imageFull, gallery, bigNumber, stats, quote, timeline, process, team, chart, table, titleOnly, closing, blank.
 

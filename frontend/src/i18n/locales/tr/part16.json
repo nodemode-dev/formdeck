@@ -1,11 +1,11 @@
 {
- "0": "FormDeck'te henüz Claude Code sohbeti yok. Önce terminal panelinde bir tane açın (Shift+Ctrl veya Cmd+`).",
+ "0": "formdeck'te henüz Claude Code sohbeti yok. Önce terminal panelinde bir tane açın (Shift+Ctrl veya Cmd+`).",
  "1": "Claude Code Sohbetine Devam Et",
  "2": "Adsız",
- "3": "FormDeck'te henüz Claude Code sohbeti yok.",
+ "3": "formdeck'te henüz Claude Code sohbeti yok.",
  "4": "Burada devam etmek için Asistan ayarını Claude Code (oturumunuz) olarak değiştirin.",
  "5": "Claude Code'dan...",
  "6": "Claude Code sekmesindeki bir sohbeti bu sohbet paneline getirin",
  "7": "Claude Code'dan devam ediliyor. Bir sonraki mesajınız bu sohbeti sürdürür.",
- "8": "FormDeck'in ajan klasöründe Claude Code sohbeti bulunamadı. Önce terminal panelinde Claude Code ile bir tane açın."
+ "8": "formdeck'in ajan klasöründe Claude Code sohbeti bulunamadı. Önce terminal panelinde Claude Code ile bir tane açın."
 }

@@ -127,7 +127,7 @@ export class Inspector {
     this.agent = el(`<div class="fd-insp">
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Outside agents (MCP)</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label">Allow</span><div class="fd-prop-ctl"><label class="fd-check"><input type="checkbox" data-f="agents" aria-label="Allow outside agents"><span></span></label><span class="fd-note fd-mcp-status"></span></div></div>
-<div class="fd-note">Claude Code, Codex and Cursor build and edit decks here through FormDeck's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.</div>
+<div class="fd-note">Claude Code, Codex and Cursor build and edit decks here through formdeck's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.</div>
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt for your agent</button></div></div></div>
 <div class="fd-prop-section"><div class="fd-panel-head"><span class="fd-panel-title">Chat with Claude</span></div>
 <div class="fd-prop-row"><span class="fd-prop-label"></span><div class="fd-prop-ctl"><button class="fd-btn fd-btn-sm" type="button" data-a="open-chat">${icon('agentChat', 14)}Chat with Claude</button></div></div></div>

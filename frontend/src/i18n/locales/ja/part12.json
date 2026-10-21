@@ -5,7 +5,7 @@
  "3": "フォルダー",
  "4": "最初のメッセージ",
  "5": "自動的に検出されます。または claude のフルパス",
- "6": "Claude Code を起動する場所。既定は FormDeck Agent フォルダー",
+ "6": "Claude Code を起動する場所。既定は formdeck Agent フォルダー",
  "7": "設定している場合、ターミナルで Claude Code が開いたときに送信されます",
  "8": "見つかりません。claude.com/claude-code からインストールし、claude を一度実行してサインインしてください。"
 }

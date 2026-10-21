@@ -60,7 +60,7 @@ The engine sends `hello` (client id, version), `snapshot`, `ops`, `reject`, `not
 ## Storage layout
 
 ```text
-~/FormDeck/                    FORMDECK_DATA_DIR
+~/formdeck/                    FORMDECK_DATA_DIR
   Decks/[d_id]/deck.json      the deck (normalized on load)
   Decks/[d_id]/info.json      library summary
   Decks/[d_id]/versions/      named versions

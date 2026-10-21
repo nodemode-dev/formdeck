@@ -5,7 +5,7 @@
  "3": "Kansio",
  "4": "Ensimmäinen viesti",
  "5": "Löytyy automaattisesti; tai claude-komennon täysi polku",
- "6": "Mistä Claude Code käynnistyy; oletuksena FormDeck Agent -kansio",
+ "6": "Mistä Claude Code käynnistyy; oletuksena formdeck Agent -kansio",
  "7": "Lähetetään, kun Claude Code avautuu päätteessä, jos asetettu",
  "8": "Ei löytynyt. Asenna se osoitteesta claude.com/claude-code ja kirjaudu sisään ajamalla claude kerran."
 }

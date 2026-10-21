@@ -29,7 +29,7 @@ async def window_call(name: str, args: dict, deck: str | None = None, timeout: f
             try:
                 out = await asyncio.wait_for(fut, timeout)
             except asyncio.TimeoutError:
-                return {"content": [{"type": "text", "text": f"The FormDeck window did not answer {name} within {int(timeout)} seconds."}], "isError": True}
+                return {"content": [{"type": "text", "text": f"The formdeck window did not answer {name} within {int(timeout)} seconds."}], "isError": True}
             return out if isinstance(out, dict) else {"content": [{"type": "text", "text": str(out)}]}
         finally:
             TOOL_RESULTS.pop(rid, None)

@@ -71,7 +71,7 @@ export class Home {
   constructor(private readonly hooks: HomeHooks) {
     this.root = el(`<section class="fd-home" aria-label="Home" hidden>
 <nav class="fd-home-nav">
-<div class="fd-home-brand">${brandMark(26)}FormDeck <span>by NodeMode</span></div>
+<div class="fd-home-brand">${brandMark(26)}formdeck <span>by NodeMode</span></div>
 <button class="fd-home-nav-item is-active" type="button" data-v="start">${icon('presentation', 16)}<span>Start</span></button>
 <button class="fd-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fd-badge is-count fd-deck-count">0</span></button>
 <button class="fd-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fd-badge is-count fd-tpl-count">0</span></button>
@@ -91,7 +91,7 @@ export class Home {
 <div class="fd-home-hero">
 <span class="fd-home-hero-icon">${icon('inbox', 26)}</span>
 <div class="fd-home-hero-text"><div class="fd-home-hero-title">Start from your material</div>
-<div class="fd-home-hero-sub">Drop meeting notes, a brief, a report, pictures or an old deck. FormDeck reads it, outlines a story and drafts the slides in your template for you to review. Your agent can take it from there.</div>
+<div class="fd-home-hero-sub">Drop meeting notes, a brief, a report, pictures or an old deck. formdeck reads it, outlines a story and drafts the slides in your template for you to review. Your agent can take it from there.</div>
 <div class="fd-home-formats"><span class="fd-home-format">MD</span><span class="fd-home-format">PDF</span><span class="fd-home-format">DOCX</span><span class="fd-home-format">PPTX</span><span class="fd-home-format">TXT</span><span class="fd-home-format">CSV</span><span class="fd-home-format">XLSX</span><span class="fd-home-format">PNG</span><span class="fd-home-format">JPG</span><span class="fd-home-format">GIF</span></div></div>
 <div class="fd-home-hero-actions"><button class="fd-btn fd-btn-primary" type="button" data-a="choose">${icon('upload', 14)}Choose files</button><button class="fd-btn" type="button" data-a="paste">${icon('fileText', 14)}Paste text</button><button class="fd-btn fd-btn-ghost" type="button" data-a="agents">${icon('agent', 14)}Use your agent</button></div>
 </div>
@@ -155,7 +155,7 @@ export class Home {
       else if (a === 'paste') void this.pasteText();
       else if (a === 'prefs') this.hooks.preferences();
       else if (a === 'agents') this.hooks.agents();
-      else if (a === 'local') toast('Your decks, templates and pictures stay in your FormDeck folder on this computer.');
+      else if (a === 'local') toast('Your decks, templates and pictures stay in your formdeck folder on this computer.');
       else if (a === 'import-template') this.importTemplate();
       const card = t.closest('.fd-card') as HTMLElement | null;
       if (card?.dataset.deck) this.hooks.openDeck(card.dataset.deck);
@@ -419,7 +419,7 @@ export class Home {
   open(): void {
     setHidden(this.root, false);
     document.body.classList.add('nm-home');
-    document.title = 'FormDeck';
+    document.title = 'formdeck';
     void this.load();
   }
 

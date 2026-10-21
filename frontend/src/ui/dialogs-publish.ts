@@ -30,7 +30,7 @@ function fileName(title: string): string {
 export function playerHtml(title: string, w: number, h: number, slides: Array<{ src: string; text: string }>, o: Pick<PublishOpts, 'advance' | 'loop'>): string {
   const items = slides.map((s, i) => `<figure class="s" data-i="${i}"${i ? ' hidden' : ''}><img src="${s.src}" alt="${escapeHtml(s.text.split('\n')[0] || `Slide ${i + 1}`)}"><figcaption>${escapeHtml(s.text).replace(/\n/g, '<br>')}</figcaption></figure>`).join('');
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="FormDeck"><title>${escapeHtml(title)}</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="formdeck"><title>${escapeHtml(title)}</title>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;height:100%;background:#111;font:14px system-ui,sans-serif;color:#eee}
 main{position:fixed;inset:0 0 44px 0;display:grid;place-items:center}

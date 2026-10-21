@@ -4,7 +4,7 @@
 
 - **Open** .pptx, .potx, .ppsx and .pptm (`backend/app/services/pptx/reader.py`). Masters, layouts, theme, placeholders, text, shapes, pictures, tables, native charts, video and audio, sections, transitions, notes and links come in. A toast lists what could not be kept: animations, ink, embedded fonts, linked media; SmartArt arrives as grouped shapes and a second master's theme is dropped.
 - **Save** .pptx and .potx (`writer.py`): editable slides with native charts and tables, sections, transitions and notes. Fonts are not embedded.
-- **Google Slides**: download your presentation as .pptx and open it in FormDeck; upload an exported .pptx to Drive and choose Open with Google Slides to go back. The Google Slides 16:9 size (720 by 405 points) is a preset.
+- **Google Slides**: download your presentation as .pptx and open it in formdeck; upload an exported .pptx to Drive and choose Open with Google Slides to go back. The Google Slides 16:9 size (720 by 405 points) is a preset.
 
 ## Slides from PDF pages
 
@@ -16,7 +16,7 @@ The window renders each slide to a canvas (`frontend/src/render/raster.ts`) and 
 
 ## The .fdec package
 
-One zip with `deck.json` and every media file, for FormDeck on any computer and for agents. The layout is in [FORMAT.md](https://github.com/nodemode-ai/formdeck/blob/main/docs/FORMAT.md#the-fdec-package).
+One zip with `deck.json` and every media file, for formdeck on any computer and for agents. The layout is in [FORMAT.md](https://github.com/nodemode-ai/formdeck/blob/main/docs/FORMAT.md#the-fdec-package).
 
 ## Print
 

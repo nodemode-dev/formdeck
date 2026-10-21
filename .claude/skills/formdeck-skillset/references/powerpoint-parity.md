@@ -1,6 +1,6 @@
 # PowerPoint parity: verified behaviour
 
-The behaviour FormDeck copies from desktop PowerPoint (Microsoft 365, Windows unless a line says Mac). Every row was read on the source page named beside it on 2026-10-17, and a second independent source was found unless the row says single source. A power user tested FormDeck 0.12.2 against exactly these behaviours and found it unusable, so treat this file as the spec, not as inspiration. When a row and the code disagree, the code is the bug. When you need a behaviour not listed here, look it up on support.microsoft.com and add the row with its source before building it; never build from memory.
+The behaviour formdeck copies from desktop PowerPoint (Microsoft 365, Windows unless a line says Mac). Every row was read on the source page named beside it on 2026-10-17, and a second independent source was found unless the row says single source. A power user tested formdeck 0.12.2 against exactly these behaviours and found it unusable, so treat this file as the spec, not as inspiration. When a row and the code disagree, the code is the bug. When you need a behaviour not listed here, look it up on support.microsoft.com and add the row with its source before building it; never build from memory.
 
 Sources are abbreviated: MS-KB = Microsoft, "Use keyboard shortcuts to create PowerPoint presentations"; MS-SHOW = Microsoft, "Use keyboard shortcuts to deliver PowerPoint presentations"; MS-GRID = Microsoft, "Work with gridlines and use snap-to-grid in PowerPoint"; MS-SEL = Microsoft, "Select a shape or other object"; IDZ = Indezine (Geetesh Bajaj, PowerPoint MVP).
 
@@ -22,7 +22,7 @@ Sources are abbreviated: MS-KB = Microsoft, "Use keyboard shortcuts to create Po
 | Selection Pane: Alt+F10, top of list = front, eye hides, double-click or F2 renames, drag reorders. | MS "Use the Selection pane" |
 | Ctrl while dragging a handle resizes from the centre; Shift keeps proportions; Alt while dragging skips snapping; Shift while rotating snaps to 15 degrees. | MS "Change the size of a picture"; MS-GRID; MS "Rotate or flip" |
 | Ctrl+arrow nudges by one screen pixel; Shift+arrow resizes; Alt+Left or Right rotates 15 degrees. | MS "Move a text box"; MS-KB |
-| Ctrl+drag copies an object. On Mac, Option+drag copies (IDZ 2011 Mac) and Control+drag on a handle resizes from the centre (IDZ 365 Mac). FormDeck Mac: Option copies (objects and guides), Control or Option resizes from the centre, Cmd skips snapping while moving or resizing; the Mac snap-override key in PowerPoint itself is not verified. | Office Watch; IDZ |
+| Ctrl+drag copies an object. On Mac, Option+drag copies (IDZ 2011 Mac) and Control+drag on a handle resizes from the centre (IDZ 365 Mac). formdeck Mac: Option copies (objects and guides), Control or Option resizes from the centre, Cmd skips snapping while moving or resizing; the Mac snap-override key in PowerPoint itself is not verified. | Office Watch; IDZ |
 | Choosing a shape from the gallery arms drawing: drag on the slide to draw it, or click to add it "in a predefined size" (about one inch square); Shift keeps width and height in a fixed ratio. | IDZ 365 insert shapes |
 | Ctrl+] is Bring Forward and Ctrl+[ Send Backward on desktop (font size only in PowerPoint for the web). | MS-KB |
 
@@ -39,7 +39,7 @@ Sources are abbreviated: MS-KB = Microsoft, "Use keyboard shortcuts to create Po
 | Right-click a guide > Color recolours it. | MS-GRID; The PowerPoint Blog |
 | Master and layout guides show on slides in their own colour, cannot be selected there, and still snap. | IDZ; The PowerPoint Blog (colours conflict) |
 | Smart guides: dashed lines for edge and centre alignment, arrows for equal spacing, also while resizing to match another object. | MS "Guides for arranging things"; IDZ |
-| Snap to grid on by default: sources conflict (on per The Software Pro and Office Watch, off per IDZ). FormDeck ships it off, the owner's decision of 2026-10-17. | decided: off |
+| Snap to grid on by default: sources conflict (on per The Software Pro and Office Watch, off per IDZ). formdeck ships it off, the owner's decision of 2026-10-17. | decided: off |
 
 ## Fonts and sizes
 
@@ -85,6 +85,6 @@ Sources are abbreviated: MS-KB = Microsoft, "Use keyboard shortcuts to create Po
 | Co-authoring needs the file on OneDrive or SharePoint; comments thread, resolve and @mention. | MS co-authoring; MS modern comments |
 | Review > Compare is retired from Windows version 2502. | MS "Track changes in your presentation" |
 
-## Where FormDeck deliberately differs
+## Where formdeck deliberately differs
 
-Record a deliberate difference here with the reason, so the next session does not "fix" it back. As of 0.14.0: the marquee keeps a touch rule as a preference beside PowerPoint's enclose default; review status is FormDeck's agent handoff, not a PowerPoint feature, and shows only when the deck is shared or outside agents are allowed; guide colours are kept in FormDeck files only, since PowerPoint's guide extension has no colour; Lock aspect ratio keeps the current frame ratio, not the picture's original pixel ratio.
+Record a deliberate difference here with the reason, so the next session does not "fix" it back. As of 0.14.0: the marquee keeps a touch rule as a preference beside PowerPoint's enclose default; review status is formdeck's agent handoff, not a PowerPoint feature, and shows only when the deck is shared or outside agents are allowed; guide colours are kept in formdeck files only, since PowerPoint's guide extension has no colour; Lock aspect ratio keeps the current frame ratio, not the picture's original pixel ratio.

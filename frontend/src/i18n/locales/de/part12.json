@@ -5,7 +5,7 @@
  "3": "Ordner",
  "4": "Erste Nachricht",
  "5": "Wird automatisch gefunden; oder der vollständige Pfad zu claude",
- "6": "Wo Claude Code startet; standardmäßig der Ordner FormDeck Agent",
+ "6": "Wo Claude Code startet; standardmäßig der Ordner formdeck Agent",
  "7": "Wird gesendet, wenn Claude Code im Terminal geöffnet wird, sofern festgelegt",
  "8": "Nicht gefunden. Installiere es von claude.com/claude-code und führe claude einmal aus, um dich anzumelden."
 }

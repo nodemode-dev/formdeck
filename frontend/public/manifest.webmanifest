@@ -1,6 +1,6 @@
 {
-  "name": "FormDeck",
-  "short_name": "FormDeck",
+  "name": "formdeck",
+  "short_name": "formdeck",
   "description": "Presentations and decks in the form family",
   "id": "/",
   "start_url": "/",

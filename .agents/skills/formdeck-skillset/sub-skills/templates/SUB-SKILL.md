@@ -1,6 +1,6 @@
 ---
 name: templates
-description: "FormDeck's template system: the 67 built-in designs as code (services/templates/catalog.py Design entries), the generator that builds theme, master and the 21 semantic layouts with motifs and hero covers, sample decks and art, the catalog API, imported templates from .pptx or .potx, remap for apply_template, and the template grid and previews in the window. Use when adding or changing a template, a motif, layout geometry or slots, the catalog, template export, or the template picker."
+description: "formdeck's template system: the 67 built-in designs as code (services/templates/catalog.py Design entries), the generator that builds theme, master and the 21 semantic layouts with motifs and hero covers, sample decks and art, the catalog API, imported templates from .pptx or .potx, remap for apply_template, and the template grid and previews in the window. Use when adding or changing a template, a motif, layout geometry or slots, the catalog, template export, or the template picker."
 ---
 
 # Templates

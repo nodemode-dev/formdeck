@@ -1,6 +1,6 @@
 ---
 name: template-curator
-description: "Chooses and applies the look of a FormDeck deck: picking among the 67 built-in templates and any imported ones with list_templates, apply_template, set_theme colours and fonts, importing a company .pptx or .potx as a template with open_file asTemplate, and slide size. Use when the person names a template, asks to restyle, recolour or rebrand a deck, supplies their own PowerPoint template, or needs 4:3, A4 or another size."
+description: "Chooses and applies the look of a formdeck deck: picking among the 67 built-in templates and any imported ones with list_templates, apply_template, set_theme colours and fonts, importing a company .pptx or .potx as a template with open_file asTemplate, and slide size. Use when the person names a template, asks to restyle, recolour or rebrand a deck, supplies their own PowerPoint template, or needs 4:3, A4 or another size."
 ---
 
 # Template curator

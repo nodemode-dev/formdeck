@@ -32,7 +32,7 @@ Settle each by changing one side deliberately; do not leave a third interpretati
 
 - **Gallery slots.** FORMAT.md lists `image` to `image4`; every built-in template generates three picture slots (`image`, `image2`, `image3`). The compiler grids two or four pictures over the slot area.
 - **Imported templates.** FORMAT.md says imported templates are stored as `.fdec` packages under `Templates/`; the code writes `Templates/[id]/template.json` (`routers/decks.py save_as_template`), and `open_file asTemplate` keeps the imported slides in it.
-- **Stats layout name.** Built-in templates name the stats layout "Statistics"; `pptx/read_layouts.py` matches that name to bigNumber first, so a FormDeck pptx re-imported as a template loses its `stats` semantic (20 of 21 recognised).
+- **Stats layout name.** Built-in templates name the stats layout "Statistics"; `pptx/read_layouts.py` matches that name to bigNumber first, so a formdeck pptx re-imported as a template loses its `stats` semantic (20 of 21 recognised).
 
 ## Inheritance in one paragraph
 

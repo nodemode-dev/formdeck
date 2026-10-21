@@ -1,10 +1,10 @@
-# FormDeck for Claude Code
+# formdeck for Claude Code
 
-Two jobs happen in this repo: building decks with FormDeck, and developing FormDeck itself.
+Two jobs happen in this repo: building decks with formdeck, and developing formdeck itself.
 
 ## Building decks
 
-The FormDeck MCP server is configured in .mcp.json (http://127.0.0.1:8197/mcp). Start the app with `./formdeck` so edits appear live in the window. Workflow:
+The formdeck MCP server is configured in .mcp.json (http://127.0.0.1:8197/mcp). Start the app with `./formdeck` so edits appear live in the window. Workflow:
 
 1. get_context, then list_templates if the person has not chosen one.
 2. ingest the person's files (absolute paths); read get_source only for what the digest leaves out.
@@ -16,7 +16,7 @@ Load the skill `.claude/skills/formdeck-harness` for the full loop, the slide-sc
 
 PDF editing lives in formpdf (github.com/nodemode-ai/formpdf).
 
-## Developing FormDeck
+## Developing formdeck
 
 - Engine: backend/ (FastAPI, Python 3.12, venv at backend/venv). Frontend: frontend/ (vanilla TypeScript, Vite on 5197 with host false). Desktop: src-tauri/.
 - Edits are surgical, one region at a time; no scripted edits. Near-zero comments: rationale goes in frontend/HASHOUT_LOG.md and backend/HASHOUT_LOG.md.

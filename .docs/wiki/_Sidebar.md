@@ -1,4 +1,4 @@
-**FormDeck**
+**formdeck**
 
 - [Home](Home)
 - [Getting Started](Getting-Started)

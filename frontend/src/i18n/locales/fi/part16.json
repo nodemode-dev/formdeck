@@ -1,11 +1,11 @@
 {
- "0": "FormDeckissä ei ole vielä Claude Code -keskustelua. Avaa ensin yksi päätteen telakassa (Shift+Ctrl tai Cmd+`).",
+ "0": "formdeckissä ei ole vielä Claude Code -keskustelua. Avaa ensin yksi päätteen telakassa (Shift+Ctrl tai Cmd+`).",
  "1": "Jatka Claude Code -keskustelua",
  "2": "Nimeämätön",
- "3": "FormDeckissä ei ole vielä Claude Code -keskustelua.",
+ "3": "formdeckissä ei ole vielä Claude Code -keskustelua.",
  "4": "Vaihda Avustaja-asetukseksi Claude Code (oma kirjautumisesi), jotta voit jatkaa sitä täällä.",
  "5": "Claude Codesta...",
  "6": "Tuo Claude Code -välilehdellä käymäsi keskustelu tähän chattiin",
  "7": "Jatkettu Claude Codesta. Seuraava viestisi jatkaa tätä keskustelua.",
- "8": "FormDeckin agenttikansiosta ei löytynyt Claude Code -keskustelua. Avaa ensin yksi Claude Codella päätteen telakassa."
+ "8": "formdeckin agenttikansiosta ei löytynyt Claude Code -keskustelua. Avaa ensin yksi Claude Codella päätteen telakassa."
 }

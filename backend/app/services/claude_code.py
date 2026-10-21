@@ -17,13 +17,13 @@ SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/c
 INSTALL = "Claude Code is not installed: install it from https://claude.com/claude-code, run claude once in a terminal to sign in, then open it here again."
 INAPP_TOKEN = secrets.token_urlsafe(24)
 INAPP_HEADER = "x-formdeck-inapp"
-INAPP_NAME = "Claude Code in FormDeck"
-NOTE = ("You are Claude Code running inside FormDeck, the presentation editor open on this computer. "
+INAPP_NAME = "Claude Code in formdeck"
+NOTE = ("You are Claude Code running inside formdeck, the presentation editor open on this computer. "
         "Work on decks with the formdeck MCP server's tools: start with get_context, read formdeck://guide for the slide script, "
         "and use render_slides and lint_deck to look before and after a change. Every editor command is also reachable: "
         "list_commands finds one by words, run_command runs it in the window as one undo step. "
         "The person sees every change happen in the window. Use the formdeck-decks skill when it is available.")
-CHAT_NOTE = (NOTE + " You are answering in FormDeck's chat panel, which shows Markdown to people who may never have used a terminal: "
+CHAT_NOTE = (NOTE + " You are answering in formdeck's chat panel, which shows Markdown to people who may never have used a terminal: "
              "write short paragraphs, use **bold** for slide and setting names, say what you changed in plain words, and batch edits into few tool calls.")
 _cache: dict = {"at": 0.0, "value": None}
 
@@ -171,7 +171,7 @@ def chat_argv(path: str, text: str, session: str | None, model: str = "") -> lis
 def status() -> dict:
     tab = next((s.describe() for s in terminal.SESSIONS.values() if s.kind == "claude" and s.alive), None)
     chosen = _pref("bin")
-    note = f"{chosen} is not a program FormDeck can run, so it uses the one found on this computer." if chosen and not _runnable(chosen) else ""
+    note = f"{chosen} is not a program formdeck can run, so it uses the one found on this computer." if chosen and not _runnable(chosen) else ""
     try:
         folder = str(workdir())
     except OSError as exc:

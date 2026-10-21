@@ -5,7 +5,7 @@
  "3": "Carpeta",
  "4": "Primer mensaje",
  "5": "Se encuentra automáticamente; o la ruta completa a claude",
- "6": "Donde se inicia Claude Code; por defecto, la carpeta FormDeck Agent",
+ "6": "Donde se inicia Claude Code; por defecto, la carpeta formdeck Agent",
  "7": "Se envía al abrir Claude Code en el terminal, si está definido",
  "8": "No encontrado. Instálalo desde claude.com/claude-code y ejecuta claude una vez para iniciar sesión."
 }

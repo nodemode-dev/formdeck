@@ -1,13 +1,13 @@
 ---
 name: pptx-exchange
-description: "FormDeck's PowerPoint and package exchange: read_pptx (theme, masters, layouts with semantic and slot detection, slides, shapes, pictures, groups, tables, native charts, SmartArt, media, notes, sections, transitions) and write_pptx (pptx and potx with layouts, placeholders, native tables and charts, transitions, sections, autofit scales), OOXML helpers, colour transforms, preset geometry mapping, and the .fdec package. Use when import or export fidelity is wrong, when adding a deck feature that must round-trip through PowerPoint or Google Slides, or when touching .fdec."
+description: "formdeck's PowerPoint and package exchange: read_pptx (theme, masters, layouts with semantic and slot detection, slides, shapes, pictures, groups, tables, native charts, SmartArt, media, notes, sections, transitions) and write_pptx (pptx and potx with layouts, placeholders, native tables and charts, transitions, sections, autofit scales), OOXML helpers, colour transforms, preset geometry mapping, and the .fdec package. Use when import or export fidelity is wrong, when adding a deck feature that must round-trip through PowerPoint or Google Slides, or when touching .fdec."
 ---
 
 # pptx exchange
 
 ## Purpose
 
-Move decks between FormDeck and PowerPoint (and Google Slides through pptx) without losing what both sides can express, and say plainly what is lost. Hands back a reader or writer change verified by a round trip.
+Move decks between formdeck and PowerPoint (and Google Slides through pptx) without losing what both sides can express, and say plainly what is lost. Hands back a reader or writer change verified by a round trip.
 
 ## File map
 

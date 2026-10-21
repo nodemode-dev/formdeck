@@ -70,14 +70,14 @@ async def execute(cid: str, params: dict) -> dict:
         hint = near(cid)
         return {"ok": False, "error": f"No command has the id {cid}." + (f" Did you mean {', '.join(hint)}?" if hint else "") + " Search with GET /api/commands?text=word."}
     if not bridge.window_connected():
-        return {"ok": False, "error": "No FormDeck window is open. Start it with ./formdeck boot (or open the app), then retry."}
+        return {"ok": False, "error": "No formdeck window is open. Start it with ./formdeck boot (or open the app), then retry."}
     out = await bridge.window_call("run_command", {"id": cid, "params": params or {}}, None, 120)
     if out is None:
-        return {"ok": False, "error": "No FormDeck window answered. Open the app, then retry."}
+        return {"ok": False, "error": "No formdeck window answered. Open the app, then retry."}
     text = " ".join(c.get("text", "") for c in out.get("content", []) if c.get("type") == "text").strip()
     risky = bool(found and found.get("risky"))
     if out.get("isError"):
-        return {"ok": False, "error": text or "FormDeck gave no reason. Check the window, then retry.", "risky": risky}
+        return {"ok": False, "error": text or "formdeck gave no reason. Check the window, then retry.", "risky": risky}
     structured = out.get("structuredContent") or {}
     return {"ok": True, "result": structured.get("result", text), "risky": risky}
 
@@ -100,7 +100,7 @@ def catalogue(group: str = "", text: str = "") -> dict:
     rows = search(group, text)
     groups = sorted({str(c.get("group", "")) for c in _state["commands"]})
     return {"size": _state["size"], "shown": len(rows), "groups": groups, "missing": _state["missing"], "live": bridge.window_connected(), "commands": rows,
-            "hint": "" if _state["commands"] else "The catalogue is empty: open the FormDeck window (./formdeck boot), wait a few seconds, then ask again."}
+            "hint": "" if _state["commands"] else "The catalogue is empty: open the formdeck window (./formdeck boot), wait a few seconds, then ask again."}
 
 
 @router.post("/batch")

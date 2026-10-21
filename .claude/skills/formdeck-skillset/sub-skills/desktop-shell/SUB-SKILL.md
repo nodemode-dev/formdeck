@@ -1,13 +1,13 @@
 ---
 name: desktop-shell
-description: "FormDeck's Tauri 2 desktop app: src-tauri (main.rs with the splash, sidecar spawn on a free port, main window on the loopback page, system_fonts, open_presenter and print_window commands, updater), tauri.conf.json and capabilities, the PyInstaller sidecar (backend/formdeck_engine.py, setup/freeze_backend with --selfcheck), desktop dev and build scripts with .bat twins, and the three-platform workflow. Use for desktop builds, sidecar failures, a new Tauri command, file associations, signing or the updater."
+description: "formdeck's Tauri 2 desktop app: src-tauri (main.rs with the splash, sidecar spawn on a free port, main window on the loopback page, system_fonts, open_presenter and print_window commands, updater), tauri.conf.json and capabilities, the PyInstaller sidecar (backend/formdeck_engine.py, setup/freeze_backend with --selfcheck), desktop dev and build scripts with .bat twins, and the three-platform workflow. Use for desktop builds, sidecar failures, a new Tauri command, file associations, signing or the updater."
 ---
 
 # Desktop shell
 
 ## Purpose
 
-Ship FormDeck as one app per platform: a native shell that starts the frozen engine, opens its page, and adds the few native abilities the browser lacks. Hands back a shell change that builds with `./formdeck desktop build` (or the exact blocker).
+Ship formdeck as one app per platform: a native shell that starts the frozen engine, opens its page, and adds the few native abilities the browser lacks. Hands back a shell change that builds with `./formdeck desktop build` (or the exact blocker).
 
 ## File map
 
