@@ -57,12 +57,12 @@ const alignText = (): Rows => R([I('text-align-l'), I('text-align-c'), I('text-a
 function ribbonTabs(): TabDef[] {
   return [
     { id: 'home', label: 'Home', groups: [
-      G('clipboard', 'Clipboard', L('paste', 'Paste'), R([T('cut', 'Cut')], [T('copy', 'Copy'), I('duplicate')], [T('format-painter', 'Format Painter')])),
-      G('slides', 'Slides', L('new-slide', 'New Slide'), R([S('layout')], [T('reset-slide', 'Reset'), T('add-section', 'Section')], [T('hide-slide', 'Hide'), T('delete-slide', 'Delete')])),
-      { ...G('font', 'Font', R([S('font'), S('size'), I('grow-font'), I('shrink-font'), I('clear-format')], [I('bold'), I('italic'), I('underline'), I('strike'), I('superscript'), I('subscript'), I('all-caps'), A('text-color', 'textColor', 'Font Colour', { swatch: true }), A('highlight', 'highlight', 'Highlight', { swatch: true })], [I('small-caps'), I('text-effects'), I('insert-link')])), rank: -1 },
-      G('paragraph', 'Paragraph', R([I('bullets'), I('numbering'), I('outdent'), I('indent')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('anchor-t'), I('anchor-m'), I('anchor-b')])),
-      G('drawing', 'Drawing', A('shapes', 'shapes', 'Shapes'), M('arrange', 'arrange', 'Arrange', ARRANGE_ITEMS), R([A('fill', 'fill', 'Shape Fill', { text: true, swatch: true })], [A('line', 'pen', 'Shape Outline', { text: true, swatch: true })], [T('edit-points', 'Edit Points')])),
-      G('editing', 'Editing', R([T('find', 'Find')], [T('replace-fonts', 'Replace Fonts')], [M('select', 'selectAll', 'Select', ['select-all', 'selection-pane'], { text: true })])),
+      { ...G('clipboard', 'Clipboard', L('paste', 'Paste'), R([T('cut', 'Cut')], [T('copy', 'Copy')]), L('format-painter', 'Format Painter')), rank: -2 },
+      G('slides', 'Slides', L('new-slide', 'New Slide'), R([S('layout'), T('reset-slide', 'Reset')], [T('add-section', 'Section'), T('hide-slide', 'Hide'), T('delete-slide', 'Delete')])),
+      { ...G('font', 'Font', R([S('font'), S('size'), I('grow-font'), I('shrink-font'), I('change-case'), I('clear-format')], [I('bold'), I('italic'), I('underline'), I('strike'), I('superscript'), I('subscript'), I('all-caps'), I('small-caps'), I('text-effects'), A('text-color', 'textColor', 'Font Colour', { swatch: true }), A('highlight', 'highlight', 'Highlight', { swatch: true })])), rank: -1 },
+      G('paragraph', 'Paragraph', R([I('bullets'), I('numbering'), I('outdent'), I('indent')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j'), I('anchor-t'), I('anchor-m'), I('anchor-b')])),
+      G('drawing', 'Drawing', A('shapes', 'shapes', 'Shapes'), M('arrange', 'arrange', 'Arrange', ARRANGE_ITEMS), R([A('fill', 'fill', 'Shape Fill', { text: true, swatch: true })], [A('line', 'pen', 'Shape Outline', { text: true, swatch: true })])),
+      G('editing', 'Editing', R([T('find', 'Find'), M('select', 'selectAll', 'Select', ['select-all', 'selection-pane'], { text: true })], [T('replace-fonts', 'Replace Fonts')])),
       G('addins', 'Add-ins', L('addins-dialog', 'Add-ins')),
     ] },
     { id: 'insert', label: 'Insert', groups: [
