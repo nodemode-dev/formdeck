@@ -71,7 +71,7 @@ export class Home {
   constructor(private readonly hooks: HomeHooks) {
     this.root = el(`<section class="fd-home" aria-label="Home" hidden>
 <nav class="fd-home-nav">
-<div class="fd-home-brand">${brandMark(26)}formdeck <span>by NodeMode</span></div>
+<div class="fd-home-brand">${brandMark(26)}formdeck <span translate="no">by nodemode-ai</span></div>
 <button class="fd-home-nav-item is-active" type="button" data-v="start">${icon('presentation', 16)}<span>Start</span></button>
 <button class="fd-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fd-badge is-count fd-deck-count">0</span></button>
 <button class="fd-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fd-badge is-count fd-tpl-count">0</span></button>
