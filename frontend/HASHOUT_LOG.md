@@ -565,3 +565,15 @@ The owner laid out Home: two rows only, and Clipboard as three columns with Past
 ## 128. Autoplay video has no player chrome in the show · _v0.25.2 (render/slide.ts mediaBlock)
 
 A video set to start automatically is part of the slide, not something the audience operates, so in show mode it renders without the controls attribute and with picture-in-picture and remote playback disabled, which removes the play button, time, progress bar and the browser's hover buttons. Videos that start in the click sequence or when clicked keep their controls, because the presenter may need them. Playback is still driven by the show (playMedia, the media messages to the audience window and presenter view), which never relied on the native controls.
+
+## 129. A video is patched, never rebuilt, and autoplay starts on its first frame · _v0.25.3 (render/slide.ts patchMedia, mediaBlock; present/media-play.ts preparePlayback; styles/slides.css fd-video.is-auto)
+
+Reconcile repaints an element whenever its JSON changes, and for a video that meant a new video element, which reloads and blinks, on every volume, loop, rewind, start or hide change. patchMedia now keeps the element when the source is the same: it updates the frame style, the locked and placeholder classes and the video's own attributes in place (leaving src, style and the show's data- flags alone) and seeks instead of reloading when only the start point changed; a new source still repaints. In the show an autoplay video renders without its poster and preloads in full, and preparePlayback seeks to the start rather than calling load(), because the poster is taken part way into the clip, so the audience saw it for about half a second and then a jump to the first frame. Until the first frame decodes the autoplay video's box is transparent rather than black, so the slide shows and the video appears once, when ready.
+
+## 130. The credit reads by nodemode-ai · _v0.25.3 (ui/home.ts brand)
+
+The Home brand line is the owner's account name, so it is marked translate="no" and reads the same in every language; the old "by NodeMode" key and its translations are left unused.
+
+## 131. Hiding the Format pane is a tab on its edge · _v0.25.3 (styles/shell.css fd-props-hide; ui/panel-group.ts fitTabs)
+
+The hide button sat in the top right corner over the top group's Minimise button, and the rule meant to leave it room targeted the first group in the column, which is the hidden Objects group. Reserving the room cut the tab labels short, so the hide control moved to a slim tab on the pane's left edge at mid-height, the mirror of the tab that shows the pane again at the window edge; with an add-in pane open it sits left of both columns. The tab strip now re-fits once web fonts load and keeps a 2 px margin, because a fit measured with the fallback font let labels overflow by a pixel once Inter arrived.

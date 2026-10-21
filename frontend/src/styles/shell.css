@@ -195,7 +195,8 @@ body.theme-light .fd-seg button.is-on { color: color-mix(in srgb, var(--accent-c
 .fd-app.is-strip-hidden .fd-strip-col, .fd-app.is-strip-hidden .fd-resizer[data-edge="strip"] { display: none; }
 .fd-app.is-props-hidden .fd-props-col, .fd-app.is-props-hidden .fd-resizer[data-edge="props"] { display: none; }
 .fd-main { position: relative; }
-.fd-main > .fd-props-hide { position: absolute; top: 4px; right: 4px; z-index: var(--z-raised); }
+.fd-main > .fd-props-hide { position: absolute; top: 50%; right: calc(var(--fd-props-w) + 6px); z-index: var(--z-raised); width: 14px; min-width: 0; height: 56px; margin-top: -28px; padding: 0; border: 1px solid var(--line-2); border-right: 0; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--surface-1); }
+.fd-main.has-addin-pane > .fd-props-hide { right: calc(var(--fd-props-w) + var(--fd-addin-w, 320px) + 6px); }
 .fd-main > .fd-props-tab { position: absolute; top: 50%; right: 0; z-index: var(--z-raised); display: none; align-items: center; justify-content: center; width: 14px; height: 56px; margin-top: -28px; padding: 0; border: 1px solid var(--line-2); border-right: 0; border-radius: var(--radius-md) 0 0 var(--radius-md); background: var(--surface-1); color: var(--text-secondary); cursor: pointer; }
 .fd-main > .fd-props-tab:hover { background: var(--surface-raised); color: var(--text-primary); }
 .fd-app.is-props-hidden .fd-main > .fd-props-hide, .fd-app.is-sheet .fd-main > .fd-props-hide { display: none; }

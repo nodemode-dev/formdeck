@@ -49,6 +49,7 @@ export class PanelGroup {
     (this.root.querySelector('.fd-group-min') as HTMLElement).addEventListener('click', () => this.setMinimised(!this.root.classList.contains('is-min')));
     host.appendChild(this.root);
     new ResizeObserver(() => this.fitTabs()).observe(strip);
+    void document.fonts?.ready.then(() => this.fitTabs());
   }
 
   fitTabs(): void {
@@ -58,7 +59,7 @@ export class PanelGroup {
       strip.classList.remove('is-compact', 'is-tight');
       if (step) strip.classList.add(step);
       const need = [...strip.children].reduce((w, c) => w + (c as HTMLElement).scrollWidth, 0) + Math.max(0, strip.children.length - 1) * 2;
-      if (need <= strip.clientWidth + 0.5) return;
+      if (need <= strip.clientWidth - 2) return;
     }
   }
 
