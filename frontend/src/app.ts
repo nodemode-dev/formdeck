@@ -588,8 +588,7 @@ export async function startApp(): Promise<void> {
       const r = ed.stage.root.getBoundingClientRect();
       const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
       const at = inside ? { x: (e.clientX - r.left - ed.stage.ox) / ed.stage.k, y: (e.clientY - r.top - ed.stage.oy) / ed.stage.k } : undefined;
-      const phNode = (e.target as HTMLElement | null)?.closest?.('.fd-el.is-prompt') as HTMLElement | null;
-      await ed.insertFiles(media, at, phNode?.dataset.ph);
+      await ed.insertFiles(media, at);
     }
     const rest = files.filter((f) => !media.includes(f));
     if (rest.length) await openFiles(rest);
@@ -672,7 +671,8 @@ export async function startApp(): Promise<void> {
     const ed = editor;
     if (!ed) { toast('Open a deck first, then drop pictures or videos onto a slide.', 'info'); return; }
     const r = ed.stage.root.getBoundingClientRect();
-    const cx = pos.x / window.devicePixelRatio, cy = pos.y / window.devicePixelRatio;
+    const unit = /Windows/i.test(navigator.userAgent) ? window.devicePixelRatio : 1;
+    const cx = pos.x / unit, cy = pos.y / unit;
     const inside = cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
     const at = inside ? { x: (cx - r.left - ed.stage.ox) / ed.stage.k, y: (cy - r.top - ed.stage.oy) / ed.stage.k } : undefined;
     void ed.insertPaths(paths, at);
