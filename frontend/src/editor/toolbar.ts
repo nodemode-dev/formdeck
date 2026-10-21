@@ -68,7 +68,7 @@ function ribbonTabs(): TabDef[] {
     { id: 'insert', label: 'Insert', groups: [
       G('slides', 'Slides', L('new-slide', 'New Slide'), L('insert-pdf-pages', 'From PDF')),
       G('tables', 'Tables', L('insert-table', 'Table')),
-      G('images', 'Images', L('insert-image', 'Pictures'), R([T('insert-stock', 'Stock Images')], [T('insert-ai-image', 'Generate with AI', { icon: 'sparkle' })])),
+      G('images', 'Images', L('insert-image', 'Pictures'), R([T('insert-stock', 'Stock Images')], [T('insert-ai-image', 'Generate with AI', { icon: 'ai' })])),
       G('illustrations', 'Illustrations', A('shapes', 'shapes', 'Shapes'), L('insert-icons', 'Icons'), L('insert-model3d', '3D Models', { icon: 'model3d' }), L('insert-diagram', 'SmartArt'), L('insert-chart', 'Chart'), R([T('insert-line', 'Line')], [T('insert-arrow', 'Arrow')], [M('connector', 'line', 'Connector', CONNECTOR_ITEMS, { text: true })]), R([T('draw-freeform', 'Freeform')], [T('draw-scribble', 'Scribble')])),
       G('links', 'Links', L('insert-link', 'Link')),
       G('comments', 'Comments', L('add-comment', 'Comment')),
@@ -128,7 +128,7 @@ function ribbonTabs(): TabDef[] {
     ] },
     { id: 'shapefmt', label: 'Shape Format', ctx: true, groups: [
       G('shapes', 'Insert Shapes', A('shapes', 'shapes', 'Shapes'), R([T('edit-points', 'Edit Points')], [M('merge', 'mergeUnion', 'Merge Shapes', (MERGE_MENU as SubMenu).items, { text: true })])),
-      G('styles', 'Shape Styles', A('fill', 'fill', 'Shape Fill', { swatch: true }), A('line', 'pen', 'Shape Outline', { swatch: true }), M('shapefx', 'sparkle', 'Shape Effects', SHAPE_EFFECTS_MENU)),
+      G('styles', 'Shape Styles', A('fill', 'fill', 'Shape Fill', { swatch: true }), A('line', 'pen', 'Shape Outline', { swatch: true }), M('shapefx', 'effects', 'Shape Effects', SHAPE_EFFECTS_MENU)),
       G('wordart', 'WordArt Styles', L('text-effects', 'Text Effects'), L('text-transform', 'Transform'), R([A('text-color', 'textColor', 'Text Fill', { text: true, swatch: true })], [A('highlight', 'highlight', 'Highlight', { text: true, swatch: true })], [T('clear-text-effects', 'Clear Effects')])),
       G('textbox', 'Text Box', R([I('anchor-t'), I('anchor-m'), I('anchor-b')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('bullets'), I('numbering')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
@@ -136,8 +136,8 @@ function ribbonTabs(): TabDef[] {
       arrangeGroup(),
     ] },
     { id: 'picfmt', label: 'Picture Format', ctx: true, groups: [
-      G('adjust', 'Adjust', L('replace-image', 'Change Picture'), L('edit-image-ai', 'Edit with AI', { icon: 'sparkle' }), R([T('compress-pictures', 'Compress Pictures')], [T('picture-reset', 'Reset Picture')], [T('picture-reset-size', 'Reset Picture & Size')])),
-      G('styles', 'Picture Styles', A('line', 'pen', 'Picture Border', { swatch: true }), M('picfx', 'sparkle', 'Picture Effects', PICTURE_EFFECTS_MENU)),
+      G('adjust', 'Adjust', L('replace-image', 'Change Picture'), L('edit-image-ai', 'Edit with AI', { icon: 'ai' }), R([T('compress-pictures', 'Compress Pictures')], [T('picture-reset', 'Reset Picture')], [T('picture-reset-size', 'Reset Picture & Size')])),
+      G('styles', 'Picture Styles', A('line', 'pen', 'Picture Border', { swatch: true }), M('picfx', 'effects', 'Picture Effects', PICTURE_EFFECTS_MENU)),
       G('size', 'Size', L('crop', 'Crop'), M('cropto', 'shapes', 'Crop to Shape', CROP_SHAPES.map(([g]) => `crop-shape-${g}`)), M('cropratio', 'shapes', 'Aspect Ratio', ['crop-aspect-1-1', '-', 'crop-aspect-2-3', 'crop-aspect-3-4', 'crop-aspect-4-5', 'crop-aspect-9-16', '-', 'crop-aspect-3-2', 'crop-aspect-4-3', 'crop-aspect-5-4', 'crop-aspect-16-9', 'crop-aspect-16-10']), R([T('crop-fill', 'Fill')], [T('crop-fit', 'Fit')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       arrangeGroup(),
@@ -161,7 +161,7 @@ function ribbonTabs(): TabDef[] {
     { id: 'smartart', label: 'SmartArt Design', ctx: true, groups: [
       G('create', 'Create Graphic', L('diagram-pane', 'Text Pane')),
       G('layouts', 'Layouts', L('diagram-layout', 'Change Layout')),
-      G('styles', 'SmartArt Styles', M('dgcolors', 'palette', 'Change Colors', (DIAGRAM_MENU.items[2] as SubMenu).items), M('dgstyle', 'sparkle', 'Styles', (DIAGRAM_MENU.items[3] as SubMenu).items)),
+      G('styles', 'SmartArt Styles', M('dgcolors', 'palette', 'Change Colors', (DIAGRAM_MENU.items[2] as SubMenu).items), M('dgstyle', 'effects', 'Styles', (DIAGRAM_MENU.items[3] as SubMenu).items)),
       G('reset', 'Reset', L('diagram-reset', 'Reset Graphic'), L('diagram-convert', 'Convert to Shapes')),
       arrangeGroup(),
     ] },

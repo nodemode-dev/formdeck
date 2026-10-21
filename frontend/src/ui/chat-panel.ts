@@ -233,7 +233,7 @@ export class ChatPanel {
   private build(m: Msg): HTMLElement {
     if (m.role === 'user') return el(`<div class="fd-chat-msg is-user"><div class="fd-chat-bubble"></div><div class="fd-chat-meta"></div></div>`);
     if (m.role === 'assistant') return el(`<div class="fd-chat-msg is-assistant"><div class="fd-chat-who"></div><div class="fd-chat-text"></div></div>`);
-    if (m.role === 'tool') return el(`<div class="fd-chat-tool"><button class="fd-chat-tool-row" type="button" data-a="tool" aria-expanded="false"><span class="fd-chat-tool-ico">${icon('sparkle', 12)}</span><span class="fd-chat-tool-text"></span><span class="fd-chat-tool-state"></span></button><pre class="fd-chat-tool-detail" hidden></pre></div>`);
+    if (m.role === 'tool') return el(`<div class="fd-chat-tool"><button class="fd-chat-tool-row" type="button" data-a="tool" aria-expanded="false"><span class="fd-chat-tool-ico">${icon('agent', 12)}</span><span class="fd-chat-tool-text"></span><span class="fd-chat-tool-state"></span></button><pre class="fd-chat-tool-detail" hidden></pre></div>`);
     return el(`<div class="fd-chat-note"></div>`);
   }
 

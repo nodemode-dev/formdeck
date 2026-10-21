@@ -21,8 +21,8 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
   };
   const list: Command[] = [
     { id: 'insert-stock', label: 'Stock Images...', icon: 'stockImage', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-stock').then((m) => m.stockDialog(ed)); } },
-    { id: 'insert-ai-image', label: 'Generate with AI...', icon: 'sparkle', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.generateImageDialog(ed)); } },
-    { id: 'edit-image-ai', label: 'Edit with AI...', icon: 'sparkle', enabled: () => !!aiPicture(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.editImageDialog(ed)); } },
+    { id: 'insert-ai-image', label: 'Generate with AI...', icon: 'ai', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.generateImageDialog(ed)); } },
+    { id: 'edit-image-ai', label: 'Edit with AI...', icon: 'ai', enabled: () => !!aiPicture(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.editImageDialog(ed)); } },
     { id: 'insert-icons', label: 'Icons...', icon: 'iconLib', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-icons').then((m) => m.iconsDialog(ed)); } },
     { id: 'media-trim', label: () => (clip()?.kind === 'audio' ? 'Trim Audio...' : 'Trim Video...'), icon: 'trim', enabled: () => !!clip(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-media').then((m) => m.trimDialog(ed)); } },
     { id: 'media-poster-frame', label: 'Poster Frame from Video...', icon: 'film', enabled: () => !!clip('video'), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-media').then((m) => m.posterFrameDialog(ed)); } },
