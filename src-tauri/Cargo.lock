@@ -1118,6 +1118,8 @@ name = "formdeck"
 version = "0.26.1"
 dependencies = [
  "fontdb",
+ "gtk",
+ "objc2-app-kit",
  "regex",
  "serde",
  "serde_json",

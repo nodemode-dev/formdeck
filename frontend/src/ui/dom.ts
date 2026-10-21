@@ -78,7 +78,33 @@ export function reserve(el: HTMLElement, box: { width?: number; height?: number;
 
 export function revealApp(): void {
   if (document.body.classList.contains('app-ready')) return;
-  requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.add('app-ready')));
+  let done = false;
+  const go = (): void => {
+    if (done) return;
+    done = true;
+    document.body.classList.add('app-ready');
+    if (!('__TAURI_INTERNALS__' in window)) return;
+    const shown = (): void => {
+      const imgs = Array.from(document.querySelectorAll<HTMLImageElement>('#app img')).filter((i) => i.getClientRects().length > 0);
+      const decoded = Promise.allSettled(imgs.map((i) => i.decode()));
+      const previews = new Promise<void>((r) => {
+        const t0 = performance.now();
+        const look = (): void => {
+          const empty = Array.from(document.querySelectorAll<HTMLElement>('.fd-home:not([hidden]) .fd-card-preview[data-tpl]:empty')).some((p) => { const b = p.getBoundingClientRect(); return b.width > 0 && b.top < window.innerHeight; });
+          if (!empty || performance.now() - t0 > 1400) r(); else window.setTimeout(look, 40);
+        };
+        look();
+      });
+      void Promise.race([Promise.all([decoded, previews]), new Promise((r) => window.setTimeout(r, 1500))]).then(() => requestAnimationFrame(() => requestAnimationFrame(() => { void import('@tauri-apps/api/core').then((m) => m.invoke('app_shown')).catch(() => undefined); })));
+    };
+    (window as unknown as { __fdShown?: () => void }).__fdShown = shown;
+    const base = document.querySelector('.fd-home:not([hidden])') ?? document.querySelector('.fd-app') ?? document.body;
+    const rgb = (getComputedStyle(base).backgroundColor.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map((n) => Math.round(Number(n)));
+    const bg = rgb.length === 3 ? rgb : null;
+    void document.fonts.ready.then(() => import('@tauri-apps/api/core')).then((m) => m.invoke('app_ready', { bg })).catch(() => undefined);
+  };
+  requestAnimationFrame(() => requestAnimationFrame(go));
+  window.setTimeout(go, 120);
 }
 
 export function mountOnce(host: HTMLElement, html: string): void {

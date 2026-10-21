@@ -13,12 +13,16 @@
         "title": "formdeck",
         "url": "splash.html",
         "width": 360,
-        "height": 180,
+        "height": 220,
         "resizable": false,
         "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
         "center": true
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
