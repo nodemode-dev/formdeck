@@ -181,9 +181,10 @@ function tableBlock(ctx: Ctx, el: TableElement, c: Chain): string {
 
 function mediaBlock(ctx: Ctx, el: MediaElement): string {
   if (el.kind === 'audio') return `<div class="fd-audio" title="${esc(ctx.deck.media[el.src]?.name ?? 'Audio')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg></div>`;
-  const poster = el.poster ? ` poster="${mediaUrl(el.poster)}"` : '';
   const live = ctx.mode === 'show';
-  return `<video class="fd-video" src="${mediaUrl(el.src)}${el.poster ? '' : `#t=${el.start ?? 0.1}`}"${poster} preload="metadata" playsinline${live ? (el.autoplay ? ' disablepictureinpicture disableremoteplayback' : ' controls') : ''}${el.loop ? ' loop' : ''}${live && el.autoplay ? ' autoplay' : ''} muted></video>`;
+  const still = live && el.autoplay ? undefined : el.poster;
+  const poster = still ? ` poster="${mediaUrl(still)}"` : '';
+  return `<video class="fd-video${live && el.autoplay ? ' is-auto' : ''}" src="${mediaUrl(el.src)}${still ? '' : `#t=${el.start ?? 0.1}`}"${poster} preload="${live && el.autoplay ? 'auto' : 'metadata'}" playsinline${live ? (el.autoplay ? ' disablepictureinpicture disableremoteplayback' : ' controls') : ''}${el.loop ? ' loop' : ''}${live && el.autoplay ? ' autoplay' : ''} muted></video>`;
 }
 
 export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: string; kind: string } {
@@ -378,6 +379,7 @@ export class SlideView {
       } else if (this.sigs.get(item.key) !== sig && (!editing || this.boxSigs.get(item.key) === boxless)) {
         if (this.boxSigs.get(item.key) === boxless && item.el.type !== 'group') node.setAttribute('style', elementHtml(ctx, item.el).box);
         else if (item.el.type === 'image' && !item.prompt && this.patchImage(node, ctx, item.el)) fit.push(node);
+        else if (item.el.type === 'media' && !item.prompt && this.patchMedia(node, ctx, item.el)) fit.push(node);
         else { paint(node, item); fit.push(node); }
         this.sigs.set(item.key, sig);
         this.boxSigs.set(item.key, boxless);
@@ -430,6 +432,28 @@ export class SlideView {
     node.setAttribute('style', h.box);
     node.innerHTML = prompt ? this.promptInner(local, el, h.inner) : h.inner;
     if (el.type === 'image' && el.model) hydrateModels(node);
+  }
+
+  private patchMedia(node: HTMLElement, ctx: Ctx, el: SlideElement): boolean {
+    if (el.type !== 'media' || el.kind !== 'video' || node.childElementCount !== 1) return false;
+    const v = node.firstElementChild;
+    if (!(v instanceof HTMLVideoElement)) return false;
+    const h = elementHtml(ctx, el);
+    const t = document.createElement('template');
+    t.innerHTML = h.inner;
+    const next = t.content.firstElementChild;
+    if (!(next instanceof HTMLVideoElement) || t.content.childElementCount !== 1) return false;
+    const base = (s: string | null): string => (s ?? '').split('#')[0];
+    if (base(next.getAttribute('src')) !== base(v.getAttribute('src'))) return false;
+    node.setAttribute('style', h.box);
+    node.classList.toggle('is-locked', !!el.locked);
+    node.classList.toggle('is-ph', !!el.ph);
+    const own = (n: string): boolean => n === 'src' || n === 'style' || n.startsWith('data-');
+    for (const a of Array.from(v.attributes)) if (!own(a.name) && !next.hasAttribute(a.name)) v.removeAttribute(a.name);
+    for (const a of Array.from(next.attributes)) if (!own(a.name) && v.getAttribute(a.name) !== a.value) v.setAttribute(a.name, a.value);
+    const at = /#t=([\d.]+)/.exec(next.getAttribute('src') ?? '');
+    if (at && v.paused && Math.abs(v.currentTime - Number(at[1])) > 0.05) v.currentTime = Number(at[1]);
+    return true;
   }
 
   private patchImage(node: HTMLElement, ctx: Ctx, el: SlideElement): boolean {

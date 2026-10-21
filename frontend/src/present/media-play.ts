@@ -70,7 +70,7 @@ export function preparePlayback(a: HTMLMediaElement, m: MediaElement, node: HTML
   a.loop = !!m.loop && !m.end;
   a.muted = showMuted || !!m.muted;
   if (a.paused && (reset || !prev)) {
-    if (!m.poster) a.currentTime = m.start ?? 0;
+    if (!m.poster || m.autoplay) a.currentTime = m.start ?? 0;
     else if (a.currentTime > 0.05) a.load();
   }
   a.ontimeupdate = null;

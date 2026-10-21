@@ -25,6 +25,7 @@
 .fd-cell-paint.has-color .fd-r, .fd-cell-paint.has-color .fd-bu { color: var(--cell-color) !important; }
 .fd-cell-paint.is-bold .fd-r { font-weight: 700; }
 .fd-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.fd-video.is-auto { background: transparent; }
 .fd-audio { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--accent-color) 18%, transparent); color: var(--accent-color); }
 .fd-audio svg { width: 60%; height: 60%; }
 .fd-el.is-prompt { pointer-events: auto; cursor: text; }
