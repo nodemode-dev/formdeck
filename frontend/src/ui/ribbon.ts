@@ -621,6 +621,8 @@ export class Ribbon {
     const groups = Array.from(panel.children).filter((n): n is HTMLElement => n.classList.contains('fd-rb-group') && !(n as HTMLElement).hidden);
     const key = `${this.tab}|${this.rev}|${this.compact ? 'c' : 'f'}|${Math.round(avail)}|${groups.map((g) => g.dataset.g).join(',')}`;
     if (!groups.length || key === this.fitKey) return;
+    setStyleVar(panel, '--rb-gap', '');
+    setStyleVar(panel, '--rb-pad', '');
     this.measure(groups);
     const ms = groups.map((g) => this.meas.get(g) as Meas);
     const pick = ms.map(() => 0);
@@ -653,11 +655,24 @@ export class Ribbon {
     }
     const ae = document.activeElement as HTMLElement | null;
     groups.forEach((g, i) => this.setStep(g, ms[i].steps[pick[i]]));
+    if (!this.compact) this.spread(panel, groups, avail);
     if (this.popGroup && this.popGroup.dataset.lv !== '3') this.closePop(false);
     else if (this.popGroup) this.placePop();
     const lost = ae?.closest?.('.fd-rb-group[data-lv="3"]');
     if (lost && ae?.closest('.fd-rb-gbody')) lost.querySelector<HTMLElement>('.fd-rb-gbtn')?.focus();
     this.fitKey = key;
+  }
+
+  private spread(panel: HTMLElement, groups: HTMLElement[], avail: number): void {
+    const width = (): number => groups.reduce((s, g) => s + g.getBoundingClientRect().width, 0);
+    const base = width();
+    if (avail - base < 2) return;
+    setStyleVar(panel, '--rb-gap', '1px');
+    const slope = width() - base;
+    const gap = slope > 0 ? Math.min(6, Math.floor(((avail - base) / 2 / slope) * 2) / 2) : 0;
+    setStyleVar(panel, '--rb-gap', gap ? `${gap}px` : '');
+    const pad = Math.min(40, Math.floor(((avail - width()) / (groups.length * 2)) * 2) / 2);
+    setStyleVar(panel, '--rb-pad', pad > 0 ? `${pad}px` : '');
   }
 
   private candidates(g: HTMLElement): Step[] {
