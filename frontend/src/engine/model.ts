@@ -127,7 +127,7 @@ export interface MediaInfo { name: string; mime: string; w?: number; h?: number;
 export interface CustomShow { id: string; name: string; slides: string[] }
 export interface ShowSettings {
   kiosk?: boolean; loop?: boolean; range?: { from: number; to: number } | null; customShow?: string | null;
-  useTimings?: boolean; noAnimation?: boolean; noNarration?: boolean; pen?: string;
+  useTimings?: boolean; noAnimation?: boolean; noNarration?: boolean; pen?: string; mediaControls?: boolean;
 }
 export interface DeckMeta { created?: string; modified?: string; author?: string; template?: string; app?: string; [k: string]: unknown }
 export interface Guide { id: string; axis: 'x' | 'y'; pos: number; color?: string }

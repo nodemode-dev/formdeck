@@ -214,6 +214,21 @@ class MediaStore:
     def exists(self, media_id: str) -> bool:
         return self.path(media_id) is not None
 
+    def still_path(self, media_id: str, ms: int) -> Path | None:
+        if self.path(media_id) is None or not 0 <= ms <= 86_400_000:
+            return None
+        return self.root / "stills" / f"{media_id}_{ms}.jpg"
+
+    def put_still(self, media_id: str, ms: int, data: bytes) -> bool:
+        p = self.still_path(media_id, ms)
+        if p is None or not data.startswith(b"\xff\xd8") or len(data) > 20_000_000:
+            return False
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmp = p.with_suffix(".tmp")
+        tmp.write_bytes(data)
+        tmp.replace(p)
+        return True
+
 
 _store: MediaStore | None = None
 

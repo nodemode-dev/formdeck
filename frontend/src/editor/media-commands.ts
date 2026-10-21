@@ -4,6 +4,7 @@ import type { Command, Commands } from '../ui/commands';
 import { dirtyOp } from './actions';
 import type { Editor } from './editor';
 import { startMode, VOLUMES, volumeLevel } from './media-panel';
+import { setEditorMediaControls } from '../render/slide';
 
 export function registerMediaCommands(cmds: Commands, E: () => Editor | null): void {
   const clip = (kind?: 'video'): MediaElement | undefined => {
@@ -84,8 +85,30 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
     flag('media-hide', 'Hide While Not Playing', 'hideInShow', 'eyeOff'),
     flag('media-loop', 'Loop until Stopped', 'loop', 'refresh'),
     flag('media-rewind', 'Rewind after Playing', 'rewind', 'undo'),
+    {
+      id: 'media-controls-editor', label: 'Player in Editor', icon: 'film', checked: () => editorControls,
+      run: () => {
+        editorControls = !editorControls;
+        setEditorMediaControls(editorControls);
+        try { localStorage.setItem(EDITOR_CONTROLS_KEY, editorControls ? '1' : '0'); } catch { void 0; }
+        for (const v of Array.from(document.querySelectorAll<HTMLVideoElement>('.fd-slide.is-edit video.fd-video'))) v.controls = editorControls;
+      },
+    },
+    {
+      id: 'media-controls-show', label: 'Player in Slide Show', icon: 'present', enabled: () => !!E(), checked: () => !!E()?.doc.deck.show?.mediaControls,
+      run: () => {
+        const ed = E();
+        if (!ed) return;
+        const on = !ed.doc.deck.show?.mediaControls;
+        ed.apply([ed.doc.deck.show ? { op: 'set', path: ['show', 'mediaControls'], ...(on ? { value: true } : {}) } : { op: 'set', path: ['show'], value: { mediaControls: true } }], on ? 'Show the video player in the slide show' : 'Hide the video player in the slide show');
+      },
+    },
   );
 }
+
+const EDITOR_CONTROLS_KEY = 'formdeck.editorMediaControls';
+let editorControls = ((): boolean => { try { return localStorage.getItem(EDITOR_CONTROLS_KEY) === '1'; } catch { return false; } })();
+setEditorMediaControls(editorControls);
 
 export const MEDIA_START_MENU = ['media-start-sequence', 'media-start-auto', 'media-start-click'];
 export const MEDIA_VOLUME_MENU = ['media-volume-low', 'media-volume-medium', 'media-volume-high', 'media-volume-mute'];

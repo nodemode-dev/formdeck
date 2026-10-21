@@ -4,6 +4,7 @@ import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { api } from './io/api';
 import { LiveClient } from './live/socket';
 import { ensureFonts, fontsOfDeck } from './render/fonts';
+import { prepareStills } from './render/video-still';
 import { brandMark } from './ui/brand';
 import { pickColor } from './ui/colorpop';
 import { Commands, comboOf } from './ui/commands';
@@ -167,6 +168,7 @@ export async function startApp(): Promise<void> {
     for (const off of editorOff) off();
     editorOff = [];
     if (editor && editor.doc !== doc) { live.close(editor.doc.id); editor.dispose(); }
+    prepareStills(doc.deck);
     const ed = new Editor(doc, { stage: stageEl, stripScroll: q(root, '.fd-strip-scroll'), stripCount: q(root, '.fd-strip-count'), notes: q<HTMLTextAreaElement>(root, '.fd-notes-text'), title: q<HTMLInputElement>(root, '.fd-doc-title') }, commands, contextMenu, live);
     editor = ed;
     layoutCommands(commands, ed);

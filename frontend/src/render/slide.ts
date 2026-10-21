@@ -11,9 +11,12 @@ import { fitText, textHtml, type TextCtx } from './text';
 import { activeWarp, drawTextFx, needsOverlay } from './text-fx';
 import { cssTransform3d, depthSteps, fx3Of, layers3d } from './fx3d';
 import { canvasSpec, hydrateModels, modelLive, viewOf } from './model3d';
+import { requestStill, stillUrl, watchStills } from './video-still';
 
 export type RenderMode = 'edit' | 'thumb' | 'show' | 'print';
 export const mediaUrl = (id: string): string => `/api/media/${id}`;
+let editorMediaControls = false;
+export function setEditorMediaControls(on: boolean): void { editorMediaControls = on; }
 
 function slideBackground(fill: Fill, theme: Deck['theme']): string {
   if (fill.type === 'none') return '#ffffff';
@@ -182,9 +185,11 @@ function tableBlock(ctx: Ctx, el: TableElement, c: Chain): string {
 function mediaBlock(ctx: Ctx, el: MediaElement): string {
   if (el.kind === 'audio') return `<div class="fd-audio" title="${esc(ctx.deck.media[el.src]?.name ?? 'Audio')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg></div>`;
   const live = ctx.mode === 'show';
-  const still = live ? undefined : el.poster;
-  const poster = still ? ` poster="${mediaUrl(still)}"` : '';
-  return `<video class="fd-video${live ? ' is-auto' : ''}" src="${mediaUrl(el.src)}${still ? '' : `#t=${el.start ?? (live ? 0 : 0.1)}`}"${poster} preload="${live ? 'auto' : 'metadata'}" playsinline${live ? ' disablepictureinpicture disableremoteplayback' : ''}${el.loop ? ' loop' : ''} muted></video>`;
+  const stage = live || ctx.mode === 'edit';
+  const t0 = el.start ?? 0;
+  const still = stage ? stillUrl(el.src, t0) : el.poster ? mediaUrl(el.poster) : '';
+  const controls = live ? !!ctx.deck.show?.mediaControls : stage && editorMediaControls;
+  return `<video class="fd-video${stage ? ' is-auto' : ''}" src="${mediaUrl(el.src)}${stage ? `#t=${t0}` : still ? '' : `#t=${el.start ?? 0.1}`}"${still ? ` poster="${still}"` : ''}${stage ? ` data-still="${el.src}|${t0}"` : ''} preload="${live ? 'auto' : 'metadata'}" playsinline${controls ? ' controls' : ''}${live ? ' disablepictureinpicture disableremoteplayback' : ''}${el.loop ? ' loop' : ''} muted></video>`;
 }
 
 export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: string; kind: string } {
@@ -248,6 +253,7 @@ export class SlideView {
 
   constructor(private readonly getDeck: () => Deck, slideId: string, readonly mode: RenderMode, readonly holder: HolderKind = 'slide') {
     this.slideId = slideId;
+    if (mode === 'edit' || mode === 'show') watchStills();
     this.el = document.createElement('div');
     this.el.className = `fd-slide is-${mode}${holder === 'slide' ? '' : ' is-holder'}`;
     this.inner = document.createElement('div');
@@ -450,7 +456,9 @@ export class SlideView {
     node.classList.toggle('is-ph', !!el.ph);
     const own = (n: string): boolean => n === 'src' || n === 'style' || n.startsWith('data-');
     for (const a of Array.from(v.attributes)) if (!own(a.name) && !next.hasAttribute(a.name)) v.removeAttribute(a.name);
-    for (const a of Array.from(next.attributes)) if (!own(a.name) && v.getAttribute(a.name) !== a.value) v.setAttribute(a.name, a.value);
+    for (const a of Array.from(next.attributes)) if (!own(a.name) && v.getAttribute(a.name) !== a.value && !(a.name === 'poster' && (v.getAttribute('poster') ?? '').startsWith(`${a.value}&r=`))) v.setAttribute(a.name, a.value);
+    const key = next.dataset.still;
+    if (key && v.dataset.still !== key) { v.dataset.still = key; requestStill(key); }
     const at = /#t=([\d.]+)/.exec(next.getAttribute('src') ?? '');
     if (at && v.paused && Math.abs(v.currentTime - Number(at[1])) > 0.05) v.currentTime = Number(at[1]);
     return true;

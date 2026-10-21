@@ -176,6 +176,7 @@ function ribbonTabs(): TabDef[] {
       G('editing', 'Editing', L('media-trim', 'Trim')),
       G('options', 'Video Options', M('mstart', 'play', 'Start', [...MEDIA_START_MENU]), M('mvolume', 'speaker', 'Volume', [...MEDIA_VOLUME_MENU]), L('media-fullscreen', 'Play Full Screen'), L('media-hide', 'Hide While Not Playing'), L('media-loop', 'Loop until Stopped'), L('media-rewind', 'Rewind after Playing')),
       G('poster', 'Poster', M('poster', 'image', 'Poster Frame', ['media-poster-frame', 'media-poster-picture', 'media-poster-reset'])),
+      G('player', 'Video Player', L('media-controls-editor', 'In Editor'), L('media-controls-show', 'In Slide Show')),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       arrangeGroup(),
     ] },
@@ -498,7 +499,12 @@ export class Toolbar {
     if (ed && ed.selected().some((e) => e.type === 'group' && !!e.diagram)) ids.push('smartart');
     if (ed && ed.selected().some((e) => e.type === 'image' && !!e.model)) { ids.push('model3d'); const i = ids.indexOf('picfmt'); if (i >= 0) ids.splice(i, 1); }
     rb.setContext(ids, labels);
+    const picked = media?.id ?? '';
+    if (picked && picked !== this.pickedMedia) rb.select('playback');
+    this.pickedMedia = picked;
   }
+
+  private pickedMedia = '';
 
   sync(): void {
     const ed = this.ed;

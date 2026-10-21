@@ -13,6 +13,7 @@ import { camerasOf } from '../editor/camera';
 import { plainText } from '../engine/resolve';
 import { effectFx, morph, transitionPlan, type Box, type Dir } from './effects';
 import { mutedOf, preparePlayback, seekBookmark } from './media-play';
+import { prepareStills } from '../render/video-still';
 import { Recorder } from './recorder';
 import { buildState, buildSteps, displaced, type Item, type Step, type Unit } from './steps';
 import { usePresenterView } from './presenter-prefs';
@@ -330,6 +331,7 @@ class Show {
   constructor(private readonly opts: ShowOptions, private readonly audienceMode: boolean) {
     this.doc = opts.doc;
     this.set = opts.doc.deck.show ?? {};
+    prepareStills(opts.doc.deck);
     this.prevFocus = document.activeElement;
     this.root = el(ROOT);
     const r = this.root;
@@ -977,7 +979,7 @@ class Show {
     }
     if (elm?.type === 'media') {
       const a = elm.kind === 'audio' ? this.audioFor(this.cur, elm) : node?.querySelector('video');
-      if (a) { if (a.paused) this.playMedia(a); else a.pause(); }
+      if (a && !(a instanceof HTMLVideoElement && a.controls)) { if (a.paused) this.playMedia(a); else a.pause(); }
       return;
     }
     if (this.doc.slide(this.cur)?.transition?.advanceOnClick === false || this.kiosk()) return;
