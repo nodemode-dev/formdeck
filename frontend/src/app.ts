@@ -5,6 +5,7 @@ import { api } from './io/api';
 import { LiveClient } from './live/socket';
 import { ensureFonts, fontsOfDeck } from './render/fonts';
 import { prepareStills } from './render/video-still';
+import { editorMediaControlsOn } from './render/slide';
 import { brandMark } from './ui/brand';
 import { pickColor } from './ui/colorpop';
 import { Commands, comboOf } from './ui/commands';
@@ -67,6 +68,7 @@ const SHELL = `<div class="fd-app">
 <div class="fd-title-tools">
 <button class="fd-icon-btn" type="button" data-cmd="undo" title="Undo">${icon('undo', 16)}</button>
 <button class="fd-icon-btn" type="button" data-cmd="redo" title="Redo">${icon('redo', 16)}</button>
+<button class="fd-tt-btn" type="button" data-cmd="preferences" title="Settings" aria-label="Settings">${icon('settings', 16)}</button>
 <span class="fd-sep"></span><button class="fd-tt-btn" type="button" data-cmd="command-palette" title="Find a Command">${icon('commandPalette', 16)}</button><button class="fd-tt-btn" type="button" data-cmd="agent-chat" title="Chat with Claude">${icon('agentChat', 16)}</button><button class="fd-tt-btn" type="button" data-cmd="view-terminal" title="Terminal and Claude Code">${icon('terminal', 16)}</button><button class="fd-tt-btn fd-agent-btn" type="button" data-cmd="agents" title="Agents">${icon('agent', 16)}</button>
 <button class="fd-tt-btn" type="button" data-cmd="add-comment" title="Comment">${icon('comment', 16)}</button>
 <button class="fd-share-btn" type="button" data-act="share">${icon('download', 14)}<span>Export</span></button>
@@ -229,7 +231,11 @@ export async function startApp(): Promise<void> {
     setClass(status.dot, 'is-ok', live.connected && !ed.doc.hasPending);
     setClass(status.dot, 'is-warn', !live.connected);
     const sel = ed.selected();
-    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : sel.length ? `${sel.length} selected · Shift-drag a corner toggles proportions, Alt-drag skips snapping` : 'Click a placeholder to type. Drop pictures anywhere.');
+    const player = editorMediaControlsOn() && !!ed.slide?.elements.some((e) => e.type === 'media' && e.kind === 'video');
+    const warn = player && !ed.stage.editing;
+    setClass(status.hint, 'is-warn', warn);
+    if (warn !== (status.hint.dataset.cmd === 'media-controls-editor')) { if (warn) status.hint.dataset.cmd = 'media-controls-editor'; else delete status.hint.dataset.cmd; }
+    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : player ? 'Video player is on in the editor, so videos cannot be moved or edited. Click here to turn it off and resume editing.' : sel.length ? `${sel.length} selected · Shift-drag a corner toggles proportions, Alt-drag skips snapping` : 'Click a placeholder to type. Drop pictures anywhere.');
   }
 
   live.onNotice = (t, k) => toast(t, k);
@@ -396,7 +402,7 @@ export async function startApp(): Promise<void> {
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
-    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', ...(isMacDesktop() ? ['menus-in-window'] : []), '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
+    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', ...(isMacDesktop() ? ['menus-in-window'] : []), 'media-controls-editor', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'change-case', 'clear-format', 'replace-fonts', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', { label: 'Picture', items: ['picture-reset', 'picture-reset-size', 'compress-pictures', '-', 'crop-aspect-1-1', 'crop-aspect-4-3', 'crop-aspect-16-9'] }, 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'design-ideas', 'reset-slide', 'reset-placeholder', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },

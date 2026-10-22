@@ -17,6 +17,7 @@ export type RenderMode = 'edit' | 'thumb' | 'show' | 'print';
 export const mediaUrl = (id: string): string => `/api/media/${id}`;
 let editorMediaControls = false;
 export function setEditorMediaControls(on: boolean): void { editorMediaControls = on; }
+export const editorMediaControlsOn = (): boolean => editorMediaControls;
 
 function slideBackground(fill: Fill, theme: Deck['theme']): string {
   if (fill.type === 'none') return '#ffffff';
@@ -214,7 +215,8 @@ export function elementHtml(ctx: Ctx, el: SlideElement): { box: string; inner: s
   const lineLike = el.type === 'shape' && !el.path && (isLineGeom(geomOf(c)) || geomOf(c) === 'line');
   if (el.type === 'shape' && kind === 'shape' && (lineLike || openPath(el))) kind = 'line';
   const t3 = el.type === 'shape' && !lineLike ? cssTransform3d(fx3Of(el.sp3d, el.scene3d, ctx.deck.theme), f.w, f.h) : '';
-  return { box: boxStyle(f, el, lineLike ? 'overflow:visible;' : '', t3), inner, kind };
+  const still = el.type === 'media' && el.kind === 'video' && (ctx.mode === 'edit' || ctx.mode === 'show') ? `background:url('${stillUrl(el.src, el.start ?? 0)}') center / contain no-repeat;` : '';
+  return { box: boxStyle(f, el, (lineLike ? 'overflow:visible;' : '') + still, t3), inner, kind };
 }
 
 interface Item { key: string; el: SlideElement; prompt: boolean; sk: string }
@@ -454,6 +456,8 @@ export class SlideView {
     node.setAttribute('style', h.box);
     node.classList.toggle('is-locked', !!el.locked);
     node.classList.toggle('is-ph', !!el.ph);
+    const framed = v.classList.contains('is-frame');
+    if (framed) next.classList.add('is-frame');
     const own = (n: string): boolean => n === 'src' || n === 'style' || n.startsWith('data-');
     for (const a of Array.from(v.attributes)) if (!own(a.name) && !next.hasAttribute(a.name)) v.removeAttribute(a.name);
     for (const a of Array.from(next.attributes)) if (!own(a.name) && v.getAttribute(a.name) !== a.value && !(a.name === 'poster' && (v.getAttribute('poster') ?? '').startsWith(`${a.value}&r=`))) v.setAttribute(a.name, a.value);

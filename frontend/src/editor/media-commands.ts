@@ -92,6 +92,11 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
         setEditorMediaControls(editorControls);
         try { localStorage.setItem(EDITOR_CONTROLS_KEY, editorControls ? '1' : '0'); } catch { void 0; }
         for (const v of Array.from(document.querySelectorAll<HTMLVideoElement>('.fd-slide.is-edit video.fd-video'))) v.controls = editorControls;
+        const ed = E();
+        if (ed && editorControls) {
+          const keep = ed.selection.filter((id) => { const el = ed.element(id); return !(el?.type === 'media' && el.kind === 'video'); });
+          if (keep.length !== ed.selection.length) ed.select(keep);
+        }
       },
     },
     {

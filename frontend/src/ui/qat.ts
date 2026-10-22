@@ -3,7 +3,8 @@ import { el, patchList, setClass, setDisabled, setTitle } from './dom';
 import { hasIcon, icon } from './icons';
 
 export const QAT_KEY = 'formdeck.qat';
-export const DEFAULT_QAT = ['save', 'undo', 'redo', 'present-start'];
+export const DEFAULT_QAT = ['save'];
+const MOVED_OUT = ['undo', 'redo', 'present-start'];
 
 const ICON_FALLBACK: Record<string, string> = {
   'new-deck': 'newFile', open: 'load', 'save-as': 'save', 'save-version': 'history', 'save-template': 'template', cut: 'cut', copy: 'copy', paste: 'paste', 'select-all': 'selectAll',
@@ -30,7 +31,7 @@ export function plainLabel(commands: Commands, id: string): string {
   return cmd ? commands.label(cmd).replace(/\.\.\.$/, '').replace(/…$/, '') : id;
 }
 
-interface QatState { items: string[] }
+interface QatState { items: string[]; v?: number }
 
 export class Qat {
   readonly node: HTMLElement;
@@ -76,12 +77,13 @@ export class Qat {
       const raw = localStorage.getItem(QAT_KEY);
       if (!raw) return;
       const s = JSON.parse(raw) as Partial<QatState>;
-      if (Array.isArray(s.items)) this.items = s.items.filter((x): x is string => typeof x === 'string');
+      if (Array.isArray(s.items)) this.items = s.items.filter((x): x is string => typeof x === 'string' && (s.v === 2 || !MOVED_OUT.includes(x)));
+      if (s.v !== 2) this.save();
     } catch { return; }
   }
 
   private save(): void {
-    try { localStorage.setItem(QAT_KEY, JSON.stringify({ items: this.items } satisfies QatState)); } catch { return; }
+    try { localStorage.setItem(QAT_KEY, JSON.stringify({ items: this.items, v: 2 } satisfies QatState)); } catch { return; }
   }
 
   has(id: string): boolean { return this.items.includes(id); }

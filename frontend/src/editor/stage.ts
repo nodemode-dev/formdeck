@@ -20,6 +20,9 @@ import { buzz, installInputKind, isTouchInput, Press } from '../ui/touch';
 import { aidPrefs, noteContextPoint, StageAids } from './rulers';
 import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
+import { editorMediaControlsOn } from '../render/slide';
+
+const playerUnder = (e: MouseEvent): boolean => editorMediaControlsOn() && document.elementsFromPoint(e.clientX, e.clientY).some((n) => n instanceof HTMLVideoElement && n.controls);
 
 type Drag =
   | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean; edit?: { id: string; x: number; y: number }; pick?: string; copy?: boolean; toggle?: string; delta?: { dx: number; dy: number } }
@@ -437,7 +440,7 @@ export class Stage {
 
   private hoverAt(e: PointerEvent): void {
     const slide = this.slide();
-    if (this.drag || this.editing || e.pointerType === 'touch' || !slide || !this.view || this.viewOnly() || e.buttons) { if (this.hoverId) this.hoverHide(); return; }
+    if (this.drag || this.editing || e.pointerType === 'touch' || !slide || !this.view || this.viewOnly() || e.buttons || playerUnder(e)) { if (this.hoverId) this.hoverHide(); return; }
     const hit = this.hitElement(e.target);
     const el = hit.id && !hit.ph ? this.ed.element(hit.id) : undefined;
     if (!el || this.ed.selection.includes(el.id) || el.hidden) { if (this.hoverId) this.hoverHide(); return; }
@@ -468,6 +471,7 @@ export class Stage {
       return;
     }
     const target = e.target as HTMLElement;
+    if (playerUnder(e)) return;
     const handle = target.closest?.('.fd-handle') as HTMLElement | null;
     const slide = this.slide();
     if (!slide) return;
@@ -1160,7 +1164,7 @@ export class Stage {
   }
 
   private dbl(e: MouseEvent): void {
-    if (performance.now() - this.dblAt < 700 || this.viewOnly()) return;
+    if (performance.now() - this.dblAt < 700 || this.viewOnly() || playerUnder(e)) return;
     this.dblHit(e.target, e.clientX, e.clientY, false);
   }
 

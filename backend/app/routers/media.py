@@ -87,16 +87,16 @@ def get_media(media_id: str):
 
 
 @router.get("/media/{media_id}/still")
-def get_still(media_id: str, ms: int = 0):
-    p = mediamod.store().still_path(media_id, ms)
+def get_still(media_id: str, ms: int = 0, v: int = 1):
+    p = mediamod.store().still_path(media_id, ms, v)
     if p is None or not p.exists():
         raise HTTPException(404, "no still yet", headers={"Cache-Control": "no-store"})
-    return FileResponse(p, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=31536000, immutable"})
+    return FileResponse(p, media_type="image/jpeg", headers={"Cache-Control": "no-cache"})
 
 
 @router.put("/media/{media_id}/still")
-async def put_still(media_id: str, request: Request, ms: int = 0) -> dict:
-    if not mediamod.store().put_still(media_id, ms, await request.body()):
+async def put_still(media_id: str, request: Request, ms: int = 0, v: int = 1) -> dict:
+    if not mediamod.store().put_still(media_id, ms, await request.body(), v):
         raise HTTPException(422, "not a JPEG still of a known video")
     return {"ok": True}
 

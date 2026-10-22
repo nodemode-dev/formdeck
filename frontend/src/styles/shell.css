@@ -180,6 +180,8 @@ body.theme-light .fd-seg button.is-on { color: color-mix(in srgb, var(--accent-c
 .fd-st-busy { min-width: 80px; color: var(--text-secondary); visibility: hidden; }
 .fd-st-busy.is-shown { visibility: visible; }
 .fd-st-hint { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fd-st-hint.is-warn { color: var(--warn); cursor: pointer; }
+.fd-st-hint.is-warn:hover { text-decoration: underline; }
 .fd-st-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
 .fd-st-dot.is-ok { background: var(--ok); }
 .fd-st-dot.is-warn { background: var(--warn); }

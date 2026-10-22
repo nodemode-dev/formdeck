@@ -1,6 +1,7 @@
 import type { Deck, SlideElement } from '../engine/model';
 
-export const stillUrl =(src: string, t: number): string => `/api/media/${src}/still?ms=${Math.max(0, Math.round(t * 1000))}`;
+export const stillUrl =(src: string, t: number): string => `/api/media/${src}/still?ms=${Math.max(0, Math.round(t * 1000))}&v=${STILL_VERSION}`;
+const STILL_VERSION = 2;
 
 const known = new Map<string, Promise<boolean>>();
 let watching = false;
@@ -15,6 +16,59 @@ function once(v: HTMLVideoElement, ev: string, ms: number): Promise<boolean> {
   });
 }
 
+type FrameVideo = HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
+
+function presented(v: FrameVideo): Promise<void> {
+  return new Promise((r) => {
+    const timer = window.setTimeout(r, 400);
+    const done = (): void => { window.clearTimeout(timer); r(); };
+    if (v.requestVideoFrameCallback && v.isConnected) v.requestVideoFrameCallback(done);
+    else requestAnimationFrame(() => requestAnimationFrame(done));
+  });
+}
+
+function snapshot(v: HTMLVideoElement): Promise<Blob | null> {
+  const w = v.videoWidth, h = v.videoHeight;
+  if (!w || !h) return Promise.resolve(null);
+  const k = Math.min(1, 1920 / w);
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * k);
+  c.height = Math.round(h * k);
+  c.getContext('2d')?.drawImage(v, 0, 0, c.width, c.height);
+  return new Promise<Blob | null>((r) => c.toBlob(r, 'image/jpeg', 0.92));
+}
+
+const settling = new WeakSet<HTMLVideoElement>();
+
+async function settle(v: HTMLVideoElement): Promise<void> {
+  if (settling.has(v) || v.classList.contains('is-frame') || v.readyState < 2) return;
+  settling.add(v);
+  const key = v.dataset.still ?? '';
+  const t = Number(key.slice(key.lastIndexOf('|') + 1)) || 0;
+  if (v.paused && t > 0) {
+    const seeked = once(v, 'seeked', 3000);
+    v.currentTime = t;
+    await seeked;
+  }
+  await presented(v as FrameVideo);
+  settling.delete(v);
+  v.classList.add('is-frame');
+}
+
+async function store(src: string, t: number, blob: Blob): Promise<boolean> {
+  const url = stillUrl(src, t);
+  const put = await fetch(url, { method: 'PUT', body: blob, headers: { 'Content-Type': 'image/jpeg' } }).then((r) => r.ok, () => false);
+  if (!put) return false;
+  const fresh = `${url}&r=${Date.now()}`;
+  held.delete(url);
+  hold(fresh);
+  held.set(url, held.get(fresh) as HTMLImageElement);
+  for (const v of Array.from(document.querySelectorAll<HTMLVideoElement>('video[data-still]'))) {
+    if (v.dataset.still === `${src}|${t}`) v.poster = fresh;
+  }
+  return true;
+}
+
 async function capture(src: string, t: number): Promise<Blob | null> {
   const v = document.createElement('video');
   v.muted = true;
@@ -22,24 +76,22 @@ async function capture(src: string, t: number): Promise<Blob | null> {
   v.preload = 'auto';
   v.src = `/api/media/${src}#t=${t}`;
   try {
+    v.setAttribute('style', 'position:fixed;left:0;top:0;width:4px;height:4px;opacity:0;pointer-events:none');
+    v.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(v);
     if (v.readyState < 2 && !(await once(v, 'loadeddata', 20000))) return null;
-    if (Math.abs(v.currentTime - t) > 0.02) {
-      v.currentTime = t;
-      if (!(await once(v, 'seeked', 10000))) return null;
-    }
-    const w = v.videoWidth, h = v.videoHeight;
-    if (!w || !h) return null;
-    const k = Math.min(1, 1920 / w);
-    const c = document.createElement('canvas');
-    c.width = Math.round(w * k);
-    c.height = Math.round(h * k);
-    c.getContext('2d')?.drawImage(v, 0, 0, c.width, c.height);
-    return await new Promise<Blob | null>((r) => c.toBlob(r, 'image/jpeg', 0.92));
+    const seeked = once(v, 'seeked', 10000);
+    v.currentTime = t;
+    if (!(await seeked)) return null;
+    await presented(v as FrameVideo);
+    return await snapshot(v);
   } catch {
     return null;
   } finally {
+    v.pause();
     v.removeAttribute('src');
     v.load();
+    v.remove();
   }
 }
 
@@ -71,15 +123,7 @@ async function ensure(src: string, t: number): Promise<boolean> {
   const job = queue.then(() => capture(src, t));
   queue = job.then(() => undefined, () => undefined);
   const blob = await job;
-  if (!blob) return false;
-  const put = await fetch(url, { method: 'PUT', body: blob, headers: { 'Content-Type': 'image/jpeg' } }).then((r) => r.ok, () => false);
-  if (!put) return false;
-  hold(url);
-  const fresh = `${url}&r=${Date.now()}`;
-  for (const v of Array.from(document.querySelectorAll<HTMLVideoElement>('video[data-still]'))) {
-    if (v.dataset.still === `${src}|${t}`) v.poster = fresh;
-  }
-  return true;
+  return blob ? store(src, t, blob) : false;
 }
 
 export function requestStill(key: string): void {
@@ -94,5 +138,13 @@ export function watchStills(): void {
   document.addEventListener('loadedmetadata', (e) => {
     const v = e.target;
     if (v instanceof HTMLVideoElement && v.dataset.still) requestStill(v.dataset.still);
+  }, true);
+  document.addEventListener('loadeddata', (e) => {
+    const v = e.target;
+    if (v instanceof HTMLVideoElement && v.dataset.still && v.isConnected) void settle(v);
+  }, true);
+  document.addEventListener('playing', (e) => {
+    const v = e.target;
+    if (v instanceof HTMLVideoElement && v.dataset.still) v.classList.add('is-frame');
   }, true);
 }
