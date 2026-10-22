@@ -64,7 +64,7 @@
   "plugins": {
     "updater": {
       "pubkey": "",
-      "endpoints": ["https://github.com/nodemode-ai/formdeck/releases/latest/download/latest.json"]
+      "endpoints": ["https://github.com/nodemode-ai/formcompiler/releases/download/formdeck-updates/latest.json"]
     }
   }
 }
