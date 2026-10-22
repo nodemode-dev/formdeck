@@ -70,7 +70,7 @@ On Windows: `build_app.bat`. It checks the system (Python 3.12+, Node 20.19+, th
 
 Each package carries the engine as a frozen sidecar, so nothing else needs installing. Linux builds need `libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, `libxdo-dev`, `libssl-dev`, `patchelf` and `rpm`; video playback needs the GStreamer base and good plugins, which the .deb and .rpm recommend and the AppImage carries. Signing and notarising are optional and switch on when the Apple and updater secrets are set. FreeBSD has no desktop package because Tauri does not support it; the browser build needs only Python and Node, but it has not been tested there.
 
-CI builds every row above in `.github/workflows/desktop.yml` on each version tag.
+formcompiler (`nodemode-ai/formcompiler`) builds every row above from a `compile_vX.Y.Z` branch and drafts the release `formdeck-vX.Y.Z` on its own release page.
 
 ## Layout
 

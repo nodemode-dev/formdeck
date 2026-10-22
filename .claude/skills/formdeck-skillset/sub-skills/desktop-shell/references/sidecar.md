@@ -29,7 +29,7 @@ The frozen engine (Python, dependencies, the built frontend, fonts) and the Taur
 
 ## Updater and signing
 
-The updater plugin checks `releases/latest/download/latest.json`; updater artifacts are produced only when `TAURI_SIGNING_PRIVATE_KEY` is set in CI (`createUpdaterArtifacts` passed through `--config`). macOS signing and notarisation use the Apple secrets when present; without them the workflow builds unsigned bundles.
+The updater plugin checks formcompiler's `formdeck-updates/latest.json`; updater artifacts are produced only when `TAURI_SIGNING_PRIVATE_KEY` is set in formcompiler (`createUpdaterArtifacts` passed through `--config`). macOS signing and notarisation use formcompiler's Apple secrets when present; without them formcompiler builds unsigned bundles.
 
 ## File associations
 

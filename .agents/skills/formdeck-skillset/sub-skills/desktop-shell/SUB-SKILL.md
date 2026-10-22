@@ -21,7 +21,7 @@ Ship formdeck as one app per platform: a native shell that starts the frozen eng
 | `backend/formdeck_engine.py` | frozen entry: `--selfcheck` (module versions, bundled dist), sets `FORMDECK_DIST` to the bundled frontend and `FORMDECK_DESKTOP=1`, picks a free port when 0, runs uvicorn on 127.0.0.1 |
 | `setup/freeze_backend` (+ `.bat`) | PyInstaller onefile with the built frontend as `frontend_dist`, fonts, collected submodules; copies to `src-tauri/binaries/formdeck-engine-[target triple][.exe]`; runs `--selfcheck` |
 | `setup/desktop_dev`, `setup/desktop_build`, `setup/install_desktop` (+ `.bat`) | dev run (freezes once if missing), full bundle (build frontend, freeze, icons, `tauri build`), toolchain install |
-| `.github/workflows/desktop.yml` | macOS arm64, Linux x64, Windows x64 bundles; optional signing and updater artifacts; latest.json feed |
+| formcompiler (`nodemode-ai/formcompiler`) | builds the release from a `compile_vX.Y.Z` branch: macOS arm64, Linux x64, Windows x64 bundles and the Flatpak; signing and updater artifacts from formcompiler's secrets; latest.json feed `formdeck-updates` |
 
 ## Invariants
 

@@ -28,7 +28,7 @@ PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). formdeck keeps on
 | Slideshow, presenter, audience | `frontend/src/present/` | `present` |
 | Slides from PDF pages | `backend/app/services/pdf_pages.py`, `routers/media.py` (`/api/media/pdf-pages`), `Editor.insertPdfPages` | `editor-ui` |
 | MCP server and window tools | `backend/app/routers/mcp.py`, `services/bridge.py`, `services/lint.py`, `frontend/src/automation/agent-bridge.ts`, `setup/mcp_stdio.py` | `mcp-tool-author` |
-| Desktop app and sidecar | `src-tauri/`, `backend/formdeck_engine.py`, `setup/freeze_backend`, `.github/workflows/desktop.yml` | `desktop-shell` |
+| Desktop app and sidecar | `src-tauri/`, `backend/formdeck_engine.py`, `setup/freeze_backend` (releases are built by formcompiler) | `desktop-shell` |
 | Proof that a UI change does not flash | a procedure, no repo code | `ui-verification` |
 
 ## Dependency graph
