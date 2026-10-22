@@ -361,3 +361,7 @@ A video or audio asset in a picture slot used to become an image element with a 
 ## 76. A first-frame still for each video · _v0.27.0 (services/media.py still_path, put_still; routers/media.py get_still, put_still)
 
 The editor and the show draw a video's frame at its start time as the video's poster, so what shows before playback is exactly the frame playback begins on. The engine has no decoder, so the window captures the frame and stores it: PUT /api/media/{id}/still?ms= takes a JPEG for a known video and keeps it under the media folder in stills/{id}_{ms}.jpg; GET returns it with a year-long immutable cache, or a 404 marked no-store so a still captured a moment later is fetched rather than the miss remembered. The file name carries the start time, so trimming the start makes a new still and the old one simply stops being asked for.
+
+## 77. Stills are versioned and revalidated · _v0.27.1 (services/media.py still_path, put_still; routers/media.py get_still, put_still)
+
+The first stills of trimmed videos were captured wrong by the window (frame 0 instead of the start frame). GET and PUT take a version, v, and from version 2 the file is {id}_{ms}_v{v}.jpg, so the window's new capture method writes fresh files and never reads an old one. Stills are served with no-cache: the browser keeps them but asks again each time, and FileResponse's ETag makes that a 304, so a replaced still is picked up at once.
