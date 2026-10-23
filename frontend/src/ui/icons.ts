@@ -211,6 +211,13 @@ export const ICONS: Record<string, string> = {
   orderDown: L('<path d="M12 4.5v15M7.5 15l4.5 4.5 4.5-4.5"/>'),
   formatPainter: L('<rect x="4.5" y="3.5" width="12" height="6" rx="1.5"/><path d="M16.5 6.5h2.5v5h-8v3"/><rect x="9.5" y="14.5" width="3" height="6" rx="1"/>'),
   headerFooter: L(`${FRAME}<path d="M3.5 8.5h17M3.5 15.5h17"/>`),
+  pfGeneral: L('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'),
+  pfInterface: L('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M6.5 6.5h.01M9 6.5h.01"/><path d="M7 13h10M7 16h6"/>'),
+  pfTools: L('<path d="M15 4.5a4.5 4.5 0 0 0-4.2 6.1L4.5 16.9a2 2 0 0 0 2.8 2.8l6.3-6.3A4.5 4.5 0 0 0 19.5 9l-3 3-2.5-.5-.5-2.5 3-3A4.5 4.5 0 0 0 15 4.5z"/>'),
+  pfFile: L('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>'),
+  pfCursor: L('<path d="M6 3l12 8.5-5.2 1 3.2 6-2.4 1.2-3.2-6L6 18z"/>'),
+  pfPlugins: L('<path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z"/><path d="M12 18v3"/>'),
+  pfFold: L('<path d="M11 6l-6 6 6 6M19 6l-6 6 6 6"/>'),
 };
 
 export function icon(name: string, size = 16): string {

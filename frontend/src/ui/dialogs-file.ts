@@ -1792,7 +1792,10 @@ export async function saveTemplateDialog(ed: Editor): Promise<void> {
   saveTplDlg.show(ed);
 }
 
-interface AgentHooks { agentsAllowed: () => boolean; setAgents: (on: boolean) => void }
+interface AgentHooks { agentsAllowed: () => boolean; setAgents: (on: boolean) => void; commands?: Commands }
+const PREF_ORDER = ['General', 'Interface', 'Tools', 'New Decks', 'Editing', 'Video and Audio', 'Plugins'];
+const PREF_ICONS: Record<string, string> = { General: 'pfGeneral', Interface: 'pfInterface', Tools: 'pfTools', 'New Decks': 'pfFile', Editing: 'pfCursor', 'Video and Audio': 'film', Plugins: 'pfPlugins' };
+const RAIL_KEY = 'formdeck.prefsRailCollapsed';
 const ACCENTS = ['#f97316', '#ef4444', '#ec4899', '#a855f7', '#6366f1', '#3b82f6', '#14b8a6', '#22c55e', '#eab308'];
 
 class PreferencesDialog extends Dialog {
@@ -1809,39 +1812,112 @@ class PreferencesDialog extends Dialog {
   private readonly fonts: HTMLSelectElement[];
   private readonly autosave: HTMLInputElement;
   private readonly agents: HTMLInputElement;
+  private readonly posterSecond: HTMLInputElement;
+  private readonly toggles: HTMLInputElement[];
+  private readonly nav = el('<div class="fd-prefs-nav" role="tablist" aria-label="Preference sections"></div>');
+  private readonly sections = new Map<string, HTMLElement>();
+  private readonly pagesEl: HTMLElement;
+  private readonly shell: { frame: HTMLElement; rail: HTMLElement; port: HTMLElement; shade: SVGPathElement; line: SVGPathElement };
+  private current = '';
+  private spyRaf = 0;
+  private wireRaf = 0;
+  private spyMuted = 0;
+  private wireD = '';
+  private portY = -1;
 
   constructor() {
     super('Preferences', 560);
     const c = readChoice();
-    const box = el(`<div class="fd-dlg-stack">
-<section class="fd-dlg-section"><div class="fd-dlg-section-title">Appearance</div>
-<div class="fd-field is-top"><span>Theme</span><div><div class="nm-theme-grid fd-dlg-themes">${themeSwatchesHtml(c.theme, c.accentColor)}</div><div class="fd-note fd-dlg-theme-name"></div></div></div>
-<label class="fd-field"><span>Language</span><select class="fd-input fd-dlg-pref-lang" aria-label="Language" translate="no">${LANGUAGES.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}</select></label>
-<div class="fd-field"><span>Accent</span><div class="fd-dlg-accents">${ACCENTS.map((a) => `<button class="fd-swatch" type="button" data-accent="${a}" style="--swatch:${a}" aria-label="Accent ${a}" title="${a}"></button>`).join('')}<label class="fd-dlg-color" title="Custom accent">${icon('palette', 14)}<input type="color" aria-label="Custom accent colour"></label></div></div>
-<div class="fd-field"><span>Density</span><div class="fd-seg is-quiet" data-seg="density"><button type="button" data-v="compact">Compact</button><button type="button" data-v="standard">Standard</button><button type="button" data-v="comfortable">Comfortable</button></div></div>
-</section>
-<section class="fd-dlg-section"><div class="fd-dlg-section-title">New decks</div>
-<div class="fd-field"><span>Template</span><select class="fd-dlg-pref-tpl" aria-label="Default template"></select></div>
-<div class="fd-field"><span>Slide size</span><select class="fd-input fd-dlg-pref-size" aria-label="Default slide size"><option value="">Template's size</option>${Object.entries(SLIDE_SIZES).map(([v, s]) => `<option value="${v}">${s.label}</option>`).join('')}</select></div>
-<div class="fd-field"><span>Fonts</span><div class="fd-dlg-pref-fonts"><select class="fd-input" data-font="major" aria-label="Heading font" title="Heading font"><option value="">Template's heading font</option>${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</select><select class="fd-input" data-font="minor" aria-label="Body font" title="Body font"><option value="">Template's body font</option>${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</select></div></div>
-<label class="fd-field"><span>Author</span><input class="fd-input fd-dlg-pref-author" type="text" spellcheck="false" placeholder="Your name, written into exported files"></label>
-</section>
-<section class="fd-dlg-section"><div class="fd-dlg-section-title">Editing</div>
-<div class="fd-field"><span>Units</span><div class="fd-seg is-quiet" data-seg="units"><button type="button" data-v="pt">Points</button><button type="button" data-v="in">Inches</button><button type="button" data-v="cm">Centimetres</button><button type="button" data-v="px">Pixels</button></div></div>
-<div class="fd-field"><span>Drag box</span><div class="fd-seg is-quiet" data-seg="marquee"><button type="button" data-v="touch">Selects what it touches</button><button type="button" data-v="enclose">Selects what it encloses</button></div></div>
-<div class="fd-field"><span>Saving</span><label class="fd-check"><input type="checkbox" data-f="autosave"><span>Save to the library as you work</span></label></div>
-</section>
-<section class="fd-dlg-section"><div class="fd-dlg-section-title">Agents</div>
-<div class="fd-field"><span>Access</span><label class="fd-check"><input type="checkbox" data-f="agents"><span>Let Claude Code, Codex and Cursor read and edit decks</span></label></div>
-</section>
-<section class="fd-dlg-section"><div class="fd-dlg-section-title">Claude Code</div>
-<div class="fd-field"><span>Found</span><span class="fd-note fd-dlg-claude-status" translate="no"></span></div>
+    const grp = (label: string, rows: string): string => `<section class="fd-prefs-group"><h3 class="fd-prefs-label">${label}</h3>${rows}</section>`;
+    const nt = (text: string): string => `<p class="fd-note fd-prefs-note">${text}</p>`;
+    const check = (attr: string, label: string): string => `<label class="fd-field fd-prefs-check"><span>${label}</span><input type="checkbox" ${attr}></label>`;
+    const run = (id: string, label: string): string => `<div class="fd-field fd-prefs-run" data-row="${id}"><span>${label}</span><button class="fd-btn fd-btn-ghost" type="button" data-run="${id}">Open...</button></div>`;
+    const body: Record<string, string> = {
+      General: grp('Saving', check('data-f="autosave"', 'Save to the library as you work'))
+        + grp('Reset', `<div class="fd-field fd-prefs-run"><span>Every preference kept in this window, the ribbon and toolbar arrangement included, goes back to how formdeck comes. Decks and the library are kept.</span><button class="fd-btn fd-btn-danger" type="button" data-reset>Reset All Preferences...</button></div>`),
+      Interface: grp('Theme', `<div class="fd-field is-top"><span>Theme</span><div><div class="nm-theme-grid fd-dlg-themes">${themeSwatchesHtml(c.theme, c.accentColor)}</div><div class="fd-note fd-dlg-theme-name"></div></div></div>
+<div class="fd-field"><span>Accent</span><div class="fd-dlg-accents">${ACCENTS.map((a) => `<button class="fd-swatch" type="button" data-accent="${a}" style="--swatch:${a}" aria-label="Accent ${a}" title="${a}"></button>`).join('')}<label class="fd-dlg-color" title="Custom accent">${icon('palette', 14)}<input type="color" aria-label="Custom accent colour"></label></div></div>`
+        + nt('Theme and accent are shared with the other Form apps on this device.'))
+        + grp('Language and Density', `<label class="fd-field"><span>Language</span><select class="fd-input fd-dlg-pref-lang" aria-label="Language" translate="no">${LANGUAGES.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}</select></label>
+<div class="fd-field"><span>Density</span><div class="fd-seg is-quiet" data-seg="density"><button type="button" data-v="compact">Compact</button><button type="button" data-v="standard">Standard</button><button type="button" data-v="comfortable">Comfortable</button></div></div>`),
+      Tools: grp('Ribbon and Toolbars', run('ribbon-customize', 'Customize the Ribbon') + run('qat-customize', 'Customize Quick Access Toolbar') + run('shortcuts', 'Keyboard Shortcuts')
+        + check('data-cmdtoggle="ribbon-compact"', 'Icons-only ribbon') + check('data-cmdtoggle="ribbon-simplified"', 'Simplified ribbon') + check('data-cmdtoggle="menus-in-window"', 'Menus in the window')
+        + nt('The ribbon tabs, their groups and buttons, the Quick Access Toolbar and the keyboard shortcuts are kept on this device. Menus in the window applies to the macOS desktop app, whose menus otherwise sit in the system menu bar.')),
+      'New Decks': grp('Template and Size', `<div class="fd-field"><span>Template</span><select class="fd-dlg-pref-tpl" aria-label="Default template"></select></div>
+<div class="fd-field"><span>Slide size</span><select class="fd-input fd-dlg-pref-size" aria-label="Default slide size"><option value="">Template's size</option>${Object.entries(SLIDE_SIZES).map(([v, s]) => `<option value="${v}">${s.label}</option>`).join('')}</select></div>`)
+        + grp('Fonts and Author', `<div class="fd-field"><span>Fonts</span><div class="fd-dlg-pref-fonts"><select class="fd-input" data-font="major" aria-label="Heading font" title="Heading font"><option value="">Template's heading font</option>${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</select><select class="fd-input" data-font="minor" aria-label="Body font" title="Body font"><option value="">Template's body font</option>${BUNDLED_FONTS.map((f) => `<option value="${f}">${f}</option>`).join('')}</select></div></div>
+<label class="fd-field"><span>Author</span><input class="fd-input fd-dlg-pref-author" type="text" spellcheck="false" placeholder="Your name, written into exported files"></label>`),
+      Editing: grp('Units and Selection', `<div class="fd-field"><span>Units</span><div class="fd-seg is-quiet" data-seg="units"><button type="button" data-v="pt">Points</button><button type="button" data-v="in">Inches</button><button type="button" data-v="cm">Centimetres</button><button type="button" data-v="px">Pixels</button></div></div>
+<div class="fd-field"><span>Drag box</span><div class="fd-seg is-quiet" data-seg="marquee"><button type="button" data-v="touch">Selects what it touches</button><button type="button" data-v="enclose">Selects what it encloses</button></div></div>`),
+      'Video and Audio': grp('Poster Frames', check('data-f="posterSecondFrame"', 'Use the second frame as the poster of an added video')
+        + nt('On, every video added to a slide gets its second frame as its poster frame, so the picture does not jump when it starts to play (a clip\'s first frame is often black or a fade). Off, added videos keep the first frame. Poster Frame on the Video Playback tab still sets any frame.'))
+        + grp('Video Player', check('data-cmdtoggle="media-controls-editor"', 'Video player in the editor')
+        + nt('On, a video\'s own play, pause and seek controls work on the slide and the video cannot be moved; the Video Playback tab stays open. Double-click a video to turn the player off; Shift and double-click a video to turn it on.')),
+      Plugins: grp('Outside Agents', check('data-f="agents"', 'Let Claude Code, Codex and Cursor read and edit decks'))
+        + grp('Claude Code', `<div class="fd-field"><span>Found</span><span class="fd-note fd-dlg-claude-status" translate="no"></span></div>
 <label class="fd-field"><span>Program</span><input class="fd-input" type="text" spellcheck="false" data-c="bin" placeholder="Found automatically; or the full path to claude"></label>
 <label class="fd-field"><span>Folder</span><input class="fd-input" type="text" spellcheck="false" data-c="folder" placeholder="Where Claude Code starts; the formdeck Agent folder by default"></label>
-<label class="fd-field"><span>First message</span><input class="fd-input" type="text" spellcheck="false" data-c="firstMessage" placeholder="Sent when Claude Code opens in the terminal, if set"></label>
-</section>
-</div>`);
+<label class="fd-field"><span>First message</span><input class="fd-input" type="text" spellcheck="false" data-c="firstMessage" placeholder="Sent when Claude Code opens in the terminal, if set"></label>`),
+    };
+    const box = el('<div class="fd-prefs-pages"></div>');
+    for (const name of PREF_ORDER) {
+      const ic = PREF_ICONS[name] ?? 'pfGeneral';
+      const tab = el<HTMLButtonElement>(`<button class="fd-prefs-railtab" type="button" role="tab" aria-selected="false" title="${name}"><span class="fd-prefs-tabicon">${icon(ic, 18)}</span><span class="fd-prefs-tablabel">${name}</span></button>`);
+      tab.dataset.section = name;
+      tab.addEventListener('click', () => this.showSection(name, 'smooth'));
+      this.nav.appendChild(tab);
+      const page = el(`<section class="fd-prefs-sec" role="tabpanel"><button class="fd-prefs-sechead" type="button" aria-expanded="true"><span class="fd-prefs-secicon">${icon(ic, 16)}</span><span class="fd-prefs-seclabel">${name}</span><span class="fd-prefs-chev">${icon('chevronDown', 16)}</span></button><div class="fd-prefs-secbody">${body[name] ?? ''}</div></section>`);
+      page.dataset.section = name;
+      q<HTMLButtonElement>(page, '.fd-prefs-sechead').addEventListener('click', () => this.foldSection(name));
+      box.appendChild(page);
+      this.sections.set(name, page);
+    }
+    this.body.classList.add('fd-prefs');
     this.body.appendChild(box);
+    this.pagesEl = box;
+    const frame = q<HTMLElement>(this.scrim, '.fd-dialog');
+    frame.classList.add('fd-prefs-dlg');
+    q<HTMLElement>(this.scrim, '.fd-dialog-head').prepend(el(`<span class="fd-prefs-headicon">${icon('settings', 16)}</span>`));
+    let collapsed = false;
+    try { collapsed = localStorage.getItem(RAIL_KEY) === '1'; } catch { collapsed = false; }
+    const fold = el<HTMLButtonElement>(`<button class="fd-prefs-fold" type="button">${icon('pfFold', 16)}</button>`);
+    const paintRail = (): void => {
+      setClass(frame, 'is-rail-collapsed', collapsed);
+      setAttr(fold, 'title', collapsed ? 'Expand tabs' : 'Collapse tabs');
+      setAttr(fold, 'aria-label', collapsed ? 'Expand tabs' : 'Collapse tabs');
+      setAttr(fold, 'aria-expanded', String(!collapsed));
+    };
+    fold.addEventListener('click', () => {
+      collapsed = !collapsed;
+      try { localStorage.setItem(RAIL_KEY, collapsed ? '1' : '0'); } catch { void 0; }
+      paintRail();
+      this.queueWire();
+    });
+    paintRail();
+    const rail = el('<div class="fd-prefs-rail"></div>');
+    rail.append(this.nav, fold);
+    const wire = el('<svg class="fd-prefs-wire" aria-hidden="true"><path class="fd-prefs-wire-shade"></path><path class="fd-prefs-wire-line"></path></svg>');
+    const port = el('<span class="fd-prefs-port" aria-hidden="true"></span>');
+    frame.append(rail, wire, port);
+    this.shell = { frame, rail, port, shade: q<SVGPathElement>(wire, '.fd-prefs-wire-shade'), line: q<SVGPathElement>(wire, '.fd-prefs-wire-line') };
+    box.addEventListener('scroll', () => this.queueSpy(), { passive: true });
+    new ResizeObserver(() => this.queueWire()).observe(frame);
+    window.addEventListener('resize', () => this.queueWire());
+    this.posterSecond = q<HTMLInputElement>(box, '[data-f="posterSecondFrame"]');
+    this.posterSecond.addEventListener('change', () => this.persist({ posterSecondFrame: this.posterSecond.checked }));
+    this.toggles = Array.from(box.querySelectorAll<HTMLInputElement>('[data-cmdtoggle]'));
+    for (const t of this.toggles) t.addEventListener('change', () => { const id = t.dataset.cmdtoggle ?? ''; if (this.h?.commands?.get(id)) this.h.commands.run(id); this.syncTools(); });
+    box.addEventListener('click', (e) => {
+      const id = (e.target as HTMLElement).closest<HTMLElement>('[data-run]')?.dataset.run;
+      if (id && this.h?.commands?.get(id)) { this.close(); this.h.commands.run(id); }
+    });
+    q<HTMLButtonElement>(box, '[data-reset]').addEventListener('click', () => {
+      void import('./dialogs').then((d) => d.confirmAction('Reset all preferences?', 'Every preference kept in this window, the ribbon, the Quick Access Toolbar, panel sizes and the theme go back to how formdeck comes. Decks and the library are kept. formdeck reloads.', 'Reset', true)).then((ok) => {
+        if (!ok) return;
+        try { for (const k of Object.keys(localStorage)) if (k.startsWith('formdeck.') || k === 'nodemode_ui_settings') localStorage.removeItem(k); } catch { void 0; }
+        location.reload();
+      });
+    });
     this.themes = q(box, '.fd-dlg-themes');
     this.themeName = q(box, '.fd-dlg-theme-name');
     this.accents = q(box, '.fd-dlg-accents');
@@ -1917,11 +1993,105 @@ class PreferencesDialog extends Dialog {
     if (/^#[0-9a-f]{6}$/i.test(c.accentColor)) setValue(this.color, c.accentColor);
   }
 
-  show(h: AgentHooks): void {
+  private syncTools(): void {
+    const cmds = this.h?.commands;
+    for (const t of this.toggles) {
+      const cmd = cmds?.get(t.dataset.cmdtoggle ?? '');
+      setHidden(t.closest('.fd-field') as HTMLElement, !cmd);
+      if (!cmd || !cmds) continue;
+      setChecked(t, !!cmd.checked?.());
+      setDisabled(t, !cmds.enabled(cmd));
+    }
+    for (const r of Array.from(this.pagesEl.querySelectorAll<HTMLElement>('[data-row]'))) setHidden(r, !cmds?.get(r.dataset.row ?? ''));
+  }
+
+  private showSection(name: string, scroll: ScrollBehavior | null = null): void {
+    if (!this.sections.has(name)) return;
+    this.markSection(name);
+    if (scroll) this.scrollToSection(name, scroll);
+  }
+
+  private markSection(name: string): void {
+    if (this.current === name) return;
+    this.current = name;
+    for (const [n, page] of this.sections) setClass(page, 'is-current', n === name);
+    for (const tab of Array.from(this.nav.children) as HTMLElement[]) { const on = tab.dataset.section === name; setClass(tab, 'is-active', on); setAttr(tab, 'aria-selected', String(on)); }
+    this.queueWire();
+  }
+
+  private scrollToSection(name: string, behavior: ScrollBehavior): void {
+    const sec = this.sections.get(name), pages = this.pagesEl;
+    if (!sec) return;
+    if (sec.classList.contains('is-folded')) this.foldSection(name);
+    const top = sec.getBoundingClientRect().top - pages.getBoundingClientRect().top + pages.scrollTop - 12;
+    this.spyMuted = performance.now() + 700;
+    pages.scrollTo({ top, behavior });
+  }
+
+  private foldSection(name: string): void {
+    const sec = this.sections.get(name);
+    if (!sec) return;
+    const folded = !sec.classList.contains('is-folded');
+    setClass(sec, 'is-folded', folded);
+    setHidden(q(sec, '.fd-prefs-secbody'), folded);
+    setAttr(q(sec, '.fd-prefs-sechead'), 'aria-expanded', String(!folded));
+    this.queueWire();
+    this.queueSpy();
+  }
+
+  private queueSpy(): void {
+    if (this.spyRaf) return;
+    this.spyRaf = requestAnimationFrame(() => {
+      this.spyRaf = 0;
+      const pages = this.pagesEl;
+      if (!pages.clientHeight || performance.now() < this.spyMuted) return;
+      const edge = pages.getBoundingClientRect().top + 24;
+      const names = Array.from(this.sections.keys());
+      let best = '', bestD = Infinity;
+      if (pages.scrollHeight > pages.clientHeight + 4 && pages.scrollTop + pages.clientHeight >= pages.scrollHeight - 2) best = names[names.length - 1] ?? '';
+      else for (const [n, sec] of this.sections) {
+        const top = sec.getBoundingClientRect().top, d = top <= edge ? edge - top : top - edge + 100000;
+        if (d < bestD) { bestD = d; best = n; }
+      }
+      if (best) this.markSection(best);
+    });
+  }
+
+  private queueWire(): void {
+    if (this.wireRaf) return;
+    this.wireRaf = requestAnimationFrame(() => { this.wireRaf = 0; this.drawWire(); });
+  }
+
+  private drawWire(): void {
+    const s = this.shell;
+    if (this.scrim.hidden) return;
+    const F = s.frame.getBoundingClientRect();
+    const tab = this.nav.querySelector<HTMLElement>('.fd-prefs-railtab.is-active');
+    const head = s.frame.querySelector<HTMLElement>('.fd-dialog-head');
+    if (!F.width || !tab || !head) return;
+    const N = this.nav.getBoundingClientRect();
+    let T = tab.getBoundingClientRect();
+    if (T.top < N.top || T.bottom > N.bottom) {
+      this.nav.scrollTop += T.top < N.top ? T.top - N.top - 6 : T.bottom - N.bottom + 6;
+      T = tab.getBoundingClientRect();
+    }
+    const R = s.rail.getBoundingClientRect(), H = head.getBoundingClientRect();
+    const portY = Math.round(H.bottom - F.top), sx = Math.round(T.right - F.left), ty = Math.round(T.top - F.top + T.height / 2);
+    const rr = R.right - F.left, trunk = Math.round(rr - rr * 0.45), dy = portY - ty, r = 10, dir = dy > 0 ? 1 : -1;
+    const d = Math.abs(dy) < 2 * r ? `M ${sx} ${ty} H ${trunk} V ${portY} H -7` : `M ${sx} ${ty} H ${trunk - r} a ${r} ${r} 0 0 ${dir > 0 ? 1 : 0} ${r} ${dir * r} V ${portY - dir * r} a ${r} ${r} 0 0 ${dir > 0 ? 0 : 1} ${r} ${dir * r} H -7`;
+    if (d !== this.wireD) { this.wireD = d; s.shade.setAttribute('d', d); s.line.setAttribute('d', d); }
+    if (portY !== this.portY) { this.portY = portY; s.port.style.transform = `translateY(${portY}px)`; }
+  }
+
+  show(h: AgentHooks, section?: string): void {
     this.h = h;
     this.syncLook();
+    this.syncTools();
     setChecked(this.agents, h.agentsAllowed());
+    this.showSection(section && this.sections.has(section) ? section : this.current || PREF_ORDER[0]);
     this.open(this.themes.querySelector<HTMLElement>('.is-active'));
+    if (section) this.scrollToSection(section, 'auto');
+    this.queueWire();
     void Promise.all([settings(), catalog().catch((): Catalog => ({ categories: [], templates: [], default: '' }))]).then(([s, c]) => {
       patchList(this.tpl, [{ id: '', name: 'Last used' }, ...c.templates.map((t) => ({ id: t.id, name: `${t.name} · ${t.category}` }))], {
         key: (t) => t.id || '_last',
@@ -1936,6 +2106,7 @@ class PreferencesDialog extends Dialog {
       segSet(this.units, str(s.units) || 'pt');
       segSet(this.marquee, str(s.marquee) === 'touch' ? 'touch' : 'enclose');
       setChecked(this.autosave, s.autosave !== false);
+      setChecked(this.posterSecond, s.posterSecondFrame !== false);
       const cl = (s.claude && typeof s.claude === 'object' ? s.claude : {}) as Record<string, unknown>;
       for (const f of this.claudeFields) setValue(f, str(cl[f.dataset.c ?? '']));
     });
@@ -1944,9 +2115,9 @@ class PreferencesDialog extends Dialog {
 }
 
 let prefsDlg: PreferencesDialog | null = null;
-export function preferencesDialog(h: { agentsAllowed: () => boolean; setAgents: (on: boolean) => void }): void {
+export function preferencesDialog(h: AgentHooks, section?: string): void {
   prefsDlg ??= new PreferencesDialog();
-  prefsDlg.show(h);
+  prefsDlg.show(h, section);
 }
 
 const SETUP: Array<{ id: string; tab: string; title: string; note: string; text: (url: string) => string }> = [
