@@ -4,7 +4,7 @@ description: "Builds and edits slide decks in formdeck (formerly formsld) throug
 license: Apache-2.0
 metadata:
   author: nodemode-ai
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # formdeck harness
@@ -38,6 +38,7 @@ formdeck-harness/
     template-curator/           choosing among 67 templates, apply_template, set_theme, imports, size
     visual-qa/                  contact sheets, lint kinds and fixes, the fix loop and its tools
     review-handoff/             review status, comments, the summary, undo, export, open_file
+    layout-ideas/               answering Crafter Ideas layout requests from chat_inbox (90 s window)
 ```
 
 Paths inside a SUB-SKILL.md resolve against that sub-skill's own folder (`references/[file].md` means `sub-skills/[name]/references/[file].md`). A sibling is `sub-skills/[sibling]/SUB-SKILL.md`. `references/tools.md` and `EVALS.json` live at the pack root.
@@ -55,6 +56,7 @@ For anything that produces or reshapes a deck, start with `sub-skills/deck-direc
 | Pick a template, restyle, change colours or fonts, use our company .pptx as the template, 4:3 or A4 | `template-curator` |
 | Fix overflowing or crowded slides, lint issues, check how it looks, swap a picture | `visual-qa` |
 | Hand it over, answer comments, undo the agent's changes, export to pptx or pdf, open a .pptx | `review-handoff` |
+| `chat_inbox` returned `layoutRequests`, Agent layout ideas is on, suggest or rank layouts for a slide | `layout-ideas` |
 | Merge, split, sign, redact, fill or otherwise edit a PDF | Not formdeck: point the person to formpdf (github.com/nodemode-ai/formpdf) |
 
 ## Before anything
