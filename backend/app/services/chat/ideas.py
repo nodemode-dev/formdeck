@@ -15,7 +15,7 @@ from app.services.chat.providers import ProviderError
 VERSION = 1
 TIMEOUT = 25.0
 CLAUDE_TIMEOUT = 60.0
-CONNECTED_TIMEOUT = 30.0
+CONNECTED_TIMEOUT = 90.0
 LIVE_SECONDS = 60.0
 MAX_BODY = 400_000
 NO_CLIENT = "No agent is connected. Connect one in the chat panel settings, or open an MCP client that is listening with chat_inbox."

@@ -92,7 +92,7 @@ export function ideasFromReply(slide: Slide, layouts: Layout[], reply: IdeasRepl
 
 class IdeasDialog extends Dialog {
   private readonly grid = el('<div class="fd-ideas-grid" role="listbox" aria-label="Design ideas"></div>');
-  private readonly note = el('<div class="fd-note fd-ideas-note"><span class="fd-ideas-text"></span> <span class="fd-ideas-wait" hidden>Asking your agent...</span></div>');
+  private readonly note = el('<div class="fd-note fd-ideas-note"><span class="fd-ideas-text"></span> <span class="fd-ideas-wait" hidden>Your agent is thinking. This can take up to 90 seconds.</span></div>');
   private readonly text = this.note.querySelector('.fd-ideas-text') as HTMLElement;
   private readonly wait = this.note.querySelector('.fd-ideas-wait') as HTMLElement;
   private readonly cells = new Map<string, HTMLElement>();

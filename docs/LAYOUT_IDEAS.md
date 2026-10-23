@@ -4,7 +4,7 @@ Crafter Ideas normally lists every layout of the slide's master, in master order
 
 With Preferences > Plugins > Agent layout ideas on (off by default), Crafter Ideas instead asks the agent the person has connected for placements and shows what it returns. The ordering and the placements are the agent's; formdeck only checks that the ids in the reply exist, then previews and applies them.
 
-Nothing is sent unless the preference is on. If no agent is connected, or none answers in time (25 s for a provider, 30 s for a connected MCP client, 60 s for Claude Code), Crafter Ideas shows every layout in master order and says so.
+Nothing is sent unless the preference is on. If no agent is connected, or none answers in time (25 s for a provider, 90 s for a connected MCP client, 60 s for Claude Code), Crafter Ideas shows every layout in master order and says so.
 
 ## How the request reaches the agent
 
