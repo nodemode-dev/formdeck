@@ -95,6 +95,53 @@ async function capture(src: string, t: number): Promise<Blob | null> {
   }
 }
 
+type TimedVideo = HTMLVideoElement & { requestVideoFrameCallback?: (cb: (now: number, meta: { mediaTime: number }) => void) => number };
+
+export async function secondFrame(src: string): Promise<Blob | null> {
+  const v = document.createElement('video') as TimedVideo;
+  v.muted = true;
+  v.playsInline = true;
+  v.preload = 'auto';
+  v.src = `/api/media/${src}`;
+  try {
+    v.setAttribute('style', 'position:fixed;left:0;top:0;width:4px;height:4px;opacity:0;pointer-events:none');
+    v.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(v);
+    if (v.readyState < 2 && !(await once(v, 'loadeddata', 20000))) return null;
+    let t = 0.05;
+    const rvfc = v.requestVideoFrameCallback?.bind(v);
+    if (rvfc) {
+      const times: number[] = [];
+      const seen = new Promise<void>((r) => {
+        const timer = window.setTimeout(r, 3000);
+        const tick = (_: number, meta: { mediaTime: number }): void => {
+          times.push(meta.mediaTime);
+          if (times.some((x) => x > 0.0005)) { window.clearTimeout(timer); r(); } else rvfc(tick);
+        };
+        rvfc(tick);
+      });
+      await v.play().catch(() => undefined);
+      await seen;
+      v.pause();
+      const next = times.filter((x) => x > 0.0005);
+      if (next.length) t = Math.min(...next) + 0.001;
+    }
+    if (v.duration && t >= v.duration) return null;
+    const seeked = once(v, 'seeked', 10000);
+    v.currentTime = t;
+    if (!(await seeked)) return null;
+    await presented(v as FrameVideo);
+    return await snapshot(v);
+  } catch {
+    return null;
+  } finally {
+    v.pause();
+    v.removeAttribute('src');
+    v.load();
+    v.remove();
+  }
+}
+
 const held = new Map<string, HTMLImageElement>();
 let queue: Promise<void> = Promise.resolve();
 

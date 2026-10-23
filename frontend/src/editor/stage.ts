@@ -20,7 +20,7 @@ import { buzz, installInputKind, isTouchInput, Press } from '../ui/touch';
 import { aidPrefs, noteContextPoint, StageAids } from './rulers';
 import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
-import { editorMediaControlsOn } from '../render/slide';
+import { editorMediaControlsOn, PLAYER_EVENT } from '../render/slide';
 
 const playerUnder = (e: MouseEvent): boolean => editorMediaControlsOn() && document.elementsFromPoint(e.clientX, e.clientY).some((n) => n instanceof HTMLVideoElement && n.controls);
 
@@ -1164,7 +1164,19 @@ export class Stage {
   }
 
   private dbl(e: MouseEvent): void {
-    if (performance.now() - this.dblAt < 700 || this.viewOnly() || playerUnder(e)) return;
+    const player = playerUnder(e) ? document.elementsFromPoint(e.clientX, e.clientY).find((n): n is HTMLVideoElement => n instanceof HTMLVideoElement && n.controls) : undefined;
+    if (player) {
+      e.preventDefault();
+      player.pause();
+      window.dispatchEvent(new CustomEvent(PLAYER_EVENT, { detail: false }));
+      return;
+    }
+    if (performance.now() - this.dblAt < 700 || this.viewOnly()) return;
+    if (e.shiftKey && !editorMediaControlsOn()) {
+      const id = this.hitElement(e.target).id;
+      const hit = id ? this.ed.element(id) : undefined;
+      if (hit?.type === 'media' && hit.kind === 'video') { e.preventDefault(); window.dispatchEvent(new CustomEvent(PLAYER_EVENT, { detail: true })); return; }
+    }
     this.dblHit(e.target, e.clientX, e.clientY, false);
   }
 

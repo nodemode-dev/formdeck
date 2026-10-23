@@ -17,6 +17,7 @@ import { remapCopies } from './connectors';
 import { layoutMenuItems } from './master-view';
 import { MERGE_MENU } from './merge-shapes';
 import { probeVideo } from './media-preview';
+import { secondFrame } from '../render/video-still';
 import { Stage } from './stage';
 
 export type EditorEvent = 'selection' | 'current' | 'doc' | 'edit' | 'view';
@@ -320,17 +321,31 @@ export class Editor {
     let metas;
     try { metas = await api.upload(files); } catch (e) { toast(`Could not add ${files.length === 1 ? files[0].name : 'the files'}: ${e instanceof Error ? e.message : e}`, 'error'); return; }
     const probes = await Promise.all(files.map(probeVideo));
-    this.placeMedia(metas, probes, at, phLayoutId);
+    this.placeMedia(metas, probes, at, phLayoutId, await this.posters(metas));
   }
 
   async insertPaths(paths: string[], at?: { x: number; y: number }, phLayoutId?: string): Promise<void> {
     if (!this.slide) return;
     let metas;
     try { metas = await api.mediaFromPaths(paths); } catch (e) { toast(`Could not add ${paths.length === 1 ? (paths[0].split(/[\\/]/).pop() ?? paths[0]) : 'the files'}: ${e instanceof Error ? e.message : e}`, 'error'); return; }
-    this.placeMedia(metas, metas.map(() => null), at, phLayoutId);
+    this.placeMedia(metas, metas.map(() => null), at, phLayoutId, await this.posters(metas));
   }
 
-  private placeMedia(metas: Awaited<ReturnType<typeof api.upload>>, probes: Array<Awaited<ReturnType<typeof probeVideo>> | null>, at?: { x: number; y: number }, phLayoutId?: string): void {
+  private async posters(metas: Awaited<ReturnType<typeof api.upload>>): Promise<Map<string, Awaited<ReturnType<typeof api.upload>>[number]>> {
+    const out = new Map<string, Awaited<ReturnType<typeof api.upload>>[number]>();
+    const vids = metas.filter((m) => m.mime.startsWith('video/'));
+    if (!vids.length) return out;
+    const s = await api.settings().catch((): Record<string, unknown> => ({}));
+    if (s.posterSecondFrame === false) return out;
+    for (const m of vids) {
+      const blob = await secondFrame(m.id);
+      if (!blob) continue;
+      try { const [p] = await api.upload([new File([blob], `poster-${m.id}.jpg`, { type: 'image/jpeg' })]); if (p) out.set(m.id, p); } catch { continue; }
+    }
+    return out;
+  }
+
+  private placeMedia(metas: Awaited<ReturnType<typeof api.upload>>, probes: Array<Awaited<ReturnType<typeof probeVideo>> | null>, at?: { x: number; y: number }, phLayoutId?: string, posters = new Map<string, Awaited<ReturnType<typeof api.upload>>[number]>()): void {
     const s = this.slide;
     if (!s) return;
     const deck = this.doc.deck;
@@ -355,7 +370,9 @@ export class Editor {
       const w = kind === 'audio' ? 48 : iw * sc, h = kind === 'audio' ? 48 : ih * sc;
       const cx = (at ? at.x : deck.size.w / 2) + i * 24, cy = (at ? at.y : deck.size.h / 2) + i * 24;
       const base = { id, x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w: Math.round(w), h: Math.round(h) };
-      ops.push({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: kind === 'image' ? { ...base, type: 'image', src: m.id, fit: 'stretch', alt: m.name.replace(/\.[^.]+$/, '') } : { ...base, type: 'media', kind, src: m.id } });
+      const poster = kind === 'video' ? posters.get(m.id) : undefined;
+      if (poster && !deck.media[poster.id]) ops.push({ op: 'set', path: ['media', poster.id], value: { name: poster.name, mime: poster.mime, w: poster.w, h: poster.h, bytes: poster.bytes } });
+      ops.push({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: kind === 'image' ? { ...base, type: 'image', src: m.id, fit: 'stretch', alt: m.name.replace(/\.[^.]+$/, '') } : { ...base, type: 'media', kind, src: m.id, ...(poster ? { poster: poster.id } : {}) } });
     });
     const label = metas.length > 1 ? 'Insert files' : metas[0]?.mime.startsWith('video/') ? 'Insert video' : metas[0]?.mime.startsWith('audio/') ? 'Insert audio' : 'Insert picture';
     if (this.apply([...ops, ...dirtyOp(s)], label)) this.select(ids);

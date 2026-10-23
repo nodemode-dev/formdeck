@@ -18,6 +18,7 @@ export const mediaUrl = (id: string): string => `/api/media/${id}`;
 let editorMediaControls = false;
 export function setEditorMediaControls(on: boolean): void { editorMediaControls = on; }
 export const editorMediaControlsOn = (): boolean => editorMediaControls;
+export const PLAYER_EVENT = 'formdeck:editor-player';
 
 function slideBackground(fill: Fill, theme: Deck['theme']): string {
   if (fill.type === 'none') return '#ffffff';

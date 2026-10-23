@@ -4,8 +4,8 @@ import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { api } from './io/api';
 import { LiveClient } from './live/socket';
 import { ensureFonts, fontsOfDeck } from './render/fonts';
+import { PLAYER_EVENT } from './render/slide';
 import { prepareStills } from './render/video-still';
-import { editorMediaControlsOn } from './render/slide';
 import { brandMark } from './ui/brand';
 import { pickColor } from './ui/colorpop';
 import { Commands, comboOf } from './ui/commands';
@@ -231,15 +231,12 @@ export async function startApp(): Promise<void> {
     setClass(status.dot, 'is-ok', live.connected && !ed.doc.hasPending);
     setClass(status.dot, 'is-warn', !live.connected);
     const sel = ed.selected();
-    const player = editorMediaControlsOn() && !!ed.slide?.elements.some((e) => e.type === 'media' && e.kind === 'video');
-    const warn = player && !ed.stage.editing;
-    setClass(status.hint, 'is-warn', warn);
-    if (warn !== (status.hint.dataset.cmd === 'media-controls-editor')) { if (warn) status.hint.dataset.cmd = 'media-controls-editor'; else delete status.hint.dataset.cmd; }
-    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : player ? 'Video player is on in the editor, so videos cannot be moved or edited. Click here to turn it off and resume editing.' : sel.length ? `${sel.length} selected · Shift-drag a corner toggles proportions, Alt-drag skips snapping` : 'Click a placeholder to type. Drop pictures anywhere.');
+    setText(status.hint, ed.stage.editing ? 'Typing. Esc to finish, Tab to indent.' : sel.length ? `${sel.length} selected · Shift-drag a corner toggles proportions, Alt-drag skips snapping` : 'Click a placeholder to type. Drop pictures anywhere.');
   }
 
   live.onNotice = (t, k) => toast(t, k);
   live.onStatus = () => syncChrome();
+  window.addEventListener(PLAYER_EVENT, () => queueMicrotask(() => { toolbar.sync(); syncChrome(); }));
   live.onPresence = (m) => { if (editor && m.deck === editor.doc.id) editor.setPeer(m.client, m.name, m.slide, m.sel); };
   const followShow = (deck: string, m: Record<string, unknown>, tries = 0): void => {
     const ed = editor;
@@ -290,7 +287,7 @@ export async function startApp(): Promise<void> {
     editChart: () => { const ed = editor; if (ed) void dialogs.chartDialog(ed, true); },
     slideSize: () => { const ed = editor; if (ed) void dialogs.slideSizeDialog(ed); },
     background: () => { const ed = editor; if (ed) void dialogs.backgroundDialog(ed); },
-    preferences: () => dialogs.preferencesDialog({ agentsAllowed: () => agentsAllowed, setAgents }),
+    preferences: () => dialogs.preferencesDialog({ agentsAllowed: () => agentsAllowed, setAgents, commands }),
     intake: () => { home.open(); },
     pdfPages: () => { const ed = editor; if (ed) void ed.insertPdfPages(); },
     help: () => dialogs.helpDialog(),

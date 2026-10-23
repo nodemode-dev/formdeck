@@ -15,7 +15,7 @@ import { runStyleOps } from './actions';
 import { addinBar } from './addins';
 import { DIAGRAM_MENU } from './diagram-commands';
 import { deckFontFamilies } from './font-commands';
-import { MEDIA_START_MENU, MEDIA_VOLUME_MENU } from './media-commands';
+import { MEDIA_START_MENU, MEDIA_VOLUME_MENU, playerClip } from './media-commands';
 import { MODEL3D_VIEW_IDS } from './model3d-commands';
 import { MASTER_PLACEHOLDER_IDS, editorTheme } from './master-view';
 import { MERGE_MENU } from './merge-shapes';
@@ -489,7 +489,8 @@ export class Toolbar {
     const ed = this.ed;
     const ids: string[] = [];
     const labels: Record<string, string> = {};
-    const media = ctx === 'image' ? selectedMedia(ed) : null;
+    const pinned = ctx === 'slide' || ctx === 'none' ? playerClip(ed) : null;
+    const media = ctx === 'image' ? selectedMedia(ed) : pinned;
     if (inMaster) ids.push('master');
     if (ctx === 'text' || ctx === 'shape' || ctx === 'multi') ids.push('shapefmt');
     if (ctx === 'image' && !media) ids.push('picfmt');
@@ -502,9 +503,24 @@ export class Toolbar {
     const picked = media?.id ?? '';
     if (picked && picked !== this.pickedMedia) rb.select('playback');
     this.pickedMedia = picked;
+    this.playerWarn(!!pinned || (!!media && media.kind === 'video' && !!this.commands.get('media-controls-editor')?.checked?.()));
   }
 
   private pickedMedia = '';
+  private warnEl: HTMLButtonElement | null = null;
+
+  private playerWarn(on: boolean): void {
+    const tab = this.host.querySelector<HTMLElement>('#fd-rbt-playback');
+    if (!tab) return;
+    if (!this.warnEl) {
+      if (!on) return;
+      this.warnEl = el<HTMLButtonElement>('<button class="fd-rb-warn" type="button" title="Turn the video player off and resume editing" hidden></button>');
+      setText(this.warnEl, 'Video player is on: videos cannot be moved or edited. Click to turn it off.');
+      this.warnEl.addEventListener('click', () => this.commands.run('media-controls-editor'));
+    }
+    if (this.warnEl.previousElementSibling !== tab) tab.after(this.warnEl);
+    setHidden(this.warnEl, !on || !!tab.hidden);
+  }
 
   sync(): void {
     const ed = this.ed;

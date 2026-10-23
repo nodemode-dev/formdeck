@@ -30,6 +30,11 @@ body.theme-light :is(.fd-rb-file, .fd-rb-tab.is-ctx, .fd-rb-btn.is-on, .fd-qat-b
 .fd-rb-tab.is-on { color: var(--text-primary); font-weight: 600; }
 .fd-rb-tab.is-on::after { content: ''; position: absolute; left: var(--space-2); right: var(--space-2); bottom: 0; height: 2px; border-radius: 1px; background: var(--accent-color); }
 .fd-rb-tab.is-ctx { color: var(--accent-ink); }
+.fd-rb-warn { flex: none; align-self: center; max-width: 440px; height: 22px; margin: 0 var(--space-2) 2px; padding: 0 var(--space-2); overflow: hidden; border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); font: 500 var(--fd-11) var(--font-ui); text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.fd-rb-warn:hover { background: color-mix(in srgb, var(--warn) 24%, transparent); }
+.fd-rb-warn:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
+.fd-rb-warn[hidden] { display: none; }
+.fd-rb-btn[data-cmd="media-controls-editor"].is-on, body.theme-light .fd-rb-btn[data-cmd="media-controls-editor"].is-on { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 60%, transparent); }
 .fd-rb-tools { display: flex; flex: none; align-items: center; gap: 2px; margin: 0 0 2px auto; }
 .fd-rb-tool { display: inline-grid; place-items: center; width: var(--ctl-sm); height: var(--ctl-sm); padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; }
 .fd-rb-tool:hover { background: var(--surface-raised); color: var(--text-primary); }

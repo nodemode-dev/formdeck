@@ -4,15 +4,22 @@ import type { Command, Commands } from '../ui/commands';
 import { dirtyOp } from './actions';
 import type { Editor } from './editor';
 import { startMode, VOLUMES, volumeLevel } from './media-panel';
-import { setEditorMediaControls } from '../render/slide';
+import { PLAYER_EVENT, setEditorMediaControls } from '../render/slide';
 
 export function registerMediaCommands(cmds: Commands, E: () => Editor | null): void {
   const clip = (kind?: 'video'): MediaElement | undefined => {
     const ed = E();
     if (!ed || ed.holderKind !== 'slide') return undefined;
     const sel = ed.selected();
-    const m = sel.length === 1 && sel[0].type === 'media' ? sel[0] : undefined;
+    const m = sel.length === 1 && sel[0].type === 'media' ? sel[0] : playerClip(ed) ?? undefined;
     return m && (!kind || m.kind === kind) ? m : undefined;
+  };
+  const dialogClip = (open: (ed: Editor) => void): void => {
+    const ed = E();
+    const m = clip();
+    if (!ed || !m) return;
+    if (!ed.selection.includes(m.id)) ed.select([m.id]);
+    open(ed);
   };
   const aiPicture = () => {
     const ed = E();
@@ -25,9 +32,9 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
     { id: 'insert-ai-image', label: 'Generate with AI...', icon: 'ai', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.generateImageDialog(ed)); } },
     { id: 'edit-image-ai', label: 'Edit with AI...', icon: 'ai', enabled: () => !!aiPicture(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-ai-image').then((m) => m.editImageDialog(ed)); } },
     { id: 'insert-icons', label: 'Icons...', icon: 'iconLib', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-icons').then((m) => m.iconsDialog(ed)); } },
-    { id: 'media-trim', label: () => (clip()?.kind === 'audio' ? 'Trim Audio...' : 'Trim Video...'), icon: 'trim', enabled: () => !!clip(), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-media').then((m) => m.trimDialog(ed)); } },
-    { id: 'media-poster-frame', label: 'Poster Frame from Video...', icon: 'film', enabled: () => !!clip('video'), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-media').then((m) => m.posterFrameDialog(ed)); } },
-    { id: 'media-poster-picture', label: 'Poster Frame from Picture...', icon: 'image', enabled: () => !!clip('video'), run: () => { const ed = E(); if (ed) void import('../ui/dialogs-media').then((m) => m.posterPicture(ed)); } },
+    { id: 'media-trim', label: () => (clip()?.kind === 'audio' ? 'Trim Audio...' : 'Trim Video...'), icon: 'trim', enabled: () => !!clip(), run: () => dialogClip((ed) => void import('../ui/dialogs-media').then((m) => m.trimDialog(ed))) },
+    { id: 'media-poster-frame', label: 'Poster Frame from Video...', icon: 'film', enabled: () => !!clip('video'), run: () => dialogClip((ed) => void import('../ui/dialogs-media').then((m) => m.posterFrameDialog(ed))) },
+    { id: 'media-poster-picture', label: 'Poster Frame from Picture...', icon: 'image', enabled: () => !!clip('video'), run: () => dialogClip((ed) => void import('../ui/dialogs-media').then((m) => m.posterPicture(ed))) },
     {
       id: 'media-poster-reset', label: 'Reset Poster Frame', enabled: () => !!clip('video')?.poster,
       run: () => { const ed = E(); const s = ed?.slide; const m = clip('video'); if (ed && s && m?.poster) ed.apply([{ op: 'set', path: [...elPath(s.id, m.id), 'poster'] }, ...dirtyOp(s)], 'Reset poster frame'); },
@@ -37,7 +44,8 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
     const ed = E();
     if (!ed || ed.holderKind !== 'slide') return [];
     const sel = ed.selected();
-    return sel.length && sel.every((e) => e.type === 'media') ? (sel as MediaElement[]) : [];
+    if (!sel.length) { const p = playerClip(ed); return p ? [p] : []; }
+    return sel.every((e) => e.type === 'media') ? (sel as MediaElement[]) : [];
   };
   const setClips = (fields: Partial<Record<keyof MediaElement, unknown>>, label: string, only?: (m: MediaElement) => boolean): void => {
     const ed = E();
@@ -95,6 +103,7 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
         const ed = E();
         if (ed && editorControls) {
           const keep = ed.selection.filter((id) => { const el = ed.element(id); return !(el?.type === 'media' && el.kind === 'video'); });
+          pinned = ed.selection.find((id) => !keep.includes(id)) ?? pinned;
           if (keep.length !== ed.selection.length) ed.select(keep);
         }
       },
@@ -109,11 +118,19 @@ export function registerMediaCommands(cmds: Commands, E: () => Editor | null): v
       },
     },
   );
+  window.addEventListener(PLAYER_EVENT, (e) => { if (!!(e as CustomEvent<boolean>).detail !== editorControls) cmds.run('media-controls-editor'); });
 }
 
 const EDITOR_CONTROLS_KEY = 'formdeck.editorMediaControls';
 let editorControls = ((): boolean => { try { return localStorage.getItem(EDITOR_CONTROLS_KEY) === '1'; } catch { return false; } })();
 setEditorMediaControls(editorControls);
+let pinned = '';
+
+export function playerClip(ed: Editor | null): MediaElement | null {
+  if (!editorControls || !ed || ed.holderKind !== 'slide' || ed.selection.length) return null;
+  const vids = (ed.slide?.elements ?? []).filter((e): e is MediaElement => e.type === 'media' && e.kind === 'video');
+  return vids.find((v) => v.id === pinned) ?? vids[0] ?? null;
+}
 
 export const MEDIA_START_MENU = ['media-start-sequence', 'media-start-auto', 'media-start-click'];
 export const MEDIA_VOLUME_MENU = ['media-volume-low', 'media-volume-medium', 'media-volume-high', 'media-volume-mute'];
