@@ -1,0 +1,11 @@
+[
+"Your agent's placements for this slide. Click one to use it; Undo brings the slide back.",
+"No agent answered, so every layout of this master is shown in master order. Click one to use it; Undo brings the slide back.",
+"Asking your agent...",
+"Layouts of this master, in master order. Click one to use it; the slide's content is placed when you apply it.",
+"Agent layout ideas",
+"On, Crafter Ideas sends this slide's content (element kinds, text and sizes) and the names of the master's layouts to the agent you have connected, and shows the placements it returns. Off, nothing leaves formdeck and Crafter Ideas lists every layout of the master in order.",
+"Agent connected: {0}.",
+"No agent is connected. Connect one in the chat panel settings, or open an MCP client.",
+"Layout Ideas"
+]

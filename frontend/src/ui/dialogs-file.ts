@@ -1813,6 +1813,8 @@ class PreferencesDialog extends Dialog {
   private readonly autosave: HTMLInputElement;
   private readonly agents: HTMLInputElement;
   private readonly posterSecond: HTMLInputElement;
+  private readonly ideasPref: HTMLInputElement;
+  private readonly ideasStatus: HTMLElement;
   private readonly toggles: HTMLInputElement[];
   private readonly nav = el('<div class="fd-prefs-nav" role="tablist" aria-label="Preference sections"></div>');
   private readonly sections = new Map<string, HTMLElement>();
@@ -1854,6 +1856,9 @@ class PreferencesDialog extends Dialog {
         + grp('Video Player', check('data-cmdtoggle="media-controls-editor"', 'Video player in the editor')
         + nt('On, a video\'s own play, pause and seek controls work on the slide and the video cannot be moved; the Video Playback tab stays open. Double-click a video to turn the player off; Shift and double-click a video to turn it on.')),
       Plugins: grp('Outside Agents', check('data-f="agents"', 'Let Claude Code, Codex and Cursor read and edit decks'))
+        + grp('Layout Ideas', check('data-f="agentLayoutIdeas"', 'Agent layout ideas')
+        + `<div class="fd-field"><span>Agent</span><span class="fd-note fd-dlg-ideas-status"></span></div>`
+        + nt("On, Crafter Ideas sends this slide's content (element kinds, text and sizes) and the names of the master's layouts to the agent you have connected, and shows the placements it returns. Off, nothing leaves formdeck and Crafter Ideas lists every layout of the master in order."))
         + grp('Claude Code', `<div class="fd-field"><span>Found</span><span class="fd-note fd-dlg-claude-status" translate="no"></span></div>
 <label class="fd-field"><span>Program</span><input class="fd-input" type="text" spellcheck="false" data-c="bin" placeholder="Found automatically; or the full path to claude"></label>
 <label class="fd-field"><span>Folder</span><input class="fd-input" type="text" spellcheck="false" data-c="folder" placeholder="Where Claude Code starts; the formdeck Agent folder by default"></label>
@@ -1905,6 +1910,9 @@ class PreferencesDialog extends Dialog {
     window.addEventListener('resize', () => this.queueWire());
     this.posterSecond = q<HTMLInputElement>(box, '[data-f="posterSecondFrame"]');
     this.posterSecond.addEventListener('change', () => this.persist({ posterSecondFrame: this.posterSecond.checked }));
+    this.ideasPref = q<HTMLInputElement>(box, '[data-f="agentLayoutIdeas"]');
+    this.ideasStatus = q(box, '.fd-dlg-ideas-status');
+    this.ideasPref.addEventListener('change', () => { void api.setSettings({ agentLayoutIdeas: this.ideasPref.checked }).then(() => this.syncIdeas()).catch((e) => toast(`Could not save the preference: ${errText(e)}`, 'error')); });
     this.toggles = Array.from(box.querySelectorAll<HTMLInputElement>('[data-cmdtoggle]'));
     for (const t of this.toggles) t.addEventListener('change', () => { const id = t.dataset.cmdtoggle ?? ''; if (this.h?.commands?.get(id)) this.h.commands.run(id); this.syncTools(); });
     box.addEventListener('click', (e) => {
@@ -1970,6 +1978,12 @@ class PreferencesDialog extends Dialog {
   private persistClaude(): void {
     const claude = Object.fromEntries(this.claudeFields.map((f) => [f.dataset.c ?? '', f.value.trim()]));
     void api.setSettings({ claude }).then(() => this.syncClaude()).catch((e) => toast(`Could not save the preference: ${errText(e)}`, 'error'));
+  }
+
+  private syncIdeas(): void {
+    void api.ideasStatus().then((s) => {
+      setText(this.ideasStatus, s.available ? `Agent connected: ${s.provider}.` : 'No agent is connected. Connect one in the chat panel settings, or open an MCP client.');
+    }).catch(() => setText(this.ideasStatus, ''));
   }
 
   private syncClaude(): void {
@@ -2107,10 +2121,12 @@ class PreferencesDialog extends Dialog {
       segSet(this.marquee, str(s.marquee) === 'touch' ? 'touch' : 'enclose');
       setChecked(this.autosave, s.autosave !== false);
       setChecked(this.posterSecond, s.posterSecondFrame !== false);
+      setChecked(this.ideasPref, s.agentLayoutIdeas === true);
       const cl = (s.claude && typeof s.claude === 'object' ? s.claude : {}) as Record<string, unknown>;
       for (const f of this.claudeFields) setValue(f, str(cl[f.dataset.c ?? '']));
     });
     this.syncClaude();
+    this.syncIdeas();
   }
 }
 

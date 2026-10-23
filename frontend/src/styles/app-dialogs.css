@@ -266,7 +266,10 @@
 .fd-dlg-pref-fonts { display: flex; gap: var(--space-2); min-width: 0; }
 .fd-dlg-pref-fonts > select { flex: 1 1 0; min-width: 0; }
 
-.fd-ideas-note { margin-bottom: var(--space-3); }
+.fd-ideas-note { margin-bottom: var(--space-3); min-height: 2.8em; }
+.fd-ideas-wait[hidden] { display: none; }
+.fd-ideas-cell[hidden] { display: none; }
+.fd-ideas-cell.is-current { border-color: var(--line-2, var(--line-1)); cursor: default; opacity: 0.7; }
 .fd-ideas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); max-height: 60vh; overflow-y: auto; }
 .fd-ideas-grid[hidden] { display: none; }
 .fd-ideas-cell { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; padding: var(--space-1); border: 1px solid var(--line-1); border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--fd-12); text-align: left; cursor: pointer; }

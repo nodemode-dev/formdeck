@@ -23,6 +23,15 @@ const get = <T>(url: string): Promise<T> => fetch(url).then((r) => json<T>(r));
 export interface TermInfo { id: string; title: string; cwd?: string; kind?: string; alive?: boolean }
 export interface ClaudeStatus { installed: boolean; path: string | null; version: string | null; folder: string; terminal: TermInfo | null; binNote: string; firstMessage: string }
 
+export interface IdeasStatus { enabled: boolean; available: boolean; route: string; provider: string; reason: string }
+export interface IdeasFrame { x: number; y: number; w: number; h: number }
+export interface IdeasRequest {
+  version: 1; task: 'layout-ideas';
+  slide: { id: string; layout: string; size: { w: number; h: number }; elements: Array<{ id: string; type: string; ph?: { type: string; idx?: number }; text?: string; frame: IdeasFrame; hidden?: boolean }> };
+  layouts: Array<{ id: string; name: string; slots: Array<{ type: string; idx: number; frame: IdeasFrame }> }>;
+}
+export interface IdeasReply { version: number; ideas: Array<{ layout: string; note?: string; place?: Array<{ element: string; slot?: { type: string; idx?: number }; frame?: Partial<IdeasFrame> }> }> }
+
 export interface WorkbookTable { sheets: string[]; sheet: string; categories: string[]; series: Array<{ name: string; values: Array<number | null> }>; mtime: number; path: string }
 
 export const api = {
@@ -37,6 +46,8 @@ export const api = {
   mirrorCommands: (body: { size: number; missing: string[]; commands: unknown[] }) => (guest() ? Promise.resolve({ ok: true, size: 0 }) : post<{ ok: boolean; size: number }>('/api/commands/catalogue', body)),
   settings: () => (guest() ? Promise.resolve({} as Record<string, unknown>) : get<Record<string, unknown>>('/api/settings')),
   setSettings: (patch: Record<string, unknown>) => (guest() ? Promise.resolve({} as Record<string, unknown>) : post<Record<string, unknown>>('/api/settings', patch)),
+  ideasStatus: () => (guest() ? Promise.resolve({ enabled: false, available: false, route: '', provider: '', reason: '' } as IdeasStatus) : get<IdeasStatus>('/api/chat/ideas/status')),
+  layoutIdeas: (body: IdeasRequest, signal?: AbortSignal) => fetch('/api/chat/ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal }).then((r) => json<IdeasReply>(r)),
   library: () => get<{ decks: DeckSummary[] }>('/api/decks'),
   create: (body: { title?: string; template?: string; size?: string | { w: number; h: number }; firstSlide?: boolean }) => post<DeckSummary>('/api/decks', body),
   deck: (id: string) => get<{ deck: Deck; rev: number }>(`/api/decks/${id}`),

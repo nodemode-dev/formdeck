@@ -98,7 +98,7 @@ const ROWS: Record<string, Row> = {
   'text-style-apply': ['Use when text should take a saved text style.'],
   'insert-camera': ['Use when the presenter\'s live camera should appear on the slide during the show.'],
   'camera-toggle': ['Use when a selected shape should show the live camera during the show, or stop showing it.'],
-  'design-ideas': ['Use when you want to see the current slide in other layouts that fit its content and pick one.'],
+  'design-ideas': ['Use when you want to see the current slide in every layout of its master, in master order, and pick one. With Agent layout ideas on in Preferences, the connected agent proposes the placements.'],
   'insert-slide-zoom': ['Use when a slide should show a clickable preview of another slide that jumps there in the show and comes back after it.'],
   'share-network': ['Use when people on the same network should open this deck from their own computers; makes view, comment or edit links (sharing is off until turned on).', 'v'],
   'colour-style-save': ['Use when a shape\'s fill colour should be saved under a name, such as a brand colour, to reuse.'],
