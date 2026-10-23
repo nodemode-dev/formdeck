@@ -2,7 +2,7 @@ import re
 
 from app.services.store import STORE
 
-CHAT_ONLY = {"chat_inbox", "chat_reply"}
+CHAT_ONLY = {"chat_inbox", "chat_reply", "layout_ideas_reply"}
 MAX_RESULT = 12000
 
 

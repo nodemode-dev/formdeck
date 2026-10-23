@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from app.routers.live import local_origin
 from app.services import claude_code
 from app.services.chat import convo as cv
-from app.services.chat import engine, keys
+from app.services.chat import engine, ideas, keys
 from app.services.chat.providers import ProviderError
 
 
@@ -28,6 +28,19 @@ def _convo(cid: str) -> cv.Convo:
 @router.get("/config")
 def get_config() -> dict:
     return engine.public()
+
+
+@router.get("/ideas/status")
+def ideas_status() -> dict:
+    return ideas.status()
+
+
+@router.post("/ideas")
+async def ideas_ask(body: dict) -> dict:
+    try:
+        return await ideas.ask(body)
+    except ideas.IdeasError as exc:
+        raise HTTPException(exc.status, exc.message)
 
 
 @router.put("/key")

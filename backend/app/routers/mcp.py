@@ -16,6 +16,7 @@ from app.services import text_effects
 from app.services import intake as intake_mod
 from app.services.chat import convo as chat_convo
 from app.services.chat import engine as chat_engine
+from app.services.chat import ideas as chat_ideas
 from app.services import lint as lintmod
 from app.services import ops as opsmod
 from app.services.compiler import text as tx
@@ -59,6 +60,7 @@ undo {deck} reverts your whole last turn (every change you made within 90 second
 
 ## Chat panel
 The formdeck window has a chat panel (Agent tab) where the person types to you. Messages wait until you read them: chat_inbox {wait: 30} returns new ones (holding the call open up to 30 seconds), and chat_reply {text, deck} answers there; final false streams a partial that later calls append to. Start every session with get_context (it shows unread chat), and when you have nothing else to do keep calling chat_inbox {wait: 30} so the person can reach you. Treat a chat message like the brief: act with the tools, then reply with one or two sentences saying what changed.
+When the person turns on Agent layout ideas (Preferences > Plugins), Crafter Ideas asks you for placements: chat_inbox then also returns layout requests (the slide's element types, text and sizes, and the master's layouts), and layout_ideas_reply {id, ideas} answers with layouts best first and where each element goes (a slot or a frame). The ordering is yours; formdeck does no scoring or ranking. Format: docs/LAYOUT_IDEAS.md. Do not use this to edit the deck.
 
 ## Slide script
 ```
@@ -221,6 +223,9 @@ TOOLS = [
     _tool("chat_reply", "Posts a reply in the formdeck chat panel. final true (default) completes the reply; final false streams a partial: later calls append to the same reply until one is final.",
           {"text": _S, "deck": {"type": "string", "description": "Deck id of the conversation (as chat_inbox returned; default the one you last read)"}, "final": {"type": "boolean", "default": True},
            "to": {"type": "string", "description": "Message id being answered (m...)"}}, ["text"]),
+    _tool("layout_ideas_reply", "Answers a layout request that chat_inbox returned (only when the person turned on Agent layout ideas in Preferences). ideas lists layouts of the slide's master, best first: "
+          "{layout, note, place: [{element, slot: {type, idx}} or {element, frame: {x, y, w, h}}]}. formdeck does no scoring or ranking itself; the order and the placements are yours. Contract: docs/LAYOUT_IDEAS.md.",
+          {"id": {"type": "string", "description": "Request id (i...) from chat_inbox"}, "ideas": {"type": "array", "items": {"type": "object"}, "description": "Layout ideas, best first"}}, ["id", "ideas"]),
     _tool("list_commands", "The editor's command catalogue, the same commands as the ribbon, menus and shortcuts: id, label, group, what it does and when to use it. "
           "text narrows by words (all must match), group by one group; id returns one command with its parameters.",
           {"text": _S, "group": _S, "id": _S, "limit": {"type": "integer", "description": "Most rows to return (default 60)"}}, read=True),
@@ -1685,13 +1690,20 @@ async def t_chat_inbox(a: Agent, args: dict) -> dict:
         raise ToolError("deck must be a deck id (d_...).")
     wait = max(0, min(55, int(args.get("wait") or 0)))
     cfg = chat_engine.settings()
-    found = await chat_convo.wait_for_unread(deck, wait)
+    found = await chat_convo.wait_for_unread(deck, wait, chat_ideas.waiting)
     chat_convo.POLL["last"] = time.time()
     chat_engine.mark_seen(found)
     items = chat_engine.inbox_payload(found)
     if found:
         a.chat_deck = items[-1]["deck"]
     note = "" if cfg["provider"] == "connected" else f"\nThe panel is set to {chat_engine.active_label(cfg)}, which answers new messages itself; you still may reply with chat_reply."
+    asks = chat_ideas.take()
+    if asks:
+        lines = [f"{len(items)} new message{'s' if len(items) != 1 else ''} from the formdeck chat panel." if items else "No new messages."]
+        lines.extend(f"[{m['id']}] deck {m['deck'] or 'none open'}: {m['text']}" for m in items)
+        lines.append("The person asked for layout ideas (Crafter Ideas, Agent layout ideas is on). Answer each request with layout_ideas_reply {id, ideas}; the request and the reply format are in docs/LAYOUT_IDEAS.md and this JSON:")
+        lines.extend(json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in asks)
+        return _ok("\n".join(lines), {"messages": items, "layoutRequests": asks})
     if not items:
         return _ok("No new messages. Call chat_inbox {wait: 30} again to keep listening." + note, {"messages": []})
     lines = [f"{len(items)} new message{'s' if len(items) != 1 else ''} from the formdeck chat panel:"]
@@ -1711,6 +1723,19 @@ async def t_chat_reply(a: Agent, args: dict) -> dict:
     c = chat_convo.get(deck or chat_convo.GENERAL)
     msg = chat_engine.agent_reply(c, a.name, text, final, str(args.get("to") or "") or None)
     return _ok(("Posted." if final else "Partial posted; keep calling chat_reply with final true to finish.") + f" Reply id {msg['id']}.", {"id": msg["id"], "final": final})
+
+
+async def t_layout_ideas_reply(a: Agent, args: dict) -> dict:
+    rid = str(args.get("id") or "").strip()
+    if not rid:
+        raise ToolError("Give the request id chat_inbox returned.")
+    try:
+        chat_ideas.answer(rid, {"ideas": args.get("ideas")})
+    except LookupError as exc:
+        raise ToolError(str(exc))
+    except chat_ideas.IdeasError as exc:
+        raise ToolError(exc.message)
+    return _ok("Sent. The ideas appear in the person's Crafter Ideas dialog.")
 
 
 def _param_line(c: dict) -> str:

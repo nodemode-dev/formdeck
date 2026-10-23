@@ -140,9 +140,9 @@ def unread_count() -> int:
         return 0
 
 
-async def wait_for_unread(cid: str | None, seconds: float) -> list[tuple[Convo, dict]]:
+async def wait_for_unread(cid: str | None, seconds: float, also=None) -> list[tuple[Convo, dict]]:
     found = unread(cid)
-    if found or seconds <= 0:
+    if found or seconds <= 0 or (also and also()):
         return found
     ev = asyncio.Event()
     WAITERS.add(ev)
@@ -150,7 +150,7 @@ async def wait_for_unread(cid: str | None, seconds: float) -> list[tuple[Convo, 
     broadcast_status()
     deadline = time.monotonic() + seconds
     try:
-        while not found:
+        while not found and not (also and also()):
             left = deadline - time.monotonic()
             if left <= 0:
                 break
