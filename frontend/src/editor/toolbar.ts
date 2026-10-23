@@ -96,7 +96,7 @@ function ribbonTabs(): TabDef[] {
     ] },
     { id: 'slideshow', label: 'Slide Show', groups: [
       G('start', 'Start Slide Show', L('present-start', 'From Beginning'), L('present-current', 'From Current Slide'), L('presenter-view', 'Presenter View'), L('custom-shows', 'Custom Slide Show')),
-      G('setup', 'Set Up', L('show-setup', 'Set Up Slide Show'), L('hide-slide', 'Hide Slide'), L('rehearse-timings', 'Rehearse Timings', { icon: 'record' }), L('rehearse-coach', 'Rehearse with Coach', { icon: 'captions' }),L('subtitle-settings', 'Subtitle Settings', { icon: 'captions' })),
+      G('setup', 'Set Up', L('show-setup', 'Set Up Slide Show'), L('hide-slide', 'Hide Slide'), L('rehearse-timings', 'Rehearse Timings', { icon: 'record' }), L('rehearse-coach', 'Speech Rehearsal', { icon: 'captions' }),L('subtitle-settings', 'Subtitle Settings', { icon: 'captions' })),
       G('monitors', 'Monitors', R([T('use-presenter-view', 'Use Presenter View')])),
       G('record', 'Record', L('record-start', 'Record from Beginning', { icon: 'record' }), L('record-current', 'Record from Current', { icon: 'record' }), M('clear-rec', 'delete', 'Clear', ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'])),
     ] },

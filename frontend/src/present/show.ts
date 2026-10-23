@@ -419,12 +419,12 @@ class Show {
   }
 
   private startCoach(): void {
-    if (!captionsSupported()) { this.flash('Speaker Coach needs Chrome or Edge and a microphone.', 4000); return; }
+    if (!captionsSupported()) { this.flash('Speech Rehearsal needs Chrome or Edge and a microphone.', 4000); return; }
     this.coach = new SpeechCoach(this.ccPrefs.lang);
     this.coachCc = !this.ccOn;
     if (!this.ccOn) this.toggleCaptions();
     if (this.cc) this.cc.onHeard = (raw) => { const tip = this.coach?.heard(raw, this.slideWords(this.cur)); if (tip) this.flash(tip, 2500); };
-    window.setTimeout(() => { if (!this.closed) this.flash('Speaker Coach is listening: pace, filler words and reading the slide.', 3000); }, 2600);
+    window.setTimeout(() => { if (!this.closed) this.flash('Speech Rehearsal is listening: pace, filler words and reading the slide.', 3000); }, 2600);
   }
 
   private slideWords(id: string): string {

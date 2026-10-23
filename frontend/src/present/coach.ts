@@ -84,7 +84,7 @@ export class SpeechCoach {
 }
 
 export function coachSummary(r: CoachReport): string[] {
-  if (!r.words) return ['Speaker Coach heard no speech. Check the microphone and the spoken language in Subtitle Settings.'];
+  if (!r.words) return ['Speech Rehearsal heard no speech. Check the microphone and the spoken language in Subtitle Settings.'];
   const out: string[] = [];
   const w = r.wpm;
   if (!r.range) out.push(`Pace: ${w} words per minute.`);

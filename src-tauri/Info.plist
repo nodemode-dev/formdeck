@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>formdeck uses the microphone for narration, subtitles and Speaker Coach while you present or rehearse.</string>
+  <string>formdeck uses the microphone for narration, subtitles and Speech Rehearsal while you present or rehearse.</string>
   <key>NSCameraUsageDescription</key>
   <string>formdeck shows your camera in camera shapes on slides during the slide show.</string>
   <key>NSLocalNetworkUsageDescription</key>

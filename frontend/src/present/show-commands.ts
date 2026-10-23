@@ -52,6 +52,6 @@ export function registerShowCommands(cmds: Commands, E: () => Editor | null, liv
     { id: 'use-presenter-view', label: 'Use Presenter View', enabled: () => true, checked: () => usePresenterView(), run: () => setUsePresenterView(!usePresenterView()) },
     { id: 'subtitle-settings', label: 'Subtitle Settings...', icon: 'captions', enabled: () => true, run: () => { void import('../ui/dialogs-captions').then((m) => m.subtitleSettingsDialog()); } },
     { id: 'rehearse-timings', label: 'Rehearse Timings', icon: 'record', enabled: inSlides, run: () => start('start', { rehearse: true }) },
-    { id: 'rehearse-coach', label: 'Rehearse with Coach', icon: 'captions', enabled: inSlides, run: () => start('start', { rehearse: true, coach: true }) },
+    { id: 'rehearse-coach', label: 'Speech Rehearsal', icon: 'captions', enabled: inSlides, run: () => start('start', { rehearse: true, coach: true }) },
   );
 }

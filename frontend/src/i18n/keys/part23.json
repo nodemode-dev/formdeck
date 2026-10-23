@@ -1,11 +1,11 @@
 [
 "Use when you want feedback on pace, filler words and reading the slide while you rehearse out loud.",
-"Rehearse with Coach",
+"Speech Rehearsal",
 "Try not to read the slide word for word.",
 "Filler word: \"{0}\"",
 "Try slowing down a little.",
 "Try speeding up a little.",
-"Speaker Coach heard no speech. Check the microphone and the spoken language in Subtitle Settings.",
+"Speech Rehearsal heard no speech. Check the microphone and the spoken language in Subtitle Settings.",
 "Pace: {0} words per minute.",
 "Pace: {0} words per minute, faster than the 100 to 165 most audiences follow easily.",
 "Pace: {0} words per minute, slower than the usual 100 to 165.",
@@ -14,6 +14,6 @@
 "No filler words heard.",
 "You read slide text aloud once.",
 "You read slide text aloud {0} times.",
-"Speaker Coach needs Chrome or Edge and a microphone.",
-"Speaker Coach is listening: pace, filler words and reading the slide."
+"Speech Rehearsal needs Chrome or Edge and a microphone.",
+"Speech Rehearsal is listening: pace, filler words and reading the slide."
 ]
