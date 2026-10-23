@@ -119,8 +119,8 @@ class WordArtPop {
 
   constructor() {
     const warpHtml = WARP_GROUPS.map((g) => `<div class="fd-pop-head">${escapeHtml(g.label)}</div><div class="fd-wa-warps">${g.items.map(([p, label]) => `<button type="button" class="fd-wa-warp" data-warp="${p}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 40 28" aria-hidden="true">${warpPreview(p, 40, 28)}</svg></button>`).join('')}</div>`).join('');
-    this.pop = el(`<div class="fd-pop fd-wa-pop" hidden role="dialog" aria-label="WordArt">
-<div class="fd-wa-styles"><div class="fd-pop-head">WordArt styles</div><div class="fd-wa-grid">${WORDART_STYLES.map((s) => `<button type="button" class="fd-wa-style" data-style="${s.id}" title="${escapeHtml(s.label)}" aria-label="${escapeHtml(s.label)}"></button>`).join('')}</div></div>
+    this.pop = el(`<div class="fd-pop fd-wa-pop" hidden role="dialog" aria-label="Text Art">
+<div class="fd-wa-styles"><div class="fd-pop-head">Text Art styles</div><div class="fd-wa-grid">${WORDART_STYLES.map((s) => `<button type="button" class="fd-wa-style" data-style="${s.id}" title="${escapeHtml(s.label)}" aria-label="${escapeHtml(s.label)}"></button>`).join('')}</div></div>
 <div class="fd-wa-warpset">${warpHtml}</div>
 <div class="fd-wa-bevelset"><div class="fd-pop-head">Bevel</div><div class="fd-wa-warps"><button type="button" class="fd-wa-warp" data-bevel="none" title="No bevel" aria-label="No bevel"></button>${BEVELS.map((p) => `<button type="button" class="fd-wa-warp" data-bevel="${p}" title="${BEVEL_LABELS[p]}" aria-label="${BEVEL_LABELS[p]}"></button>`).join('')}</div></div>
 <div class="fd-wa-camset">${CAMERA_GROUPS.map((g) => `<div class="fd-pop-head">3-D rotation: ${escapeHtml(g.label)}</div><div class="fd-wa-warps">${g.items.map(([p, label]) => `<button type="button" class="fd-wa-warp" data-cam="${p}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"></button>`).join('')}</div>`).join('')}</div></div>`);

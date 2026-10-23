@@ -12,7 +12,7 @@ export function registerDiagramCommands(cmds: Commands, E: () => Editor | null):
   };
   const load = () => import('../ui/dialogs-diagram');
   const list: Command[] = [
-    { id: 'insert-diagram', label: 'SmartArt...', icon: 'diagram', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) void load().then((m) => m.diagramGallery(ed, 'insert')); } },
+    { id: 'insert-diagram', label: 'Diagram...', icon: 'diagram', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) void load().then((m) => m.diagramGallery(ed, 'insert')); } },
     { id: 'diagram-pane', label: 'Diagram Text Pane', icon: 'outline', enabled: () => !!E(), run: () => { const ed = E(); if (ed) void load().then((m) => m.toggleDiagramPane(ed)); } },
     { id: 'diagram-layout', label: 'Change Layout...', icon: 'layout', enabled: () => !!dg(), run: () => { const ed = E(); if (ed) void load().then((m) => m.diagramGallery(ed, 'layout')); } },
     { id: 'diagram-reset', label: 'Reset Graphic', icon: 'refresh', enabled: () => !!dg(), run: () => { const ed = E(); if (ed) void load().then((m) => m.resetDiagram(ed)); } },

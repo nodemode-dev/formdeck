@@ -313,6 +313,6 @@
 "Cascade down",
 "stroke=\"{0}\" stroke-width=\"{1}\" paint-order=\"stroke\" stroke-linejoin=\"round\"",
 "' : ''}${gl ? '",
-"WordArt styles",
+"Text Art styles",
 "No bevel"
 ]

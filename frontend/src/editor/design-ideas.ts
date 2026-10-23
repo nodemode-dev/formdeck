@@ -79,7 +79,7 @@ class IdeasDialog extends Dialog {
   private slideId = '';
 
   constructor() {
-    super('Design Ideas', 720);
+    super('Crafter Ideas', 720);
     this.body.append(this.note, this.grid);
     this.button('Close', '', () => this.close());
     this.grid.addEventListener('click', (e) => {
@@ -125,7 +125,7 @@ class IdeasDialog extends Dialog {
     const idea = this.ideas[i];
     const s = ed?.doc.slide(this.slideId);
     if (!ed || !idea || !s) return;
-    ed.apply([...idea.ops, ...dirtyOp(s)], 'Design idea');
+    ed.apply([...idea.ops, ...dirtyOp(s)], 'Crafter idea');
     this.close();
   }
 }
@@ -134,7 +134,7 @@ let dlg: IdeasDialog | null = null;
 
 export function registerDesignIdeas(cmds: Commands, E: () => Editor | null): void {
   cmds.add({
-    id: 'design-ideas', label: 'Design Ideas...', icon: 'layout',
+    id: 'design-ideas', label: 'Crafter Ideas...', icon: 'layout',
     enabled: () => { const ed = E(); return !!ed && ed.holderKind === 'slide' && !!ed.slide; },
     run: () => { const ed = E(); if (ed) { dlg ??= new IdeasDialog(); void dlg.show(ed); } },
   });

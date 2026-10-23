@@ -1,6 +1,6 @@
 ---
 name: review-handoff
-description: "Hands a formdeck deck to the person and works their feedback: review statuses (draft, review, changes, approved), agent comments, the handoff summary, answering and resolving the person's comments, undoing an agent turn or step, export_deck to pptx, potx, pdf, png or fdec, and open_file for existing .pptx, .potx and .fdec files. Use when a deck is ready for review, when the person left comments or asked for changes, when they want the agent's edits undone, or when they ask to export or open a file."
+description: "Hands a formdeck deck to the person and works their feedback: the agent handoff (working, ready, question), human review status when the person turned review on, agent comments, the handoff summary, answering and resolving the person's comments, undoing an agent turn or step, export_deck to pptx, potx, pdf, png or fdec, and open_file for existing .pptx, .potx and .fdec files. Use when a deck is ready for review, when the person left comments or asked for changes, when they want the agent's edits undone, or when they ask to export or open a file."
 ---
 
 # Review handoff
@@ -17,7 +17,7 @@ A deck that passed the visual-qa gate (or a request that only needs export, undo
 
 ### Hand over
 
-1. `review {deck, status: "review"}` for the slides you built or changed (all slides for a new deck; `slides` for a partial change). Never `approved`: approval is the person's click in the window, and a rebuilt slide that was approved drops back to review by itself.
+1. `handoff {deck, state: "ready", note}` for the slides you built or changed (all slides for a new deck; `slides` for a partial change), and `state: "question"` with the question in `note` where you need the person. It lists in their Agent tab; they mark each one seen. Handoff is your report, not review: review is human review between people sharing a deck, only the person turns it on, and while it is on you may only submit slides (`review {status: "review"}`), never approve or request changes.
 2. Comments only where the person must decide or verify: `comments {deck, action: "add", slide: "4", text: "September revenue is from the draft finance sheet; confirm it is final."}`. One comment per question; no comments that restate the slide.
 3. Send the summary (shape in `references/handoff.md`): deck id and title, template, slide count, what to look at first, open questions (matching the comments), remaining issues with reasons, and how to undo.
 

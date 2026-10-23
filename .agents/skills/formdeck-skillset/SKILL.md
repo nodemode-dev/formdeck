@@ -4,7 +4,7 @@ description: "Guides development of the formdeck (formerly formsld) codebase: it
 license: Apache-2.0
 metadata:
   author: nodemode-ai
-  version: "0.3.0"
+  version: "0.4.3"
 ---
 
 # formdeck skillset
@@ -72,6 +72,7 @@ The window reaches the engine only through `frontend/src/io/api.ts` (REST) and `
 | A new template, a motif, layout geometry, imported templates | `templates` |
 | pptx or potx import or export fidelity, .fdec packages | `pptx-exchange` |
 | Text measuring, autofit, charts, tables, thumbnails, PDF raster | `renderer` |
+| Anything a PowerPoint user would recognise: selection, Esc, handles, grid and guides, fonts and sizes, picture resize, video playback, slide show keys, Save and export, panes | `references/powerpoint-parity.md` first (the verified spec), then the area's specialist |
 | Panels, menus, toolbar, commands, shortcuts, dialogs, styles, themes | `editor-ui`, then `ui-verification` |
 | Transitions, animations, morph, presenter or audience window | `present`, then `ui-verification` |
 | Slides from PDF pages | `editor-ui`, then `ui-verification` |

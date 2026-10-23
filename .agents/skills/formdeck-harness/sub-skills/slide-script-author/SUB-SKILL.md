@@ -24,7 +24,7 @@ A slide plan (story-architect) or a specific slide to change, and the asset, tab
 - SMS and email reminders went live in July
 ```
 3. **Fill the layout's slots** with the syntax for that layout. Copy the matching block from `references/layout-examples.md` and replace the content; those 21 examples are verified against the engine in every built-in template.
-4. **Keep the ids.** Pictures as `![alt](a3)` (asset id), `img_...` (media id) or an absolute path. Charts from `get_source t1` pasted as a `chart` fence.
+4. **Keep the ids.** Pictures as `![alt](a3)` (asset id), `img_...` (media id) or an absolute path. A video or audio asset in the same place becomes a playable clip fitted inside the slot, and the engine gives a video its poster frame from the open window (the tool result says when it could not). Charts from `get_source t1` pasted as a `chart` fence.
 5. **Notes last**: `Note:` and the presenter's text with the source id. Everything after `Note:` on that slide is notes.
 6. **Check against the pitfalls** at the end of `references/script-syntax.md` before sending, then build. Read build_deck's warnings: a `picture ... not found` warning means a wrong id or a relative path.
 

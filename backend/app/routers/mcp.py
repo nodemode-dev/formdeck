@@ -165,7 +165,7 @@ TOOLS = [
           ["deck", "slide"]),
     _tool("set_text", "Sets one element's text (element id, or a slot: title, subtitle, body, caption...) from inline markdown; '- ' lines are bullets, two spaces per level. Equations are LaTeX: \\( ... \\) inline in a line, a line of $$ ... $$ (or \\[ ... \\]) is a centred display equation.",
           {"deck": _DECK, "slide": _SLIDE, "element": _S, "text": _S}, ["deck", "slide", "element", "text"]),
-    _tool("edit_elements", "Adds, updates (x, y, w, h, rot, fill, line, alt, text...; null removes a key; WordArt: warp (a prstTxWarp preset such as textArchUp, textWave1, or {preset, adj}) and textEffects ({fill, ln, fx, color} on every run)), deletes or restacks elements on one slide.",
+    _tool("edit_elements", "Adds, updates (x, y, w, h, rot, fill, line, alt, text...; null removes a key; Text Art: warp (a prstTxWarp preset such as textArchUp, textWave1, or {preset, adj}) and textEffects ({fill, ln, fx, color} on every run)), deletes or restacks elements on one slide.",
           {"deck": _DECK, "slide": _SLIDE, "changes": {"type": "array", "items": {"type": "object", "description": "{op: add, element} | {op: update, id, set} | {op: delete, id} | {op: z, id, to: front|back|forward|backward}"}}},
           ["deck", "slide", "changes"]),
     _tool("apply_ops", "Applies raw deck ops (set, ins, del, move; formdeck://guide) as one undoable step.", {"deck": _DECK, "ops": {"type": "array", "items": {"type": "object"}}, "label": _S}, ["deck", "ops"]),

@@ -24,7 +24,7 @@ Run before telling the person the deck is ready. A line that cannot pass goes in
 
 ## Handed over
 
-- [ ] review status set to `review` on every slide you built or changed; nothing set to `approved` by you
+- [ ] `handoff` set to `ready` (or `question` with a note) on every slide you built or changed; no review verdict set by you
 - [ ] Comments added only where the person must decide something
 - [ ] Summary sent: deck id and title, template, slide count, what to look at first, open questions, remaining issues
 - [ ] Export done only if asked, at the path the tool reported

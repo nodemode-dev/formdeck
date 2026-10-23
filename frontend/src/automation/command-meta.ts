@@ -212,7 +212,7 @@ const PREFIX: Array<[RegExp, string, string]> = [
   [/^shape:/, 'Insert', 'Use when you want to draw this shape on the slide.'],
   [/^merge-/, 'Format', 'Use when overlapping shapes should combine into one.'],
   [/^media-|^crop|^picture-/, 'Picture', 'Use when a picture or video needs cropping, a poster frame or a reset.'],
-  [/^diagram-/, 'SmartArt', 'Use when a diagram should change layout, be reset or become shapes.'],
+  [/^diagram-/, 'Diagram', 'Use when a diagram should change layout, be reset or become shapes.'],
   [/^model-/, '3D Model', 'Use when a 3D model\'s view should change.'],
   [/^record-|^clear-|^present-/, 'Slide Show', 'Use when the show, its timings or narration should change.'],
   [/^ribbon-|^qat-/, 'View', 'Use when the ribbon or Quick Access Toolbar should change.'],

@@ -102,6 +102,18 @@
         "Does not edit repository code",
         "Routes to formdeck-harness (building decks through the MCP tools)"
       ]
+    },
+    {
+      "id": 10,
+      "name": "powerpoint-behaviour-from-the-spec",
+      "prompt": "In formdeck, make Esc and clicking on a text box work the way they do in PowerPoint.",
+      "files": [],
+      "expected_behavior": [
+        "Loads references/powerpoint-parity.md before editing and names the Selection rows it implements",
+        "Esc while editing returns to object selected instead of clearing the selection",
+        "A click on the border or empty area of a box selects it; a click on its text starts editing",
+        "Fetches a Microsoft source before building any PowerPoint behaviour the reference does not list"
+      ]
     }
   ],
   "trigger_evals": [

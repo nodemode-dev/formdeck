@@ -12,7 +12,7 @@
 
 ## Layers and the slide cache
 
-`.fd-show-frame` holds two `.fd-show-layer` elements, the ink canvas and the laser dot. SlideViews (mode `show`) for the previous, current and next slide are cached by id and moved between the layers and a stash; a transition animates the outgoing and incoming layers with the keyframes from `transitionPlan`, after the incoming slide's pictures have decoded. Morph builds per-element animations between matched elements of consecutive slides.
+`.fd-show-frame` holds two `.fd-show-layer` elements, the ink canvas and the laser dot. SlideViews (mode `show`) for the previous, current and next slide are cached by id and moved between the layers and a stash; a transition animates the outgoing and incoming layers with the keyframes from `transitionPlan`, after the incoming slide's pictures have decoded. Morpher builds per-element animations between matched elements of consecutive slides.
 
 ## Steps and builds
 

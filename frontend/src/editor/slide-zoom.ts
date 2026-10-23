@@ -13,7 +13,7 @@ async function insertZoom(ed: Editor): Promise<void> {
   if (!s) return;
   const deck = ed.doc.deck;
   const rows = deck.slides.map((x, i) => ({ id: x.id, label: `${i + 1}. ${slideTitle(deck, x) || 'Untitled'}`, note: x.hidden ? 'hidden' : '' })).filter((r) => r.id !== s.id);
-  const target = await pickFrom('Slide Zoom: choose a slide', rows, 'Add another slide first; a zoom jumps to a different slide.');
+  const target = await pickFrom('Zoom Slider: choose a slide', rows, 'Add another slide first; a zoom jumps to a different slide.');
   if (!target || !deck.slides.some((x) => x.id === target)) return;
   const n = deck.slides.findIndex((x) => x.id === target) + 1;
   const title = slideTitle(deck, deck.slides[n - 1]) || `Slide ${n}`;
@@ -37,9 +37,9 @@ async function insertZoom(ed: Editor): Promise<void> {
     op: 'ins', path: [...slidePath(s.id), 'elements'],
     value: { id, type: 'image', name: `Zoom: ${title}`, src: media.id, fit: 'stretch', x: Math.round((deck.size.w - w) / 2), y: Math.round((deck.size.h - h) / 2), w, h, alt: `Zoom to slide ${n}: ${title}`, link: { slide: target, back: true }, line: { color: 'tx1', width: 1 } },
   });
-  if (ed.apply([...ops, ...dirtyOp(s)], 'Insert slide zoom')) ed.select([id]);
+  if (ed.apply([...ops, ...dirtyOp(s)], 'Insert Zoom Slider')) ed.select([id]);
 }
 
 export function registerSlideZoomCommands(cmds: Commands, editor: () => Editor | null): void {
-  cmds.add({ id: 'insert-slide-zoom', label: 'Slide Zoom...', icon: 'present', enabled: () => (editor()?.holderKind === 'slide') && (editor()?.doc.deck.slides.length ?? 0) > 1, run: () => { const ed = editor(); if (ed) void insertZoom(ed); } });
+  cmds.add({ id: 'insert-slide-zoom', label: 'Zoom Slider...', icon: 'present', enabled: () => (editor()?.holderKind === 'slide') && (editor()?.doc.deck.slides.length ?? 0) > 1, run: () => { const ed = editor(); if (ed) void insertZoom(ed); } });
 }

@@ -192,11 +192,11 @@ export function set3d(ed: Editor, key: 'sp3d' | 'scene3d', value: Sp3d | Scene3d
 }
 
 function applyStyle(ed: Editor, st: WordArtStyle, snap: Snap | null): void {
-  applyRunFx(ed, styleRun(st), 'WordArt style', snap);
+  applyRunFx(ed, styleRun(st), 'Text Art style', snap);
   const cur = probe(ed)?.el.text as Body3 | undefined;
   if (!st.body && !cur?.sp3d && !cur?.scene3d) return;
-  set3d(ed, 'sp3d', st.body?.sp3d, 'WordArt style');
-  set3d(ed, 'scene3d', st.body?.scene3d, 'WordArt style');
+  set3d(ed, 'sp3d', st.body?.sp3d, 'Text Art style');
+  set3d(ed, 'scene3d', st.body?.scene3d, 'Text Art style');
 }
 
 function setBevel(ed: Editor, p: BevelPreset | null): void {
@@ -215,10 +215,10 @@ export function newWordArt(ed: Editor, st: WordArtStyle): void {
   const run: Run = { t: 'Your text here', sz: 54, b: true, font: '+mj', ...styleRun(st) };
   for (const k of Object.keys(run) as Array<keyof Run>) if (run[k] === undefined) delete run[k];
   const box: Omit<ShapeElement, 'id'> = {
-    type: 'shape', name: 'WordArt', geom: 'rect', x: Math.round((d.w - w) / 2), y: Math.round((d.h - h) / 2), w, h, fill: { type: 'none' }, line: { type: 'none' },
+    type: 'shape', name: 'Text Art', geom: 'rect', x: Math.round((d.w - w) / 2), y: Math.round((d.h - h) / 2), w, h, fill: { type: 'none' }, line: { type: 'none' },
     text: { paras: [{ runs: [run], align: 'c', bullet: { type: 'none' } }], autofit: 'grow', wrap: false, anchor: 'm', inset: [7.2, 3.6, 7.2, 3.6], ...(st.body?.sp3d ? { sp3d: st.body.sp3d } : {}), ...(st.body?.scene3d ? { scene3d: st.body.scene3d } : {}) },
   };
-  const id = ed.insert(box as SlideElement, 'Insert WordArt');
+  const id = ed.insert(box as SlideElement, 'Insert Text Art');
   if (!id) return;
   requestAnimationFrame(() => {
     ed.stage.beginEdit(id);
@@ -241,7 +241,7 @@ function anchorFor(sel: string): HTMLElement {
 export function registerTextFxCommands(cmds: Commands, E: () => Editor | null): void {
   const textSel = (): boolean => { const ed = E(); return !!ed && (!!ed.stage.editing || ed.selected().some(isTextShape)); };
   const list: Command[] = [
-    { id: 'insert-wordart', label: 'WordArt...', icon: 'wordArt', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) wordArtGallery(anchorFor('.fd-options [data-cmd="insert-wordart"]'), editorTheme(ed), { style: (st) => newWordArt(ed, st) }); } },
+    { id: 'insert-wordart', label: 'Text Art...', icon: 'wordArt', enabled: () => !!E()?.slide, run: () => { const ed = E(); if (ed) wordArtGallery(anchorFor('.fd-options [data-cmd="insert-wordart"]'), editorTheme(ed), { style: (st) => newWordArt(ed, st) }); } },
     { id: 'text-effects', label: 'Text Effects...', icon: 'textEffects', enabled: textSel, run: () => {
       const ed = E();
       if (!ed) return;
@@ -269,7 +269,7 @@ export class TextFxPanel {
   constructor() {
     this.el = el(`<div class="fd-prop-section fd-tfx-panel" hidden>
 <div class="fd-panel-head"><span class="fd-panel-title">Text effects</span></div>
-${row('Style', `<button class="fd-btn fd-btn-sm" type="button" data-ta="styles">${icon('wordArt', 14)}WordArt styles</button>`)}
+${row('Style', `<button class="fd-btn fd-btn-sm" type="button" data-ta="styles">${icon('wordArt', 14)}Text Art styles</button>`)}
 ${row('Text fill', `<select data-xf="fill" aria-label="Text fill"><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="none">No fill</option><option value="picture">Picture...</option></select>${swatch('fill1', 'Fill colour')}${swatch('fill2', 'Gradient end colour')}`)}
 ${row('Direction', `<select data-xf="angle" aria-label="Gradient direction"><option value="0">Left to right</option><option value="180">Right to left</option><option value="90">Top to bottom</option><option value="270">Bottom to top</option><option value="45">Diagonal down</option><option value="315">Diagonal up</option><option value="radial">From centre</option></select>`, ' data-xr="grad"')}
 ${row('Outline', `<select data-xf="ln" aria-label="Text outline"><option value="none">None</option><option value="solid">Solid</option><option value="dash">Dash</option><option value="dot">Dot</option><option value="dashDot">Dash dot</option><option value="longDash">Long dash</option></select>${swatch('lncolor', 'Outline colour')}<label class="fd-num" title="Outline width"><input type="number" min="0.25" max="20" step="0.25" data-xf="lnw" aria-label="Outline width"><span class="fd-unit">pt</span></label>`)}

@@ -318,7 +318,7 @@
 "Show events along a line, alternating above and below.",
 "stroke=\"{0}\" stroke-width=\"{1}\"",
 ": ''}${e.flipV ?",
-"Choose a SmartArt Graphic",
+"Choose a Diagram",
 "Colors",
 "Categories",
 "Insert diagram",

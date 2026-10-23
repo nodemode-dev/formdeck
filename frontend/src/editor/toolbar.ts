@@ -69,10 +69,10 @@ function ribbonTabs(): TabDef[] {
       G('slides', 'Slides', L('new-slide', 'New Slide'), L('insert-pdf-pages', 'From PDF')),
       G('tables', 'Tables', L('insert-table', 'Table')),
       G('images', 'Images', L('insert-image', 'Pictures'), R([T('insert-stock', 'Stock Images')], [T('insert-ai-image', 'Generate with AI', { icon: 'ai' })])),
-      G('illustrations', 'Illustrations', A('shapes', 'shapes', 'Shapes'), L('insert-icons', 'Icons'), L('insert-model3d', '3D Models', { icon: 'model3d' }), L('insert-diagram', 'SmartArt'), L('insert-chart', 'Chart'), R([T('insert-line', 'Line')], [T('insert-arrow', 'Arrow')], [M('connector', 'line', 'Connector', CONNECTOR_ITEMS, { text: true })]), R([T('draw-freeform', 'Freeform')], [T('draw-scribble', 'Scribble')])),
+      G('illustrations', 'Illustrations', A('shapes', 'shapes', 'Shapes'), L('insert-icons', 'Icons'), L('insert-model3d', '3D Models', { icon: 'model3d' }), L('insert-diagram', 'Diagram'), L('insert-chart', 'Chart'), R([T('insert-line', 'Line')], [T('insert-arrow', 'Arrow')], [M('connector', 'line', 'Connector', CONNECTOR_ITEMS, { text: true })]), R([T('draw-freeform', 'Freeform')], [T('draw-scribble', 'Scribble')])),
       G('links', 'Links', L('insert-link', 'Link')),
       G('comments', 'Comments', L('add-comment', 'Comment')),
-      G('text', 'Text', L('insert-text', 'Text Box'), L('header-footer', 'Header & Footer'), L('insert-wordart', 'WordArt')),
+      G('text', 'Text', L('insert-text', 'Text Box'), L('header-footer', 'Header & Footer'), L('insert-wordart', 'Text Art')),
       G('symbols', 'Symbols', L('insert-equation', 'Equation')),
       G('media', 'Media', L('insert-media', 'Video or Audio'), L('insert-camera', 'Camera')),
     ] },
@@ -80,7 +80,7 @@ function ribbonTabs(): TabDef[] {
       G('themes', 'Themes', L('apply-template', 'Template')),
       G('customize', 'Customize', L('slide-size', 'Slide Size'), L('format-background', 'Format Background')),
       G('master', 'Master', L('view-master', 'Slide Master')),
-      G('designer', 'Designer', L('design-ideas', 'Design Ideas')),
+      G('designer', 'Crafter', L('design-ideas', 'Crafter Ideas')),
     ] },
     { id: 'transitions', label: 'Transitions', groups: [
       G('transition', 'Transition to This Slide', S('tr-gallery'), M('tr-options', 'transition', 'Effect Options', ['transition-dir-0', 'transition-dir-1', 'transition-dir-2', 'transition-dir-3'])),
@@ -129,7 +129,7 @@ function ribbonTabs(): TabDef[] {
     { id: 'shapefmt', label: 'Shape Format', ctx: true, groups: [
       G('shapes', 'Insert Shapes', A('shapes', 'shapes', 'Shapes'), R([T('edit-points', 'Edit Points')], [M('merge', 'mergeUnion', 'Merge Shapes', (MERGE_MENU as SubMenu).items, { text: true })])),
       G('styles', 'Shape Styles', A('fill', 'fill', 'Shape Fill', { swatch: true }), A('line', 'pen', 'Shape Outline', { swatch: true }), M('shapefx', 'effects', 'Shape Effects', SHAPE_EFFECTS_MENU)),
-      G('wordart', 'WordArt Styles', L('text-effects', 'Text Effects'), L('text-transform', 'Transform'), R([A('text-color', 'textColor', 'Text Fill', { text: true, swatch: true })], [A('highlight', 'highlight', 'Highlight', { text: true, swatch: true })], [T('clear-text-effects', 'Clear Effects')])),
+      G('wordart', 'Text Art Styles', L('text-effects', 'Text Effects'), L('text-transform', 'Transform'), R([A('text-color', 'textColor', 'Text Fill', { text: true, swatch: true })], [A('highlight', 'highlight', 'Highlight', { text: true, swatch: true })], [T('clear-text-effects', 'Clear Effects')])),
       G('textbox', 'Text Box', R([I('anchor-t'), I('anchor-m'), I('anchor-b')], [I('text-align-l'), I('text-align-c'), I('text-align-r'), I('text-align-j')], [I('bullets'), I('numbering')])),
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       G('camera', 'Camera', L('camera-toggle', 'Live Camera')),
@@ -158,10 +158,10 @@ function ribbonTabs(): TabDef[] {
       G('access', 'Accessibility', L('alt-text', 'Alt Text', { icon: 'info' })),
       arrangeGroup(),
     ] },
-    { id: 'smartart', label: 'SmartArt Design', ctx: true, groups: [
+    { id: 'smartart', label: 'Diagram Design', ctx: true, groups: [
       G('create', 'Create Graphic', L('diagram-pane', 'Text Pane')),
       G('layouts', 'Layouts', L('diagram-layout', 'Change Layout')),
-      G('styles', 'SmartArt Styles', M('dgcolors', 'palette', 'Change Colors', (DIAGRAM_MENU.items[2] as SubMenu).items), M('dgstyle', 'effects', 'Styles', (DIAGRAM_MENU.items[3] as SubMenu).items)),
+      G('styles', 'Diagram Styles', M('dgcolors', 'palette', 'Change Colors', (DIAGRAM_MENU.items[2] as SubMenu).items), M('dgstyle', 'effects', 'Styles', (DIAGRAM_MENU.items[3] as SubMenu).items)),
       G('reset', 'Reset', L('diagram-reset', 'Reset Graphic'), L('diagram-convert', 'Convert to Shapes')),
       arrangeGroup(),
     ] },
@@ -216,7 +216,7 @@ export class Toolbar {
 <span class="fd-sep" data-g="slide"></span>
 <div class="fd-tb-group" data-g="master">${lbtn('master-insert-layout', 'slideAdd', 'New layout')}${btn('master-duplicate-layout', 'duplicate', 'Duplicate layout')}${btn('master-hide-graphics', 'eyeOff', 'Hide background graphics')}${btn('format-background', 'background', 'Background')}${lbtn('close-master', 'close', 'Close Master View')}</div>
 <span class="fd-sep" data-g="master"></span>
-<div class="fd-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-wordart', 'wordArt', 'WordArt')}${btn('insert-image', 'image', 'Picture')}<button class="fd-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-equation', 'equation', 'Equation')}${btn('insert-media', 'video', 'Video or audio')}${btn('insert-icons', 'iconLib', 'Icons')}${btn('insert-diagram', 'diagram', 'SmartArt')}${btn('add-comment', 'comment', 'Comment')}</div>
+<div class="fd-tb-group" data-g="insert">${btn('insert-text', 'textBox', 'Text box')}${btn('insert-wordart', 'wordArt', 'Text Art')}${btn('insert-image', 'image', 'Picture')}<button class="fd-tb-btn" type="button" data-act="shapes" title="Shapes" aria-label="Shapes">${icon('shapes', 16)}</button>${btn('insert-line', 'line', 'Line')}${btn('insert-table', 'table', 'Table')}${btn('insert-chart', 'chart', 'Chart')}${btn('insert-equation', 'equation', 'Equation')}${btn('insert-media', 'video', 'Video or audio')}${btn('insert-icons', 'iconLib', 'Icons')}${btn('insert-diagram', 'diagram', 'Diagram')}${btn('add-comment', 'comment', 'Comment')}</div>
 <span class="fd-sep" data-g="insert"></span>
 <div class="fd-tb-group" data-g="font"><select class="fd-tb-font" aria-label="Font" title="Font" style="width:140px"></select><input class="fd-tb-field is-num fd-tb-size" type="number" min="1" max="3600" step="0.1" list="fd-size-presets" aria-label="Font size" title="Font size"></div>
 <span class="fd-sep" data-g="font"></span>

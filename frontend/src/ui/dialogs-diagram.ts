@@ -95,7 +95,7 @@ class Gallery {
   private done: (() => void) | null = null;
 
   constructor() {
-    this.d = new Dialog('Choose a SmartArt Graphic', 820);
+    this.d = new Dialog('Choose a Diagram', 820);
     const body = el(`<div class="fd-dg">
 <div class="fd-dg-cats" role="listbox" aria-label="Categories"></div>
 <div class="fd-dg-grid" role="listbox" aria-label="Layouts"></div>
@@ -132,7 +132,7 @@ class Gallery {
     this.theme = s ? slideTheme(ed.doc.deck, s) : ed.doc.deck.theme;
     const g = mode === 'layout' ? diagramGroup(ed.selected()[0]) : null;
     if (mode === 'layout' && !g) return Promise.resolve();
-    this.d.setTitle(mode === 'layout' ? 'Change Layout' : 'Choose a SmartArt Graphic');
+    this.d.setTitle(mode === 'layout' ? 'Change Layout' : 'Choose a Diagram');
     setText(this.ok, mode === 'layout' ? 'OK' : 'Insert');
     setHidden(this.look, mode === 'layout');
     this.items = g ? g.diagram?.items ?? [] : [];

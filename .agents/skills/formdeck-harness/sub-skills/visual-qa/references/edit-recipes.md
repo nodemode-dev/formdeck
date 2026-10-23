@@ -55,7 +55,7 @@ edit_elements {deck, slide: "3", changes: [{op: "add", element: {type: "image", 
 edit_elements {deck, slide: "3", changes: [{op: "add", element: {type: "shape", geom: "roundRect", x: 620, y: 420, w: 280, h: 60, fill: {type: "solid", color: "accent1"}, line: {type: "none"}, text: "**+29%** since July"}}]}
 ```
 
-WordArt is a text box with text effects and an optional transform:
+Text Art is a text box with text effects and an optional transform:
 
 ```
 edit_elements {deck, slide: "1", changes: [{op: "update", id: "e12", set: {warp: "textArchUp", textEffects: {fill: {type: "gradient", kind: "linear", angle: 90, stops: [{pos: 0, color: "accent1"}, {pos: 1, color: "accent2"}]}, ln: {color: "dk1", width: 1}, fx: {shadow: {color: "#00000059", blur: 6, dist: 3, angle: 45}}}}}]}
@@ -63,7 +63,7 @@ edit_elements {deck, slide: "1", changes: [{op: "update", id: "e12", set: {warp:
 edit_elements {deck, slide: "1", changes: [{op: "update", id: "e12", set: {warp: null, textEffects: null}}]}
 ```
 
-Use WordArt for a title card or a one-word moment, not for body text: an envelope warp stretches the text to fill its box, so give the box the shape you want the words to take, and render_slides to check it. Effects and warps export to PowerPoint natively (`a:prstTxWarp`, text `a:ln`, `a:gradFill`, `a:effectLst`).
+Use Text Art for a title card or a one-word moment, not for body text: an envelope warp stretches the text to fill its box, so give the box the shape you want the words to take, and render_slides to check it. Effects and warps export to PowerPoint natively (`a:prstTxWarp`, text `a:ln`, `a:gradFill`, `a:effectLst`).
 
 A text box is a `rect` with `fill: {type: "none"}` and `line: {type: "none"}`. Text as a string is parsed like set_text. Geometries include rect, roundRect, ellipse, triangle, rightArrow, chevron, star5, line, wedgeRectCallout. Prefer a layout slot over a drawn shape: shapes do not move when the template changes.
 

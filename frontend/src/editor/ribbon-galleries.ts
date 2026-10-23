@@ -20,7 +20,7 @@ const TR_DIRS: Partial<Record<TransitionType, Dirs>> = { push: FROM, wipe: FROM,
 export const TRANSITIONS: Array<{ id: TransitionType; label: string; group: string }> = [
   { id: 'none', label: 'None', group: 'Subtle' }, { id: 'fade', label: 'Fade', group: 'Subtle' }, { id: 'push', label: 'Push', group: 'Subtle' }, { id: 'wipe', label: 'Wipe', group: 'Subtle' },
   { id: 'split', label: 'Split', group: 'Subtle' }, { id: 'cover', label: 'Cover', group: 'Subtle' }, { id: 'uncover', label: 'Uncover', group: 'Subtle' }, { id: 'reveal', label: 'Reveal', group: 'Subtle' },
-  { id: 'zoom', label: 'Zoom', group: 'Exciting' }, { id: 'flip', label: 'Flip', group: 'Exciting' }, { id: 'cube', label: 'Cube', group: 'Exciting' }, { id: 'morph', label: 'Morph', group: 'Exciting' },
+  { id: 'zoom', label: 'Zoom', group: 'Exciting' }, { id: 'flip', label: 'Flip', group: 'Exciting' }, { id: 'cube', label: 'Cube', group: 'Exciting' }, { id: 'morph', label: 'Morpher', group: 'Exciting' },
 ];
 
 const FRAME = '<rect x="3.5" y="3.5" width="33" height="21" rx="2" fill="none" stroke="currentColor" opacity=".45"/>';

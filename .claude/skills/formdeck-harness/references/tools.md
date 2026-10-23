@@ -112,7 +112,7 @@ Returns: `Set e88 on slide 5 (3 paragraphs).` Structured `{element}`. Refuses im
 - deck, slide, changes (all required)
 - changes: array of `{op: "add", element, index?}`, `{op: "update", id, set: {key: value}}` (null removes a key), `{op: "delete", id}`, `{op: "z", id, to: front|back|forward|backward}`
 Returns: `Slide 4: updated e86 (fit).` An added image takes `src` as an asset id, media id or absolute path; an added shape defaults to a centred half-slide `rect`.
-- WordArt on update: `warp` is a transform preset (`textArchUp`, `textArchDown`, `textCircle`, `textButton`, `textWave1`, `textWave2`, `textInflate`, `textDeflate`, `textSlantUp`, `textSlantDown`, `textTriangle`, `textChevron`, `textCanUp` and the rest of PowerPoint's 40), `{preset, adj}` or null; `textEffects` is `{fill, ln, fx, color}` set on every run (`fill` solid, gradient or `{type: "none"}`; `ln` an outline `{color, width, dash}`; `fx` `{shadow, glow, reflection}`; null removes a key, `textEffects: null` clears them). get_deck detail text shows a warped element as `[shape textArchUp]`.
+- Text Art on update: `warp` is a transform preset (`textArchUp`, `textArchDown`, `textCircle`, `textButton`, `textWave1`, `textWave2`, `textInflate`, `textDeflate`, `textSlantUp`, `textSlantDown`, `textTriangle`, `textChevron`, `textCanUp` and the rest of PowerPoint's 40), `{preset, adj}` or null; `textEffects` is `{fill, ln, fx, color}` set on every run (`fill` solid, gradient or `{type: "none"}`; `ln` an outline `{color, width, dash}`; `fx` `{shadow, glow, reflection}`; null removes a key, `textEffects: null` clears them). get_deck detail text shows a warped element as `[shape textArchUp]`.
 
 ### apply_ops
 - deck, ops (required); label: string
