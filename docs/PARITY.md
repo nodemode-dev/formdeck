@@ -85,7 +85,7 @@ Rows formdeck implements that the product does not offer:
 - **Automation, 3.5 of 4.** Macros and agents cover scripting, and add-ins install from formdeck's catalog and, since 0.12.0, from other publishers' catalogs a person adds, all with permissions and checksums; there are no reviews or ratings.
 - **Smaller limits.** Subtitles need Chrome or Edge; stock images are pictures only (no video or stickers); AI pictures need an OpenAI key or a compatible image server.
 
-Not on the list and not offered by formdeck: Keynote Slide Clean Up, PowerPoint Designer's generated designs beyond layouts (since 0.11.6 Crafter Ideas suggests the master's layouts that fit the slide), PowerPoint's Summary and Section Zoom (since 0.11.4 formdeck has Zoom Slider: a slide picture that jumps to its slide in the show and returns after it; since 0.11.5 it has Rehearse with Coach, the counterpart of PowerPoint Speaker Coach, and since 0.11.6 a live camera on slides, like PowerPoint Cameo and Keynote live video), and Keynote's multipresenter and FaceTime presenting.
+Not on the list and not offered by formdeck: Keynote Slide Clean Up, PowerPoint Designer's generated designs beyond layouts (Crafter Ideas lists every layout of the master in order, and with Agent layout ideas on shows the placements the person's own agent suggests; formdeck does no scoring or ranking), PowerPoint's Summary and Section Zoom (since 0.11.4 formdeck has Zoom Slider: a slide picture that jumps to its slide in the show and returns after it; since 0.11.5 it has Speech Rehearsal (rule-based on the recognised text), and since 0.11.6 a live camera on slides, like PowerPoint Cameo and Keynote live video), and Keynote's multipresenter and FaceTime presenting.
 
 ## Line by line
 
@@ -292,7 +292,7 @@ Not on the list and not offered by formdeck: Keynote Slide Clean Up, PowerPoint 
 | Capability | PowerPoint | Keynote | Slides | formdeck | Seen working | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | Built-in AI assistant | yes | yes | yes | Full | 0.19.0: against a fake OpenAI-compatible server, the chat sent 28 tools, a set_text call retitled slide 1 and the panel showed Done | `ui/chat-panel.ts` chat in the Agent tab that edits the deck with the MCP tools as undoable agent turns, through the person's connected agent (`chat_inbox`, `chat_reply`), an Anthropic or OpenAI-compatible key, or a local Ollama model (`services/chat/`) |
-| MCP server for outside agents (HTTP and stdio) | no | no | no | Full | not yet | `backend/app/routers/mcp.py TOOLS` (24 tools), `setup/mcp_stdio.py` |
+| MCP server for outside agents (HTTP and stdio) | no | no | no | Full | not yet | `backend/app/routers/mcp.py TOOLS` (31 tools), `setup/mcp_stdio.py` |
 | Agent edits land live in the open window, undone per turn | no | no | no | Full | not yet | `services/store.py step(turn)`, `commands.ts undo-agent` |
 | Agent sees and measures its own slides | no | no | no | Full | not yet | `agent-bridge.ts` render_slides, measure; `services/lint.py` |
 | Agent consent and on/off switch | no | no | no | Full | not yet | `agent-bridge.ts` consent, Preferences and Agent tab |

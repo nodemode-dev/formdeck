@@ -24,6 +24,17 @@ PDF editing lives in formpdf (github.com/nodemode-ai/formpdf).
 - Zero DOM flash: patch nodes, never rebuild a live container; verify under 4x CPU and network throttling.
 - Commits: Conventional Commits `type(scope): summary (x.y.z)` with a body, version bump commit last.
 
+## Layout suggestions, rehearsal, ingest, ribbon and Morph (declined for patent risk, 2026-10-23)
+
+Never add back:
+
+- In-app content analysis, scoring or ranking for layout suggestions. Crafter Ideas lists every layout of the slide's master in master order, each previewed with the slide's content placed by the same slot mapping the Layout gallery uses (`changeLayoutOps`): no classifying of elements, no fit scores, no sorting by fit, no filtering, no cap. Any suggestion logic lives only with the person's own agent, behind the Agent layout ideas preference (off by default), which sends the raw element types, text and sizes plus the master's layouts over the contract in `docs/LAYOUT_IDEAS.md` and shows what the agent returns. formdeck itself holds no scoring, ranking or content classification.
+- The fallback switch: `CRAFTER_PLAIN_THUMBNAILS` in `frontend/src/editor/design-ideas.ts` (or the hidden setting `crafterPlainThumbnails`) shows plain layout thumbnails with no slide content and places the content only on apply. It is off; leave it as the documented way to swap that in.
+- Ribbon groups collapse whole. Never move part of a group into an overflow pane.
+- Speech Rehearsal stays rule-based on text: no pitch analysis, no trained speech model, no generated rehearsal questions.
+- "Start from your material" keeps whole-file ingest and rule-based distilling: no picking a portion of a file, no trained distilling model in formdeck.
+- Morph keeps browser keyframe interpolation: no per-frame stepping loop that divides a difference by a frame count.
+
 ## Trademarks, copyright and licences
 
 - Other vendors' product and feature names appear only to name a file format or compatibility ("PowerPoint (.pptx)", "WordArt kept native in .pptx"). Never as a formdeck command, menu, ribbon group, template, gallery or agent tool name, and never as "like PowerPoint" or "as in Keynote" in UI text or READMEs. The notice in `README.md` and `NOTICE.md` lists every vendor mark named.

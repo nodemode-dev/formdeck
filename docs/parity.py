@@ -165,7 +165,7 @@ row(a, "Grayscale, frame slides, include hidden slides, paper size", 1, 1, 1, F,
 
 a = "Automation and agents"
 row(a, "Built-in AI assistant", 1, 1, 1, F, "`ui/chat-panel.ts` chat in the Agent tab that edits the deck with the MCP tools as undoable agent turns, through the person's connected agent (`chat_inbox`, `chat_reply`), an Anthropic or OpenAI-compatible key, or a local Ollama model (`services/chat/`)")
-row(a, "MCP server for outside agents (HTTP and stdio)", 0, 0, 0, F, "`backend/app/routers/mcp.py TOOLS` (24 tools), `setup/mcp_stdio.py`")
+row(a, "MCP server for outside agents (HTTP and stdio)", 0, 0, 0, F, "`backend/app/routers/mcp.py TOOLS` (31 tools), `setup/mcp_stdio.py`")
 row(a, "Agent edits land live in the open window, undone per turn", 0, 0, 0, F, "`services/store.py step(turn)`, `commands.ts undo-agent`")
 row(a, "Agent sees and measures its own slides", 0, 0, 0, F, "`agent-bridge.ts` render_slides, measure; `services/lint.py`")
 row(a, "Agent consent and on/off switch", 0, 0, 0, F, "`agent-bridge.ts` consent, Preferences and Agent tab")

@@ -24,7 +24,7 @@ A slide is DOM laid out in points (`frontend/src/render/slide.ts SlideView`, 1px
 
 ## MCP
 
-`backend/app/routers/mcp.py` serves 24 tools over streamable HTTP at `/mcp`; `setup/mcp_stdio.py` bridges stdio clients to it and starts the engine when needed. Most tools run in the engine (ingest, compile, edit, export, PDF). Tools that need the real DOM (`render_slides`, `measure` for `lint_deck`, `export_raster`, `focus`, `consent`) are sent to the open window as `tool` messages and answered by `frontend/src/automation/agent-bridge.ts AgentBridge`. Agent edits go through `STORE.step` like any other, attributed to the agent and its turn.
+`backend/app/routers/mcp.py` serves 31 tools over streamable HTTP at `/mcp`; `setup/mcp_stdio.py` bridges stdio clients to it and starts the engine when needed. Most tools run in the engine (ingest, compile, edit, export, PDF). Tools that need the real DOM (`render_slides`, `measure` for `lint_deck`, `export_raster`, `focus`, `consent`) are sent to the open window as `tool` messages and answered by `frontend/src/automation/agent-bridge.ts AgentBridge`. Agent edits go through `STORE.step` like any other, attributed to the agent and its turn.
 
 ## From material to slides
 

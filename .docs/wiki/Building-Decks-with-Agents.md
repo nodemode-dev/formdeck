@@ -1,6 +1,6 @@
 # Building Decks with Agents
 
-formdeck's engine is an MCP server with 24 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formdeck mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
+formdeck's engine is an MCP server with 31 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formdeck mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
 
 ## Setup
 

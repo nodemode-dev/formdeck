@@ -2,6 +2,10 @@
 
 The 24 tools of the formdeck MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
 
+## Chat panel and layout requests
+
+`chat_inbox {deck?, wait?}` returns what the person typed in the Agent tab. When the person has turned on Agent layout ideas (Preferences > Plugins), it also returns `layoutRequests`: `{id, request}` where request is the version 1 JSON of `docs/LAYOUT_IDEAS.md` (the slide's element types, text and sizes, and the master's layouts). Answer each with `layout_ideas_reply {id, ideas}`: layouts best first, each with `place` entries that put an element in a slot (`{element, slot: {type, idx}}`) or at a frame (`{element, frame: {x, y, w, h}}`). formdeck does no scoring or ranking; the order and placements are yours. This is not a deck edit: the person picks one in Crafter Ideas. `chat_reply` answers typed messages.
+
 ## Contents
 
 - Conventions

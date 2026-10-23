@@ -21,7 +21,8 @@ Change the window without breaking its two promises: the person and agents edit 
 | `src/editor/inspector.ts` | panel groups: Format, Slide, Design; Review, Agent (activity feed, consent switch, copy prompt) |
 | `src/editor/toolbar.ts` | contextual groups (slide, insert, font, style, para, list, anchor...) shown by selection kind |
 | `src/editor/commands.ts` | `registerCommands(cmds, hooks)` (every command id, label, keys, enabled, checked), `layoutCommands`, `colorOps` |
-| `src/editor/actions.ts` | op builders for every UI action |
+| `src/editor/actions.ts` | op builders for every UI action; `changeLayoutOps` is the one slot mapping for applying a layout |
+| `src/editor/design-ideas.ts` | Crafter Ideas: lists every layout of the slide's master in master order, each previewed through `changeLayoutOps`, with no classifying, scoring, ranking, filtering or cap. `CRAFTER_PLAIN_THUMBNAILS` (and the hidden setting `crafterPlainThumbnails`) switches to plain layout thumbnails with content placed on apply. With the Agent layout ideas preference on, `ideasRequest` sends raw element types, text and sizes plus the layouts to the person's agent (`POST /api/chat/ideas`) and `ideasFromReply` turns the reply into previews; the agent orders and places, formdeck does not |
 | `src/editor/views.ts` | `AltViews`: slide sorter and outline (manual Enter, Backspace, Delete handling; 400 ms debounced commits) |
 | `src/editor/master-view.ts`, `src/engine/holders.ts` | Slide Master view: `registerMasterCommands`, `MASTER_MENU`, `gateSlideCommands`; holders are edited through `slidePath` once `setHolderResolver` maps ids to `layouts` or `masters`, and `holderOps` turns placeholder text edits into `textStyles`, `lstStyle` or prompts |
 | `src/editor/animation-pane.ts`, `src/editor/table-edit.ts` | the Animate tab (effects, motion paths, drawn custom paths, preview) and table cell commands |

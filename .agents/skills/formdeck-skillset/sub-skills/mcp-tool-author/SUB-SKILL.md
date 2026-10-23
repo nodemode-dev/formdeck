@@ -14,6 +14,7 @@ Give agents one more reliable verb without breaking the others: exact schema, a 
 | Path | Role |
 | --- | --- |
 | `backend/app/routers/mcp.py` | protocol (`/mcp` POST, versions `2026-07-28` and `2025-11-25` plus legacy, sessions, `server/discover`), `INSTRUCTIONS`, `WORKFLOW`, `GUIDE`, `PROMPTS`, `RESOURCES`, `_tool()`, `TOOLS`, `MUTATING`, `_mutating`, `Agent` and `_turn` (90 s), `_consent`, `_apply`, helpers (`_deck`, `_index`, `_sel`, `_outline`, `_el_text`, `_abs`, `_intake`), handlers `t_[name]` (collected into `HANDLERS` by prefix), `call_tool` |
+| `backend/app/services/chat/ideas.py`, `backend/app/routers/chat.py` | Agent layout ideas: `GET /api/chat/ideas/status`, `POST /api/chat/ideas`; routes to the person's provider, Claude Code, or a connected MCP client (`chat_inbox` returns `layoutRequests`, `layout_ideas_reply` answers). Contract in `docs/LAYOUT_IDEAS.md`. Off unless the `agentLayoutIdeas` setting is true |
 | `backend/app/services/bridge.py` | `windows()`, `window_connected()`, `window_call(name, args, deck, timeout)` (None when no window, an isError result on timeout) |
 | `backend/app/routers/live.py` | `TOOL_RESULTS` futures resolved by `toolResult` messages |
 | `backend/app/services/lint.py` | static checks, `FIX` texts, measured issue merge, scoring |

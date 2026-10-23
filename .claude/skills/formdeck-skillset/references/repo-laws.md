@@ -14,6 +14,7 @@ Each law with the reason it exists and the exact format to follow. These apply t
 - Dependencies and licences
 - Ports, Vite and the engine
 - Commits and versions
+- Declined for patent risk
 
 ## Surgical edits
 
@@ -80,3 +81,13 @@ gives it a new id and opens it in the window. HASHOUT backend 10.
 ```
 
 Types: feat, fix, perf, refactor, style, docs, build, chore. Scopes follow the subsystem (engine, ops, live, format, compiler, intake, templates, pptx, render, editor, ui, present, import, mcp, desktop, setup). The version bump is its own last commit (for example `chore(release): bump to 0.2.1 (0.2.1)`) and changes every version location together: `frontend/package.json` and `package-lock.json`, `frontend/src/version.ts`, `backend/app/__init__.py`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, the README version line and the `_vX.Y.Z` headers of both HASHOUT logs. Patch for fixes, minor for features, major for format breaks.
+
+## Declined for patent risk
+
+Never add back (full list in CLAUDE.md):
+
+- In-app content analysis, scoring, ranking, filtering or capping for layout suggestions. Crafter Ideas lists every layout of the master in master order; any suggestion logic lives only with the person's agent, behind the off-by-default Agent layout ideas preference.
+- Moving part of a ribbon group into an overflow pane. A group collapses whole.
+- Pitch analysis, a trained speech model or generated rehearsal questions in Speech Rehearsal; it stays rule-based on text.
+- Picking a portion of a file, or a trained distilling model, in Start from your material; whole-file ingest and rule-based distilling stay.
+- A per-frame stepping loop that divides a difference by a frame count in Morph; it keeps browser keyframe interpolation.

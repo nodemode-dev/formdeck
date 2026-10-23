@@ -6,4 +6,6 @@ Build a deck: get_context · list_templates · ingest (absolute paths) · draft_
 
 PDF editing lives in formpdf (github.com/nodemode-ai/formpdf).
 
+Declined for patent risk, 2026-10-23 (details in CLAUDE.md): no in-app content analysis, scoring or ranking for layout suggestions (Crafter Ideas lists every layout of the master in order; suggestions live only with the person's agent behind the off-by-default Agent layout ideas preference, contract in docs/LAYOUT_IDEAS.md; fallback switch `CRAFTER_PLAIN_THUMBNAILS`); ribbon groups collapse whole; Speech Rehearsal stays rule-based on text; Start from your material keeps whole-file ingest and rule-based distilling; Morph keeps browser keyframe interpolation.
+
 Developing formdeck follows CLAUDE.md: surgical edits, near-zero comments with rationale in the HASHOUT logs, no emoji, inline SVG icons, tokens-only z-index, zero DOM flash, Conventional Commits with the version bump last.
