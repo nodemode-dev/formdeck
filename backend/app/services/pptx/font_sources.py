@@ -7,6 +7,7 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 
 from app.core import config
+from app.services import full_fonts
 
 VARIANTS = ("regular", "bold", "italic", "boldItalic")
 SUBSET_ORDER = {"latin": 0, "latin-ext": 1}
@@ -49,6 +50,9 @@ def bundled_dirs(family: str) -> list[Path]:
 
 def bundled(family: str, variant: str) -> list[Path]:
     bold, italic = _flags(variant)
+    full = full_fonts.face_path(slug(family), 700 if bold else 400, italic)
+    if full is not None:
+        return [full]
     pattern = re.compile(rf"^{re.escape(slug(family))}-(?P<sub>[a-z0-9-]+?)-{700 if bold else 400}-{'italic' if italic else 'normal'}(?:-[\w-]{{6,12}})?\.woff2$")
     found = []
     for folder in bundled_dirs(family):
