@@ -101,3 +101,7 @@ The engine is authoritative: every change is a JSON op step with an inverse, bro
 ## Credits
 
 Built on formvis (the form family shell and design language); shape geometry is evaluated from the ECMA-376 preset definitions. See NOTICE.md for third-party licenses.
+
+## Trademarks
+
+Microsoft and PowerPoint are trademarks of the Microsoft group of companies; Keynote is a trademark of Apple Inc.; Google Slides is a trademark of Google LLC. formdeck is independent and not affiliated with or endorsed by any of them; the names only describe the formats and workflows it is compatible with.
