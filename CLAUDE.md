@@ -23,3 +23,12 @@ PDF editing lives in formpdf (github.com/nodemode-ai/formpdf).
 - No emoji, no em dashes in markdown, icons are inline currentColor SVG in ui/icons.ts, z-index only from tokens.css.
 - Zero DOM flash: patch nodes, never rebuild a live container; verify under 4x CPU and network throttling.
 - Commits: Conventional Commits `type(scope): summary (x.y.z)` with a body, version bump commit last.
+
+## Trademarks, copyright and licences
+
+- Other vendors' product and feature names appear only to name a file format or compatibility ("PowerPoint (.pptx)", "WordArt kept native in .pptx"). Never as a formdeck command, menu, ribbon group, template, gallery or agent tool name, and never as "like PowerPoint" or "as in Keynote" in UI text or READMEs. The notice in `README.md` and `NOTICE.md` lists every vendor mark named.
+- Template names are checked against PowerPoint's built-in theme names before they are added (list in backend/HASHOUT_LOG.md entry 78).
+- No PowerPoint or Keynote brand colours and no "like PowerPoint" theme; the Form family theme and orange accent are the default look.
+- Never copy vendor help, tooltip or documentation text; link to vendor pages instead of quoting them.
+- Never import PowerPoint's icon library or trace Fluent icons, and never bundle Office themes, templates, fonts (Aptos, Calibri, Segoe UI and the rest) or stock images. Users importing their own .pptx or .potx is fine. Keep the ECMA-376 credit for preset shapes and text warps.
+- Every new dependency, binary, model, font or data file gets a row in `NOTICE.md` before it is used. GPL stays outside the distributed bundle, AGPL nowhere, LGPL dynamically linked and replaceable, MPL files unedited; CC BY credited, CC BY-SA only unmodified, CC NC and ND never.
