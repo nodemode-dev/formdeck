@@ -19,7 +19,14 @@ The 67 built-in templates, their layouts, motifs and sample text are original wo
 
 | Package | License | Notes |
 | --- | --- | --- |
-| Inter, JetBrains Mono and the template typefaces (via @fontsource) | SIL OFL 1.1 fonts, MIT packaging | bundled font files |
+| Inter, JetBrains Mono and the template typefaces without a Reserved Font Name (via @fontsource, Latin subsets) | SIL OFL 1.1 fonts, MIT packaging | bundled font files |
+| Lora, Merriweather, Playfair Display, Raleway (each with a Reserved Font Name of its own) and Source Sans 3 (Reserved Font Name "Source", Adobe) | SIL OFL 1.1 | the complete upstream font files, unmodified and under their own names, from github.com/google/fonts at commit e7db6ca603fd4862010383ff17ffd6cc4ffac1c0, in `frontend/public/fonts/full/<family>/` beside each family's OFL.txt. They are never subset in the app; the engine makes a static instance of a weight only to embed it in a document a person exports, which the OFL allows |
+| @xterm/xterm, @xterm/addon-fit | MIT | app, the terminal dock |
+| ptyprocess (not Windows), pywinpty (Windows) | ISC, MIT | engine, the terminal dock's pseudo-terminal |
+| Other Python packages frozen into the engine | MIT: annotated-doc, annotated-types, anyio, charset-normalizer, et-xmlfile, h11, httptools, pydantic, pydantic-core, pyyaml, typing-inspection, watchfiles; MIT-0: cffi; BSD-3-Clause: click, httpcore, idna, pycparser, python-dotenv, starlette, websockets; BSD-2-Clause: xlsxwriter; Apache-2.0 OR BSD-3-Clause: cryptography (its wheel bundles OpenSSL 3, Apache-2.0); MIT OR Apache-2.0: uvloop; PSF-2.0: typing-extensions and the CPython runtime; MPL-2.0: certifi (its cacert.pem, unedited) | read from the installed metadata of backend/requirements.txt, 2026-10-23 |
+| Libraries inside the Pillow wheel | libjpeg, libpng, libtiff, libwebp, libavif, OpenJPEG, Little CMS, HarfBuzz, Brotli, zstd, xz, libxcb: permissive (see the wheel's LICENSE); FreeType 2.14.3 used under the FreeType License | Portions of this software are copyright (c) 2026 The FreeType Project (www.freetype.org). All rights reserved. |
+| lxml's bundled libraries | libxml2 and libxslt (MIT); its LICENSES.txt also names iconv (LGPL-2.1) | separate extension modules in the engine |
+| GStreamer base and good plug-ins (Linux AppImage only, `bundleMediaFramework`) | LGPL-2.1-or-later | the AppImage carries the build machine's GStreamer libraries for video playback, as separate shared libraries; source at gstreamer.freedesktop.org |
 | @tauri-apps/api; tauri, tauri-plugin-shell, tauri-plugin-dialog, tauri-plugin-updater, tauri-plugin-single-instance, regex, serde, serde_json, fontdb | MIT or Apache-2.0 | desktop shell |
 | fastapi, uvicorn, python-multipart, httpx | MIT, BSD-3-Clause, Apache-2.0, BSD-3-Clause | engine |
 | Pillow | MIT-CMU | engine, images |
@@ -38,6 +45,19 @@ The 67 built-in templates, their layouts, motifs and sample text are original wo
 | pypdf | BSD-3-Clause | engine, tags exported PDFs for accessibility |
 | fontTools | MIT | engine, subsets and converts fonts embedded in .pptx |
 | Brotli | MIT | engine, lets fontTools read the bundled woff2 fonts |
+
+## Desktop shell: crates under other licences
+
+Tauri links these crates unedited (no `[patch]` and no vendored copy):
+
+| Crate | Licence | Why it is there |
+| --- | --- | --- |
+| cssparser, selectors, dtoa-short, option-ext | MPL-2.0 | Tauri's HTML handling (tauri-utils); used unmodified, source at crates.io |
+| ring | Apache-2.0 AND ISC | TLS for the updater (rustls) |
+| webpki-root-certs | CDLA-Permissive-2.0 | root certificates for the updater's TLS |
+| r-efi | MIT OR Apache-2.0 OR LGPL-2.1-or-later | used under MIT |
+
+The Linux AppImage also carries the build machine's WebKitGTK, GTK and GLib (LGPL-2.1-or-later) as separate shared libraries. This notice and LICENSE ship inside every installer.
 
 ## Build tools, not distributed
 
