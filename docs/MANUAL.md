@@ -196,7 +196,11 @@ Insert > Diagram (or the toolbar button) opens a gallery of list, process, cycle
 
 Insert > Video or Audio places an MP4, WebM or audio file. Select it and open the Playback section on the Format tab. Trim opens the trim dialog: drag the start and end handles or type the times, click or drag on the timeline to move the playhead, use the frame buttons or the arrow keys to step one frame (Shift steps one second), and press play to check the result; Add bookmark marks the current time. Back in the panel, set Fade in and Fade out in seconds and pick a volume (Low, Medium, High or Mute). Under Start, choose whether the clip plays in the click sequence, automatically when the slide appears, or when it is clicked, then tick Play full screen, Hide while not playing, Loop until stopped or Rewind after playing as needed. In the show, Alt+End and Alt+Home jump between bookmarks.
 
-**Poster frame**: with a video selected, choose Current frame... under Poster frame, find the frame you want and choose Use this frame; Picture... uses an image file instead, and Reset goes back to the first frame. The poster shows on the slide, in thumbnails and exports, and in the show until the video plays. Trim, fades, volume, bookmarks and the start settings are kept in PowerPoint files.
+**Poster frame**: with a video selected, choose Current frame... under Poster frame, find the frame you want and choose Use this frame; Picture... uses an image file instead, and Reset goes back to the first frame. The poster shows on the slide, in thumbnails and exports, and in the show until the video plays. A video you add gets its second frame as its poster, so a black or faded first frame does not jump at the start (Preferences > Video and Audio turns this off).
+
+**Video player in the editor**: Video Playback > Video Player > In Editor (also in the View menu) shows each video's own play, pause and seek controls on the slide, so you can watch a clip while editing. While it is on, videos cannot be moved or edited, the In Editor button turns the warning colour and a warning sits right of the Video Playback tab, which stays open; click the warning, or double-click a video, to turn the player off. With the player off, Shift and double-click a video turns it on.
+
+Trim, fades, volume, bookmarks and the start settings are kept in PowerPoint files.
 
 ### Arrange
 
@@ -500,7 +504,15 @@ It prints each slide's layout and title, any warnings, a lint summary and where 
 
 ## Preferences
 
-Help > Preferences (Mod+,): Appearance (theme, accent colour, language, and density: Compact, Standard or Comfortable, which sizes buttons, the ribbon, the title bar and the status bar), New decks (default template; slide size, used when a new deck is not given one; heading and body fonts, which replace the template's theme fonts in every new deck; and the author written into exported files), Editing (units: points, inches, centimetres or pixels; save to the library as you work), and Agents (let Claude Code, Codex and Cursor read and edit decks).
+Help > Preferences (Mod+,), also the gear in the title bar. The sections sit in a rail of tabs left of the dialog (the button at its foot folds it to icons, and formdeck remembers that); click a tab to scroll to its card, and click a card's head to fold it. The tab of the card you are reading stays lit as you scroll.
+
+- **General**: save to the library as you work; Reset All Preferences, which returns every preference kept in the window (theme, ribbon, Quick Access Toolbar, panel sizes) to how formdeck comes and reloads. Decks and the library are kept.
+- **Interface**: theme, accent colour, language, and density: Compact, Standard or Comfortable, which sizes buttons, the ribbon, the title bar and the status bar.
+- **Tools**: Customize the Ribbon, Customize Quick Access Toolbar and Keyboard Shortcuts open their dialogs; Icons-only ribbon, Simplified ribbon and, on the macOS desktop app, Menus in the window.
+- **New Decks**: default template; slide size, used when a new deck is not given one; heading and body fonts, which replace the template's theme fonts in every new deck; and the author written into exported files.
+- **Editing**: units (points, inches, centimetres or pixels) and what a drag box selects.
+- **Video and Audio**: use the second frame as the poster of an added video (on by default; off keeps the first frame), and the video player in the editor.
+- **Plugins**: let Claude Code, Codex and Cursor read and edit decks, and where Claude Code is found and starts.
 
 ## The data folder
 
