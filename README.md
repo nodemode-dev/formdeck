@@ -105,3 +105,7 @@ Built on formvis (the form family shell and design language); shape geometry is 
 ## Trademarks
 
 Microsoft and PowerPoint are trademarks of the Microsoft group of companies; Keynote is a trademark of Apple Inc.; Google Slides is a trademark of Google LLC. formdeck is independent and not affiliated with or endorsed by any of them; the names only describe the formats and workflows it is compatible with.
+
+## License
+
+Apache-2.0. Copyright 2026 NodeAgentc, Inc. See `LICENSE` and `NOTICE.md`.
