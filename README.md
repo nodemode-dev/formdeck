@@ -4,7 +4,7 @@ Presentations and pitch decks in the form family. An open alternative to PowerPo
 
 The PDF workbench that shipped with formdeck up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In formdeck a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
 
-Version 0.29.1 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+Version 0.29.2 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
 
 **Stack.** Vanilla TypeScript and Vite · Python 3.12 and FastAPI · Tauri 2. Code size, in lines: about 40,100 of TypeScript, 2,400 of CSS, 24,000 of Python, 283 of Rust (product code, tests excluded; `./formdeck counts` prints this, and `./formdeck counts --check` verifies it).
 
