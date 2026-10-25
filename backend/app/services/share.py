@@ -9,7 +9,7 @@ import urllib.parse
 
 from app.core import config
 
-LAN_PORT = 8198
+LAN_PORT = 8298
 ROLES = ("view", "comment", "edit")
 COOKIE = "fd_share"
 FILE = "share-links.json"
