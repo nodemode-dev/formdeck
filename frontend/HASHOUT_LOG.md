@@ -645,3 +645,9 @@ With the Agent layout ideas preference on, the dialog asks the person's own agen
 ## 147. The credit reads by nodemode.ai · _v0.29.2 (ui/home.ts brand)
 
 Supersedes the text of 130: the owner's credit for every form* Home screen is the domain, "by nodemode.ai", lowercase. It stays `translate="no"` and untranslated, so the old "by NodeMode" key and its translations remain unused, as 130 left them. Only the span's text changed.
+
+## 148. Vite 8.3.5 clears the dev server's launch-editor advisories · _v0.29.3 (frontend/package.json devDependencies vite)
+
+Family rule from FAMILY_DEV_PLAN.md v0.4.x Phase 2b (formai_dev sidecar): every frontend installs with zero `npm audit` findings. Vite 8.3.0 carries a `launch-editor` with two command-injection advisories in the dev server (ledger FB-004); 8.3.5 clears them. The pin stays exact. Dev dependency only, nothing in the shipped bundle changed.
+
+Verified: `npm install` then `npm audit` reports 0 vulnerabilities; `npm run typecheck` passes; `vite build` to an outDir outside the repo succeeds; the dev server starts on 5197 printing only the Local address (no Network address) and answers 200. The window was not opened.
