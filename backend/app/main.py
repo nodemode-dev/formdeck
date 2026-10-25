@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core import config
+from app.core.local_guard import LocalGuard
 from app.routers import addins, ai_images, captions, chat, commands, decks, exports, intake, live, mcp, media, share, stock, system, terminal, workbooks
 from app.services import relay
 from app.services import share as sharing
@@ -53,6 +54,7 @@ async def lifespan(this: FastAPI):
 app = FastAPI(title=config.APP_NAME, version=config.VERSION, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins(), allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(share.ShareGate)
+app.add_middleware(LocalGuard, origins=config.cors_origins(), skip=sharing.is_lan)
 app.include_router(share.router)
 app.include_router(system.router, prefix="/api")
 app.include_router(decks.router, prefix="/api")
