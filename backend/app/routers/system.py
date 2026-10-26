@@ -2,9 +2,10 @@ import platform
 import re
 import sys
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 
 from app.core import config
+from app.core.local_guard import from_window
 
 router = APIRouter()
 UI_KEY = re.compile(r"^(formdeck[._][\w.:-]{1,100}|nodemode_ui_settings)$")
@@ -50,7 +51,9 @@ def get_settings() -> dict:
 
 
 @router.post("/settings")
-def set_settings(patch: dict) -> dict:
+def set_settings(patch: dict, request: Request) -> dict:
+    if "agentsAllowed" in patch and not from_window(request.headers.get("origin"), request.headers.get("host", ""), config.cors_origins()):
+        raise HTTPException(403, "only formdeck's own window changes agent access")
     allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts", "marquee", "pinned", "recentHidden", "ui", "posterSecondFrame", "agentLayoutIdeas", "crafterPlainThumbnails"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
     for key in ("pinned", "recentHidden"):
         if key in allowed:
