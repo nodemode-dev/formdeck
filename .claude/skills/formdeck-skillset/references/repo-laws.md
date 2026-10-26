@@ -57,7 +57,7 @@ No emoji anywhere (code, UI strings, logs, markdown, commit messages). No em das
 
 ## Tests
 
-Do not add tests, test files or test harnesses unless the person asks. Verify with scratch scripts and scratch engines outside the repository (`FORMDECK_DATA_DIR` pointing at a scratch folder) and describe the check in the hand-back.
+Tests only as the family plan names them: `backend/tests` (pytest) holds the suite FAMILY_TEST_PLAN names and CI runs it; add no other test code. Anything else is verified with scratch scripts and scratch engines outside the repository (`FORMDECK_DATA_DIR` pointing at a scratch folder) and described in the hand-back.
 
 ## Dependencies and licences
 

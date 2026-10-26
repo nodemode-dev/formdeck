@@ -57,7 +57,7 @@ The window reaches the engine only through `frontend/src/io/api.ts` (REST) and `
 4. **Near-zero comments.** Rationale goes to `frontend/HASHOUT_LOG.md` or `backend/HASHOUT_LOG.md` in the same change, anchored by file and symbol.
 5. **No emoji anywhere; no em dash (U+2014) in code strings, UI text or markdown.** Use the interpunct, commas, colons or parentheses.
 6. **The contract first.** `docs/FORMAT.md` wins over code; a format change updates FORMAT.md, `model.ts` and `model.py` together.
-7. **No self-authored tests** unless the person asks; checks run as scratch outside the repository.
+7. **Tests only as the family plan names them** (`backend/tests`, run in CI); other checks run as scratch outside the repository.
 8. **Dependencies.** Only permissive licences already in the repo; PyMuPDF is banned (AGPL). Vite keeps `host: false`.
 9. **Commits.** Conventional Commits `type(scope): summary (x.y.z)` with a body; the version bump commit is last and touches every version file.
 

@@ -20,6 +20,7 @@ PDF editing lives in formpdf (github.com/nodemode-ai/formpdf).
 
 - Engine: backend/ (FastAPI, Python 3.12, venv at backend/venv). Frontend: frontend/ (vanilla TypeScript, Vite on 5197 with host false). Desktop: src-tauri/.
 - Edits are surgical, one region at a time; no scripted edits. Near-zero comments: rationale goes in frontend/HASHOUT_LOG.md and backend/HASHOUT_LOG.md.
+- Tests live in `tests/` folders and run in CI; write only tests this plan or its successor names (`FAMILY_TEST_PLAN.md` in the formai_dev sidecar): `backend/tests`.
 - No emoji, no em dashes in markdown, icons are inline currentColor SVG in ui/icons.ts, z-index only from tokens.css.
 - Zero DOM flash: patch nodes, never rebuild a live container; verify under 4x CPU and network throttling.
 - Commits: Conventional Commits `type(scope): summary (x.y.z)` with a body, version bump commit last.
