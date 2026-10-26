@@ -71,6 +71,8 @@ def body_pr_element(text: dict, ctx, element_id: str | None):
         attrs["anchor"] = ANCHOR_VALUES[text["anchor"]]
     body_pr = make("a:bodyPr", attrs, warp_element(text.get("warp")))
     autofit = text.get("autofit")
+    if autofit is None and ctx.font_scale(element_id) is not None and ctx.font_scale(element_id) < 0.999:
+        autofit = "shrink"
     if autofit == "shrink":
         scale = ctx.font_scale(element_id)
         fit_attrs = {"fontScale": _clamp(round(scale * 100000), 1000, 100000)} if scale is not None and scale < 0.999 else None
