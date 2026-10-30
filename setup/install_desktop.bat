@@ -5,5 +5,5 @@ if not exist venv\Scripts\activate.bat ( echo [formdeck] backend venv missing, r
 call venv\Scripts\activate.bat
 pip install -r requirements_desktop.txt || exit /b 1
 where cargo >nul 2>nul || ( echo [formdeck] Rust is not installed, get it from https://rustup.rs then rerun formdeck.bat install-desktop & exit /b 1 )
-if not exist ..\frontend\node_modules\.bin\tauri.cmd ( pushd ..\frontend & call npm install & popd )
+if not exist ..\frontend\node_modules\.bin\tauri.cmd ( pushd ..\frontend & call npm install || ( popd & exit /b 1 ) & popd )
 echo [formdeck] desktop toolchain ready
