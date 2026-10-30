@@ -12,6 +12,10 @@ window, freezes the engine into the app, and bundles the app for this system.
   --debug           debug build (faster to compile, larger, unoptimised)
   --bundles LIST    bundle types, comma separated (default: app,dmg on macOS,
                     deb,rpm,appimage on Linux)
+  --config FILE     extra Tauri config merged into tauri.conf.json (a JSON
+                    file or inline JSON; may be given more than once)
+  --target TRIPLE   Rust target to build for (default: this machine); the
+                    frozen engine is named for it
   --clean           remove earlier build output first
   --reinstall       reinstall Python and npm packages even if unchanged
   --yes             install missing system packages and Rust without asking
@@ -22,11 +26,23 @@ Rust is installed with rustup if it is missing. Windows: use formdeck.bat.
 EOF
 }
 
+CALLER="${FORMDECK_CALLER_DIR:-$PWD}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 DEBUG=0
 BUNDLES=""
+CONFIGS=()
+TARGET=""
+need_value() { [ $# -ge 2 ] && [ -n "$2" ] || { printf '%s needs a value\n\n' "$1" >&2; usage >&2; exit 2; }; }
+add_config() {
+  local c="$1"
+  case "$c" in
+    /*|'{'*) ;;
+    *) [ -f "$CALLER/$c" ] && c="$CALLER/$c" ;;
+  esac
+  CONFIGS+=(--config "$c")
+}
 CLEAN=0
 REINSTALL=0
 YES=0
@@ -35,6 +51,10 @@ while [ $# -gt 0 ]; do
     --debug) DEBUG=1 ;;
     --bundles) shift; BUNDLES="${1:-}" ;;
     --bundles=*) BUNDLES="${1#--bundles=}" ;;
+    --config) need_value "$@"; shift; add_config "$1" ;;
+    --config=*) need_value --config "${1#--config=}"; add_config "${1#--config=}" ;;
+    --target) need_value "$@"; shift; TARGET="$1" ;;
+    --target=*) need_value --target "${1#--target=}"; TARGET="${1#--target=}" ;;
     --clean) CLEAN=1 ;;
     --reinstall) REINSTALL=1 ;;
     --yes|-y) YES=1 ;;
@@ -126,6 +146,10 @@ case "$OS:$ARCH:$TRIPLE" in
   *) die "rustc builds for $TRIPLE but this machine is $ARCH. Run: rustup default stable-$( [ "$ARCH" = arm64 ] && echo aarch64 || echo x86_64 )-apple-darwin" ;;
 esac
 say "rust $RUSTC_V for $TRIPLE ($(command -v rustc))"
+if [ -n "$TARGET" ] && [ "$TARGET" != "$TRIPLE" ]; then
+  TRIPLE="$TARGET"
+  say "building for $TRIPLE"
+fi
 
 if [ "$OS" = macos ]; then
   export PATH="$(dirname "$(command -v rustc)"):/usr/bin:$PATH"
@@ -216,8 +240,10 @@ step "building and bundling the app ($BUNDLES)"
 if [ ! -f src-tauri/icons/icon.icns ] || [ ! -f src-tauri/icons/icon.ico ] || [ ! -f src-tauri/icons/128x128.png ]; then
   "$TAURI" icon assets/formdeck_icon.png
 fi
-TAURI_ARGS=(build --bundles "$BUNDLES")
+TAURI_ARGS=(build --bundles "$BUNDLES" ${CONFIGS[@]+"${CONFIGS[@]}"})
+[ -n "$TARGET" ] && TAURI_ARGS+=(--target "$TARGET")
 [ "$DEBUG" = 1 ] && TAURI_ARGS+=(--debug)
+BUILT="src-tauri/target${TARGET:+/$TARGET}/$([ "$DEBUG" = 1 ] && echo debug || echo release)"
 LOG="$(mktemp)"
 trap 'rm -f "$LOG"' EXIT
 run_tauri() {
@@ -232,14 +258,14 @@ if ! run_tauri "${TAURI_ARGS[@]}"; then
     say "Rust could not load a crate it had just built (E0463); clearing the Rust build cache and building again"
     ( cd src-tauri && cargo clean )
     run_tauri "${TAURI_ARGS[@]}" || die "the Rust build failed again; the log above shows the first error"
-  elif [ "$OS" = macos ] && grep -qi "dmg" "$LOG" && [ -d "src-tauri/target/$([ "$DEBUG" = 1 ] && echo debug || echo release)/bundle/macos/formdeck.app" ]; then
+  elif [ "$OS" = macos ] && grep -qi "dmg" "$LOG" && [ -d "$BUILT/bundle/macos/formdeck.app" ]; then
     say "the .app was built but the .dmg step failed; the app is usable as is (drag it to Applications)"
   else
     die "the app build failed; the log above shows the first error"
   fi
 fi
 
-OUT="src-tauri/target/$([ "$DEBUG" = 1 ] && echo debug || echo release)/bundle"
+OUT="$BUILT/bundle"
 step "done in $(( (SECONDS - START) / 60 )) min $(( (SECONDS - START) % 60 )) s"
 find "$OUT" -maxdepth 2 \( -name '*.dmg' -o -name '*.app' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) 2>/dev/null | while read -r f; do say "$ROOT/$f"; done
 if [ "$OS" = macos ]; then
