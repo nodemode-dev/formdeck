@@ -1,5 +1,6 @@
 import asyncio
 import json
+import mimetypes
 import os
 import time
 from contextlib import asynccontextmanager
@@ -15,6 +16,10 @@ from app.routers import addins, ai_images, captions, chat, commands, decks, expo
 from app.services import relay
 from app.services import share as sharing
 from app.services import terminal as terminals
+
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("text/css", ".css")
 
 
 def _write_discovery() -> None:
