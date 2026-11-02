@@ -18,7 +18,7 @@ fd_say "rustc $rv ($(command -v rustc)), cargo $cv, host $host"
 n="$(type -ap rustc | awk '!seen[$0]++' | wc -l | tr -d ' ')"
 [ "$n" -le 1 ] || fail "more than one rustc on PATH: $(type -ap rustc | awk '!seen[$0]++' | tr '\n' ' ')- keep only rustup's (~/.cargo/bin) or put it first"
 case "$(command -v rustc)" in
-  */.cargo/bin/rustc) ;;
+  */.cargo/bin/rustc|*/opt/rustup/bin/rustc|*/Cellar/rustup/*) ;;
   */homebrew/*|*/Cellar/*|/usr/local/bin/rustc) fail "rustc comes from Homebrew; Tauri expects rustup. Run: brew uninstall rust, then install from https://rustup.rs" ;;
   *) warn "rustc is not from rustup (~/.cargo/bin); if the build fails, install Rust with rustup" ;;
 esac
