@@ -6,7 +6,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>Apache-2.0</project_license>
   <developer id="ai.nodemode">
-    <name>nodemode-ai</name>
+    <name>NodeAgentc, Inc.</name>
   </developer>
   <description>
     <p>formdeck is a presentation editor: slides, layouts, masters and templates in its own .fdec decks, PowerPoint, Keynote and Google Slides exchange through .pptx, PDF export, a Presenter View, and agent automation that builds and edits decks in plain language.</p>
@@ -15,6 +15,7 @@
   <url type="homepage">https://github.com/nodemode-ai/formdeck</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.30.4" date="2026-11-03"/>
     <release version="0.30.3" date="2026-11-03"/>
     <release version="0.30.2" date="2026-11-02"/>
     <release version="0.30.1" date="2026-10-31"/>

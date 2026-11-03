@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "formdeck",
-  "version": "0.30.3",
+  "version": "0.30.4",
   "identifier": "ai.nodemode.formdeck",
   "build": {
     "frontendDist": "../frontend/dist"
@@ -33,7 +33,10 @@
     "category": "Productivity",
     "shortDescription": "Presentations and decks",
     "longDescription": "formdeck is a presentation editor in the NodeMode design system: slides, layouts, masters and templates in its own .fdec decks, PowerPoint, Keynote and Google Slides exchange through .pptx, PDF export, and agent automation that builds and edits decks in plain language.",
-    "copyright": "Copyright 2026 nodemode-ai.",
+    "publisher": "NodeAgentc, Inc.",
+    "copyright": "Copyright 2026 NodeAgentc, Inc. Apache-2.0",
+    "license": "Apache-2.0",
+    "licenseFile": "../LICENSE",
     "externalBin": ["binaries/formdeck-engine"],
     "resources": {
       "../LICENSE": "LICENSE",

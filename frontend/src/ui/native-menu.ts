@@ -86,7 +86,7 @@ export class NativeMenus {
       };
       const top: unknown[] = [];
       top.push(await api.Submenu.new({ text: 'formdeck', items: [
-        await api.PredefinedMenuItem.new({ item: { About: { name: 'formdeck' } }, text: t('About formdeck') }),
+        await api.PredefinedMenuItem.new({ item: { About: { name: 'formdeck', copyright: 'Copyright 2026 NodeAgentc, Inc. Apache-2.0', license: 'Apache-2.0' } }, text: t('About formdeck') }),
         await sep(),
         ...(this.commands.get('preferences') ? [await make('preferences')] : []),
         await sep(),
