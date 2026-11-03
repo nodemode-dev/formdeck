@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "formdeck",
+  "productName": "FormDeck",
   "version": "0.30.3",
   "identifier": "ai.nodemode.formdeck",
   "build": {
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "splash",
-        "title": "formdeck",
+        "title": "FormDeck",
         "url": "splash.html",
         "width": 360,
         "height": 220,
