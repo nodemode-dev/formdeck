@@ -23,8 +23,8 @@
 <br>
 
 <p align="center">
-  <img src="docs/images/formdeck-hero.png" alt="FormDeck editing a travel deck: the slide rail on the left, a Shanghai skyline photo selected on the slide, and its Format panel on the right" width="100%">
-  <br><sub>A travel deck open in the editor, with a picture selected and its Format panel showing.</sub>
+  <img src="docs/images/formdeck-hero.jpg" alt="FormDeck editing a seven-slide deck called Above the Clouds: the Home ribbon on top, the slide rail on the left and a full-bleed mountain photo with the title slide on the canvas" width="100%">
+  <br><sub>A travel deck, Above the Clouds, open in the editor with the ribbon and the slide rail.</sub>
 </p>
 
 <p align="center">
