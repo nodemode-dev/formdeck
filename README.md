@@ -1,111 +1,170 @@
-# formdeck
+<p align="center"><img src="assets/app-icon/formdeck-256.png" width="128" height="128" alt="FormDeck icon: a gradient slide card with a landscape picture, stacked on two dark cards"></p>
 
-Presentations and pitch decks in the form family. An open alternative to PowerPoint, Keynote and Google Slides, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live, while you watch, then hand it to you for review.
+<h1 align="center">FormDeck</h1>
 
-The PDF workbench that shipped with formdeck up to 0.5.1 is now its own app, formpdf (github.com/nodemode-ai/formpdf). In formdeck a PDF is material for a deck: open or drop one and it lands in Start from your material, or add its pages as slides with Insert > Slides from PDF Pages.
+<p align="center">
+  <b>Presentations; the deck editor of the Form family.</b><br>
+  Templates, .pptx and .odp exchange, a presenter view and a Slide Master,<br>
+  with an MCP server so an agent can draft a deck from your material. Local-first, no account.</p>
 
-Version 0.30.3 · Apache-2.0 · macOS, Windows, Linux (browser or Tauri desktop)
+<p align="center">
+  <img alt="version 0.30.5" src="https://img.shields.io/badge/version-0.30.5-eef0f4?style=flat-square">
+  <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="Python and FastAPI" src="https://img.shields.io/badge/Python-FastAPI-009688?style=flat-square">
+  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
+  <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-3a3a3a?style=flat-square">
+  <img alt="Status: active development" src="https://img.shields.io/badge/status-active%20development-d69e2e?style=flat-square">
+</p>
 
-**Stack.** Vanilla TypeScript and Vite · Python 3.12 and FastAPI · Tauri 2. Code size, in lines: about 40,100 of TypeScript, 2,400 of CSS, 24,000 of Python, 283 of Rust (product code, tests excluded; `./formdeck counts` prints this, and `./formdeck counts --check` verifies it).
+<p align="center">
+  <a href="https://formdeck.formai.studio/"><b>Download FormDeck on formai.studio</b></a> · <a href="#run-it-from-source">Run it from source</a>
+</p>
 
-## What it does
+<br>
 
-| Area | In 0.8.0 |
-| --- | --- |
-| Start from material | Drop md, pdf, docx, pptx, txt, csv, xlsx, images, gifs or meeting notes, add a brief, pick a template, and get a drafted deck (about 80% there) in seconds, or hand the intake to an agent; a PDF opened or dropped anywhere in the app lands here as material |
-| Templates | 67 original templates in 9 categories, each with 21 semantic layouts and a 17-slide sample; Crafter Ideas shows a slide in every layout of its master (or, if you turn it on, the placements your own agent suggests); import any .pptx or .potx as a template; export every template as .pptx |
-| Editing | Slides, editable theme colours and fonts, and a Slide Master view with several masters per deck, each with its own layouts and theme; Text Art with text fill, outline, shadow, glow, reflection and all 40 transforms; equations in LaTeX or linear format; merge shapes (union, combine, fragment, intersect, subtract); an offline library of 5,817 icons; shapes (all 187 Office presets, drawn from the ECMA-376 definitions) with shadow, glow, reflection and soft edges; freeform and scribble drawing with edit points; connectors that glue to shapes; text with autofit, line, paragraph and character spacing, superscript, subscript, caps and links; pictures with adjustments, crop and masks; stock photos from Openverse with their credits; pictures generated or edited with AI; tables with cell typing, border dragging, cell fills, borders, alignment and margins, merges and row and column commands; charts; video and audio with trim, fades, volume, poster frames and bookmarks; animations with motion paths (Animate tab); groups, align, distribute, flip; selection pane with reading order; rulers, gridlines, guides and smart guides; comments with replies, review status, Check Deck, versions, find and replace, slide sorter, outline view |
-| Exchange | PowerPoint, Keynote and Google Slides via .pptx and .potx import and export (WordArt, equations, several masters and media trim stay native); OpenDocument .odp and .otp import and export for LibreOffice Impress; .fdec package (older .fsld opens); slides from PDF pages (each page a picture with its text in the notes); PDF and PNG export with a searchable text layer; video (MP4 or WebM) and animated GIF; the outline as .txt or .rtf; print with handouts and notes pages |
-| Presenting | Full-screen show, twelve transitions including Morpher, animation builds, pen, highlighter and laser, Zoom Slider (click a slide picture to jump there and come back), a live camera in any shape, presenter view with a separate audience window, rehearsed timings with an optional Speech Rehearsal (pace, filler words, reading the slide), recorded narration, live subtitles with translation (Chrome and Edge), looping, kiosk mode and custom shows; with sharing on, people with a link follow the show from their own computers and send questions to Presenter View |
-| Review | Comments with replies, mentions and assignees, review status per slide, an activity log, and comparing a deck with a saved version or another file |
-| Sharing | Off by default: formdeck answers only this computer. In File > Share Deck, turn on sharing on this network to give people on the same network a link that can view, comment or edit one deck; they open it in a browser and co-edit live, and removing a link or turning sharing off locks them out. Optionally connect a relay you run (relay/, one Python file) so the same links work from anywhere |
-| Add-ins | A Store of add-ins that add ribbon commands and task panes, each installed only after you see its permissions, checked against its checksum and run in the macro sandbox; formdeck's own catalog by default, plus any other publishers' catalogs you add; write and publish your own with docs/ADDINS.md |
-| Claude Code inside | A terminal dock (Ctrl or Cmd+`) with shell tabs and a Claude Code tab that runs your own Claude sign-in with formdeck's tools; the chat panel's Claude Code assistant answers from the same sign-in and can continue the same conversation in the terminal, or bring a terminal conversation into the chat; Preferences > Claude Code sets the program, folder and first message; the ask bar sends the deck, slide and selection along |
-| Commands | Every ribbon, menu and shortcut command (about 650) in one catalogue: Find a Command (Shift+Ctrl or Cmd+P), MCP list_commands and run_command, `/api/commands`, and `./formdeck cli list`, `run <id> [key=value ...]`. Commands that need values (font size, colours, outline, position and size, rotation, opacity, go to slide) take parameters, so agents can set exact values; every keyboard shortcut can be changed in Help > Keyboard Shortcuts, and key tips (Alt or F10) put letters on every ribbon command; Preferences sets a compact, standard or comfortable density |
-| For designers | Components (save shapes once, place copies anywhere, update every copy from one) and named text and colour styles that restyle every use; your own fonts in the deck (TTF, OTF, WOFF, WOFF2, embedded in .pptx), SVG in as editable shapes, chart axis lines styled or hidden with labels kept, animation timing for several elements at once, a Format Painter that can copy size and position, Reset Placeholder, typed outline weight and dash, any tint or shade of a theme colour, a full report of what a .pptx import or export changed, and stock-photo credits on the slide |
-| Languages | English by default and 25 more: es, es-MX, pt-BR, fr, fr-CA, de, it, nl, da, fi, nb, sv, ru, pl, cs, hu, uk, tr, zh-Hans, zh-Hant, ja, ko, id, th, vi (Preferences > Appearance > Language); `./formdeck i18n check` finds gaps, and `export` and `import` hand one language to a native reviewer as CSV |
-| Agents | MCP server (31 tools, including masters, Text Art and equations in set_text and edit_elements, and .odp export) over HTTP at /mcp or stdio, live edits attributed per agent turn and undone as one step, contact-sheet rendering and real DOM lint so the agent can see and fix its own slides |
+<p align="center">
+  <img src="docs/images/formdeck-hero.jpg" alt="FormDeck editing a seven-slide deck called Above the Clouds: the Home ribbon on top, the slide rail on the left and a full-bleed mountain photo with the title slide on the canvas" width="100%">
+  <br><sub>A travel deck, Above the Clouds, open in the editor with the ribbon and the slide rail.</sub>
+</p>
 
-## Quick start
+<p align="center">
+  <a href="#features">Features</a> · <a href="#everything-in-the-box">In the box</a> · <a href="#built-for-agents">Agents</a> · <a href="#under-the-hood">Under the hood</a> · <a href="#download">Download</a> · <a href="#run-it-from-source">Run from source</a>
+</p>
 
+<br>
+
+<table>
+  <tr>
+    <td width="25%" valign="top"><h3>Start from material</h3>Drop notes, PDFs, spreadsheets and pictures, pick a template, and get a drafted deck in seconds.</td>
+    <td width="25%" valign="top"><h3>Works with PowerPoint</h3>Open and save .pptx and .potx, and exchange OpenDocument .odp, with a report of what changed.</td>
+    <td width="25%" valign="top"><h3>Present anywhere</h3>Presenter view with notes and timer, twelve transitions, pen and laser, and live sharing on your network.</td>
+    <td width="25%" valign="top"><h3>Agent-ready</h3>The same editor from the window, the command line and an MCP server with 31 tools.</td>
+  </tr>
+</table>
+
+<br>
+
+## Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/formdeck-chart.png" alt="FormDeck with a native column chart selected on a budget slide" width="100%">
+      <br><sub>A native chart, selected for editing.</sub>
+      <h3>Charts, tables and shapes</h3>Charts, tables, all 187 Office shape presets and SVG are editable objects, not pictures.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/formdeck-sorter.png" alt="FormDeck slide sorter showing ten slides of a travel deck in a grid" width="100%">
+      <br><sub>The slide sorter beside the slide rail.</sub>
+      <h3>Slide sorter and outline</h3>Reorder, hide and group slides into sections, in slide, sorter or outline view.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/formdeck-present.webp" alt="FormDeck presenter view with the current slide, the next slide, speaker notes and a questions box" width="100%">
+      <br><sub>Presenter view with notes and audience questions.</sub>
+      <h3>Presenter view</h3>A separate audience window, rehearsed timings, recorded narration and live subtitles.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/formdeck-templates.webp" alt="FormDeck template picker showing template cards in categories" width="100%">
+      <br><sub>The template picker.</sub>
+      <h3>67 original templates</h3>Each has 21 semantic layouts. Import any .pptx as a template, or export every one as .pptx.
+    </td>
+  </tr>
+</table>
+
+## Everything in the box
+
+<table>
+  <tr>
+    <td width="33%" valign="top"><h4>Editing</h4>Slide Master with several masters · Text Art · equations in LaTeX · merge shapes · freeform drawing · connectors · tables · charts · video and audio · motion paths</td>
+    <td width="33%" valign="top"><h4>Presenting and review</h4>Zoom Slider · Speech Rehearsal · custom shows · kiosk mode · comments with replies · review status · version compare · Check Deck</td>
+    <td width="33%" valign="top"><h4>Formats</h4>Opens: .fdec · .pptx · .potx · .ppsx · .pptm · .odp · Saves: .pptx · .odp · PDF · PNG · MP4 · WebM · GIF · Native: <code>.fdec</code></td>
+  </tr>
+</table>
+
+Interface languages: English and 25 more, from Spanish and French to Japanese and Korean (Preferences > Appearance).
+
+## Built for agents
+
+31 MCP tools drive the same engine as the window: ingest, draft, build, render, lint and edit.
+
+```sh
+./formdeck agents install    # writes .mcp.json, .codex/config.toml and .cursor/mcp.json, installs the skills
+./formdeck build-deck notes.md shots/ --template aurora --out update.pptx   # a deck without opening the window
+./formdeck cli list          # the editor's command catalogue, run any command by id
+./formdeck mcp               # MCP server on stdio for Claude Code, Codex and Cursor
 ```
-./formdeck install      # backend venv and frontend packages
-./formdeck              # engine on 127.0.0.1:8197, app on http://localhost:5197
+
+`.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
+
+## Under the hood
+
+- **Engine:** a FastAPI service holds every deck; each change is a JSON op with an inverse, broadcast to every window and agent.
+- **Window:** vanilla TypeScript and Vite, with an inline-SVG icon set and no UI framework.
+- **Desktop:** a Tauri 2 shell around the same window, with the engine frozen as a sidecar.
+- **Format:** `.fdec` is a package around `deck.json`, documented in [`docs/FORMAT.md`](docs/FORMAT.md).
+- **Tested:** pytest suites in `backend/tests` and a browser window test in `frontend/tests`.
+
+## Download
+
+| Platform | Download | Release |
+|---|---|---|
+| macOS | [Download FormDeck for macOS](https://formai.studio/get/formdeck/macos) | [FormDeck releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formdeck-v&expanded=true) |
+| Windows | [Download FormDeck for Windows](https://formai.studio/get/formdeck/windows) | [FormDeck releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formdeck-v&expanded=true) |
+| Linux | [Download FormDeck for Linux](https://formai.studio/get/formdeck/linux) | [FormDeck releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formdeck-v&expanded=true) |
+
+All FormDeck builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
+
+## Run it from source
+
+Prefer it in your browser, or want to contribute? Run the web UI straight from this repo.
+
+**Requires:** Python 3.12+ and Node 20.19+.
+
+```sh
+git clone git@github.com:nodemode-dev/formdeck.git
+cd formdeck
+./formdeck install   # backend venv and frontend packages
+./formdeck           # web UI at http://localhost:5197
 ```
 
-Windows: `formdeck.bat install` then `formdeck.bat`. One-click installers: `formdeck_oc_install` and `formdeck_oc_install.bat`.
+`./formdeck desktop dev` opens the desktop window instead. On Windows use `formdeck.bat install` and `formdeck.bat`. The engine listens on `127.0.0.1:8197` (MCP at `/mcp`); `FORMDECK_DATA_DIR` moves the data folder from `~/formdeck`.
 
-Data lives in `~/formdeck` (override with `FORMDECK_DATA_DIR`): Decks, Templates, Media, Intake, Exports, settings.json.
+> [!IMPORTANT]
+> **Status:** active development. Sharing beyond your network needs a relay you run yourself, the 25 translations are machine made and not yet reviewed, and a phone or tablet cannot reach the engine yet. See [`docs/PARITY.md`](docs/PARITY.md).
 
-formdeck was called formsld through 0.7.0. Upgrading keeps everything: `~/Formsld` is moved to `~/formdeck` on first start, `FORMSLD_*` settings are still read until 0.9.0, older `.fsld` deck files open, and `./formdeck agents install` replaces the old agent entries and skills.
+**Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`.docs/BRANCHING.md`](.docs/BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 
-## Build a deck with an agent
+## Repository
 
-```
-./formdeck agents install   # writes .mcp.json, .codex/config.toml, .cursor/mcp.json and installs the skills
-```
+| Path | What it is |
+|---|---|
+| `backend/` | FastAPI engine: deck store, ops, compiler, intake, templates, pptx, MCP |
+| `frontend/` | Vanilla TypeScript and Vite window: render, editor, present, ui |
+| `setup/` | Install, boot, build, freeze and agent setup scripts |
+| `src-tauri/` | Desktop shell and the engine sidecar |
+| `docs/` | FORMAT.md, MANUAL.md, ADDINS.md, PARITY.md |
 
-Claude Code alone: `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp`. Claude Desktop and other stdio clients: `./formdeck mcp`.
+Docs: [`.docs/wiki`](.docs/wiki) · Agents: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) · Contributing: [`.docs/BRANCHING.md`](.docs/BRANCHING.md)
 
-Then ask, for example: "Use formdeck. Build an investor update from ./notes.md, ./q3.pdf and the pictures in ./shots, in the Aurora template, 12 slides." The agent ingests the files, drafts a slide script, builds the deck in the open window, renders a contact sheet, lints, fixes, and leaves every slide in Draft for you to approve. Edit > Undo agent turn reverts a whole burst.
+<br>
 
-Without the window: `./formdeck build-deck notes.md q3.pdf shots/ --template aurora --brief "investor update" --out update.pptx`.
+---
 
-## Desktop builds
+## Maintainers
 
-One command builds the desktop app from a fresh checkout on macOS or Linux:
+| Maintainer | Role |
+|---|---|
+| [@nodemode-ai](https://github.com/nodemode-ai) | Owner |
+| [@gbarnai](https://github.com/gbarnai) | Co-owner |
 
-```
-./build_app
-```
-
-On Windows: `build_app.bat`. It checks the system (Python 3.12+, Node 20.19+, the Xcode Command Line Tools on a Mac, WebKitGTK on Linux), installs Rust with rustup if it is missing (it asks first; `./build_app --yes` does not), uses rustup's Rust ahead of any other install and the native Apple silicon toolchain on an M-series Mac, creates the engine's Python environment and the window's npm packages (only again when their lists change), builds the window, freezes the engine into the app, and bundles it: `formdeck.app` and a `.dmg` on macOS, `.deb`, `.rpm` and `.AppImage` on Linux, in `src-tauri/target/release/bundle`. Options: `--debug`, `--bundles app` (or `deb`, `appimage` and so on), `--clean`, `--reinstall`. If Rust reports E0463 (it cannot load a crate it has just built), the script clears the Rust build cache and tries once more. `./formdeck desktop build` runs the same script; `./formdeck desktop dev` runs the app from source, and `./formdeck desktop check` explains toolchain problems. On Windows use `formdeck.bat install` and `formdeck.bat desktop build`.
-
-| Platform | Packages | Built by |
-| --- | --- | --- |
-| macOS 12+ (Apple silicon and Intel) | .app, .dmg | CI, or `desktop build` on a Mac |
-| Windows 10+ (x64) | .msi, setup .exe (NSIS) | CI, or `desktop build` on Windows |
-| Linux (x64 and arm64) | .deb, .rpm, .AppImage | CI, or `desktop build` on Linux |
-| Linux, any distribution | .flatpak (GNOME 47 runtime) | CI, from the .deb with `src-tauri/flatpak/ai.nodemode.formdeck.yml` |
-
-Each package carries the engine as a frozen sidecar, so nothing else needs installing. Linux builds need `libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, `libxdo-dev`, `libssl-dev`, `patchelf` and `rpm`; video playback needs the GStreamer base and good plugins, which the .deb and .rpm recommend and the AppImage carries. Signing and notarising are optional and switch on when the Apple and updater secrets are set. FreeBSD has no desktop package because Tauri does not support it; the browser build needs only Python and Node, but it has not been tested there.
-
-formcompiler (`nodemode-ai/formcompiler`) builds every row above from a `compile_vX.Y.Z` branch and drafts the release `formdeck-vX.Y.Z` on its own release page.
-
-## Layout
-
-```
-backend/    FastAPI engine: deck store and live channel, ops, compiler, intake, templates, pptx, pdf_pages, mcp
-frontend/   Vanilla TypeScript and Vite app: render, editor, present, automation, ui
-setup/      install, boot, build, freeze, mcp_stdio, agents, cli, templates (with .bat twins)
-src-tauri/  desktop shell and the engine sidecar
-docs/       FORMAT.md (the deck contract), MANUAL.md, ADDINS.md, PARITY.md and parity.py
-addins/     the add-in catalog index, formdeck's own add-ins and their packages
-relay/      the optional sharing relay you can run on a server (one Python file and its README)
-```
-
-The engine is authoritative: every change is a JSON op step with an inverse, broadcast over `/api/live` to every window and agent, autosaved, and undoable per step or per agent turn.
-
-## Known gaps
-
-- Sharing is off by default. Beyond the local network it needs a relay that you run yourself (relay/); formdeck does not operate one. The relay has been tested over HTTPS and wss on one computer (relay/README.md lists what), not yet on a public server with guests on other networks.
-- formdeck's own catalog lists three add-ins; other publishers' catalogs can be added, and formdeck does not review them. PDF export writes slides as live, embedded text and passes PDF/UA-1 in veraPDF (`./formdeck pdf-check`); when the slide's font lacks a character (often Chinese, Japanese or Korean) an installed TrueType font that has it is used, as browsers do; text with effects or rotation, or with no embeddable font at all, stays a picture on that page, still searchable. docs/PARITY.md scores every row against PowerPoint, Keynote and Google Slides (0.12.0: 99.1%, 99.5% and 98.9%, no row left at None; 31 rows where formdeck goes past Google Slides, 29 past Keynote, 13 past PowerPoint).
-- The 25 translations were made by language models and have not been reviewed by native speakers yet; the terminal dock has not been run on Windows.
-- The window works with touch and on tablet- and phone-sized screens, but a phone or tablet cannot reach the engine yet: it accepts connections only from the computer it runs on.
-- Stock Images and AI pictures need an internet connection; AI pictures also need an OpenAI key or a compatible image server, and subtitle translation needs Chrome's built-in translator or a chat model.
-- PDF editing (annotate, fill and sign, organize, redact, convert) is not in formdeck any more; use formpdf. A scanned PDF's pages come in as pictures; there is no OCR.
-- Recording narration, captions, Speech Rehearsal and the live camera in the desktop app need microphone or camera permission from the operating system (the macOS build declares both; not yet tried on a Mac); captions and Speech Rehearsal use the browser's speech service, available in Chrome and Edge.
-- Charts are native and editable in formdeck; in .pptx they round-trip as native charts for the common kinds.
-- Embedded fonts in .pptx are written on request (File > Export > Fonts) and read back, including fonts PowerPoint stored with MicroType Express compression; without embedding, PowerPoint substitutes the template's bundled open fonts when missing.
-
-## Credits
-
-Built on formvis (the form family shell and design language); shape geometry is evaluated from the ECMA-376 preset definitions. See NOTICE.md for third-party licenses.
-
-## Trademarks
-
-Microsoft and PowerPoint are trademarks of the Microsoft group of companies; Keynote is a trademark of Apple Inc.; Google Slides is a trademark of Google LLC. formdeck is independent and not affiliated with or endorsed by any of them; the names only describe the formats and workflows it is compatible with.
+Code owners are set in [`.github/CODEOWNERS`](.github/CODEOWNERS).
 
 ## License
 
-Apache-2.0. Copyright 2026 NodeAgentc, Inc. See `LICENSE` and `NOTICE.md`.
+FormDeck is licensed under the Apache License 2.0 ([`LICENSE`](LICENSE), SPDX `Apache-2.0`). Copyright 2026 NodeAgentc, Inc. Third-party notices: [`NOTICE.md`](NOTICE.md).
+
+<sub>Microsoft and PowerPoint are trademarks of the Microsoft group of companies; Keynote is a trademark of Apple Inc.; Google Slides is a trademark of Google LLC. FormDeck is an independent project and is not affiliated with or endorsed by them.</sub>
+
+<sub>Screenshot content: CC0 photos from Poly Haven; the deck text is original.</sub>
