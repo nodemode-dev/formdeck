@@ -58,7 +58,7 @@ tracked text.
 - Keep each pull request to one change, with tests for what it adds or fixes.
 - Write commit subjects the way the history does, in Conventional Commits with a body:
   `feat(editor): ...`, `fix(render): ...`, `docs(...)`, with the scopes listed in
-  [.docs/BRANCHING.md](.docs/BRANCHING.md). Leave the version alone; the maintainer
+  [.docs/BRANCHING.md](.docs/BRANCHING.md). Leave the version alone; a maintainer
   bumps it when releasing.
 - Icons are inline `currentColor` SVG in `frontend/src/ui/icons.ts`, and `z-index` comes only from
   `frontend/src/styles/tokens.css`.
@@ -70,16 +70,29 @@ tracked text.
 - Some features were declined for patent risk and will not be added back: content
   scoring or ranking for layout suggestions, partial ribbon group overflow, speech
   analysis in Speech Rehearsal, partial-file ingest or a trained distilling model, and
-  frame-stepping Morph. `CLAUDE.md` says how each works instead.
+  frame-stepping Morph. Instead, Crafter Ideas lists every layout of the master in
+  order with no scoring, ribbon groups collapse whole, Speech Rehearsal stays
+  rule-based on text, ingest takes whole files with rule-based distilling, and Morph
+  uses the browser's keyframe interpolation.
+
+## Maintainers
+
+FormDeck is maintained by:
+
+- the [nodemode-dev](https://github.com/nodemode-dev) organisation on GitHub
+- [@nodemode-ai](https://github.com/nodemode-ai)
+- [@gbarnai](https://github.com/gbarnai)
+
+Reach them through issues and pull requests.
 
 ## How changes land
 
-Only the maintainer pushes to `main`. Everyone else forks the repository and opens a pull request into `main`. A pull request merges when all five checks pass on an up-to-date branch and the maintainer has approved it after its last push.
+Only a maintainer pushes to `main`. Everyone else forks the repository and opens a pull request into `main`. A pull request merges when all five checks pass on an up-to-date branch and a maintainer has approved it after its last push.
 
 ## Releases
 
-A release is a version, and only the maintainer makes one: after the version is bumped on
-`main`, the maintainer cuts a `compile_vX.Y.Z` branch, and formcompiler
+A release is a version, and only a maintainer makes one: after the version is bumped on
+`main`, a maintainer cuts a `compile_vX.Y.Z` branch, and formcompiler
 (`nodemode-dev/formcompiler`) builds every platform and publishes them together. No
 push from a contributor starts a release. See [.docs/BRANCHING.md](.docs/BRANCHING.md).
 
