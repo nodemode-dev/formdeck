@@ -8,7 +8,7 @@
   with an MCP server so an agent can draft a deck from your material. Local-first, no account.</p>
 
 <p align="center">
-  <img alt="version 0.30.5" src="https://img.shields.io/badge/version-0.30.5-eef0f4?style=flat-square">
+  <img alt="version 0.30.6" src="https://img.shields.io/badge/version-0.30.6-eef0f4?style=flat-square">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="Python and FastAPI" src="https://img.shields.io/badge/Python-FastAPI-009688?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -134,7 +134,7 @@ cd formdeck
 > [!IMPORTANT]
 > **Status:** active development. Sharing beyond your network needs a relay you run yourself, the 25 translations are machine made and not yet reviewed, and a phone or tablet cannot reach the engine yet. See [`docs/PARITY.md`](docs/PARITY.md).
 
-**Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`.docs/BRANCHING.md`](.docs/BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
+**Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), [`.docs/BRANCHING.md`](.docs/BRANCHING.md) and [`AGENTS.md`](AGENTS.md). Report security issues privately as [`SECURITY.md`](SECURITY.md) describes.
 
 ## Repository
 
