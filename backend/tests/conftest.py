@@ -33,7 +33,7 @@ READ_TOOL = ("get_context", {})
 CHANGING_TOOL = ("set_text", {"deck": "d_00000000", "slide": 1, "element": "title", "text": "x"})
 INAPP_HEADER = "x-formdeck-inapp"
 VERSION_SITES = [
-    ("README.md", r"^Version (\S+) ·"),
+    ("README.md", r'^  <img alt="version ([^"]+)"'),
     ("backend/app/__init__.py", r'^__version__ = "([^"]+)"'),
     ("frontend/package.json", r'^  "version": "([^"]+)"'),
     ("frontend/src/version.ts", r"^export const VERSION = '([^']+)'"),
