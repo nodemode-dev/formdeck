@@ -12,7 +12,7 @@
     <p>formdeck is a presentation editor: slides, layouts, masters and templates in its own .fdec decks, PowerPoint, Keynote and Google Slides exchange through .pptx, PDF export, a Presenter View, and agent automation that builds and edits decks in plain language.</p>
   </description>
   <launchable type="desktop-id">ai.nodemode.formdeck.desktop</launchable>
-  <url type="homepage">https://github.com/nodemode-ai/formdeck</url>
+  <url type="homepage">https://github.com/nodemode-dev/formdeck</url>
   <content_rating type="oars-1.1"/>
   <releases>
     <release version="0.30.4" date="2026-11-03"/>
