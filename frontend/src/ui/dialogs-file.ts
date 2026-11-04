@@ -2256,7 +2256,7 @@ class HelpDialog extends Dialog {
   constructor() {
     super('formdeck Help', 560);
     this.body.appendChild(el(`<div class="fd-dlg-stack">
-<div class="fd-dlg-about">${brandMark(36)}<div><div class="fd-dlg-about-name">formdeck</div><div class="fd-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div></div></div>
+<div class="fd-dlg-about">${brandMark(36)}<div><div class="fd-dlg-about-name">formdeck</div><div class="fd-note">Version ${escapeHtml(VERSION)} · presentations and decks in the form family</div><div class="fd-note">Copyright 2026 NodeAgentc, Inc. · <a href="https://github.com/nodemode-dev/formdeck/blob/main/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a></div></div></div>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Quick start</div><ol class="fd-dlg-steps">
 <li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck (.pptx or .odp) on Home and formdeck drafts the slides in your template.</li>
 <li><strong>Pick a template.</strong> Change it any time with Slide &gt; Apply Template. Your content follows.</li>

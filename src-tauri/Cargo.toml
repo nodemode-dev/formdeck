@@ -1,8 +1,8 @@
 [package]
 name = "formdeck"
-version = "0.30.3"
+version = "0.30.4"
 description = "formdeck desktop shell"
-authors = ["nodemode-ai"]
+authors = ["NodeAgentc, Inc."]
 license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.77.2"
