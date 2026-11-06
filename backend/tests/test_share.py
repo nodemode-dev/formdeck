@@ -162,3 +162,27 @@ def test_link_roles_are_validated_and_decks_must_exist(sharing):
 def test_the_lan_listener_refuses_everything_again_once_switched_off(sharing):
     switch(sharing, False)
     assert wait_for(sharing["lan"], False)
+
+
+def test_share_status_with_lan_off_never_looks_up_addresses(monkeypatch):
+    """macOS shows its Local Network prompt when an app resolves its own name through Bonjour; opening the share
+    dialog with LAN share off must not touch the network."""
+    sys.path.insert(0, str(BACKEND))
+    from app.services import share
+
+    looked = []
+    monkeypatch.setattr(share, "enabled", lambda: False)
+    monkeypatch.setattr(share, "addresses", lambda: looked.append(1) or ["192.168.1.5"])
+    assert share.status()["addresses"] == [] and looked == []
+
+
+def test_addresses_never_resolve_the_machines_own_name(monkeypatch):
+    sys.path.insert(0, str(BACKEND))
+    from app.services import share
+
+    def refuse(*_args, **_kwargs):
+        raise AssertionError("hostname resolution goes through Bonjour and raises the macOS prompt")
+
+    monkeypatch.setattr(socket, "getaddrinfo", refuse)
+    monkeypatch.setattr(socket, "gethostbyname_ex", refuse)
+    assert all(not ip.startswith("127.") for ip in share.addresses())
