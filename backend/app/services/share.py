@@ -75,6 +75,11 @@ def listing(deck: str | None = None) -> list[dict]:
 
 
 def addresses() -> list[str]:
+    """This machine's IPv4 address a device on the same network could reach, asked only while LAN share is on.
+
+    Only the routing table is asked (a UDP connect to a documentation address sends no packet). Resolving the
+    machine's own name goes through Bonjour (<name>.local), and macOS answers that with its Local Network prompt,
+    so it is not done."""
     found: list[str] = []
     try:
         probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -83,14 +88,7 @@ def addresses() -> list[str]:
         probe.close()
     except OSError:
         pass
-    try:
-        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            ip = info[4][0]
-            if ip not in found and not ip.startswith("127."):
-                found.append(ip)
-    except OSError:
-        pass
-    return [ip for ip in found if not ip.startswith("127.")]
+    return [ip for ip in found if not ip.startswith("127.") and ip != "0.0.0.0"]
 
 
 def urls(token: str) -> list[str]:
