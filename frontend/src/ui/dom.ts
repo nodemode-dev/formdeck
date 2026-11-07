@@ -84,7 +84,7 @@ export function revealApp(): void {
     done = true;
     document.body.classList.add('app-ready');
     if (!('__TAURI_INTERNALS__' in window)) return;
-    const shown = (): void => {
+    const settled = (): Promise<unknown> => {
       const imgs = Array.from(document.querySelectorAll<HTMLImageElement>('#app img')).filter((i) => i.getClientRects().length > 0);
       const decoded = Promise.allSettled(imgs.map((i) => i.decode()));
       const previews = new Promise<void>((r) => {
@@ -95,13 +95,16 @@ export function revealApp(): void {
         };
         look();
       });
-      void Promise.race([Promise.all([decoded, previews]), new Promise((r) => window.setTimeout(r, 1500))]).then(() => requestAnimationFrame(() => requestAnimationFrame(() => { void import('@tauri-apps/api/core').then((m) => m.invoke('app_shown')).catch(() => undefined); })));
+      return Promise.race([Promise.all([decoded, previews]), new Promise((r) => window.setTimeout(r, 1500))]);
     };
-    (window as unknown as { __fdShown?: () => void }).__fdShown = shown;
     const base = document.querySelector('.fd-home:not([hidden])') ?? document.querySelector('.fd-app') ?? document.body;
     const rgb = (getComputedStyle(base).backgroundColor.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map((n) => Math.round(Number(n)));
     const bg = rgb.length === 3 ? rgb : null;
-    void document.fonts.ready.then(() => import('@tauri-apps/api/core')).then((m) => m.invoke('app_ready', { bg })).catch(() => undefined);
+    void Promise.all([document.fonts.ready, settled()])
+      .then(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))))
+      .then(() => import('@tauri-apps/api/core'))
+      .then((m) => m.invoke('app_ready', { bg }))
+      .catch(() => undefined);
   };
   requestAnimationFrame(() => requestAnimationFrame(go));
   window.setTimeout(go, 120);

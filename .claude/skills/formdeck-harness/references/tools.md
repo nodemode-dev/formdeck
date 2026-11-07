@@ -192,6 +192,18 @@ Returns: `Opened d_... · N slides` with the outline and import notes, or `Saved
 
 PDF editing lives in formpdf (github.com/nodemode-ai/formpdf); formdeck has no pdf tool. A PDF reaches a deck through `ingest`, and export_deck writes a deck as PDF.
 
+## Extensions
+
+Form extensions (FormPortal installs them; form.ext runs one from a folder) run in the window. API page: `docs/EXTENSIONS.md`.
+
+### extensions_list
+No arguments. Returns one line per extension: `id · name version · source · state` and its commands; structured `{product, root, live, extensions: [{id, name, version, source, state, reason, permissions, commands}]}`. `state` is `ready`, `needs-permission` (the person has not allowed this version yet) or `refused` with `reason`. With no window open the states come from the engine and consent is unknown.
+
+### extension_command
+- id (required), command (required): from extensions_list
+- args: object passed to the extension with the command
+Runs the command as the person's click on Extensions > `Name: Title` would. The first run of a version shows the person a consent dialog and waits for it; Not Now comes back as an error. Returns `Name: Title ran in the window.` and structured `{id, command, result}` with what the extension handed back. Each command's changes are one undo step labelled by the extension. The CLI equivalents are `./formdeck cli extensions` and `./formdeck cli extension <id> <command> [key=value ...]`.
+
 ## Resources and prompt
 
 - `formdeck://guide`: the engine's own authoring guide (workflow, script syntax, slots, ops, token tips).

@@ -8,6 +8,8 @@
   run <id> [key=value ...] [--yes]    runs it in the open window as one undoable step
   <id> [key=value ...] [--yes]        the same, without the word run
   batch <id> [<id> ...] [--yes]       runs several in order, stopping at the first failure
+  extensions                          the Form extensions formdeck found, with their state and commands
+  extension <id> <command> [k=v ...]  runs an extension's command in the open window (consent is asked there)
 
 A command marked risky (undo cannot reverse it) runs only with --yes. The engine's address is FORMDECK_URL, or
 http://127.0.0.1:8197. The window must be open (./formdeck boot, or the app)."""
@@ -77,6 +79,27 @@ def run_one(cid: str, params: dict, yes: bool) -> int:
     return 1
 
 
+def show_extensions() -> int:
+    _, body = call("GET", "/api/extensions/agent")
+    rows = body.get("extensions", [])
+    for e in rows:
+        cmds = ",".join(c["id"] for c in e.get("commands") or [])
+        state = e.get("state", "") + (f" ({e['reason']})" if e.get("reason") else "")
+        print(f"{e['id']:<28} {e.get('name', ''):<24} {e.get('version', ''):<9} {e.get('source', ''):<12} {state}" + (f"  commands {cmds}" if cmds else ""))
+    print(f"\n{len(rows)} extensions in {body.get('root', '')}" + ("" if body.get("live") else " (no window is open now; consent states and commands need one)"))
+    return 0
+
+
+def run_extension(ext_id: str, command: str, args: dict) -> int:
+    _, body = call("POST", f"/api/extensions/{urllib.parse.quote(ext_id)}/commands/{urllib.parse.quote(command)}", {"args": args})
+    if body.get("ok"):
+        result = body.get("result")
+        print(f"{ext_id} {command}: {result if isinstance(result, str) else json.dumps(result)}")
+        return 0
+    print(body.get("error") or body.get("detail") or "formdeck gave no reason.", file=sys.stderr)
+    return 1
+
+
 def main(argv: list[str]) -> int:
     yes = "--yes" in argv
     argv = [a for a in argv if a != "--yes"]
@@ -117,6 +140,13 @@ def main(argv: list[str]) -> int:
             if code:
                 return code
         return 0
+    if argv[0] == "extensions":
+        return show_extensions()
+    if argv[0] == "extension":
+        if len(argv) < 3:
+            print("usage: ./formdeck cli extension <id> <command> [key=value ...]", file=sys.stderr)
+            return 2
+        return run_extension(argv[1], argv[2], params_of(argv[3:]))
     if argv[0] == "run":
         argv = argv[1:]
     if not argv:

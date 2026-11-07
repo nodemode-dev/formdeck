@@ -298,6 +298,7 @@ class PaneHost {
     this.build();
     const { node, frame, titleEl } = this;
     if (!node || !frame || !titleEl) return;
+    paneOpened?.();
     this.addinId = addin.id;
     setText(titleEl, tp.title);
     frame.title = `${tp.title}, ${addin.name} task pane`;
@@ -370,6 +371,10 @@ class PaneHost {
 }
 
 const pane = new PaneHost();
+let paneOpened: (() => void) | null = null;
+
+export function closeAddinPane(): void { pane.close(); }
+export function onAddinPaneOpen(fn: () => void): void { paneOpened = fn; }
 
 export function registerAddins(cmds: Commands, E: () => Editor | null, host: HTMLElement): void {
   commands = cmds;

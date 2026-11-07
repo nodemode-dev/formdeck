@@ -1,6 +1,6 @@
 [package]
 name = "formdeck"
-version = "0.30.8"
+version = "0.32.0"
 description = "formdeck desktop shell"
 authors = ["NodeAgentc, Inc."]
 license = "Apache-2.0"
@@ -25,7 +25,8 @@ serde = { version = "1", features = ["derive"] }
 gtk = "0.18"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "objc2-core-foundation", "NSWindow", "NSResponder"] }
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "objc2-core-foundation", "NSWindow", "NSResponder", "NSView", "NSColor"] }
 
 [profile.release]
 codegen-units = 1

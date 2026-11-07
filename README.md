@@ -8,7 +8,7 @@
   with an MCP server so an agent can draft a deck from your material. Local-first, no account.</p>
 
 <p align="center">
-  <img alt="version 0.30.8" src="https://img.shields.io/badge/version-0.30.8-eef0f4?style=flat-square">
+  <img alt="version 0.32.0" src="https://img.shields.io/badge/version-0.32.0-eef0f4?style=flat-square">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="Python and FastAPI" src="https://img.shields.io/badge/Python-FastAPI-009688?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -38,7 +38,7 @@
     <td width="25%" valign="top"><h3>Start from material</h3>Drop notes, PDFs, spreadsheets and pictures, pick a template, and get a drafted deck in seconds.</td>
     <td width="25%" valign="top"><h3>Works with PowerPoint</h3>Open and save .pptx and .potx, and exchange OpenDocument .odp, with a report of what changed.</td>
     <td width="25%" valign="top"><h3>Present anywhere</h3>Presenter view with notes and timer, twelve transitions, pen and laser, and live sharing on your network.</td>
-    <td width="25%" valign="top"><h3>Agent-ready</h3>The same editor from the window, the command line and an MCP server with 31 tools.</td>
+    <td width="25%" valign="top"><h3>Agent-ready</h3>The same editor from the window, the command line and an MCP server with 33 tools.</td>
   </tr>
 </table>
 
@@ -87,7 +87,7 @@ Interface languages: English and 25 more, from Spanish and French to Japanese an
 
 ## Built for agents
 
-31 MCP tools drive the same engine as the window: ingest, draft, build, render, lint and edit.
+33 MCP tools drive the same engine as the window: ingest, draft, build, render, lint and edit.
 
 ```sh
 ./formdeck agents install    # writes .mcp.json, .codex/config.toml and .cursor/mcp.json, installs the skills
@@ -97,6 +97,10 @@ Interface languages: English and 25 more, from Spanish and French to Japanese an
 ```
 
 `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
+
+## Extensions
+
+formdeck hosts Form extensions (Form Extension Contract, API 1): FormPortal installs them, form.ext runs them from a folder while you make them. They appear in the Extensions menu, the Extensions panel at the right of the window and the command palette, run in a sandboxed frame, ask before they read or change the deck, and every change they make is one undo step. Agents reach them with the MCP tools `extensions_list` and `extension_command` or `./formdeck cli extensions`. The API page is [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md); formdeck's own add-ins ([`docs/ADDINS.md`](docs/ADDINS.md)) keep working beside them.
 
 ## Under the hood
 
@@ -128,6 +132,8 @@ cd formdeck
 ./formdeck install   # backend venv and frontend packages
 ./formdeck           # web UI at http://localhost:5197
 ```
+
+**Demos:** open any of the three in a browser, with no install and no network. [`demo/index.html`](demo/README.md) runs the real slide renderer on a sample deck or on your own .pptx, .fdec or deck.json, with slide ops, Check Deck and PNG, PDF and .fdec export. [`demos/present/index.html`](demos/present/README.md) runs the real slide show on an 11 slide talk: Presenter View, Rehearse Timings, transitions, animations and handout PDFs. [`demos/build/index.html`](demos/build/README.md) builds a deck from a slide script or raw notes with the real layouts, 67 templates and the Slide Master, then exports .pptx or .fdec.
 
 `./formdeck desktop dev` opens the desktop window instead. On Windows use `formdeck.bat install` and `formdeck.bat`. The engine listens on `127.0.0.1:8197` (MCP at `/mcp`); `FORMDECK_DATA_DIR` moves the data folder from `~/formdeck`.
 

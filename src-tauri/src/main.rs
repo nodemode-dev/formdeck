@@ -1,8 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::atomic::{AtomicBool, Ordering};
+mod reveal;
+
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
@@ -12,17 +12,6 @@ use tauri_plugin_updater::UpdaterExt;
 
 struct Backend(Mutex<Option<CommandChild>>);
 struct Pending(Mutex<Vec<String>>);
-struct Boot {
-    start: Instant,
-    splash_at: Mutex<Option<Instant>>,
-    ready: AtomicBool,
-    shown: AtomicBool,
-}
-
-const SPLASH_MIN: Duration = Duration::from_millis(2340);
-const HIDDEN_PAINT: bool = cfg!(any(target_os = "macos", target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"));
-const READY_WAIT: Duration = Duration::from_secs(20);
-const APP_BG: tauri::window::Color = tauri::window::Color(17, 17, 17, 255);
 
 const FALLBACK_LOGICAL: (f64, f64) = (1323.0, 860.0);
 const MIN_LOGICAL: (f64, f64) = (980.0, 640.0);
@@ -39,94 +28,6 @@ fn close_splash(handle: &tauri::AppHandle) {
     if let Some(splash) = handle.get_webview_window("splash") {
         let _ = splash.close();
     }
-}
-
-fn splash_stage(handle: &tauri::AppHandle, stage: &str) {
-    if let Some(splash) = handle.get_webview_window("splash") {
-        let _ = splash.eval(&format!("window.fdBoot&&window.fdBoot('{stage}')"));
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn set_alpha(window: &tauri::WebviewWindow, alpha: f64) {
-    let Ok(ns_window) = window.ns_window() else { return };
-    let address = ns_window as usize;
-    let _ = window.run_on_main_thread(move || unsafe {
-        if let Some(w) = (address as *const objc2_app_kit::NSWindow).as_ref() {
-            w.setAlphaValue(alpha);
-        }
-    });
-}
-
-#[cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
-fn set_alpha(window: &tauri::WebviewWindow, alpha: f64) {
-    let target = window.clone();
-    let _ = window.run_on_main_thread(move || {
-        use gtk::prelude::WidgetExt;
-        if let Ok(gtk_window) = target.gtk_window() {
-            gtk_window.realize();
-            gtk_window.set_opacity(alpha);
-        }
-    });
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd")))]
-fn set_alpha(_window: &tauri::WebviewWindow, _alpha: f64) {}
-
-fn reveal_when_ready(handle: tauri::AppHandle) {
-    std::thread::spawn(move || {
-        let built = Instant::now();
-        let main = handle.get_webview_window("main");
-        let mut shown_at: Option<Instant> = None;
-        loop {
-            let boot = handle.state::<Boot>();
-            let ready = boot.ready.load(Ordering::SeqCst) || built.elapsed() >= READY_WAIT;
-            let since = boot.splash_at.lock().unwrap().unwrap_or(boot.start);
-            let long_enough = since.elapsed() >= SPLASH_MIN;
-            if ready && shown_at.is_none() && (HIDDEN_PAINT || long_enough) {
-                if let Some(main) = &main {
-                    set_alpha(main, 0.0);
-                    let _ = main.show();
-                    let _ = main.eval("window.__fdShown&&window.__fdShown()");
-                }
-                shown_at = Some(Instant::now());
-            }
-            if let Some(at) = shown_at {
-                let painted = boot.shown.load(Ordering::SeqCst) || at.elapsed() >= Duration::from_millis(2500);
-                if painted && long_enough {
-                    break;
-                }
-            }
-            std::thread::sleep(Duration::from_millis(20));
-        }
-        splash_stage(&handle, "done");
-        std::thread::sleep(Duration::from_millis(260));
-        if let Some(main) = &main {
-            set_alpha(main, 1.0);
-            let _ = main.set_focus();
-        }
-        std::thread::sleep(Duration::from_millis(50));
-        close_splash(&handle);
-    });
-}
-
-#[tauri::command]
-fn app_ready(app: tauri::AppHandle, bg: Option<[u8; 3]>) {
-    if let (Some([r, g, b]), Some(main)) = (bg, app.get_webview_window("main")) {
-        let _ = main.set_background_color(Some(tauri::window::Color(r, g, b, 255)));
-    }
-    app.state::<Boot>().ready.store(true, Ordering::SeqCst);
-    splash_stage(&app, "ready");
-}
-
-#[tauri::command]
-fn app_shown(app: tauri::AppHandle) {
-    app.state::<Boot>().shown.store(true, Ordering::SeqCst);
-}
-
-#[tauri::command]
-fn splash_ready(app: tauri::AppHandle) {
-    app.state::<Boot>().splash_at.lock().unwrap().get_or_insert_with(Instant::now);
 }
 
 fn openable(path: &std::path::Path) -> bool {
@@ -266,6 +167,7 @@ async fn print_window(app: tauri::AppHandle, label: String) -> Result<(), String
 }
 
 fn main() {
+    reveal::mark_launch();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             let paths = argv
@@ -284,15 +186,15 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .invoke_handler(tauri::generate_handler![system_fonts, open_presenter, print_window, monitor_count, swap_presenter, app_ready, app_shown, splash_ready])
+        .invoke_handler(tauri::generate_handler![system_fonts, open_presenter, print_window, monitor_count, swap_presenter, reveal::app_ready])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Backend(Mutex::new(None)))
         .manage(Pending(Mutex::new(Vec::new())))
-        .manage(Boot { start: Instant::now(), splash_at: Mutex::new(None), ready: AtomicBool::new(false), shown: AtomicBool::new(false) })
         .setup(|app| {
             let handle = app.handle().clone();
+            reveal::round_splash(&handle);
             let (mut rx, child) = app
                 .shell()
                 .sidecar("formdeck-engine")
@@ -330,7 +232,6 @@ fn main() {
                 }
                 match port {
                     Some(found) => {
-                        splash_stage(&handle, "engine");
                         let mut url: tauri::Url = format!("http://127.0.0.1:{found}")
                             .parse()
                             .expect("loopback url");
@@ -360,23 +261,20 @@ fn main() {
                             .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
                             .center()
                             .accept_first_mouse(true)
-                            .visible(false)
-                            .background_color(APP_BG)
-                            .on_page_load(|window, payload| {
-                                if payload.event() == tauri::webview::PageLoadEvent::Finished {
-                                    splash_stage(window.app_handle(), "page");
-                                }
-                            })
+                            .visible(reveal::BUILD_VISIBLE)
+                            .background_color(reveal::BACKGROUND)
                             .build()
                         {
+                            reveal::conceal(&main);
                             let focus = main.clone();
                             main.on_window_event(move |event| {
                                 if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { .. }) = event {
                                     let _ = focus.set_focus();
                                 }
                             });
+                        } else {
+                            close_splash(&handle);
                         }
-                        reveal_when_ready(handle.clone());
                         check_for_updates(handle.clone());
                     }
                     None => {

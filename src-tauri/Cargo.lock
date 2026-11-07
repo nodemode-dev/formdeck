@@ -1115,10 +1115,11 @@ dependencies = [
 
 [[package]]
 name = "formdeck"
-version = "0.30.8"
+version = "0.32.0"
 dependencies = [
  "fontdb",
  "gtk",
+ "objc2",
  "objc2-app-kit",
  "regex",
  "serde",
