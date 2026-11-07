@@ -85,6 +85,10 @@ body.is-dropping .dm-drop { opacity: 1; }
 
 .dm-status { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: 0 var(--space-4); background: var(--bg-secondary); border-top: 1px solid var(--line-0); color: var(--text-muted); font-size: var(--fd-11); white-space: nowrap; overflow: hidden; }
 .dm-status span { overflow: hidden; text-overflow: ellipsis; }
+.dm-links { display: flex; gap: var(--space-4); }
+.dm-links a { color: var(--text-muted); text-decoration: none; }
+.dm-links a:hover { color: var(--text-primary); }
+.dm-links [aria-current="page"] { color: var(--accent-ink); }
 
 .dm-show { position: fixed; inset: 0; z-index: var(--z-overlay); display: flex; flex-direction: column; background: #000; }
 .dm-show[hidden] { display: none; }

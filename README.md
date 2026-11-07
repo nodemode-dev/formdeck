@@ -129,7 +129,7 @@ cd formdeck
 ./formdeck           # web UI at http://localhost:5197
 ```
 
-**Demo:** open [`demo/index.html`](demo/README.md) in a browser, with no install and no network. It runs the real slide renderer on a sample deck or on your own .pptx, .fdec or deck.json, with slide ops, Check Deck and PNG, PDF and .fdec export.
+**Demos:** open any of the three in a browser, with no install and no network. [`demo/index.html`](demo/README.md) runs the real slide renderer on a sample deck or on your own .pptx, .fdec or deck.json, with slide ops, Check Deck and PNG, PDF and .fdec export. [`demos/present/index.html`](demos/present/README.md) runs the real slide show on an 11 slide talk: Presenter View, Rehearse Timings, transitions, animations and handout PDFs. [`demos/build/index.html`](demos/build/README.md) builds a deck from a slide script or raw notes with the real layouts, 67 templates and the Slide Master, then exports .pptx or .fdec.
 
 `./formdeck desktop dev` opens the desktop window instead. On Windows use `formdeck.bat install` and `formdeck.bat`. The engine listens on `127.0.0.1:8197` (MCP at `/mcp`); `FORMDECK_DATA_DIR` moves the data folder from `~/formdeck`.
 

@@ -97,7 +97,7 @@ function template(): string {
       </div>
     </aside>
   </div>
-  <footer class="dm-status"><span id="dm-st-left"></span><span id="dm-st-right"></span></footer>
+  <footer class="dm-status"><span id="dm-st-left"></span><nav class="dm-links" aria-label="Demos"><span aria-current="page">Open and edit</span><a href="../demos/present/index.html">Present</a><a href="../demos/build/index.html">Build</a></nav><span id="dm-st-right"></span></footer>
 </div>
 <div class="dm-show" id="dm-show" hidden><div class="dm-show-stage" id="dm-show-stage"></div><div class="dm-show-notes" id="dm-show-notes" hidden></div><div class="dm-show-bar"><span id="dm-show-pos"></span><span>Arrows or click to move, N for notes, Esc to leave</span><button type="button" data-act="show-close">Exit</button></div></div>
 <input type="file" id="dm-file" accept=".pptx,.potx,.ppsx,.pptm,.fdec,.fsld,.json,application/json" hidden>`;
