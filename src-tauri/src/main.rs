@@ -272,6 +272,8 @@ fn main() {
                                     let _ = focus.set_focus();
                                 }
                             });
+                        } else {
+                            close_splash(&handle);
                         }
                         check_for_updates(handle.clone());
                     }
