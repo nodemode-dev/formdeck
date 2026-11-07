@@ -15,6 +15,7 @@
   <url type="homepage">https://github.com/nodemode-dev/formdeck</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.31.1" date="2026-11-07"/>
     <release version="0.31.0" date="2026-11-07"/>
     <release version="0.30.8" date="2026-11-06"/>
     <release version="0.30.7" date="2026-11-05"/>
