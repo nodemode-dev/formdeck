@@ -9,6 +9,30 @@ export function installMediaHook(): void {
   (globalThis as unknown as { __fdMediaUrl: (id: string) => string }).__fdMediaUrl = (id) => store.get(id) ?? '';
 }
 
+type Packs = Record<string, Record<string, string>>;
+const packLoads = new Map<string, Promise<Record<string, string> | null>>();
+
+export function packData(name: string): Promise<Record<string, string> | null> {
+  const known = packLoads.get(name);
+  if (known) return known;
+  const job = new Promise<Record<string, string> | null>((resolve) => {
+    const s = document.createElement('script');
+    s.src = `assets/media/${name}.js`;
+    s.onload = () => resolve((globalThis as unknown as { __fdPacks?: Packs }).__fdPacks?.[name] ?? null);
+    s.onerror = () => resolve(null);
+    document.head.appendChild(s);
+  });
+  packLoads.set(name, job);
+  return job;
+}
+
+export async function loadPack(name: string): Promise<boolean> {
+  const map = await packData(name);
+  if (!map) return false;
+  for (const [id, url] of Object.entries(map)) putMedia(id, url);
+  return true;
+}
+
 export function dataUrlBytes(url: string): { mime: string; bytes: Uint8Array } {
   const comma = url.indexOf(',');
   const head = url.slice(5, comma);

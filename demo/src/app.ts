@@ -8,6 +8,8 @@ import { brandMark } from '../../frontend/src/ui/brand';
 import { icon } from '../../frontend/src/ui/icons';
 import { THEMES, applyTheme, readChoice, saveChoice } from '../../frontend/src/ui/themes';
 import { PALETTES, buildSampleDeck } from './sample';
+import { TRAY, buildWorldsDeck, photoSlide } from './worlds';
+import { loadPack, packData, putMedia } from './media';
 import { download, isZip, readDeckJson, readFdec, writeFdec } from './pkg';
 import { readPptx } from './pptx';
 import { buildPdf, type PdfPage } from './pdf';
@@ -80,10 +82,15 @@ function template(): string {
       <div class="dm-side-tabs" role="tablist">
         <button type="button" class="dm-tab" role="tab" data-side="outline" aria-selected="true">Outline</button>
         <button type="button" class="dm-tab" role="tab" data-side="check" aria-selected="false">Check<span class="dm-count" id="dm-issues"></span></button>
+        <button type="button" class="dm-tab" role="tab" data-side="photos" aria-selected="false">Photos</button>
         <button type="button" class="dm-tab" role="tab" data-side="info" aria-selected="false">About</button>
       </div>
       <div class="dm-side-pane" data-pane="outline"><p class="dm-lead">Edit titles, bullets and notes here. The slide updates in place, and Undo covers every change.</p><div class="dm-ol" id="dm-ol"></div></div>
       <div class="dm-side-pane" data-pane="check" hidden><p class="dm-lead">Rule-based checks on the open deck. Select a finding to jump to its slide.</p><div id="dm-issue-list"></div><div class="dm-empty" id="dm-issue-empty" hidden>No findings. The deck passes every check.</div></div>
+      <div class="dm-side-pane" data-pane="photos" hidden>
+        <p class="dm-lead">More NASA pictures. Add one as a full-bleed slide after the current slide; Undo removes it again.</p>
+        <div class="dm-tray">${TRAY.map((p) => `<button type="button" class="dm-photo" data-photo="${p.id}" style="aspect-ratio: ${p.w} / ${p.h}" title="Add ${p.name} as a slide"><img alt="${p.alt}" draggable="false"><span class="dm-photo-name">${p.name}</span></button>`).join('')}</div>
+      </div>
       <div class="dm-side-pane" data-pane="info" hidden>
         <p class="dm-lead">This page runs the FormDeck slide renderer, operations engine and exporters in your browser. Open your own .pptx, .fdec or deck.json file, or work with the sample. Nothing is uploaded.</p>
         <dl class="dm-info"><dt>Slides</dt><dd id="dm-i-slides"></dd><dt>Size</dt><dd id="dm-i-size"></dd><dt>Fonts</dt><dd id="dm-i-fonts"></dd><dt>Pictures</dt><dd id="dm-i-media"></dd><dt>Import</dt><dd id="dm-i-warn"></dd></dl>
@@ -369,8 +376,35 @@ async function openFile(file: File): Promise<void> {
     }
     note(`Opened ${file.name}: ${S.deck.slides.length} slides`);
   } catch (e) {
-    note(e instanceof Error ? e.message : 'The file could not be opened.', true);
+    const own = e instanceof Error && e.constructor === Error && !('code' in e);
+    note(own ? (e as Error).message : 'That file could not be read as a deck. Open a .pptx, .fdec or deck.json file.', true);
   }
+}
+
+async function loadWorlds(): Promise<void> {
+  const ok = await loadPack('deck');
+  if (!ok) note('The picture pack did not load, showing the plain sample', true);
+  await loadDeck(ok ? buildWorldsDeck() : buildSampleDeck());
+}
+
+async function hydrateTray(): Promise<void> {
+  const map = await packData('tray');
+  if (!map) return;
+  for (const img of document.querySelectorAll<HTMLImageElement>('.dm-photo img')) {
+    const id = (img.closest('[data-photo]') as HTMLElement).dataset.photo ?? '';
+    if (map[id]) { img.src = map[id]; img.classList.add('is-ready'); }
+  }
+}
+
+async function addPhoto(id: string): Promise<void> {
+  const photo = TRAY.find((p) => p.id === id);
+  const map = await packData('tray');
+  if (!photo || !map?.[id]) { note('That picture is not available', true); return; }
+  putMedia(id, map[id]);
+  const made = photoSlide(photo, S.deck.slides.indexOf(curSlide()));
+  exec(made.ops as Op[]);
+  select(made.slide.id);
+  note(`Added ${photo.name}`);
 }
 
 function newSlideOps(): Op[] {
@@ -512,7 +546,7 @@ function act(name: string): void {
   const id = curSlide().id;
   switch (name) {
     case 'open': q<HTMLInputElement>('#dm-file').click(); break;
-    case 'sample': void loadDeck(buildSampleDeck()); break;
+    case 'sample': void loadWorlds(); break;
     case 'undo': undo(); break;
     case 'redo': redo(); break;
     case 'new': { const ops = newSlideOps(); const nid = (ops[0] as { value: { id: string } }).value.id; exec(ops); select(nid); break; }
@@ -555,6 +589,8 @@ function bind(): void {
       app.querySelectorAll<HTMLElement>('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== side.dataset.side; });
       return;
     }
+    const photo = t.closest<HTMLElement>('[data-photo]');
+    if (photo) { void addPhoto(photo.dataset.photo ?? ''); return; }
     const sw = t.closest<HTMLElement>('[data-palette]');
     if (sw) { palette(sw.dataset.palette ?? ''); return; }
     const th = t.closest<HTMLElement>('.fd-thumb');
@@ -637,8 +673,10 @@ export async function startDemo(): Promise<void> {
   stage = q('#dm-stage');
   applyTheme(readChoice());
   q<HTMLSelectElement>('#dm-theme').value = readChoice().theme;
-  S.deck = buildSampleDeck();
+  const packed = await loadPack('deck');
+  S.deck = packed ? buildWorldsDeck() : buildSampleDeck();
   S.cur = S.deck.slides[0].id;
+  void hydrateTray();
   await ensureFonts(fontsOfDeck(S.deck));
   main = new SlideView(() => S.deck, S.cur, 'show');
   stage.insertBefore(main.el, stage.firstChild);
@@ -647,5 +685,5 @@ export async function startDemo(): Promise<void> {
   await document.fonts.ready;
   refresh('all');
   document.body.classList.add('app-ready');
-  note('Sample deck loaded');
+  note(packed ? 'Opened Worlds Beyond: 12 slides of NASA pictures' : 'The picture pack did not load, showing the plain sample', !packed);
 }

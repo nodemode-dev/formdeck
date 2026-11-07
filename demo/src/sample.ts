@@ -80,17 +80,18 @@ function cityPicture(seed: number): string {
   return cv.toDataURL('image/png');
 }
 
-const txt = (s: string, o: Record<string, unknown> = {}): Para => ({ runs: [{ t: s, ...o }] });
-const body = (paras: Para[], extra: Partial<TextBody> = {}): TextBody => ({ paras, ...extra });
+export const txt = (s: string, o: Record<string, unknown> = {}): Para => ({ runs: [{ t: s, ...o }] });
+export const body = (paras: Para[], extra: Partial<TextBody> = {}): TextBody => ({ paras, ...extra });
 
 let eid = 0;
-const nid = (): string => `e${++eid}`;
+export const nid = (): string => `e${++eid}`;
+export const resetIds = (): void => { eid = 0; };
 
-function ph(type: 'title' | 'ctrTitle' | 'subTitle' | 'body' | 'sldNum' | 'ftr', idx: number, text: TextBody, frame?: { x: number; y: number; w: number; h: number }): ShapeElement {
+export function ph(type: 'title' | 'ctrTitle' | 'subTitle' | 'body' | 'sldNum' | 'ftr', idx: number, text: TextBody, frame?: { x: number; y: number; w: number; h: number }): ShapeElement {
   return { id: nid(), type: 'shape', ph: { type, idx }, text, ...(frame ?? {}) };
 }
 
-const numEl = (): ShapeElement => ph('sldNum', 12, body([txt('‹#›')]));
+export const numEl = (): ShapeElement => ph('sldNum', 12, body([txt('‹#›')]));
 
 const TITLE_STYLE: LevelStyle[] = [{ sz: 40, font: '+mj', color: 'lt1', b: true, align: 'l', lineSpacing: 1.02 }];
 const BODY_STYLE: LevelStyle[] = [
@@ -99,7 +100,7 @@ const BODY_STYLE: LevelStyle[] = [
 ];
 const OTHER_STYLE: LevelStyle[] = [{ sz: 14, font: '+mn', color: 'lt2', align: 'l', bullet: { type: 'none' } }];
 
-function buildMaster(): Master {
+export function buildMaster(): Master {
   return {
     id: 'm1', name: 'Ember', background: { type: 'solid', color: 'dk1' },
     elements: [
@@ -112,11 +113,11 @@ function buildMaster(): Master {
   };
 }
 
-function glow(x: number, y: number, w: number, h: number, color: string, alpha: number): ShapeElement {
+export function glow(x: number, y: number, w: number, h: number, color: string, alpha: number): ShapeElement {
   return { id: nid(), type: 'shape', geom: 'ellipse', x, y, w, h, fill: { type: 'gradient', kind: 'radial', stops: [{ pos: 0, color: { scheme: color as 'accent1', alpha } }, { pos: 1, color: { scheme: color as 'accent1', alpha: 0 } }] }, line: { type: 'none' } };
 }
 
-function buildLayouts(): Layout[] {
+export function buildLayouts(): Layout[] {
   const titleFrame = { x: 56, y: 170, w: 620, h: 150 };
   const mk = (id: string, name: string, semantic: Layout['semantic'], elements: SlideElement[], hide = false): Layout => ({ id, master: 'm1', name, semantic, hideMasterShapes: hide, elements });
   return [

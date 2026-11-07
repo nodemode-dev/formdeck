@@ -17,16 +17,26 @@ function upgrade(deck: Deck): Deck {
   return deck;
 }
 
+const NOT_A_DECK = 'That file is not a FormDeck deck. Open a .pptx, .fdec or deck.json file.';
+
+function parseDeck(text: string): Deck {
+  let value: unknown;
+  try { value = JSON.parse(text); } catch { throw new Error(NOT_A_DECK); }
+  if (!value || typeof value !== 'object') throw new Error(NOT_A_DECK);
+  return upgrade(value as Deck);
+}
+
 export function readDeckJson(text: string): Deck {
+  const deck = parseDeck(text);
   clearMedia();
-  return upgrade(JSON.parse(text) as Deck);
+  return deck;
 }
 
 export function readFdec(bytes: Uint8Array): Deck {
   const files = unzipSync(bytes);
   const raw = files['deck.json'];
   if (!raw) throw new Error('The package has no deck.json.');
-  const deck = upgrade(JSON.parse(strFromU8(raw)) as Deck);
+  const deck = parseDeck(strFromU8(raw));
   clearMedia();
   for (const [path, data] of Object.entries(files)) {
     const m = /^media\/([^/]+)\.([a-z0-9]+)$/i.exec(path);
