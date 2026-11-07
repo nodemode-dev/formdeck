@@ -34,6 +34,22 @@ Each page is the rasterised slide as a JPEG plus an invisible Helvetica text lay
 
 Placeholders without their own frame take it from the slide layout, then the master. Placeholders become ordinary shapes on a single blank layout with default sizes, because the source master's text styles are not carried over. Slide numbers, dates and footers are skipped.
 
+## 10. Real media as script packs · demo/src/media.ts, demo/assets/media/
+
+Chrome blocks fetch of local files on file:// and taints a canvas that drew a file:// image, which would break PNG and PDF export. Pictures therefore ship as `assets/media/deck.js` and `tray.js`, each setting a map of data URLs on `globalThis.__fdPacks`, and `loadPack` injects the script tag and copies the map into the media store. The deck pack loads before the first render and the tray pack loads in the background; the Photos cards reserve their aspect ratio and fade the picture in place, so nothing is rebuilt. If the deck pack fails, the procedural sample deck opens instead.
+
+## 11. Worlds Beyond is built in code · demo/src/worlds.ts
+
+The deck reuses the master and layouts from `sample.ts` (now exported) and lays pictures out as ordinary image elements with the `cover` fit and a focus point, so the master, layouts and palette swaps keep working. Full-bleed slides use a gradient scrim in the `dk1` scheme color so Light / dark flips it with the deck. The chart is a native chart element; the data are the archive's per-year counts summed to a running total.
+
+## 12. Photos tab adds a slide through ops · demo/src/app.ts addPhoto
+
+Adding a picture applies one batch: a `set` on `media/<id>` and an `ins` of the slide. Undo runs the engine's inverse, which removes both. Each added slide carries the credit in its notes.
+
+## 13. Friendly open errors · demo/src/pkg.ts, demo/src/app.ts openFile
+
+JSON is parsed inside `parseDeck`, which throws one plain sentence for anything that is not JSON or not an object. The media store is cleared only after a deck parses, so a failed open leaves the open deck's pictures alone. Errors from the zip reader (they carry a `code`) show a generic sentence instead of their raw text.
+
 ## 9. fflate
 
 `fflate` 0.8.3 (MIT) is already in `frontend/package-lock.json` as a transitive dev dependency. The demo bundles it for zip reading and writing; NOTICE.md lists it.

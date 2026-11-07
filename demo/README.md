@@ -4,7 +4,7 @@ A browser demo of FormDeck that runs with no install, no backend and no network.
 
 ## What it shows
 
-The page runs FormDeck's real slide renderer (`frontend/src/render`), its op engine with inverses (`frontend/src/engine/ops.ts`), its design tokens, shell styles, icon module and 14 window themes. A sample deck is built in code and shown on load, so it works with zero files.
+The page runs FormDeck's real slide renderer (`frontend/src/render`), its op engine with inverses (`frontend/src/engine/ops.ts`), its design tokens, shell styles, icon module and 14 window themes. The demo opens on "Worlds Beyond", a 12 slide deck of real NASA pictures with speaker notes, a native chart of confirmed exoplanets built from NASA Exoplanet Archive counts, a table and stat cards. The pictures ship as script packs in `assets/media/` (`deck.js` for the deck, `tray.js` for the Photos tab) so they work by double-click and keep the canvas untainted for PNG and PDF export. The Photos tab adds three more pictures as full-bleed slides. Sources and licences are in `CREDITS.md`. If a pack fails to load, the page falls back to the plain procedural sample deck.
 
 Open your own file with Open, or drop it on the window:
 
