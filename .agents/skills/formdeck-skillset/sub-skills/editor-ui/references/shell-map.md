@@ -21,6 +21,8 @@
     .fd-stage-col        main.fd-stage (viewport, drop overlay, alt view host), row resizer, speaker notes
     .fd-resizer          props width
     aside.fd-props-col   inspector panel groups
+    aside.fd-addin-pane  add-in task pane, column 6 (built on first use)
+    aside.fd-ext-pane    Extensions pane, column 6, in the shell string hidden: the Extensions tab and one tab per open dock panel
   footer.fd-status       slide counter, save state, agent activity, hint, view switch, zoom
 ```
 
@@ -33,6 +35,8 @@ Class toggles on `.fd-app` hide parts (`is-notes-hidden`, `is-strip-hidden`, `is
 ## Commands, menus and shortcuts
 
 `Commands.add({id, label, keys, icon, run, enabled, checked})` refuses duplicate ids. `comboOf(event)` builds combos such as `Mod+Shift+D` (Mod is Cmd on macOS, Ctrl elsewhere), `formatKeys` prints them. Menus are arrays of command ids, `'-'` separators and submenus (`{label, items}`); the Slide menu builds `layout:[id]` items per deck. `syncChrome` disables buttons whose command is disabled and marks checked ones `is-on`. The shortcuts dialog lists every command with keys.
+
+Form extensions (`extensions/host.ts` around the vendored kit `extensions/host-bridge.ts`, never edited): the top-level Extensions menu is a function item (`exts.menuItems()`), contributed commands are `ext:<id>:<command>` in the registry (so the palette, the CLI and `list_commands` list them), and `ext-panel`, `ext-reload`, `ext-manage` always exist. Only one of the add-in pane and the Extensions pane is open. `document.apply` from an extension is one undo step through a shadowed `doc.apply` with one coalesce key. The API page is `docs/EXTENSIONS.md`; keep it in step with any change to what `document.read` returns or which commands are refused.
 
 ## Dialogs and floating UI
 

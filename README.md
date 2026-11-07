@@ -38,7 +38,7 @@
     <td width="25%" valign="top"><h3>Start from material</h3>Drop notes, PDFs, spreadsheets and pictures, pick a template, and get a drafted deck in seconds.</td>
     <td width="25%" valign="top"><h3>Works with PowerPoint</h3>Open and save .pptx and .potx, and exchange OpenDocument .odp, with a report of what changed.</td>
     <td width="25%" valign="top"><h3>Present anywhere</h3>Presenter view with notes and timer, twelve transitions, pen and laser, and live sharing on your network.</td>
-    <td width="25%" valign="top"><h3>Agent-ready</h3>The same editor from the window, the command line and an MCP server with 31 tools.</td>
+    <td width="25%" valign="top"><h3>Agent-ready</h3>The same editor from the window, the command line and an MCP server with 33 tools.</td>
   </tr>
 </table>
 
@@ -87,7 +87,7 @@ Interface languages: English and 25 more, from Spanish and French to Japanese an
 
 ## Built for agents
 
-31 MCP tools drive the same engine as the window: ingest, draft, build, render, lint and edit.
+33 MCP tools drive the same engine as the window: ingest, draft, build, render, lint and edit.
 
 ```sh
 ./formdeck agents install    # writes .mcp.json, .codex/config.toml and .cursor/mcp.json, installs the skills
@@ -97,6 +97,10 @@ Interface languages: English and 25 more, from Spanish and French to Japanese an
 ```
 
 `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
+
+## Extensions
+
+formdeck hosts Form extensions (Form Extension Contract, API 1): FormPortal installs them, form.ext runs them from a folder while you make them. They appear in the Extensions menu, the Extensions panel at the right of the window and the command palette, run in a sandboxed frame, ask before they read or change the deck, and every change they make is one undo step. Agents reach them with the MCP tools `extensions_list` and `extension_command` or `./formdeck cli extensions`. The API page is [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md); formdeck's own add-ins ([`docs/ADDINS.md`](docs/ADDINS.md)) keep working beside them.
 
 ## Under the hood
 

@@ -233,9 +233,15 @@ TOOLS = [
           "Use list_commands to find the id. A command marked risky cannot be undone; pass confirm true for it.",
           {"id": {"type": "string", "description": "Command id from list_commands, such as align-center or format-painter"}, "params": {"type": "object", "description": "Parameters the command lists, if any"},
            "confirm": {"type": "boolean"}}, ["id"]),
+    _tool("extensions_list", "The Form extensions formdeck found (installed by FormPortal or run from a folder by form.ext): id, name, version, source, state (ready, needs-permission, refused with the reason) and the commands each contributes.",
+          {}, read=True),
+    _tool("extension_command", "Runs a command an extension contributes, in the open formdeck window, as the person's click on it in the Extensions menu would; the person is asked to allow the extension the first time. "
+          "id and command come from extensions_list.",
+          {"id": {"type": "string", "description": "Extension id"}, "command": {"type": "string", "description": "Command id the extension contributes"}, "args": {"type": "object", "description": "Arguments passed to the extension with the command"}},
+          ["id", "command"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
-MUTATING = {"build_deck", "add_slides", "update_slide", "set_text", "edit_elements", "apply_ops", "slides", "apply_template", "set_theme", "undo", "open_file", "run_command"}
+MUTATING = {"build_deck", "add_slides", "update_slide", "set_text", "edit_elements", "apply_ops", "slides", "apply_template", "set_theme", "undo", "open_file", "run_command", "extension_command"}
 
 
 def _ok(text: str, data: dict | None = None) -> dict:
@@ -1780,6 +1786,29 @@ async def t_run_command(a: Agent, args: dict) -> dict:
         return _fail(out["error"])
     result = out.get("result")
     return _ok(f"Ran {cid}." + (f" {result}" if isinstance(result, str) and result else ""), {"id": cid, "result": result})
+
+
+async def t_extensions_list(a: Agent, args: dict) -> dict:
+    from app.routers import extensions as exts
+    data = await exts.agent_list()
+    rows = data["extensions"]
+    if not rows:
+        return _ok(f"No extensions for formdeck in {data['root']}. FormPortal installs them; form.ext's Run in App adds one from a folder.", data)
+    lines = [f"{e['id']} · {e['name']} {e['version']} · {e['source']} · {e['state']}{(': ' + e['reason']) if e.get('reason') else ''}"
+             + (f" · commands {', '.join(c['id'] for c in e.get('commands') or [])}" if e.get("commands") else "") for e in rows]
+    return _ok(f"{len(rows)} extension{'' if len(rows) == 1 else 's'}" + ("" if data["live"] else " (no window is open, so consent states are not known)") + ":\n" + "\n".join(lines), data)
+
+
+async def t_extension_command(a: Agent, args: dict) -> dict:
+    from app.routers import extensions as exts
+    ext_id = str(args.get("id") or "").strip()
+    command = str(args.get("command") or "").strip()
+    if not ext_id or not command:
+        raise ToolError("Give id and command, from extensions_list.")
+    out = await exts.agent_command(ext_id, command, args.get("args") if isinstance(args.get("args"), dict) else {})
+    if not out["ok"]:
+        return _fail(out["error"])
+    return _ok(out.get("text") or f"Ran {ext_id}: {command}.", {"id": ext_id, "command": command, "result": out.get("result")})
 
 
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}

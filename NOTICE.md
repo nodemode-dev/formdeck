@@ -14,6 +14,7 @@ formdeck is licensed under the Apache License 2.0 (see `LICENSE`). It includes o
 | ECMA-376 preset text warp definitions (`presetTextWarpDefinitions.xml`, the 40 WordArt transforms), taken from the copy in Apache OpenOffice (`main/oox/source/export/presetTextWarpDefinitions.xml`) and re-encoded as JSON | Ecma standard as above; the OpenOffice copy is Apache-2.0 (Copyright The Apache Software Foundation) | `frontend/src/render/text-warps.json` |
 | pytest 9.1.1 (with iniconfig, packaging, pluggy, pygments) | MIT (pytest, iniconfig, pluggy), Apache-2.0 OR BSD-2-Clause (packaging), BSD-2-Clause (pygments) | runs `backend/tests` in CI (`backend/requirements-test.txt`); never installed in the app |
 | Playwright for Python 1.63.0 (https://github.com/microsoft/playwright-python) | Apache-2.0 | runs `frontend/tests/window` in CI; never installed in the app |
+| Form Extension Contract kit, Apache-2.0, nodemode: the host bridge and the extension resolver and file server, vendored unchanged | Apache-2.0 | `frontend/src/extensions/host-bridge.ts`, `backend/app/services/formext_host.py` |
 
 The 67 built-in templates, their layouts, motifs and sample text are original work of this repository, generated in code. No Microsoft, Google or third-party template, theme, artwork or font is bundled; PowerPoint and Google Slides templates the user owns are imported from the user's own files.
 
