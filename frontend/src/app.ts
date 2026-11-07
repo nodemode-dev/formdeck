@@ -26,6 +26,7 @@ import { colorOps, layoutCommands, registerCommands, type AppHooks } from './edi
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
 import { ADDIN_MENU, attachAddins, registerAddins } from './editor/addins';
+import { EXT_PANE_HTML, FormdeckExtensions } from './extensions/host';
 import { registerTableCommands, TABLE_BORDER_MENU } from './editor/table-edit';
 import { registerTextFxCommands } from './editor/text-effects';
 import { editorTheme, gateSlideCommands, layoutMenuItems, MASTER_MENU, registerMasterCommands } from './editor/master-view';
@@ -91,6 +92,7 @@ const SHELL = `<div class="fd-app">
 <aside class="fd-props-col" aria-label="Properties"></aside>
 <button class="fd-props-hide fd-icon-btn is-sm" type="button" data-cmd="toggle-props" title="Hide the Format pane" aria-label="Hide the Format pane">${icon('chevronRight', 14)}</button>
 <button class="fd-props-tab" type="button" data-cmd="toggle-props" title="Show the Format pane" aria-label="Show the Format pane">${icon('chevronLeft', 14)}</button>
+${EXT_PANE_HTML}
 </div>
 <section class="fd-dock" aria-label="Terminal" hidden></section>
 <footer class="fd-status">
@@ -127,7 +129,8 @@ export async function startApp(): Promise<void> {
   let editorOff: Array<() => void> = [];
   let agentsAllowed = false;
   let views: { refresh(): void; show(kind: 'sorter' | 'outline'): void; hide(): void } | null = null;
-  const bridge = new AgentBridge({ editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
+  let exts: FormdeckExtensions | null = null;
+  const bridge = new AgentBridge({ extension: (name, args) => exts ? exts.agent(name, args) : Promise.resolve({ content: [{ type: 'text', text: 'The extension host is still starting.' }], isError: true }), editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
 
   const home = new Home({
     openDeck: (id) => void openDeck(id),
@@ -176,6 +179,7 @@ export async function startApp(): Promise<void> {
     layoutCommands(commands, ed);
     toolbar.attach(ed);
     attachAddins();
+    exts?.attach(ed);
     inspector.attach(ed);
     drawTools.attach(ed);
     ed.stage.onZoom = (pct) => { setText(status.zoom, `${pct}%`); setValue(zoomSlider, String(pct)); };
@@ -396,6 +400,8 @@ export async function startApp(): Promise<void> {
     { id: 'command-palette', label: 'Find a Command...', icon: 'commandPalette', keys: ['Shift+Mod+P'], run: () => { editor?.stage.rememberSelection(); palette ??= new CommandPalette(() => catalogue.list(), (id) => { editor?.stage.restoreSelection(); commands.run(id); syncChrome(); }); palette.show(); } },
   );
 
+  exts = new FormdeckExtensions({ commands, editor: () => editor, catalogue: () => catalogue.list(), host: q(root, '.fd-main'), changed: () => syncChrome(), layout: () => { const ed = editor; if (ed) requestAnimationFrame(() => ed.stage.layout()); } });
+  if (editor) exts.attach(editor);
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
@@ -406,6 +412,7 @@ export async function startApp(): Promise<void> {
     { label: 'Arrange', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back', '-', 'align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v', '-', 'flip-h', 'flip-v', 'rotate-90', '-', 'group', 'ungroup', 'lock', '-', 'component-create', 'component-update', 'component-detach', '-', 'selection-pane'] },
     { label: 'Review', items: ['spelling', 'language', '-', 'check-deck', 'review-activity', 'review-compare', '-', 'review-enable', 'review-disable', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view', 'use-presenter-view', '-', 'custom-shows', 'show-setup', 'subtitle-settings', 'rehearse-timings', 'rehearse-coach', '-', 'record-start', 'record-current', { label: 'Clear', items: ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'] }] },
+    { label: 'Extensions', items: () => exts?.menuItems() ?? ['ext-panel', 'ext-reload', 'ext-manage'] },
     { label: 'Help', items: ['help', 'shortcuts', 'key-tips', 'preferences'] },
   ];
   toolbar.fileItems = menus[0].items as MenuItem[];
