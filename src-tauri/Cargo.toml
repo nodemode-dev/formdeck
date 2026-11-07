@@ -1,6 +1,6 @@
 [package]
 name = "formdeck"
-version = "0.31.1"
+version = "0.31.2"
 description = "formdeck desktop shell"
 authors = ["NodeAgentc, Inc."]
 license = "Apache-2.0"
