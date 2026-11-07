@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core import config
 from app.core.local_guard import LocalGuard
-from app.routers import addins, ai_images, captions, chat, commands, decks, exports, intake, live, mcp, media, share, stock, system, terminal, workbooks
+from app.routers import addins, ai_images, captions, chat, commands, decks, exports, extensions, intake, live, mcp, media, share, stock, system, terminal, workbooks
 from app.services import relay
 from app.services import share as sharing
 from app.services import terminal as terminals
@@ -73,6 +73,7 @@ app.include_router(stock.router, prefix="/api")
 app.include_router(workbooks.router, prefix="/api")
 app.include_router(addins.router, prefix="/api")
 app.include_router(commands.router)
+app.include_router(extensions.router)
 app.include_router(terminal.router)
 app.include_router(live.router)
 app.include_router(mcp.router)
