@@ -42,6 +42,7 @@ export class Editor {
   readonly strip: Filmstrip;
   private readonly listeners = new Map<EditorEvent, Set<() => void>>();
   private readonly offDoc: () => void;
+  private readonly bye = new AbortController();
   private clip: { kind: 'elements'; items: SlideElement[] } | { kind: 'slides'; items: Slide[] } | null = null;
   lastAgentAt = 0;
 
@@ -54,20 +55,21 @@ export class Editor {
     collab.watch(doc);
     this.strip.update();
     this.stage.show(this.current || null);
-    roots.notes.addEventListener('input', () => this.notesInput());
+    roots.notes.addEventListener('input', () => this.notesInput(), { signal: this.bye.signal });
     roots.title.addEventListener('change', () => {
       const v = roots.title.value.trim() || 'Untitled deck';
       if (v !== this.doc.deck.title) this.apply([{ op: 'set', path: ['title'], value: v }], 'Rename deck');
-    });
+    }, { signal: this.bye.signal });
     this.syncNotes();
     this.syncTitle();
   }
 
   dispose(): void {
+    this.bye.abort();
     this.offDoc();
     collab.unwatch(this.doc);
     if (this.holderKind !== 'slide') setHolderResolver(null);
-    this.stage.show(null);
+    this.stage.dispose();
     this.strip.dispose();
   }
 
