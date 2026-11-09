@@ -3,6 +3,7 @@ import { api, type DeckSummary, type TemplateSummary, type TrashedDeck } from '.
 import { ensureFonts, fontsOfDeck } from '../render/fonts';
 import { SlideView } from '../render/slide';
 import { brandMark } from './brand';
+import { DEMOS, type DemoId } from './demos';
 import { Dialog } from './dialogs';
 import { el, escapeHtml, patchList, setClass, setHidden, setText } from './dom';
 import { icon } from './icons';
@@ -15,6 +16,7 @@ export interface HomeHooks {
   intake(files: File[], template?: string): void;
   preferences(): void;
   agents(): void;
+  demo(id: DemoId): void;
 }
 
 type View = 'start' | 'recent' | 'templates' | 'trash';
@@ -99,6 +101,7 @@ export class Home {
 <div class="fd-home-hero-actions"><button class="fd-btn fd-btn-primary" type="button" data-a="choose">${icon('upload', 14)}Choose files</button><button class="fd-btn" type="button" data-a="paste">${icon('fileText', 14)}Paste text</button><button class="fd-btn fd-btn-ghost" type="button" data-a="agents">${icon('agent', 14)}Use your agent</button></div>
 </div>
 <section class="fd-home-section"><div class="fd-home-section-head"><h2 class="fd-home-section-title">Recent decks</h2><button class="fd-btn fd-btn-ghost fd-btn-sm" type="button" data-v="recent">See all</button></div><div class="fd-card-grid fd-recent-grid"><button class="fd-card is-skeleton" type="button" tabindex="-1" data-key="__skeleton" aria-hidden="true"><span class="fd-card-preview"></span><span class="fd-card-body"><span class="fd-card-name">&nbsp;</span><span class="fd-card-meta">&nbsp;</span></span></button><button class="fd-card is-empty" type="button" tabindex="-1" hidden><span class="fd-card-preview is-blank">${icon('slides', 28)}</span><span class="fd-card-body"><span class="fd-card-name">No decks yet</span><span class="fd-card-meta">Start from your material or a template</span></span></button></div></section>
+<section class="fd-home-section" data-section="demos"><div class="fd-home-section-head"><h2 class="fd-home-section-title">Demos</h2><span class="fd-card-meta">Each opens as a new deck in your library</span></div><div class="fd-card-grid fd-demo-grid">${DEMOS.map((d) => `<button class="fd-card" type="button" data-demo="${d.id}"><span class="fd-card-preview" aria-hidden="true"><img alt="" decoding="async" draggable="false" src="${d.picture}"></span><span class="fd-card-body"><span class="fd-card-name" translate="no">${escapeHtml(d.title)}</span><span class="fd-card-meta" title="${escapeHtml(d.line)}">${escapeHtml(d.line)}</span></span></button>`).join('')}</div></section>
 <section class="fd-home-section"><div class="fd-home-section-head"><h2 class="fd-home-section-title">Templates</h2><div class="fd-home-filters fd-cats"></div><label class="fd-search">${icon('search', 14)}<input type="search" placeholder="Search templates" class="fd-tpl-search"></label></div><div class="fd-card-grid fd-tpl-grid"></div></section>
 </div>
 <div data-page="recent" hidden><div class="fd-home-head"><div><h1 class="fd-home-title">Recent decks</h1><p class="fd-home-sub">Everything in your library, newest first. Decks save as you work.</p></div></div><div class="fd-card-grid fd-recent-full"></div></div>
@@ -202,6 +205,7 @@ export class Home {
       else if (a === 'local') toast('Your decks, templates and pictures stay in your formdeck folder on this computer.');
       else if (a === 'import-template') this.importTemplate();
       const card = t.closest('.fd-card') as HTMLElement | null;
+      if (card?.dataset.demo) { this.hooks.demo(card.dataset.demo as DemoId); return; }
       if (card?.dataset.deck) this.hooks.openDeck(card.dataset.deck);
       if (card?.dataset.template) {
         const tpl = this.templates.find((x) => x.id === card.dataset.template);

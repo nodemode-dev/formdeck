@@ -283,6 +283,7 @@ body.theme-light .fd-seg button.is-on { color: color-mix(in srgb, var(--accent-c
 .fd-card-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 4px; }
 .fd-card-name { overflow: hidden; color: var(--text-primary); font-size: var(--fd-13); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .fd-card-meta { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; color: var(--text-muted); font-size: var(--fd-12); text-overflow: ellipsis; white-space: nowrap; }
+.fd-demo-grid .fd-card-meta { display: -webkit-box; height: 2.8em; line-height: 1.4; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .fd-card[data-deck] { position: relative; }
 .fd-card-more { position: absolute; top: 12px; right: 12px; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: var(--radius-pill); background: var(--glass-bg); color: var(--text-primary); opacity: 0; transition: opacity var(--transition-fast); }
 .fd-card:hover .fd-card-more, .fd-card:focus-visible .fd-card-more, .fd-card:focus-within .fd-card-more { opacity: 1; }

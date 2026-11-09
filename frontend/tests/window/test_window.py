@@ -115,3 +115,29 @@ def test_window_loads_throttled_without_shift_errors_or_refusals(engine, path):
     assert not failed, f"failed requests: {failed}"
     assert not errors, f"console errors: {errors}"
     assert cls <= CLS_LIMIT, f"layout shift {cls}: {shifts}"
+
+
+DEMOS = {"worlds": ("Worlds Beyond", 12), "present": ("Why We Keep Going Back", 11), "build": ("Mill Street Roastery", 17)}
+
+
+def test_every_demo_opens_from_start_as_a_new_deck(engine):
+    from playwright.sync_api import sync_playwright
+
+    errors = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1440, "height": 900})
+        page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(engine + "/", wait_until="load", timeout=120_000)
+        page.wait_for_selector(".fd-home:not([hidden]) [data-demo]", timeout=60_000)
+        for demo, (title, slides) in DEMOS.items():
+            if not page.locator(".fd-home").is_visible():
+                page.locator("[data-menu='file']").dispatch_event("pointerdown", {"button": 0})
+                page.locator(".fd-menu:not([hidden]) [data-cmd='home']").click()
+            page.locator(f".fd-home [data-demo='{demo}']").click()
+            page.wait_for_function("t => document.querySelector('.fd-home').hidden && document.querySelector('.fd-doc-title').value === t", arg=title, timeout=60_000)
+            deck = page.evaluate("t => fetch('/api/decks').then(r => r.json()).then(j => j.decks.find(d => d.title === t))", title)
+            assert deck and deck["slides"] == slides, (demo, deck)
+        browser.close()
+    assert not errors, f"console errors: {errors}"
