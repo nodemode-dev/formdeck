@@ -218,6 +218,7 @@ export const ICONS: Record<string, string> = {
   pfCursor: L('<path d="M6 3l12 8.5-5.2 1 3.2 6-2.4 1.2-3.2-6L6 18z"/>'),
   pfPlugins: L('<path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z"/><path d="M12 18v3"/>'),
   pfFold: L('<path d="M11 6l-6 6 6 6M19 6l-6 6 6 6"/>'),
+  newWindow: L('<rect x="3.5" y="7.5" width="13" height="13" rx="1.5"/><path d="M3.5 11h13"/><path d="M12 3.5h7a1.5 1.5 0 0 1 1.5 1.5v7"/><path d="M14.5 9.5l6-6"/>'),
 };
 
 export function icon(name: string, size = 16): string {

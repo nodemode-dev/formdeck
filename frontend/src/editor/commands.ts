@@ -16,6 +16,7 @@ import { myName } from './mentions';
 export interface AppHooks {
   editor(): Editor | null;
   home(): void;
+  closeDeck(id: string): void;
   newDeck(): void;
   openFile(): void;
   save(as?: boolean): void;
@@ -314,7 +315,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'preferences', label: 'Preferences...', keys: ['Mod+,'], icon: 'settings', run: () => h.preferences() },
     { id: 'help', label: 'formdeck Help', keys: ['F1'], icon: 'info', run: () => h.help() },
     { id: 'shortcuts', label: 'Keyboard Shortcuts', keys: ['Mod+/'], run: () => h.shortcuts() },
-    { id: 'delete-deck', label: 'Delete Deck...', enabled: has, run: async () => { const ed = E(); if (!ed) return; if (await confirmAction('Delete deck', `Move "${ed.doc.deck.title}" to the trash folder in your library?`, 'Delete', true)) { const { api } = await import('../io/api'); await api.remove(ed.doc.id); toast('Moved to the trash folder.'); h.home(); } } },
+    { id: 'delete-deck', label: 'Delete Deck...', enabled: has, run: async () => { const ed = E(); if (!ed) return; if (await confirmAction('Delete deck', `Move "${ed.doc.deck.title}" to the trash folder in your library?`, 'Delete', true)) { const { api } = await import('../io/api'); await api.remove(ed.doc.id); toast('Moved to the trash folder.'); h.closeDeck(ed.doc.id); } } },
   ];
   for (const g of PRESET_GROUPS) for (const it of g.items) list.push({ id: `shape:${it.geom}`, label: it.label, enabled: has, run: () => insertShape(it.geom) });
   cmds.add(...list);

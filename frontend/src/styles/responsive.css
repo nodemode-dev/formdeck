@@ -80,11 +80,12 @@ html[data-input="touch"] .fd-handle::after { content: ''; position: absolute; le
 .fd-app.is-phone .fd-present-btn > .fd-present-main > span:not(.icon) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .fd-app.is-phone .fd-status-right .fd-seg, .fd-app.is-phone .fd-st-save { display: none; }
 
-.fd-app.is-view-only { grid-template-rows: var(--fd-titlebar-h) minmax(0, 1fr) var(--fd-status-h); }
+.fd-app.is-view-only { grid-template-rows: var(--fd-titlebar-h) var(--fd-tabs-h) minmax(0, 1fr) var(--fd-status-h); }
 .fd-app.is-view-only > .fd-titlebar { grid-row: 1; }
+.fd-app.is-view-only > .fd-tabs { grid-row: 2; }
 .fd-app.is-view-only > .fd-options { display: none; }
-.fd-app.is-view-only > .fd-main { grid-row: 2; }
-.fd-app.is-view-only > .fd-status { grid-row: 3; }
+.fd-app.is-view-only > .fd-main { grid-row: 3; }
+.fd-app.is-view-only > .fd-status { grid-row: 4; }
 .fd-app.is-view-only .fd-titlebar { grid-template-columns: auto minmax(0, 1fr) auto; }
 .fd-app.is-view-only .fd-menubar, .fd-app.is-view-only .fd-title-tools > .fd-icon-btn, .fd-app.is-view-only .fd-title-tools > .fd-tt-btn, .fd-app.is-view-only .fd-present-more { display: none; }
 .fd-app.is-view-only .fd-doc-title { display: block; justify-self: stretch; width: auto; text-align: left; color: var(--text-primary); }

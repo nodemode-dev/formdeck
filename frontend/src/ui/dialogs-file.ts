@@ -1374,7 +1374,10 @@ async function sendToPrinter(): Promise<void> {
   } catch {
     printed = false;
   }
-  if (!printed && isTauri()) await import('@tauri-apps/api/core').then((m) => m.invoke('print_window', { label: 'main' }));
+  if (!printed && isTauri()) {
+    const label = (await import('@tauri-apps/api/window')).getCurrentWindow().label;
+    await import('@tauri-apps/api/core').then((m) => m.invoke('print_window', { label }));
+  }
 }
 
 class PrintDialog extends Dialog {
