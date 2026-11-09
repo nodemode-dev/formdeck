@@ -45,6 +45,7 @@ export class PopupMenu {
       if (isSub(item)) {
         const node = el<HTMLButtonElement>(`<button class="fd-menu-item fd-menu-sub" role="menuitem" aria-haspopup="menu" type="button"><span class="fd-menu-check"></span><span class="fd-menu-label"></span><span class="fd-menu-keys">${icon('chevronRight', 12)}</span></button>`);
         setText(q(node, '.fd-menu-label'), item.label);
+        node.dataset.sub = item.label.toLowerCase();
         const menu = new PopupMenu(this.commands, this);
         menu.setItems(item.items);
         node.addEventListener('pointerenter', () => this.showSub(menu, node));
@@ -57,6 +58,7 @@ export class PopupMenu {
       if (!cmd) continue;
       const node = el<HTMLButtonElement>(`<button class="fd-menu-item" role="menuitem" type="button"><span class="fd-menu-check">${icon('check', 14)}</span><span class="fd-menu-label"></span><span class="fd-menu-keys"></span></button>`);
       setText(q(node, '.fd-menu-keys'), this.commands.keyLabel(cmd));
+      node.dataset.cmd = item;
       node.addEventListener('pointerenter', () => this.closeSub());
       node.addEventListener('click', () => { this.root().close(); this.commands.run(item); });
       this.rows.push({ id: item, node });
@@ -142,6 +144,7 @@ export class MenuBar {
     defs.forEach((def, i) => {
       const btn = el<HTMLButtonElement>('<button class="fd-menu-btn" type="button" aria-haspopup="menu"></button>');
       btn.textContent = def.label;
+      btn.dataset.menu = def.label.toLowerCase();
       host.appendChild(btn);
       const menu = new PopupMenu(commands);
       menu.setItems(itemsOf(def));

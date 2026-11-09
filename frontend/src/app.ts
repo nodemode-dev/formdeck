@@ -13,6 +13,7 @@ import { anyDialogOpen } from './ui/dialogs';
 import { isMac, mountOnce, q, revealApp, setClass, setDisabled, setHidden, setText, setStyleVar, setValue } from './ui/dom';
 import { enhanceAllSelects } from './ui/dropdown';
 import { Home } from './ui/home';
+import { DEMOS, makeDemo, type DemoId } from './ui/demos';
 import { icon } from './ui/icons';
 import { MenuBar, PopupMenu, type MenuDef, type MenuItem } from './ui/menu';
 import { NativeMenus, wantsNativeMenus, isMacDesktop, menusInWindow, MENUS_IN_WINDOW_KEY } from './ui/native-menu';
@@ -144,7 +145,21 @@ export async function startApp(): Promise<void> {
     intake: (files, template) => dialogs.intakeDialog(files, template, { openDeck: (id) => void openDeck(id), agents: () => commands.run('agents') }),
     preferences: () => commands.run('preferences'),
     agents: () => commands.run('agents'),
+    demo: (id) => void openDemo(id),
   });
+
+  let demoBusy = false;
+  async function openDemo(id: DemoId): Promise<void> {
+    if (demoBusy) return;
+    demoBusy = true;
+    toast('Opening the demo as a new deck in your library…', 'info');
+    try {
+      const d = await makeDemo(id);
+      await openDeck(d.id);
+    } catch (e) {
+      toast(`Could not open the demo: ${e instanceof Error ? e.message : e}`, 'error');
+    } finally { demoBusy = false; }
+  }
 
   const setAgents = (on: boolean): void => {
     agentsAllowed = on;
@@ -397,6 +412,7 @@ export async function startApp(): Promise<void> {
     { id: 'agent-chat', label: 'Chat with Claude', icon: 'agentChat', keys: ['Alt+Mod+J'], run: () => void showDock().then((d) => d.showChat()) },
     { id: 'menus-in-window', label: 'Menus in Window', enabled: isMacDesktop, checked: menusInWindow, run: () => { const next = !menusInWindow(); try { localStorage.setItem(MENUS_IN_WINDOW_KEY, next ? '1' : '0'); } catch { return; } toast(next ? 'The menus stay in the window from the next start.' : 'The menus go to the menu bar from the next start.', 'info'); } },
     { id: 'save-copy', label: 'Save a Copy in Library...', enabled: () => !!editor, run: () => { if (editor) dialogs.saveCopyDialog(editor); } },
+    ...DEMOS.map((d) => ({ id: d.command, label: d.label, icon: 'presentation', run: () => void openDemo(d.id) })),
     { id: 'command-palette', label: 'Find a Command...', icon: 'commandPalette', keys: ['Shift+Mod+P'], run: () => { editor?.stage.rememberSelection(); palette ??= new CommandPalette(() => catalogue.list(), (id) => { editor?.stage.restoreSelection(); commands.run(id); syncChrome(); }); palette.show(); } },
   );
 
@@ -413,7 +429,7 @@ export async function startApp(): Promise<void> {
     { label: 'Review', items: ['spelling', 'language', '-', 'check-deck', 'review-activity', 'review-compare', '-', 'review-enable', 'review-disable', 'review-ready', 'review-approve', 'review-changes', 'review-draft', '-', 'add-comment', '-', 'intake', 'agents'] },
     { label: 'Present', items: ['present-start', 'present-current', 'presenter-view', 'use-presenter-view', '-', 'custom-shows', 'show-setup', 'subtitle-settings', 'rehearse-timings', 'rehearse-coach', '-', 'record-start', 'record-current', { label: 'Clear', items: ['clear-timing-current', 'clear-timing-all', '-', 'clear-narration-current', 'clear-narration-all'] }] },
     { label: 'Extensions', items: () => exts?.menuItems() ?? ['ext-panel', 'ext-reload', 'ext-manage'] },
-    { label: 'Help', items: ['help', 'shortcuts', 'key-tips', 'preferences'] },
+    { label: 'Help', items: ['help', 'shortcuts', 'key-tips', '-', { label: 'Demos', items: DEMOS.map((d) => d.command) }, '-', 'preferences'] },
   ];
   toolbar.fileItems = menus[0].items as MenuItem[];
   new MenuBar(q(root, '.fd-menubar'), commands, menus);

@@ -6,6 +6,8 @@ Licence basis for NASA material: NASA's guidelines page (https://www.nasa.gov/na
 
 Every picture was resized (never enlarged) and re-encoded to WebP at quality 80 to 88 with Pillow, then embedded as a data URL in `assets/media/deck.js` or `assets/media/tray.js`. No picture was cropped or retouched in the files; the deck crops them on the slide with the `cover` fit and a focus point.
 
+The app ships the same twelve files (the nine below and img_edge, img_moj and img_chey from the Photos tray) as plain WebP in `frontend/public/demos/nasa/`, decoded unchanged by `scripts/demo-media.py`, so Home > Demos opens this deck and the Present demo's talk inside the app.
+
 ## Pictures in the deck (`assets/media/deck.js`)
 
 | In the demo | Title | Credit | Source page | Licence as stated on the page | Changes |

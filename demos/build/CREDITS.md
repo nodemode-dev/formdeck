@@ -4,6 +4,8 @@ The deck "Mill Street Roastery" (a launch plan for a made-up neighbourhood coffe
 
 Each photo was resized (never enlarged) to the longest side listed and re-encoded to WebP at quality 80 with Pillow, then embedded as a data URL in `assets/media/photos.js`. Nothing was cropped or retouched in the files; slides crop with the cover fit.
 
+The app ships the same eight files as plain WebP in `frontend/public/demos/build/`, decoded unchanged by `scripts/demo-media.py`, so Home > Demos builds this deck inside the app with the engine's own compiler.
+
 ## Photographs (`assets/media/photos.js`)
 
 | In the demo | Title | Photographer | Source page | Licence as stated on the page | Changes |
