@@ -1,5 +1,5 @@
 :root { --fd-dock-open-h: 280px; }
-.fd-app.is-dock-open { grid-template-rows: var(--fd-titlebar-h) var(--fd-options-h) minmax(0, 1fr) var(--fd-dock-open-h) var(--fd-status-h); }
+.fd-app.is-dock-open { grid-template-rows: var(--fd-titlebar-h) var(--fd-tabs-h) var(--fd-options-h) minmax(0, 1fr) var(--fd-dock-open-h) var(--fd-status-h); }
 .fd-dock { position: relative; display: grid; grid-template-rows: 34px minmax(0, 1fr) 40px; min-width: 0; min-height: 0; background: var(--surface-0); border-top: 1px solid var(--line-1); }
 .fd-dock[hidden], .fd-app.is-view-only .fd-dock { display: none; }
 .fd-dock-rsz { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: row-resize; z-index: var(--z-raised); touch-action: none; }

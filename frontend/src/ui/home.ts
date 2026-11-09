@@ -78,6 +78,7 @@ export class Home {
 <button class="fd-home-nav-item" type="button" data-v="recent">${icon('slides', 16)}<span>Recent decks</span><span class="fd-badge is-count fd-deck-count">0</span></button>
 <button class="fd-home-nav-item" type="button" data-v="templates">${icon('template', 16)}<span>Templates</span><span class="fd-badge is-count fd-tpl-count">0</span></button>
 <button class="fd-home-nav-item" type="button" data-v="trash">${icon('delete', 16)}<span>Trash</span><span class="fd-badge is-count fd-trash-count">0</span></button>
+<div class="fd-home-open" hidden><div class="fd-home-nav-sep"></div><div class="fd-home-nav-title">Open decks</div><div class="fd-home-open-list"></div></div>
 <div class="fd-home-nav-sep"></div>
 <div class="fd-home-nav-title">Agents</div>
 <button class="fd-home-nav-item" type="button" data-a="agents">${icon('agent', 16)}<span>Claude Code, Codex, Cursor</span></button>
@@ -179,6 +180,8 @@ export class Home {
       this.closeMenu();
       const v = (t.closest('[data-v]') as HTMLElement | null)?.dataset.v as View | undefined;
       if (v) { this.show(v); return; }
+      const back = (t.closest('[data-open-deck]') as HTMLElement | null)?.dataset.openDeck;
+      if (back) { this.hooks.openDeck(back); return; }
       const a = (t.closest('[data-a]') as HTMLElement | null)?.dataset.a;
       const row = (t.closest('[data-entry]') as HTMLElement | null)?.dataset.entry;
       if (a === 'confirm-yes') { const go = this.onConfirm; this.askClose(); go?.(); return; }
@@ -480,6 +483,21 @@ export class Home {
   }
 
   get isOpen(): boolean { return !this.root.hidden; }
+
+  setOpenDecks(list: Array<{ id: string; title: string }>): void {
+    const group = this.root.querySelector('.fd-home-open') as HTMLElement;
+    setHidden(group, !list.length);
+    patchList(group.querySelector('.fd-home-open-list') as HTMLElement, list, {
+      key: (d) => d.id,
+      create: (d) => {
+        const node = el(`<button class="fd-home-nav-item" type="button">${icon('slide', 16)}<span class="fd-home-open-name"></span></button>`);
+        node.dataset.openDeck = d.id;
+        setText(node.querySelector('.fd-home-open-name'), d.title.trim() || 'Untitled deck');
+        return node;
+      },
+      update: (node, d) => setText(node.querySelector('.fd-home-open-name'), d.title.trim() || 'Untitled deck'),
+    });
+  }
 
   private renderTemplates(): void {
     const q = this.query;

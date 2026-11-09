@@ -18,8 +18,8 @@
 .fd-ins-color-name { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--text-primary); font-size: var(--fd-12); text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .fd-ins-color > .icon { color: var(--text-muted); }
 
-#overlay-root > .fd-scrim.fd-ins-side { justify-content: flex-end; align-items: flex-start; padding: calc(var(--fd-titlebar-h) + var(--fd-options-h) + var(--space-3)) var(--space-4) var(--space-4); }
-.fd-scrim.fd-ins-side .fd-dialog { max-height: calc(100vh - var(--fd-titlebar-h) - var(--fd-options-h) - var(--space-8)); box-shadow: var(--glass-shadow); }
+#overlay-root > .fd-scrim.fd-ins-side { justify-content: flex-end; align-items: flex-start; padding: calc(var(--fd-titlebar-h) + var(--fd-tabs-h) + var(--fd-options-h) + var(--space-3)) var(--space-4) var(--space-4); }
+.fd-scrim.fd-ins-side .fd-dialog { max-height: calc(100vh - var(--fd-titlebar-h) - var(--fd-tabs-h) - var(--fd-options-h) - var(--space-8)); box-shadow: var(--glass-shadow); }
 .fd-bgdlg > .fd-seg button { flex: 1 1 0; }
 .fd-bgdlg-pane { display: grid; gap: var(--space-3); }
 .fd-bgdlg .fd-field > .fd-seg { justify-self: stretch; }

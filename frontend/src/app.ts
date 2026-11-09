@@ -22,6 +22,8 @@ import { installModelHandle } from './editor/model3d-handle';
 import { applyTheme } from './ui/themes';
 import { installResponsive } from './ui/responsive';
 import { toast } from './ui/toast';
+import { DeckTabs } from './ui/tabs';
+import { openWindow } from './ui/windows';
 import { Editor } from './editor/editor';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
 import { Inspector } from './editor/inspector';
@@ -77,6 +79,7 @@ const SHELL = `<div class="fd-app">
 <div class="fd-present-btn"><button class="fd-present-main" type="button" data-cmd="present-current">${icon('play', 14)}<span>Present</span></button><button class="fd-present-more" type="button" aria-expanded="false" aria-label="Present options" data-act="present-menu">${icon('chevronDown', 14)}</button></div>
 </div>
 </header>
+<div class="fd-tabs" role="tablist" aria-label="Open decks"></div>
 <div class="fd-options"></div>
 <div class="fd-main">
 <aside class="fd-strip-col" aria-label="Slides">
@@ -168,26 +171,93 @@ export async function startApp(): Promise<void> {
     inspector.sync();
   };
 
+  interface OpenDeck { id: string; doc: DeckDoc; off: () => void; place?: { slide: string; sel: string[]; zoom: number | 'fit' } }
+  const openDecks: OpenDeck[] = [];
+  const opening = new Set<string>();
+  const tabStrip = new DeckTabs(q(root, '.fd-tabs'), {
+    activate: (id) => void openDeck(id),
+    close: (id) => void closeDeck(id),
+    menu: (id, x, y) => { void openDeck(id).then(() => { contextMenu.setItems(['close-tab', 'close-other-tabs', '-', 'deck-new-window', 'new-window']); contextMenu.openAt(x, y); }); },
+    add: () => hooks.newDeck(),
+  });
+  function renderTabs(): void {
+    const list = openDecks.map((t) => ({ id: t.id, title: t.doc.deck.title ?? '', active: editor?.doc === t.doc, saving: t.doc.hasPending }));
+    tabStrip.render(list);
+    home.setOpenDecks(list);
+  }
+
   async function openDeck(id: string): Promise<void> {
     if (editor && editor.doc.id === id) { home.close(); return; }
+    const have = openDecks.find((t) => t.id === id);
+    if (have) { attach(have.doc); home.close(); return; }
+    if (opening.has(id)) return;
+    opening.add(id);
     try {
       const pending = live.open(id);
       const timer = window.setTimeout(() => setText(status.save, 'Opening…'), 300);
       const doc = await pending;
       window.clearTimeout(timer);
       await ensureFonts(fontsOfDeck(doc.deck));
+      if (!openDecks.some((t) => t.doc === doc)) {
+        const at = editor ? openDecks.findIndex((t) => t.doc === editor?.doc) + 1 : openDecks.length;
+        doc.onAck = () => renderTabs();
+        openDecks.splice(at, 0, { id, doc, off: doc.on(() => renderTabs()) });
+      }
       attach(doc);
       home.close();
       void api.setSettings({ recent: id });
     } catch (e) {
       toast(`Could not open the deck: ${e instanceof Error ? e.message : e}`, 'error');
+    } finally { opening.delete(id); }
+  }
+
+  async function closeDeck(id: string): Promise<void> {
+    const i = openDecks.findIndex((t) => t.id === id);
+    if (i < 0) return;
+    const tab = openDecks[i];
+    if (editor?.doc === tab.doc) {
+      const next = openDecks[i + 1] ?? openDecks[i - 1];
+      if (next) attach(next.doc);
+      else detach();
     }
+    openDecks.splice(i, 1);
+    tab.off();
+    renderTabs();
+    if (!openDecks.length) home.open();
+    for (let n = 0; tab.doc.hasPending && n < 100; n++) await new Promise((r) => window.setTimeout(r, 100));
+    if (!openDecks.some((t) => t.id === id)) { tab.doc.onAck = null; live.close(id); }
+  }
+
+  function stepTab(d: 1 | -1): void {
+    if (openDecks.length < 2) return;
+    const i = Math.max(0, openDecks.findIndex((t) => t.doc === editor?.doc));
+    const next = openDecks[(i + d + openDecks.length) % openDecks.length];
+    attach(next.doc);
+    home.close();
+  }
+
+  function remember(ed: Editor): void {
+    const tab = openDecks.find((t) => t.doc === ed.doc);
+    if (tab) tab.place = { slide: ed.current, sel: [...ed.selection], zoom: ed.stage.zoom };
+  }
+
+  function detach(): void {
+    for (const off of editorOff) off();
+    editorOff = [];
+    const ed = editor;
+    if (!ed) return;
+    remember(ed);
+    ed.dispose();
+    editor = null;
+    views?.hide();
+    setHidden(altView, true);
+    syncChrome();
   }
 
   function attach(doc: DeckDoc): void {
     for (const off of editorOff) off();
     editorOff = [];
-    if (editor && editor.doc !== doc) { live.close(editor.doc.id); editor.dispose(); }
+    if (editor && editor.doc !== doc) { remember(editor); editor.dispose(); }
     prepareStills(doc.deck);
     const ed = new Editor(doc, { stage: stageEl, stripScroll: q(root, '.fd-strip-scroll'), stripCount: q(root, '.fd-strip-count'), notes: q<HTMLTextAreaElement>(root, '.fd-notes-text'), title: q<HTMLInputElement>(root, '.fd-doc-title') }, commands, contextMenu, live);
     editor = ed;
@@ -198,6 +268,14 @@ export async function startApp(): Promise<void> {
     inspector.attach(ed);
     drawTools.attach(ed);
     ed.stage.onZoom = (pct) => { setText(status.zoom, `${pct}%`); setValue(zoomSlider, String(pct)); };
+    const place = openDecks.find((t) => t.doc === doc)?.place;
+    if (place && doc.slide(place.slide)) {
+      ed.setSlideSelection([place.slide], place.slide);
+      const ids = (ed.slide?.elements ?? []).map((x) => x.id);
+      const sel = place.sel.filter((s) => ids.includes(s));
+      if (sel.length) ed.select(sel);
+    }
+    if (place && place.zoom !== 'fit') ed.stage.setZoom(place.zoom);
     ed.stage.layout();
     const refresh = (): void => { toolbar.sync(); inspector.sync(); syncChrome(); };
     editorOff.push(watchLinks(ed), installModelHandle(ed));
@@ -212,11 +290,12 @@ export async function startApp(): Promise<void> {
       }
       setText(status.save, doc.hasPending ? 'Saving…' : 'Saved');
     }));
-    doc.onAck = () => syncChrome();
-    editorOff.push(() => { doc.onAck = null; });
+    doc.onAck = () => { syncChrome(); renderTabs(); };
+    editorOff.push(() => { doc.onAck = openDecks.some((t) => t.doc === doc) ? () => renderTabs() : null; });
     if (views) views.hide();
     setHidden(altView, true);
     refresh();
+    renderTabs();
     scheduleThumb();
     revealApp();
   }
@@ -269,6 +348,7 @@ export async function startApp(): Promise<void> {
   const hooks: AppHooks = {
     editor: () => editor,
     home: () => { home.open(); },
+    closeDeck: (id) => void closeDeck(id),
     newDeck: () => { home.open(); home.show('templates'); },
     openFile: () => {
       const input = document.createElement('input');
@@ -412,6 +492,12 @@ export async function startApp(): Promise<void> {
     { id: 'agent-chat', label: 'Chat with Claude', icon: 'agentChat', keys: ['Alt+Mod+J'], run: () => void showDock().then((d) => d.showChat()) },
     { id: 'menus-in-window', label: 'Menus in Window', enabled: isMacDesktop, checked: menusInWindow, run: () => { const next = !menusInWindow(); try { localStorage.setItem(MENUS_IN_WINDOW_KEY, next ? '1' : '0'); } catch { return; } toast(next ? 'The menus stay in the window from the next start.' : 'The menus go to the menu bar from the next start.', 'info'); } },
     { id: 'save-copy', label: 'Save a Copy in Library...', enabled: () => !!editor, run: () => { if (editor) dialogs.saveCopyDialog(editor); } },
+    { id: 'new-window', label: 'New Window', icon: 'newWindow', keys: ['Shift+Mod+N'], run: () => void openWindow().catch((e: unknown) => toast(`Could not open a new window: ${e instanceof Error ? e.message : e}`, 'error')) },
+    { id: 'deck-new-window', label: 'Move Deck to New Window', icon: 'newWindow', enabled: () => !!editor, run: () => { const id = editor?.doc.id; if (!id) return; void openWindow(id).then(() => closeDeck(id), (e: unknown) => toast(`Could not open a new window: ${e instanceof Error ? e.message : e}`, 'error')); } },
+    { id: 'close-tab', label: 'Close Tab', icon: 'close', keys: ['Mod+W'], enabled: () => !!editor, run: () => { const id = editor?.doc.id; if (id) void closeDeck(id); } },
+    { id: 'close-other-tabs', label: 'Close Other Tabs', enabled: () => !!editor && openDecks.length > 1, run: () => { const keep = editor?.doc; for (const t of [...openDecks]) if (t.doc !== keep) void closeDeck(t.id); } },
+    { id: 'next-tab', label: 'Next Tab', enabled: () => openDecks.length > 1, run: () => stepTab(1) },
+    { id: 'prev-tab', label: 'Previous Tab', enabled: () => openDecks.length > 1, run: () => stepTab(-1) },
     ...DEMOS.map((d) => ({ id: d.command, label: d.label, icon: 'presentation', run: () => void openDemo(d.id) })),
     { id: 'command-palette', label: 'Find a Command...', icon: 'commandPalette', keys: ['Shift+Mod+P'], run: () => { editor?.stage.rememberSelection(); palette ??= new CommandPalette(() => catalogue.list(), (id) => { editor?.stage.restoreSelection(); commands.run(id); syncChrome(); }); palette.show(); } },
   );
@@ -419,9 +505,9 @@ export async function startApp(): Promise<void> {
   exts = new FormdeckExtensions({ commands, editor: () => editor, catalogue: () => catalogue.list(), host: q(root, '.fd-main'), changed: () => syncChrome(), layout: () => { const ed = editor; if (ed) requestAnimationFrame(() => ed.stage.layout()); } });
   if (editor) exts.attach(editor);
   const menus: MenuDef[] = [
-    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
+    { label: 'File', items: ['home', 'new-deck', 'open', '-', 'new-window', 'deck-new-window', 'close-tab', 'close-other-tabs', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
     { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
-    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', ...(isMacDesktop() ? ['menus-in-window'] : []), 'media-controls-editor', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
+    { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'next-tab', 'prev-tab', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', ...(isMacDesktop() ? ['menus-in-window'] : []), 'media-controls-editor', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'change-case', 'clear-format', 'replace-fonts', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', { label: 'Picture', items: ['picture-reset', 'picture-reset-size', 'compress-pictures', '-', 'crop-aspect-1-1', 'crop-aspect-4-3', 'crop-aspect-16-9'] }, 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
     { label: 'Slide', items: () => editor && editor.holderKind !== 'slide' ? MASTER_MENU : ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', { label: 'Layout', items: editor ? layoutMenuItems(editor.doc.deck, (id) => !!commands.get(id)) : [] }, 'design-ideas', 'reset-slide', 'reset-placeholder', 'format-background', '-', 'apply-template', 'slide-size', '-', 'add-section', 'rename-section'] },
@@ -499,6 +585,12 @@ export async function startApp(): Promise<void> {
   });
 
   window.addEventListener('keydown', (e) => {
+    if (!anyDialogOpen() && e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'Tab' || e.key === 'PageDown' || e.key === 'PageUp') && openDecks.length > 1) {
+      e.preventDefault();
+      stepTab(e.key === 'PageUp' || (e.key === 'Tab' && e.shiftKey) ? -1 : 1);
+      syncChrome();
+      return;
+    }
     if (anyDialogOpen() || home.isOpen && !(e.metaKey || e.ctrlKey)) return;
     const t = e.target as HTMLElement;
     const typing = t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || t.isContentEditable;

@@ -10,7 +10,7 @@ body { font-size: var(--fd-12); line-height: 1.35; }
 body.nm-home #overlay-root { z-index: var(--z-home-modal); }
 body.nm-home #toast-root { z-index: var(--z-home-preview); }
 
-.fd-app { display: grid; grid-template-rows: var(--fd-titlebar-h) var(--fd-options-h) minmax(0, 1fr) var(--fd-status-h); grid-template-columns: minmax(0, 1fr); height: 100%; background: var(--bg-primary); color: var(--text-primary); user-select: none; -webkit-user-select: none; }
+.fd-app { display: grid; grid-template-rows: var(--fd-titlebar-h) var(--fd-tabs-h) var(--fd-options-h) minmax(0, 1fr) var(--fd-status-h); grid-template-columns: minmax(0, 1fr); height: 100%; background: var(--bg-primary); color: var(--text-primary); user-select: none; -webkit-user-select: none; }
 :where(.fd-btn, .fd-icon-btn, .fd-tt-btn, .fd-tb-btn, .fd-share-btn, .fd-chip, .fd-card, .fd-home-nav-item, .fd-seg button, .fd-present-btn > button):focus-visible { outline: 2px solid var(--accent-color); outline-offset: 1px; }
 
 .fd-titlebar { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-3); min-width: 0; padding: 0 var(--space-3); background: linear-gradient(to bottom, var(--surface-2), var(--surface-1)); border-bottom: 1px solid var(--line-0); }
@@ -23,6 +23,24 @@ body.nm-home #toast-root { z-index: var(--z-home-preview); }
 .fd-menu-btn:hover, .fd-menu-btn.is-open { background: var(--bg-tertiary); color: var(--text-primary); }
 .has-native-menus .fd-menubar { display: none; }
 .has-native-menus .fd-titlebar { grid-template-columns: auto minmax(0, 1fr) auto; }
+.fd-tabs { display: flex; align-items: stretch; min-width: 0; padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.fd-tabs::-webkit-scrollbar { display: none; }
+.fd-tab-list { display: flex; align-items: stretch; min-width: 0; }
+.fd-tab { position: relative; display: flex; align-items: center; gap: var(--space-1); flex: 0 1 auto; width: 200px; min-width: 112px; padding: 0 var(--space-1) 0 var(--space-3); border: 0; border-right: 1px solid var(--line-0); background: transparent; color: var(--text-secondary); font-size: var(--fd-12); cursor: default; }
+.fd-tab:hover { background: var(--surface-2); color: var(--text-primary); }
+.fd-tab[aria-selected="true"] { background: var(--surface-0); color: var(--text-primary); }
+.fd-tab[aria-selected="true"]::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--accent-color); }
+.fd-tab-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.fd-tab-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-color); visibility: hidden; }
+.fd-tab.is-saving .fd-tab-dot { visibility: visible; }
+.fd-tab-close { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--radius); background: transparent; color: inherit; opacity: 0; cursor: default; }
+.fd-tab:hover .fd-tab-close, .fd-tab[aria-selected="true"] .fd-tab-close, .fd-tab-close:focus-visible { opacity: 1; }
+.fd-tab-close:hover { background: var(--bg-tertiary); }
+.fd-tab-add { display: inline-grid; place-items: center; flex: none; width: var(--fd-tabs-h); padding: 0; border: 0; background: transparent; color: var(--text-secondary); cursor: default; }
+.fd-tab-add:hover { color: var(--text-primary); background: var(--surface-2); }
+:where(.fd-tab, .fd-tab-close, .fd-tab-add):focus-visible { outline: 2px solid var(--accent-color); outline-offset: -2px; }
+.fd-home-open-list { display: flex; flex-direction: column; gap: 2px; }
+.fd-home-open-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fd-doc-title { justify-self: center; width: min(360px, 100%); min-width: 0; height: var(--ctl-md); padding: 0 var(--space-3); border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--fd-13); font-weight: 500; text-align: center; text-overflow: ellipsis; outline: 0; cursor: text; transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast); }
 .fd-doc-title:hover { border-color: var(--line-2); background: var(--surface-1); color: var(--text-primary); }
 .fd-doc-title:focus { border-color: var(--accent-color); background: var(--surface-field); color: var(--text-primary); text-align: left; }

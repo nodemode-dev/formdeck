@@ -2,6 +2,7 @@
 
 mod reveal;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
@@ -17,6 +18,8 @@ const FALLBACK_LOGICAL: (f64, f64) = (1323.0, 860.0);
 const MIN_LOGICAL: (f64, f64) = (980.0, 640.0);
 const SCREEN_FRACTION: f64 = 0.9;
 const PRESENTER_LOGICAL: (f64, f64) = (1100.0, 700.0);
+const CASCADE_LOGICAL: f64 = 28.0;
+static NEXT_WINDOW: AtomicUsize = AtomicUsize::new(1);
 
 fn kill_backend(handle: &tauri::AppHandle) {
     if let Some(child) = handle.state::<Backend>().0.lock().unwrap().take() {
@@ -108,9 +111,33 @@ fn system_fonts() -> Vec<String> {
 }
 
 #[tauri::command]
-async fn open_presenter(app: tauri::AppHandle, url: String) -> Result<(), String> {
+async fn open_window(app: tauri::AppHandle, window: tauri::WebviewWindow, url: String) -> Result<(), String> {
     let target = loopback_url(&url)?;
-    let other = other_monitor(&app);
+    let label = format!("deck-{}", NEXT_WINDOW.fetch_add(1, Ordering::SeqCst));
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let (width, height) = window
+        .inner_size()
+        .map(|size| (size.width as f64 / scale, size.height as f64 / scale))
+        .unwrap_or(FALLBACK_LOGICAL);
+    let mut builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(target))
+        .title("formdeck")
+        .inner_size(width, height)
+        .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
+        .accept_first_mouse(true)
+        .visible(reveal::BUILD_VISIBLE)
+        .background_color(reveal::BACKGROUND);
+    if let Ok(at) = window.outer_position() {
+        builder = builder.position(at.x as f64 / scale + CASCADE_LOGICAL, at.y as f64 / scale + CASCADE_LOGICAL);
+    }
+    let built = builder.build().map_err(|e| e.to_string())?;
+    reveal::conceal_extra(&built);
+    Ok(())
+}
+
+#[tauri::command]
+async fn open_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow, url: String) -> Result<(), String> {
+    let target = loopback_url(&url)?;
+    let other = other_monitor(&app, &window);
     if let Some(existing) = app.get_webview_window("presenter") {
         existing.navigate(target).map_err(|e| e.to_string())?;
         if let Some(m) = &other {
@@ -131,8 +158,8 @@ async fn open_presenter(app: tauri::AppHandle, url: String) -> Result<(), String
     builder.build().map(|_| ()).map_err(|e| e.to_string())
 }
 
-fn other_monitor(app: &tauri::AppHandle) -> Option<tauri::Monitor> {
-    let here = app.get_webview_window("main")?.current_monitor().ok().flatten()?;
+fn other_monitor(app: &tauri::AppHandle, from: &tauri::WebviewWindow) -> Option<tauri::Monitor> {
+    let here = from.current_monitor().ok().flatten()?;
     app.available_monitors().ok()?.into_iter().find(|m| m.position() != here.position())
 }
 
@@ -142,8 +169,8 @@ fn monitor_count(app: tauri::AppHandle) -> usize {
 }
 
 #[tauri::command]
-async fn swap_presenter(app: tauri::AppHandle) -> Result<(), String> {
-    let main = app.get_webview_window("main").ok_or("no main window")?;
+async fn swap_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+    let main = if window.label() == "presenter" { app.get_webview_window("main").ok_or("no main window")? } else { window };
     let show = app.get_webview_window("presenter").ok_or("no slide show window")?;
     let main_at = main.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     let show_at = show.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
@@ -186,7 +213,7 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .invoke_handler(tauri::generate_handler![system_fonts, open_presenter, print_window, monitor_count, swap_presenter, reveal::app_ready])
+        .invoke_handler(tauri::generate_handler![system_fonts, open_window, open_presenter, print_window, monitor_count, swap_presenter, reveal::app_ready])
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())

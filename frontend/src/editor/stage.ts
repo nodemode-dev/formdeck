@@ -91,6 +91,8 @@ export class Stage {
   private hoverId: string | null = null;
   private ghost: Frame[] | null = null;
   private readonly banner: HTMLElement;
+  private readonly bye = new AbortController();
+  private readonly ro: ResizeObserver;
   view: SlideView | null = null;
   zoom: number | 'fit' = 'fit';
   k = 1;
@@ -142,7 +144,9 @@ export class Stage {
     root.prepend(this.viewport);
     this.banner = html(`<div class="fd-master-banner" hidden role="status"><span class="fd-master-banner-icon">${icon('layout', 14)}</span><span class="fd-master-banner-title">Slide Master</span><span class="fd-master-banner-name"></span><button class="fd-btn fd-btn-sm" type="button" data-cmd="close-master">${icon('close', 14)}<span>Close Master View</span></button></div>`);
     this.viewport.after(this.banner);
-    new ResizeObserver(() => this.layout()).observe(root);
+    this.ro = new ResizeObserver(() => this.layout());
+    this.ro.observe(root);
+    const signal = this.bye.signal;
     this.viewport.addEventListener('pointerdown', (e) => this.down(e));
     this.viewport.addEventListener('pointermove', (e) => this.hoverAt(e));
     this.viewport.addEventListener('pointerleave', () => this.hoverHide());
@@ -150,22 +154,33 @@ export class Stage {
     this.viewport.addEventListener('wheel', (e) => this.wheel(e), { passive: false });
     this.viewport.addEventListener('contextmenu', (e) => this.context(e));
     this.viewport.addEventListener('dragstart', (e) => { if (!(e.target instanceof Element && e.target.closest('[contenteditable="true"]'))) e.preventDefault(); });
-    window.addEventListener('pointermove', (e) => this.move(e));
-    window.addEventListener('pointerup', (e) => this.up(e));
-    window.addEventListener('pointercancel', (e) => this.cancelPointer(e));
+    window.addEventListener('pointermove', (e) => this.move(e), { signal });
+    window.addEventListener('pointerup', (e) => this.up(e), { signal });
+    window.addEventListener('pointercancel', (e) => this.cancelPointer(e), { signal });
     this.viewport.addEventListener('gesturestart', (e) => e.preventDefault());
-    window.addEventListener('fd-input', () => { if (this.viewport.isConnected) this.drawOverlay(); });
-    document.addEventListener('selectionchange', () => this.queueCaret());
+    window.addEventListener('fd-input', () => { if (this.viewport.isConnected) this.drawOverlay(); }, { signal });
+    document.addEventListener('selectionchange', () => this.queueCaret(), { signal });
     installInputKind();
-    window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !this.editing && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) this.space = true; });
-    window.addEventListener('keyup', (e) => { if (e.code === 'Space') this.space = false; });
-    window.addEventListener('keydown', (e) => this.tableKey(e), true);
+    window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !this.editing && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) this.space = true; }, { signal });
+    window.addEventListener('keyup', (e) => { if (e.code === 'Space') this.space = false; }, { signal });
+    window.addEventListener('keydown', (e) => this.tableKey(e), { capture: true, signal });
     const apply = ed.apply.bind(ed);
     ed.apply = (ops, label, coalesce) => apply(ed.holderKind === 'slide' ? glueOps(ed.doc.deck, ed.slide, ops) : ops, label, coalesce);
     for (const n of Array.from(root.querySelectorAll(':scope > .fd-ruler, :scope > .fd-ruler-corner'))) n.remove();
     this.aids = new StageAids(this, ed);
     this.draw = new DrawTool(this, ed);
     this.points = new PointsEdit(this, ed);
+  }
+
+  dispose(): void {
+    this.show(null);
+    if (this.liveFrame) { cancelAnimationFrame(this.liveFrame); this.liveFrame = 0; }
+    this.live = null;
+    this.bye.abort();
+    this.ro.disconnect();
+    this.aids.dispose();
+    this.viewport.remove();
+    this.banner.remove();
   }
 
   slidePoint(e: { clientX: number; clientY: number }): { x: number; y: number } { return this.toSlide(e); }

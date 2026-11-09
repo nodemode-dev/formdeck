@@ -19,7 +19,7 @@
 .fd-dg-look[hidden] { display: none; }
 .fd-dg-style button { flex: 1 1 auto; padding: 0 6px; white-space: nowrap; }
 
-.fd-dgpane { position: fixed; top: calc(var(--fd-titlebar-h) + var(--fd-options-h) + var(--space-4)); right: var(--space-4); z-index: var(--z-raised); display: flex; flex-direction: column; width: 288px; max-height: min(70vh, 520px); border: 1px solid var(--line-2); border-radius: var(--radius-md); background: var(--surface-2); box-shadow: var(--shadow-lg); color: var(--text-primary); user-select: none; -webkit-user-select: none; }
+.fd-dgpane { position: fixed; top: calc(var(--fd-titlebar-h) + var(--fd-tabs-h) + var(--fd-options-h) + var(--space-4)); right: var(--space-4); z-index: var(--z-raised); display: flex; flex-direction: column; width: 288px; max-height: min(70vh, 520px); border: 1px solid var(--line-2); border-radius: var(--radius-md); background: var(--surface-2); box-shadow: var(--shadow-lg); color: var(--text-primary); user-select: none; -webkit-user-select: none; }
 .fd-dgpane[hidden] { display: none; }
 .fd-dgpane-head { display: flex; align-items: center; gap: 2px; flex: none; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); border-bottom: 1px solid var(--line-1); }
 .fd-dgpane-title { flex: 1 1 auto; font-size: var(--fd-12); font-weight: 600; color: var(--text-secondary); }

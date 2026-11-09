@@ -106,6 +106,8 @@ export class StageAids {
   private wasGuides = prefs.guides;
   private frame = 0;
   private gridKey = '';
+  private readonly bye = new AbortController();
+  private readonly again = (): void => this.sync();
 
   constructor(private readonly stage: Stage, private readonly ed: Editor) {
     this.hRuler = el<HTMLCanvasElement>('<canvas class="fd-ruler is-h" hidden aria-hidden="true"></canvas>');
@@ -133,14 +135,24 @@ export class StageAids {
       this.menu.openAt(e.clientX, e.clientY);
     });
     aidsRef = this;
-    window.addEventListener('pointermove', (e) => this.moveDrag(e));
-    window.addEventListener('pointerup', () => this.endDrag());
-    const again = (): void => this.sync();
-    prefListeners.add(again);
-    unitListeners.add(again);
+    window.addEventListener('pointermove', (e) => this.moveDrag(e), { signal: this.bye.signal });
+    window.addEventListener('pointerup', () => this.endDrag(), { signal: this.bye.signal });
+    prefListeners.add(this.again);
+    unitListeners.add(this.again);
     ed.on('selection', () => this.schedule());
     ed.on('doc', () => this.sync());
     if (!unitLoaded) loadUnit();
+  }
+
+  dispose(): void {
+    this.bye.abort();
+    prefListeners.delete(this.again);
+    unitListeners.delete(this.again);
+    if (this.frame) cancelAnimationFrame(this.frame);
+    this.hRuler.remove();
+    this.vRuler.remove();
+    this.corner.remove();
+    if (aidsRef === this) aidsRef = null;
   }
 
   get rulerOn(): boolean { return prefs.ruler; }
