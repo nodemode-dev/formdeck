@@ -43,8 +43,33 @@ pub fn conceal<R: Runtime>(window: &WebviewWindow<R>) {
     });
 }
 
+pub fn conceal_extra<R: Runtime>(window: &WebviewWindow<R>) {
+    if !BUILD_VISIBLE {
+        set_seen(window, false);
+        let _ = window.show();
+    }
+    let target = window.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(FALLBACK);
+        show_extra(&target);
+    });
+}
+
+fn show_extra<R: Runtime>(window: &WebviewWindow<R>) {
+    set_seen(window, true);
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
 #[tauri::command(async)]
-pub fn app_ready<R: Runtime>(app: tauri::AppHandle<R>, bg: Option<[u8; 3]>) {
+pub fn app_ready<R: Runtime>(app: tauri::AppHandle<R>, window: WebviewWindow<R>, bg: Option<[u8; 3]>) {
+    if window.label() != "main" {
+        if let Some([r, g, b]) = bg {
+            let _ = window.set_background_color(Some(tauri::window::Color(r, g, b, 255)));
+        }
+        show_extra(&window);
+        return;
+    }
     if let (Some([r, g, b]), Some(main)) = (bg, app.get_webview_window("main")) {
         let _ = main.set_background_color(Some(tauri::window::Color(r, g, b, 255)));
     }
