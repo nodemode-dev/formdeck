@@ -2,9 +2,12 @@ import type { Deck, Slide, SlideElement } from './model';
 import { applyAll, touched, type Op, type Touched } from './ops';
 
 export interface DocEvent { touched: Touched; origin: 'local' | 'remote' | 'snapshot'; label?: string; by?: string }
-interface Pending { id: string; ops: Op[]; inv: Op[]; label: string }
+interface Pending { id: string; ops: Op[]; inv: Op[]; label: string; sent: number }
 
 let stepSeq = 0;
+const pageNonce = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+  ? crypto.randomUUID()
+  : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
 
 export class DeckDoc {
   static guard: ((ops: Op[]) => string) | null = null;
@@ -19,6 +22,7 @@ export class DeckDoc {
   send: ((step: { id: string; ops: Op[]; label: string; coalesce?: string }) => void) | null = null;
   onAck: (() => void) | null = null;
   clientId = '';
+  conn = 0;
 
   constructor(deck: Deck, rev: number) {
     this.deck = deck;
@@ -46,8 +50,8 @@ export class DeckDoc {
       console.error('[doc] local step failed', e, ops);
       return null;
     }
-    const id = `${this.clientId || 'local'}-${++stepSeq}`;
-    this.pending.push({ id, ops, inv, label });
+    const id = `${pageNonce}-${++stepSeq}`;
+    this.pending.push({ id, ops, inv, label, sent: this.conn });
     this.canUndo = true;
     this.canRedo = false;
     this.emit({ touched: touched(ops), origin: 'local', label });
@@ -55,16 +59,21 @@ export class DeckDoc {
     return id;
   }
 
-  remote(msg: { rev: number; ops: Op[]; client?: string | null; step?: string; label?: string; origin?: string; canUndo?: boolean; canRedo?: boolean }): void {
+  remote(msg: { rev: number; ops: Op[]; client?: string | null; step?: string; label?: string; origin?: string; canUndo?: boolean; canRedo?: boolean }): boolean {
     if (msg.canUndo !== undefined) this.canUndo = msg.canUndo;
     if (msg.canRedo !== undefined) this.canRedo = msg.canRedo;
     const mine = this.pending.findIndex((p) => p.id === msg.step);
+    if (msg.rev <= this.rev) {
+      if (mine >= 0 && msg.client && msg.client === this.clientId) this.dropPending(msg.step as string);
+      return true;
+    }
     if (msg.client && msg.client === this.clientId && mine >= 0) {
       this.pending.splice(mine, 1);
       this.rev = msg.rev;
       this.onAck?.();
-      return;
+      return true;
     }
+    let applied = true;
     for (let i = this.pending.length - 1; i >= 0; i--) {
       try { applyAll(this.deck, this.pending[i].inv); } catch (e) { console.error('[doc] rollback failed', e); }
     }
@@ -73,6 +82,7 @@ export class DeckDoc {
       applyAll(this.deck, msg.ops);
     } catch (e) {
       console.error('[doc] remote step failed', e);
+      applied = false;
     }
     const keep: Pending[] = [];
     for (const p of this.pending) {
@@ -81,23 +91,61 @@ export class DeckDoc {
         keep.push(p);
         all = all.concat(p.ops);
       } catch {
+        all = all.concat(p.ops);
         continue;
       }
     }
     this.pending = keep;
     this.rev = msg.rev;
     this.emit({ touched: touched(all), origin: 'remote', label: msg.label, by: msg.origin });
+    return applied;
   }
 
-  snapshot(deck: Deck, rev: number, canUndo?: boolean, canRedo?: boolean): void {
+  snapshot(deck: Deck, rev: number, canUndo?: boolean, canRedo?: boolean): { id: string; ops: Op[]; label: string }[] {
     this.deck = deck;
     this.rev = rev;
-    this.pending = [];
+    const keep: Pending[] = [];
+    let lost: Op[] = [];
+    for (const p of this.pending) {
+      try {
+        p.inv = applyAll(this.deck, p.ops);
+        keep.push(p);
+      } catch {
+        lost = lost.concat(p.ops);
+      }
+    }
+    this.pending = keep;
     if (canUndo !== undefined) this.canUndo = canUndo;
     if (canRedo !== undefined) this.canRedo = canRedo;
-    const t = touched([]);
+    const t = touched(lost);
     t.all = true;
     this.emit({ touched: t, origin: 'snapshot' });
+    const resend = keep.filter((p) => p.sent !== this.conn);
+    for (const p of resend) p.sent = this.conn;
+    return resend.map((p) => ({ id: p.id, ops: p.ops, label: p.label }));
+  }
+
+  dropPending(stepId: string): boolean {
+    const at = this.pending.findIndex((p) => p.id === stepId);
+    if (at < 0) return false;
+    let all: Op[] = [];
+    for (let i = this.pending.length - 1; i >= at; i--) {
+      try { applyAll(this.deck, this.pending[i].inv); } catch (e) { console.error('[doc] rollback failed', e); }
+      all = all.concat(this.pending[i].ops);
+    }
+    const keep = this.pending.slice(0, at);
+    for (const p of this.pending.slice(at + 1)) {
+      try {
+        p.inv = applyAll(this.deck, p.ops);
+        keep.push(p);
+      } catch {
+        all = all.concat(p.ops);
+      }
+    }
+    this.pending = keep;
+    this.emit({ touched: touched(all), origin: 'remote' });
+    this.onAck?.();
+    return true;
   }
 
   get hasPending(): boolean { return this.pending.length > 0; }
@@ -129,9 +177,19 @@ export class DeckDoc {
     const walk = (list: SlideElement[]): void => { for (const e of list) { used.add(e.id); if (e.type === 'group') walk(e.children); } };
     for (const m of this.deck.masters) walk(m.elements);
     for (const l of this.deck.layouts) walk(l.elements);
-    for (const s of this.deck.slides) { used.add(s.id); walk(s.elements); }
+    for (const m of this.deck.masters) { used.add(m.id); for (const g of m.guides ?? []) used.add(g.id); }
+    for (const l of this.deck.layouts) { used.add(l.id); for (const g of l.guides ?? []) used.add(g.id); }
+    for (const s of this.deck.slides) {
+      used.add(s.id);
+      walk(s.elements);
+      for (const a of s.animations ?? []) used.add(a.id);
+    }
     for (const c of this.deck.comments ?? []) used.add(c.id);
     for (const s of this.deck.sections ?? []) used.add(s.id);
+    for (const [key, c] of Object.entries(this.deck.components ?? {})) { used.add(key); used.add(c.id); walk(c.children ?? []); }
+    for (const g of this.deck.guides ?? []) used.add(g.id);
+    for (const m of this.deck.macros ?? []) used.add(m.id);
+    for (const c of this.deck.customShows ?? []) used.add(c.id);
     return used;
   }
 
