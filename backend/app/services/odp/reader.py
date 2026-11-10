@@ -269,6 +269,12 @@ class OdpReader:
                 elif fn == "scale":
                     sx = float(vals[0])
                     op = [sx, 0.0, 0.0, float(vals[1]) if len(vals) > 1 else sx, 0.0, 0.0]
+                elif fn == "skewX":
+                    op = [1.0, 0.0, math.tan(float(vals[0])), 1.0, 0.0, 0.0]
+                elif fn == "skewY":
+                    op = [1.0, math.tan(float(vals[0])), 0.0, 1.0, 0.0, 0.0]
+                elif fn == "matrix" and len(vals) == 6:
+                    op = [float(v) for v in vals[:4]] + [pt(vals[4], 0) or 0, pt(vals[5], 0) or 0]
                 else:
                     continue
                 a0, b0, c0, d0, e0, f0 = m
