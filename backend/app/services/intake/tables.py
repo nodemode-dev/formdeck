@@ -161,8 +161,15 @@ def chart_block(table: dict) -> str:
 
 def table_md(table: dict, limit: int | None = None) -> str:
     out = md_table(table["header"], table["rows"], limit)
-    more = table.get("rowCount", len(table["rows"])) - (min(limit, len(table["rows"])) if limit else len(table["rows"]))
-    if more > 0:
+    shown = min(limit, len(table["rows"])) if limit else len(table["rows"])
+    more = len(table["rows"]) - shown + table.get("moreKept", 0)
+    kept = table.get("keptAll", len(table["rows"]))
+    total = table.get("totalAll", table.get("rowCount", kept))
+    lost = total - kept
+    if lost > 0:
+        lead = f"{more} more rows; " if more > 0 else ""
+        out += f"\n\n({lead}{lost} more {'row was' if lost == 1 else 'rows were'} not kept, only the first {kept} of {total} are available)"
+    elif more > 0:
         out += f"\n\n({more} more rows)"
     block = chart_block(table)
     return out + ("\n\n" + block if block else "")

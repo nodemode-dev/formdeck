@@ -302,11 +302,15 @@ def get_source(intake: dict, source_id: str, start: int | None = None, end: int 
         if t is not None:
             n = len(t["rows"])
             a, b = _range(n, start, end)
+            total = t.get("rowCount", n)
+            if total > n and a > n:
+                return f"row {a} is past the {n} rows kept from {total}"
             past = _past_end(n, a, "row")
             if past:
                 return past
-            sub = {**t, "rows": t["rows"][a - 1:b], "rowCount": t.get("rowCount", n) - (a - 1)}
-            return dash_safe(f"<!-- {t['id']} {t.get('name', '')} rows {a}-{b} of {t.get('rowCount', n)} -->\n" + tables.table_md(sub))
+            sub = {**t, "rows": t["rows"][a - 1:b], "moreKept": n - b if b < n else 0, "keptAll": n, "totalAll": total}
+            kept_note = f", first {n} kept" if total > n else ""
+            return dash_safe(f"<!-- {t['id']} {t.get('name', '')} rows {a}-{b} of {total}{kept_note} -->\n" + tables.table_md(sub))
         asset = next((x for x in intake.get("assets", []) if x["id"] == source_id), None)
         if asset is not None:
             return json.dumps(asset, ensure_ascii=False)

@@ -164,7 +164,9 @@ def _table(t: dict, p: dict) -> list[str]:
     name = t.get("name") or ""
     lead = f"{t['id']} · " + (f"{clip(name, 40)} · " if name and not re.match(r"^p\d+ table \d+$", name) else "")
     loc = f"p{t['page']} · " if t.get("page") else (f"slide {t['slide']} · " if t.get("slide") else "")
-    line = f"{lead}{loc}{len(head)} cols x {rows} rows · header: {hs}"
+    kept = len(t.get("rows") or [])
+    count = f"{rows} rows, first {kept} kept" if rows > kept > 0 else f"{rows} rows"
+    line = f"{lead}{loc}{len(head)} cols x {count} · header: {hs}"
     ch = t.get("chart")
     if ch:
         line += f" · chartable ({ch.get('kind')})"
@@ -296,6 +298,10 @@ def assets_block(intake: dict, lv: int) -> str:
             rng = f"{a['id']}..{assets[j]['id']}" if j > i else a["id"]
             pages = f"{a.get('page')}-{assets[j].get('page')}" if j > i else f"{a.get('page')}"
             out.append(f"pages {rng} · {names.get(a.get('from'), '')} p{pages} · {a.get('w')}x{a.get('h')} {a.get('orientation', '')}".rstrip())
+            total = (srcs.get(a.get("from")) or {}).get("pages") or 0
+            last = assets[j].get("page") or 0
+            if total > last and not (j + 1 < len(assets) and assets[j + 1].get("kind") == "page" and assets[j + 1].get("from") == a.get("from")):
+                out.append(f"page renders stop at {last} of {total} pages")
             i = j + 1
             continue
         if lv >= 3:
