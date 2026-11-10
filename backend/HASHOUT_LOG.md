@@ -509,3 +509,7 @@ A third `###` column and the steps, people and stats past 6, 8 and 5 were silent
 ## 108. Unpacking a zip stops at the upload limit · _v0.36.0 (routers/media.py _spool_limited, unpack_upload)
 
 `POST /unpack` spooled the whole upload to a temporary file before any size check, so a huge zip could fill the temporary disk; `/media` and `/intake` already stopped at `MAX_UPLOAD_BYTES`. The upload is copied in 1 MiB chunks and refused with 413 as soon as it passes the limit; the spooled file is released by its context manager on every path.
+
+## 109. A failed intake upload leaves nothing behind, and paging says when it is past the end · _v0.36.0 (routers/intake.py create_intake; services/intake/__init__.py _past_end, get_source)
+
+When one file of a multi-file upload failed, the files already written stayed in the intake folder. The request now removes only what it wrote, and the folders it created if they are empty, then raises the same error. Each write recreates its folder just before opening the file, so another request's cleanup can never make a later write fail. `get_source` with a start beyond the last page, slide, line or row produced a header like "pages 10-3 of 3" and an empty body; it now answers "page 10 is past the end; this source has 3 pages" in the source's own unit.
