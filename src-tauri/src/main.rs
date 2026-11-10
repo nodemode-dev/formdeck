@@ -138,7 +138,8 @@ async fn open_window(app: tauri::AppHandle, window: tauri::WebviewWindow, url: S
 async fn open_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow, url: String) -> Result<(), String> {
     let target = loopback_url(&url)?;
     let other = other_monitor(&app, &window);
-    if let Some(existing) = app.get_webview_window("presenter") {
+    let label = format!("presenter-{}", window.label());
+    if let Some(existing) = app.get_webview_window(&label) {
         existing.navigate(target).map_err(|e| e.to_string())?;
         if let Some(m) = &other {
             existing.set_position(tauri::Position::Physical(*m.position())).map_err(|e| e.to_string())?;
@@ -146,7 +147,7 @@ async fn open_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow, url
         }
         return existing.set_focus().map_err(|e| e.to_string());
     }
-    let builder = WebviewWindowBuilder::new(&app, "presenter", WebviewUrl::External(target)).title("formdeck slide show");
+    let builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(target)).title("formdeck slide show");
     let builder = match &other {
         Some(m) => {
             let scale = m.scale_factor();
@@ -170,8 +171,12 @@ fn monitor_count(app: tauri::AppHandle) -> usize {
 
 #[tauri::command]
 async fn swap_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
-    let main = if window.label() == "presenter" { app.get_webview_window("main").ok_or("no main window")? } else { window };
-    let show = app.get_webview_window("presenter").ok_or("no slide show window")?;
+    let owner = window.label().strip_prefix("presenter-").map(str::to_string);
+    let main = match owner {
+        Some(owner) => app.get_webview_window(&owner).ok_or("no window for this slide show")?,
+        None => window,
+    };
+    let show = app.get_webview_window(&format!("presenter-{}", main.label())).ok_or("no slide show window")?;
     let main_at = main.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     let show_at = show.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     if main_at.position() == show_at.position() {
