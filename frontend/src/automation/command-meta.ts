@@ -30,6 +30,7 @@ const ROWS: Record<string, Row> = {
   'cut': ['Use when the selection should move to the clipboard and leave the slide.'],
   'copy': ['Use when the selection should go to the clipboard and stay.', 'v'],
   'paste': ['Use when the clipboard should be placed on the current slide.'],
+  'paste-source': ['Use when slides copied from another open deck should keep that deck\'s master, layouts, colours and fonts instead of taking this deck\'s look; the slides are scaled if the slide sizes differ.'],
   'duplicate': ['Use when you want a copy of the selection next to it.'],
   'delete': ['Use when the selection should be removed.'],
   'select-all': ['Use when every element on the slide should be selected.', 'v'],

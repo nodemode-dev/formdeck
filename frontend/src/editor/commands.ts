@@ -216,6 +216,7 @@ export function registerCommands(cmds: Commands, h: AppHooks): void {
     { id: 'cut', label: 'Cut', keys: ['Mod+X'], enabled: () => has() && !editing(), run: () => E()?.copy(true) },
     { id: 'copy', label: 'Copy', keys: ['Mod+C'], enabled: () => has() && !editing(), run: () => E()?.copy(false) },
     { id: 'paste', label: 'Paste', keys: ['Mod+V'], enabled: () => has() && !editing(), run: () => E()?.paste() },
+    { id: 'paste-source', label: 'Paste with Source Formatting', enabled: () => has() && !editing() && !!E()?.canPasteSource(), run: () => E()?.pasteSource() },
     { id: 'duplicate', label: 'Duplicate', keys: ['Mod+D'], icon: 'duplicate', enabled: () => has() && !editing(), run: () => { const ed = E(); if (!ed) return; if (ed.selection.length) { ed.copy(false); ed.paste(); } else ed.duplicateSlides(); } },
     { id: 'delete', label: 'Delete', keys: ['Delete', 'Backspace'], icon: 'delete', enabled: () => has() && !editing(), run: () => { const ed = E(); if (!ed) return; if (ed.selection.length) ed.deleteSelection(); else ed.run('delete-slide'); } },
     { id: 'select-all', label: 'Select All', keys: ['Mod+A'], enabled: () => has() && !editing(), run: () => { const ed = E(); const s = ed?.slide; if (ed && s) ed.select(s.elements.filter((e) => !e.locked).map((e) => e.id)); } },

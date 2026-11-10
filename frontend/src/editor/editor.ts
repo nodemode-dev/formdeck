@@ -11,7 +11,7 @@ import { toast } from '../ui/toast';
 import { setText } from '../ui/dom';
 import { collab } from './collab-state';
 import { addElementOps, clone, deleteElementOps, deleteSlideOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, refitGroupOps, reid, resolvedFrame, setFrameOps } from './actions';
-import { carryOf, carryOps, getClip, pasteSlidesOps, relink, setClip, slideClip, type Clip } from './clipboard';
+import { carryOf, carryOps, getClip, pasteSlidesOps, relink, scaleCarry, scaleElement, setClip, sizeXf, slideClip, type Clip } from './clipboard';
 import { ensureFonts, fontsOfDeck } from '../render/fonts';
 import { diagramSync } from './diagram-sync';
 import { Filmstrip } from './filmstrip';
@@ -273,7 +273,7 @@ export class Editor {
       return;
     }
     const targets = this.commands.all().map((c) => c.id).filter((id) => id.startsWith('copy-slides-to:') && id !== `copy-slides-to:${this.doc.id}`);
-    if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste', ...(targets.length ? [{ label: 'Copy Slides To', items: targets }] : [])];
+    if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste', 'paste-source', ...(targets.length ? [{ label: 'Copy Slides To', items: targets }] : [])];
     else if (kind === 'element' && this.selected()[0]?.type === 'table') items = ['table-merge', 'table-split', '-', { label: 'Insert', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right'] }, { label: 'Delete', items: ['table-delete-row', 'table-delete-col', 'delete'] }, { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, '-', 'table-distribute-rows', 'table-distribute-cols', 'table-header-row', 'table-banded-rows', '-', 'cut', 'copy', 'paste', 'duplicate', '-', 'add-comment', 'alt-text'];
     else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', ...(this.selected()[0]?.type === 'shape' ? ['edit-points'] : []), ...(this.selected().length > 1 ? [MERGE_MENU] : []), '-', 'insert-link', 'add-comment', 'alt-text'];
     else items = ['paste', '-', 'new-slide', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', 'format-background', '-', { label: 'Grid and Guides', items: ['view-gridlines', 'view-guides', 'view-smart', '-', 'guide-add-v', 'guide-add-h', '-', 'grid-guides'] }, '-', 'add-comment'];
@@ -439,7 +439,7 @@ export class Editor {
         const f = resolvedFrame(this.doc.deck, this.slide as Slide, e);
         return { ...e, ...f };
       }));
-      setClip({ kind: 'elements', deck: this.doc.id, items, carry: carryOf(this.doc.deck, items) });
+      setClip({ kind: 'elements', deck: this.doc.id, items, carry: carryOf(this.doc.deck, items), size: { w: this.doc.deck.size.w, h: this.doc.deck.size.h } });
       const text = this.selected().map((e) => ('text' in e && e.text ? e.text.paras.map((p) => p.runs.map((r) => r.t).join('')).join('\n') : '')).filter(Boolean).join('\n\n');
       void navigator.clipboard?.writeText(text || 'formdeck objects').catch(() => undefined);
       if (cut) this.deleteSelection();
@@ -471,15 +471,30 @@ export class Editor {
     void ensureFonts(fams).then(() => { if (!this.bye.signal.aborted) this.pasteClip(c); });
   }
 
-  private pasteClip(c: Clip): void {
+  canPasteSource(): boolean {
+    const c = getClip();
+    return !!c && c.kind === 'slides' && !!c.source && c.deck !== this.doc.id && this.holderKind === 'slide';
+  }
+
+  pasteSource(): void {
+    const c = getClip();
+    if (!c || c.kind !== 'slides' || !c.source || c.deck === this.doc.id || this.holderKind !== 'slide') return;
+    const src = c.source;
+    const fams = fontsOfDeck({ theme: src.theme, masters: Object.values(src.masters), layouts: Object.values(src.layouts), slides: c.items, media: { ...c.carry.media, ...src.carry.media } });
+    void ensureFonts(fams).then(() => { if (!this.bye.signal.aborted) this.pasteClip(c, true); });
+  }
+
+  private pasteClip(c: Clip, withSource = false): void {
     const s = this.slide;
     const used = this.doc.usedIds();
     if (c.kind === 'elements' && s) {
       const foreign = c.deck !== this.doc.id;
       const ids: string[] = [];
       let idx = Math.max(9, ...s.elements.map((x) => x.ph?.idx ?? 0));
+      const xf = sizeXf(c.size, this.doc.deck.size);
       const ops: Op[] = c.items.map((e) => {
         const copy = reid(this.doc, e, used);
+        if (xf) scaleElement(copy, xf);
         if (s.elements.some((x) => x.ph && copy.ph && x.ph.type === copy.ph.type && (x.ph.idx ?? 0) === (copy.ph.idx ?? 0))) {
           if (this.holderKind === 'layout' && copy.ph && !TITLE_KINDS.has(copy.ph.type)) copy.ph = { ...copy.ph, idx: ++idx };
           else { delete copy.ph; delete copy.slot; }
@@ -493,10 +508,11 @@ export class Editor {
       remapCopies(c.items, made);
       if (foreign) relink(made, new Map(), true);
       setClip({ ...c, items: c.items.map((e) => ({ ...e, x: (e.x ?? 0) + 12, y: (e.y ?? 0) + 12 })) });
-      if (this.apply([...(foreign ? carryOps(this.doc.deck, c.carry) : []), ...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
+      const carry = xf ? scaleCarry(c.carry, xf) : c.carry;
+      if (this.apply([...(foreign ? carryOps(this.doc.deck, carry) : []), ...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
     } else if (c.kind === 'slides' && this.holderKind === 'slide') {
-      const r = pasteSlidesOps(this.doc, c, this.doc.slideIndex(this.current) + 1);
-      if (this.apply(r.ops, 'Paste slides') && r.ids.length) this.setSlideSelection(r.ids, r.ids[0]);
+      const r = pasteSlidesOps(this.doc, c, this.doc.slideIndex(this.current) + 1, withSource);
+      if (this.apply(r.ops, withSource ? 'Paste slides with source formatting' : 'Paste slides') && r.ids.length) this.setSlideSelection(r.ids, r.ids[0]);
     }
   }
 
