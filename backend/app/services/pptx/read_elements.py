@@ -1,3 +1,4 @@
+import copy
 import math
 from dataclasses import dataclass
 
@@ -328,7 +329,7 @@ def read_pic(pic, ctx, tf: Transform, frame_xfrm=None) -> dict | None:
     effects = read_effects(find(sp_pr, "a:effectLst"), ctx)
     if effects:
         el["effects"] = effects
-    if outward and full_frame.get("w") and ((line and line.get("type") != "none") or effects):
+    if outward and full_frame.get("w") and line and line.get("type") != "none" and not el.get("ph"):
         return _frame_group(el, full_frame, ctx)
     return el
 
@@ -337,10 +338,9 @@ def _frame_group(pic: dict, full_frame: dict, ctx) -> dict:
     frame = {"id": ctx.element_id(), "type": "shape", **full_frame, "fill": {"type": "none"}}
     if pic.get("mask"):
         frame["geom"] = pic["mask"]
-    if pic.get("line"):
-        frame["line"] = pic.pop("line")
+    frame["line"] = pic.pop("line")
     if pic.get("effects"):
-        frame["effects"] = pic.pop("effects")
+        frame["effects"] = copy.deepcopy(pic["effects"])
     group = {"id": pic["id"], "type": "group"}
     for key in ("name", "alt", "hidden", "link", "locked"):
         if key in pic:
