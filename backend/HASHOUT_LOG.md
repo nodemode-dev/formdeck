@@ -445,3 +445,11 @@ The file route answers HEAD as well as GET (it fell through to the static mount 
 ## 92. An op that is not an object is refused, not fatal · _v0.35.0 (services/ops.py apply)
 
 A step whose ops list held a string or null raised `AttributeError` in `apply`, which `live.handle` does not catch, so the WebSocket closed and every deck open in that window disconnected. `apply` raises `OpError` for a non-object op, so the step is rolled back and refused through the existing reject path, on the socket and on `POST /decks/{id}/steps` alike.
+
+## 93. Downloads name the file in any script, and exports read a copy · _v0.35.0 (routers/decks.py _disposition, download, export, save)
+
+Starlette encodes header values as latin-1, so a deck titled in Japanese, Cyrillic or any non-Latin script failed its download with a 500. `_disposition` sends an ASCII `filename` (falling back to `deck.<ext>` when nothing ASCII is left) and the real name as `filename*=UTF-8''...` (RFC 6266), which browsers prefer. Download, export and file-linked save handed the live `s.deck` to a worker thread while steps changed it on the loop, which could fail mid-walk or write a file mixing two revisions; they now deep-copy it under `s.lock` first, as duplicate and save-template already did.
+
+## 94. A package member larger than an upload is refused · _v0.35.0 (services/package.py unpack)
+
+`.fdec` import read every `media/` member whole, so a small archive declaring a huge member could exhaust memory. Each member's declared size is checked against `MAX_UPLOAD_BYTES` before it is read, and a larger one raises `ValueError`, which every import route already answers with a 400.

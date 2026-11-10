@@ -2,6 +2,7 @@ import io
 import json
 import zipfile
 
+from app.core import config
 from app.services import model
 from app.services.media import EXT_BY_MIME, MediaStore
 
@@ -43,6 +44,8 @@ def unpack(data: bytes, media: MediaStore) -> dict:
         remap: dict[str, str] = {}
         for name in z.namelist():
             if name.startswith("media/") and not name.endswith("/"):
+                if z.getinfo(name).file_size > config.MAX_UPLOAD_BYTES:
+                    raise ValueError(f"{name} in the package is larger than formdeck accepts.")
                 raw = z.read(name)
                 stem = name.split("/", 1)[1].rsplit(".", 1)[0]
                 meta = media.put(raw, (deck.get("media", {}).get(stem) or {}).get("name") or name.split("/")[-1])

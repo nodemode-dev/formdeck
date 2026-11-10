@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import re
+import urllib.parse
 from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException, Request, UploadFile
@@ -40,6 +41,13 @@ POTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.templa
 def _safe_name(title: str) -> str:
     name = re.sub(r"[^\w\s.-]+", "", title or "deck").strip() or "deck"
     return re.sub(r"\s+", " ", name)[:80]
+
+
+def _disposition(name: str) -> str:
+    ascii_name = name.encode("ascii", "ignore").decode().replace('"', "")
+    if not ascii_name.rsplit(".", 1)[0].strip():
+        ascii_name = "deck." + name.rsplit(".", 1)[-1]
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{urllib.parse.quote(name)}"
 
 
 def _session_or_404(deck_id: str):
@@ -236,8 +244,10 @@ def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None, embed_fo
 @router.get("/decks/{deck_id}/download")
 async def download(deck_id: str, format: str = "fdec", embedFonts: str | None = None):
     s = _session_or_404(deck_id)
-    data, name, mime = await asyncio.to_thread(export_bytes, s.deck, format, None, embedFonts)
-    return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{name}"'})
+    async with s.lock:
+        deck = copy.deepcopy(s.deck)
+    data, name, mime = await asyncio.to_thread(export_bytes, deck, format, None, embedFonts)
+    return Response(data, media_type=mime, headers={"Content-Disposition": _disposition(name)})
 
 
 @router.post("/decks/{deck_id}/export")
@@ -245,7 +255,9 @@ async def export(deck_id: str, body: dict = Body(default={})) -> dict:
     s = _session_or_404(deck_id)
     fmt = body.get("format") or "pptx"
     notes: list[str] = []
-    data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
+    async with s.lock:
+        deck = copy.deepcopy(s.deck)
+    data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
     path, _ = _target(name, body.get("path"))
     if not path.parent.is_dir():
         raise HTTPException(400, f"The folder {path.parent} does not exist.")
@@ -326,7 +338,9 @@ async def save(deck_id: str, body: dict = Body(default={})) -> dict:
     fmt = body.get("format") or path.suffix.lower().lstrip(".") or package.EXT
     if fmt not in (*package.FORMATS, "pptx", "potx", "odp", "otp"):
         fmt = package.EXT
-    data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"))
+    async with s.lock:
+        deck = copy.deepcopy(s.deck)
+    data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, body.get("fontScales"), body.get("embedFonts"))
     path, _ = _target(name, str(path))
     try:
         await asyncio.to_thread(path.write_bytes, data)
