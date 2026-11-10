@@ -195,6 +195,8 @@ def parse_slide(lines: list[str]) -> dict | None:
         s["left"] = col(columns[0])
         if len(columns) > 1:
             s["right"] = col(columns[1])
+        if len(columns) > 2:
+            s["more_columns"] = [col(c) for c in columns[2:]]
     if bullets:
         s["bullets"] = _nest(bullets)
     if body_text:

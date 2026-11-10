@@ -406,7 +406,7 @@ Note: mention the two enterprise deals.
 ![The studio floor](a3)
 ```
 
-Slides are separated by a line of three dashes. `# ` is the title, `## ` the subtitle (or the number on `bigNumber`), list items are bullets (two spaces of indent per level), `![alt](asset)` places a picture, `> ` is a quote and the line after it starting with `-- ` is the attribution, a fenced block tagged `chart` or `table` holds JSON, a GitHub table is a table, `Note: ` starts speaker notes, and `<!-- layout: name -->` or `<!-- section: name -->` set those fields.
+Slides are separated by a line of three dashes. `# ` is the title, `## ` the subtitle (or the number on `bigNumber`), list items are bullets (two spaces of indent per level), `![alt](asset)` places a picture, `> ` is a quote and the line after it starting with `-- ` is the attribution, a fenced block tagged `chart` or `table` holds JSON, a GitHub table is a table, `Note: ` starts speaker notes, and `<!-- layout: name -->` or `<!-- section: name -->` set those fields. A `### ` line starts a column on twoContent and comparison slides. A third or later `### ` column, and steps, people or stats past their slide's capacity (6 steps, 8 people, 5 stats), continue on `(cont.)` slides of the same kind (a leftover single column goes on a content slide), and the build reports a warning.
 
 ## Intake digest
 

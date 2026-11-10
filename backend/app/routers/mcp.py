@@ -93,7 +93,7 @@ Note: speaker notes run to the end of the slide.
 - table: a GitHub table (`| a | b |` then `| --- | --- |`).
 - chart: a fenced block tagged chart with JSON {"kind": "column", "categories": [...], "series": [{"name": "...", "values": [...]}]}; kinds column, bar, line, area, pie, doughnut, scatter, radar, combo. A line after the block is the caption.
 - pictures: `![alt text](a3)` with an intake asset id, a media id (img_...) or an absolute path. One picture with bullets makes imageRight; two to four make a gallery.
-- Without a layout directive the compiler picks one from the content; long bullet lists split onto (cont.) slides.
+- Without a layout directive the compiler picks one from the content; long bullet lists split onto (cont.) slides. A third or later `###` column, and steps, people or stats past their slide's capacity (6 steps, 8 people, 5 stats), continue on (cont.) slides of the same kind, with a build warning.
 
 ## Layouts and slots
 title (title, subtitle, kicker) · section (title, subtitle, number) · agenda (title, numbered body) · content (title, body) · twoContent (title, body, body2) · comparison (title, heading, body, heading2, body2) · imageLeft, imageRight (title, body, image) · imageFull (image, title, subtitle) · gallery (title, images) · bigNumber (number, caption, title) · stats (title, three stats) · quote (quote, by) · timeline, process (title, steps) · team (title, people) · chart (title, chart, caption) · table (title, table) · titleOnly (title) · closing (title, subtitle) · blank.

@@ -186,7 +186,7 @@ def _notes(text: str, ref: str, n: int = 700) -> str:
 
 def _steps(items: list[str]) -> list[tuple[str, str]]:
     out = []
-    for b in items[:6]:
+    for b in items:
         b = _clean(b)
         m = re.match(r"^(.{1,40}?)\s*(?::|\s[-–]\s)\s*(.+)$", b)
         if m:
