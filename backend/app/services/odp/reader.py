@@ -1,4 +1,5 @@
 import base64
+import copy
 import io
 import json
 import math
@@ -885,8 +886,10 @@ class OdpReader:
             h = pt(rp.get(_k("style:min-row-height")) or rp.get(_k("style:row-height")), 30) or 30
             cells = []
             for c in r:
+                crep = max(1, min(int(_a(c, "table:number-columns-repeated") or 1), max(len(cols), 1)))
                 if _loc(c) == "covered-table-cell":
-                    cells.append({"text": {"paras": [{"runs": [{"t": ""}]}]}, "merged": True})
+                    for _ in range(crep):
+                        cells.append({"text": {"paras": [{"runs": [{"t": ""}]}]}, "merged": True})
                     continue
                 if _loc(c) != "table-cell":
                     continue
@@ -921,8 +924,13 @@ class OdpReader:
                 cs, rs = int(_a(c, "table:number-columns-spanned") or 1), int(_a(c, "table:number-rows-spanned") or 1)
                 if cs > 1 or rs > 1:
                     cell["span"] = [cs, rs]
-                cells.append(cell)
-            rows.append({"h": round(h, 2), "cells": cells})
+                for _ in range(crep):
+                    cells.append(copy.deepcopy(cell))
+            if cols:
+                cells = cells[:len(cols)]
+            rrep = max(1, min(int(_a(r, "table:number-rows-repeated") or 1), max(1, 1000 - len(rows))))
+            for _ in range(rrep):
+                rows.append({"h": round(h, 2), "cells": copy.deepcopy(cells)})
         return {"cols": cols, "rows": rows, "style": {"id": "none"}}
 
     def page_props(self, scope: Scope, name: str | None) -> dict:
@@ -1067,13 +1075,20 @@ class OdpReader:
                     for fr in child.iter(q("draw:frame")):
                         if _a(fr, "presentation:class") == "notes":
                             for p in fr.iter(q("text:p")):
-                                lines.append("".join(p.itertext()))
+                                note_runs: list = []
+                                self.inline(p, self.page_scope, {}, note_runs)
+                                lines.append("".join(r["t"] for r in note_runs))
                     slide["notes"] = "\n".join(lines).strip()
                     continue
                 if _loc(child) == "annotation" and _ns(child) == NS["office"]:
                     creator = child.find(q("dc:creator"))
                     date = child.find(q("dc:date"))
-                    text = "\n".join("".join(p.itertext()) for p in child.findall(q("text:p")))
+                    comment_lines = []
+                    for p in child.findall(q("text:p")):
+                        comment_runs: list = []
+                        self.inline(p, self.page_scope, {}, comment_runs)
+                        comment_lines.append("".join(r["t"] for r in comment_runs))
+                    text = "\n".join(comment_lines)
                     deck["comments"].append({"id": f"c{len(deck['comments']) + 1}", "slide": sid, "author": (creator.text if creator is not None else "") or "Someone",
                                              "kind": "user", "text": text, "at": ((date.text or "") if date is not None else "") + ("Z" if date is not None and date.text and not date.text.endswith("Z") else ""), "resolved": False})
                     continue

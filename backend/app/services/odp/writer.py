@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import math
+import re
 import zipfile
 from pathlib import Path
 
@@ -48,6 +49,11 @@ PH_CLASS = {"title": "title", "ctrTitle": "title", "subTitle": "subtitle", "body
             "dt": "date-time", "ftr": "footer", "sldNum": "page-number"}
 MATH_TAG = "formdeck-math:"
 MATH_TAGS = (MATH_TAG, "formsld-math:")
+_XML_BAD = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
+
+
+def _xml_clean(s: str) -> str:
+    return _XML_BAD.sub("", s)
 
 
 def _el(tag: str, attrs: dict | None = None, parent=None, text: str | None = None):
@@ -55,9 +61,9 @@ def _el(tag: str, attrs: dict | None = None, parent=None, text: str | None = Non
     for k, v in (attrs or {}).items():
         if v is None:
             continue
-        node.set(q(k) if ":" in k else k, str(v))
+        node.set(q(k) if ":" in k else k, _xml_clean(str(v)))
     if text is not None:
-        node.text = text
+        node.text = _xml_clean(text)
     return node
 
 
@@ -552,11 +558,23 @@ class OdpWriter:
         self.files[f"ObjectReplacements/{name}"] = (png, "image/png")
         return name, w, asc, desc, ann.text
 
+    def slide_names(self) -> dict:
+        if getattr(self, "_slide_names", None) is None:
+            names: dict = {}
+            used: set = set()
+            for i, s in enumerate(self.deck.get("slides") or []):
+                base = str(s.get("name") or f"page{i + 1}").replace(",", " ")
+                name, n = base, 1
+                while name in used:
+                    n += 1
+                    name = f"{base} {n}"
+                used.add(name)
+                names.setdefault(s.get("id"), name)
+            self._slide_names = names
+        return self._slide_names
+
     def slide_name(self, slide_id: str) -> str:
-        for i, s in enumerate(self.deck.get("slides") or []):
-            if s.get("id") == slide_id:
-                return s.get("name") or f"page{i + 1}"
-        return slide_id
+        return self.slide_names().get(slide_id, slide_id)
 
     def frame_attrs(self, x: float, y: float, w: float, h: float, rot: float) -> dict:
         if not rot:
@@ -1095,9 +1113,7 @@ class OdpWriter:
             _el("draw:frame", {"presentation:class": "notes", "presentation:placeholder": "true", "svg:x": "1.5cm", "svg:y": "14cm", "svg:width": "18cm", "svg:height": "13cm"}, notes)
             master_pages.append((mp, lay))
         pres = _el("office:presentation", {})
-        page_names = {}
-        for i, s in enumerate(deck.get("slides") or []):
-            page_names[s.get("id")] = s.get("name") or f"page{i + 1}"
+        page_names = self.slide_names()
         for i, s in enumerate(deck.get("slides") or []):
             lay = model.find_layout(deck, s.get("layout")) or layouts[0]
             master = _master(deck, lay)
