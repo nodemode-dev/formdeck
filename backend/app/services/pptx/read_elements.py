@@ -314,7 +314,8 @@ def read_pic(pic, ctx, tf: Transform, frame_xfrm=None) -> dict | None:
         el["lockAspect"] = False
     el["src"] = poster
     el.update(read_frame(frame_xfrm if frame_xfrm is not None else find(sp_pr, "a:xfrm"), tf))
-    _read_crop(el, find(blip_fill, "a:srcRect"), find(blip_fill, "a:stretch/a:fillRect"), ctx)
+    full_frame = {k: el[k] for k in ("x", "y", "w", "h", "rot", "flipH", "flipV") if k in el}
+    outward = _read_crop(el, find(blip_fill, "a:srcRect"), find(blip_fill, "a:stretch/a:fillRect"), ctx)
     _read_adjust(el, blip)
     prst = find(sp_pr, "a:prstGeom")
     if prst is not None and prst.get("prst", "rect") != "rect":
@@ -327,10 +328,30 @@ def read_pic(pic, ctx, tf: Transform, frame_xfrm=None) -> dict | None:
     effects = read_effects(find(sp_pr, "a:effectLst"), ctx)
     if effects:
         el["effects"] = effects
+    if outward and full_frame.get("w") and ((line and line.get("type") != "none") or effects):
+        return _frame_group(el, full_frame, ctx)
     return el
 
 
-def _read_crop(el: dict, src_rect, fill_rect, ctx) -> None:
+def _frame_group(pic: dict, full_frame: dict, ctx) -> dict:
+    frame = {"id": ctx.element_id(), "type": "shape", **full_frame, "fill": {"type": "none"}}
+    if pic.get("mask"):
+        frame["geom"] = pic["mask"]
+    if pic.get("line"):
+        frame["line"] = pic.pop("line")
+    if pic.get("effects"):
+        frame["effects"] = pic.pop("effects")
+    group = {"id": pic["id"], "type": "group"}
+    for key in ("name", "alt", "hidden", "link", "locked"):
+        if key in pic:
+            group[key] = pic.pop(key)
+    pic["id"] = ctx.element_id()
+    group["children"] = [frame, pic]
+    group.update({k: full_frame[k] for k in ("x", "y", "w", "h")})
+    return group
+
+
+def _read_crop(el: dict, src_rect, fill_rect, ctx) -> bool:
     raw = {k: int_attr(src_rect, k, 0) / 100000 for k in ("l", "t", "r", "b")}
     crop = {k: min(max(v, 0.0), 0.99) for k, v in raw.items()}
     outward = any(
@@ -342,17 +363,18 @@ def _read_crop(el: dict, src_rect, fill_rect, ctx) -> None:
         el["crop"] = {k: round(v, 5) for k, v in crop.items()}
     if outward:
         el["fit"] = "stretch"
-        return
+        return True
     if any(int_attr(fill_rect, k, 0) > 0 for k in ("l", "t", "r", "b")):
         el["fit"] = "contain"
-        return
+        return False
     info = ctx.deck_media.get(el["src"], {})
     if not info.get("w") or not info.get("h") or not el.get("w") or not el.get("h"):
-        return
+        return False
     vis_w = info["w"] * max(1 - crop["l"] - crop["r"], 0.01)
     vis_h = info["h"] * max(1 - crop["t"] - crop["b"], 0.01)
     if abs((vis_w / vis_h) / (el["w"] / el["h"]) - 1) > 0.01:
         el["fit"] = "stretch"
+    return False
 
 
 def _inset_outward(el: dict, raw: dict) -> None:
