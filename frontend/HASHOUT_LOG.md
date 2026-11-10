@@ -741,3 +741,7 @@ The notes save ran 300 ms after the last key and read the shared notes field and
 ## 164. A blocked pop-up keeps the tab · _v0.35.0 (ui/windows.ts openWindow)
 
 In a browser, `window.open` returns null when pop-ups are blocked and throws nothing, so Move Deck to New Window went on to close the tab and the deck disappeared from the window with nowhere to go. `openWindow` now throws when it gets no window, and the commands' existing error toast says what happened while the tab stays.
+
+## 165. Each show talks to its own audience window · _v0.35.0 (present/show.ts openAudience, swapDisplays)
+
+The show's BroadcastChannel was made only for an explicit Presenter View start, but the use-presenter-view preference with two screens, and turning Presenter View on during the show, open the audience window too; with no channel `post` did nothing and the audience never followed. `openAudience` makes the channel when the show has none (never for a remote show), before the window opens, so its hello is answered; `close` already closes it. In a browser every show named its audience pop-up `formdeck-audience`, so a presenter show in a second window opened over the first window's audience; the name now carries the deck id.

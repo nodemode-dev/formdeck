@@ -608,6 +608,7 @@ class Show {
   private async openAudience(): Promise<void> {
     const layout = await screenLayout();
     if (this.closed) return;
+    if (!this.chan && !this.opts.remote) { this.chan = new BroadcastChannel(`formdeck-show-${this.doc.id}`); this.chan.onmessage = (e: MessageEvent<Msg>) => this.onMsg(e.data); }
     if (layout.count === 1) { this.presenterHere(); return; }
     const url = this.audienceUrl(Math.max(0, this.cur ? this.curIndex : this.opts.start));
     this.solo = false;
@@ -622,7 +623,7 @@ class Show {
     if (o && layout.here) {
       try { await document.documentElement.requestFullscreen({ navigationUI: 'hide', screen: layout.here } as FullscreenOptions); this.full = 'dom'; } catch { this.full = null; }
     }
-    const w = window.open(`${url}${o ? '&placed=1' : ''}`, 'formdeck-audience', o ? `popup,fullscreen,left=${o.left},top=${o.top},width=${o.width},height=${o.height}` : 'popup');
+    const w = window.open(`${url}${o ? '&placed=1' : ''}`, `formdeck-audience-${this.doc.id}`, o ? `popup,fullscreen,left=${o.left},top=${o.top},width=${o.width},height=${o.height}` : 'popup');
     if (w) this.audienceWin = w;
     else this.noAudience();
   }
@@ -685,7 +686,7 @@ class Show {
       return;
     }
     const url = this.audienceUrl(Math.max(0, this.curIndex));
-    this.audienceWin = window.open(url, 'formdeck-audience', 'popup');
+    this.audienceWin = window.open(url, `formdeck-audience-${this.doc.id}`, 'popup');
     if (!this.audienceWin) toast('The audience window was blocked. Allow pop-ups for formdeck.');
   }
 
