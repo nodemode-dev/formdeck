@@ -62,7 +62,7 @@ import { setMarqueeRule } from './editor/stage';
 import { aidPrefs } from './editor/rulers';
 import { groupChain } from './editor/actions';
 import { guest, guestName } from './io/guest';
-import { loadMe, myName } from './editor/mentions';
+import { loadMe, ME_EVENT, myName } from './editor/mentions';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
 
@@ -136,6 +136,7 @@ export async function startApp(): Promise<void> {
   };
   const live = new LiveClient(liveName());
   void loadMe().then(() => live.setName(liveName()));
+  window.addEventListener(ME_EVENT, () => live.setName(liveName()));
   const contextMenu = new PopupMenu(commands, null, true);
   const presentMenu = new PopupMenu(commands, null, true);
   const toolbar = new Toolbar(q(root, '.fd-options'), commands);

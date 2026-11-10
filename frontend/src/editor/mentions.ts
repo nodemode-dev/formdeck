@@ -12,6 +12,15 @@ export function loadMe(): Promise<void> {
   return loading;
 }
 
+export const ME_EVENT = 'formdeck:me';
+
+export function setMe(name: string): void {
+  const next = name.trim();
+  if (next === me) return;
+  me = next;
+  window.dispatchEvent(new Event(ME_EVENT));
+}
+
 export const myName = (): string => me || 'You';
 export const isAgentName = (name: string): boolean => agents.has(name);
 export function addAgents(names: unknown): void {

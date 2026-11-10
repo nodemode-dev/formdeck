@@ -865,3 +865,7 @@ Review of 183 found the reuse key fragile: it was the source deck id plus the ma
 ## 195. A late tool call is refused, not run · _v0.37.0 (live/socket.ts tool handler)
 
 A window frozen past the engine's wait (a debugger pause, a hung main thread) used to run a buffered mutating tool call when it woke, after the caller had been told it timed out. Tool messages now carry `until` (backend 122); a call handled after that moment answers that it arrived too late and does nothing.
+
+## 196. Renaming yourself reaches peers and mentions at once · _v0.37.0 (editor/mentions.ts setMe, ME_EVENT; ui/dialogs-file.ts preferences author; app.ts)
+
+Peer labels use the author name (188), but `mentions.ts` read it once, so a name changed in Preferences reached neither the peer label nor the "mentions me" check until a reload. Changing the Author field now updates the cached name through `setMe`, which fires `formdeck:me`; the app re-sends hello with the new name, and peers see it with the next presence (at most 8 s, the heartbeat).

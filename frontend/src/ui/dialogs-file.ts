@@ -1,6 +1,7 @@
 import type { AgentBridge } from '../automation/agent-bridge';
 import type { Editor } from '../editor/editor';
 import { addMaster } from '../editor/master-view';
+import { setMe } from '../editor/mentions';
 import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
 import { documentDir } from '@tauri-apps/api/path';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -1956,7 +1957,7 @@ class PreferencesDialog extends Dialog {
     this.fonts = Array.from(box.querySelectorAll<HTMLSelectElement>('[data-font]'));
     this.size.addEventListener('change', () => this.persist({ defaultSize: this.size.value }));
     for (const f of this.fonts) f.addEventListener('change', () => this.persist({ defaultFonts: Object.fromEntries(this.fonts.map((x) => [x.dataset.font as string, x.value])) }));
-    this.author.addEventListener('change', () => this.persist({ author: this.author.value.trim() }));
+    this.author.addEventListener('change', () => { this.persist({ author: this.author.value.trim() }); setMe(this.author.value); });
     segOn(this.units, (v) => this.persist({ units: v }));
     this.marquee = q(box, '[data-seg="marquee"]');
     segOn(this.marquee, (v) => { setMarqueeRule(v); segSet(this.marquee, v); this.persist({ marquee: v }); });
