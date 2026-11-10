@@ -31,7 +31,8 @@ async def window_call(name: str, args: dict, deck: str | None = None, timeout: f
         if index == len(candidates) - 1 or not safe:
             wait = remaining
         else:
-            wait = min(max(10.0, timeout / 3), remaining)
+            share = min(remaining / (len(candidates) - index), timeout / 2)
+            wait = min(max(1.0, share), remaining)
         rid = ids.short("t", 10)
         fut = asyncio.get_running_loop().create_future()
         TOOL_RESULTS[rid] = fut
