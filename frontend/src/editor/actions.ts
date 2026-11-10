@@ -1,5 +1,5 @@
 import type { DeckDoc } from '../engine/doc';
-import type { Color, Deck, Fill, Layout, LevelStyle, Line, Master, Para, PhType, Run, ShapeElement, Slide, SlideElement, TextBody } from '../engine/model';
+import type { Color, Deck, Fill, Layout, LevelStyle, Line, Master, Para, PhType, Placeholder, Run, ShapeElement, Slide, SlideElement, TextBody } from '../engine/model';
 import { elPath, slidePath, type Op, type PathKey } from '../engine/ops';
 import { chain, frameOf, layoutOf, levelStyle, TITLE_KINDS, type Frame } from '../engine/resolve';
 import { remapCopies } from './connectors';
@@ -12,13 +12,16 @@ export function resolvedFrame(deck: Deck, slide: Slide, el: SlideElement): Frame
 
 const BODYISH = new Set(['body', 'obj', 'subTitle']);
 
+export function layoutKeeps(layout: Layout, ph: Placeholder): boolean {
+  return layout.elements.some((l) => l.ph && (l.ph.idx ?? 0) === (ph.idx ?? 0) && (l.ph.type === ph.type || (BODYISH.has(l.ph.type) && BODYISH.has(ph.type)) || (TITLE_KINDS.has(l.ph.type) && TITLE_KINDS.has(ph.type))));
+}
+
 export function changeLayoutOps(deck: Deck, slide: Slide, layout: Layout): Op[] {
   const ops: Op[] = [];
   for (const e of slide.elements) {
     const ph = e.ph;
     if (!ph || (e.x !== undefined && e.y !== undefined && e.w !== undefined && e.h !== undefined)) continue;
-    const kept = layout.elements.some((l) => l.ph && (l.ph.idx ?? 0) === (ph.idx ?? 0) && (l.ph.type === ph.type || (BODYISH.has(l.ph.type) && BODYISH.has(ph.type)) || (TITLE_KINDS.has(l.ph.type) && TITLE_KINDS.has(ph.type))));
-    if (kept) continue;
+    if (layoutKeeps(layout, ph)) continue;
     const f = resolvedFrame(deck, slide, e);
     for (const k of ['x', 'y', 'w', 'h'] as const) ops.push({ op: 'set', path: [...elPath(slide.id, e.id), k], value: f[k] });
   }
@@ -68,7 +71,7 @@ export function newSlideOps(doc: DeckDoc, layoutId: string, at: number): { ops: 
   return { id, ops: [{ op: 'ins', path: ['slides'], index: at, value: { id, layout: layoutId, elements: [], notes: '', review: { status: 'draft' } } }] };
 }
 
-function reid(doc: DeckDoc, el: SlideElement, used: Set<string>): SlideElement {
+export function reid(doc: DeckDoc, el: SlideElement, used: Set<string>): SlideElement {
   const copy = clone(el);
   const walk = (e: SlideElement): void => {
     e.id = doc.nextId('e', used);
@@ -102,12 +105,16 @@ export function duplicateSlideOps(doc: DeckDoc, ids: string[]): { ops: Op[]; ids
 
 export function deleteSlideOps(doc: DeckDoc, ids: string[]): Op[] {
   const ops: Op[] = ids.filter((id) => doc.slide(id)).map((id) => ({ op: 'del', path: ['slides'], id }) as Op);
-  for (const sec of doc.deck.sections ?? []) {
-    if (ids.includes(sec.start)) {
-      const after = doc.deck.slides.slice(doc.slideIndex(sec.start)).find((s) => !ids.includes(s.id));
-      ops.push(after ? { op: 'set', path: ['sections', { id: sec.id }, 'start'], value: after.id } : { op: 'del', path: ['sections'], id: sec.id });
-    }
+  const sections = [...(doc.deck.sections ?? [])].sort((a, b) => doc.slideIndex(b.start) - doc.slideIndex(a.start));
+  const starts = new Set(sections.filter((sec) => !ids.includes(sec.start)).map((sec) => sec.start));
+  for (const sec of sections) {
+    if (!ids.includes(sec.start)) continue;
+    const after = doc.deck.slides.slice(doc.slideIndex(sec.start)).find((s) => !ids.includes(s.id));
+    if (after && !starts.has(after.id)) { starts.add(after.id); ops.push({ op: 'set', path: ['sections', { id: sec.id }, 'start'], value: after.id }); }
+    else ops.push({ op: 'del', path: ['sections'], id: sec.id });
   }
+  for (const c of doc.deck.comments ?? []) if (ids.includes(c.slide)) ops.push({ op: 'del', path: ['comments'], id: c.id });
+  for (const cs of doc.deck.customShows ?? []) if (cs.slides.some((id) => ids.includes(id))) ops.push({ op: 'set', path: ['customShows', { id: cs.id }, 'slides'], value: cs.slides.filter((id) => !ids.includes(id)) });
   return ops;
 }
 
