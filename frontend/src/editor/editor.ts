@@ -10,7 +10,9 @@ import type { MenuItem, PopupMenu } from '../ui/menu';
 import { toast } from '../ui/toast';
 import { setText } from '../ui/dom';
 import { collab } from './collab-state';
-import { addElementOps, clone, deleteElementOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, refitGroupOps, resolvedFrame, setFrameOps } from './actions';
+import { addElementOps, clone, deleteElementOps, deleteSlideOps, dirtyOp, duplicateLayoutOps, duplicateSlideOps, newLayoutOps, newSlideOps, placeholderElement, PLACEHOLDERS, refitGroupOps, reid, resolvedFrame, setFrameOps } from './actions';
+import { carryOf, carryOps, getClip, pasteSlidesOps, relink, setClip, slideClip, type Clip } from './clipboard';
+import { ensureFonts, fontsOfDeck } from '../render/fonts';
 import { diagramSync } from './diagram-sync';
 import { Filmstrip } from './filmstrip';
 import { remapCopies } from './connectors';
@@ -43,7 +45,6 @@ export class Editor {
   private readonly listeners = new Map<EditorEvent, Set<() => void>>();
   private readonly offDoc: () => void;
   private readonly bye = new AbortController();
-  private clip: { kind: 'elements'; items: SlideElement[] } | { kind: 'slides'; items: Slide[] } | null = null;
   lastAgentAt = 0;
 
   constructor(readonly doc: DeckDoc, private readonly roots: EditorRoots, readonly commands: Commands, private readonly menu: PopupMenu, readonly live: LiveClient) {
@@ -65,6 +66,10 @@ export class Editor {
   }
 
   dispose(): void {
+    window.clearTimeout(this.notesTimer);
+    window.clearTimeout(this.peerTimer);
+    this.notesSave?.();
+    if (document.activeElement === this.roots.title) this.roots.title.blur();
     this.bye.abort();
     this.offDoc();
     collab.unwatch(this.doc);
@@ -228,14 +233,17 @@ export class Editor {
   }
 
   private notesTimer = 0;
+  private notesSave: (() => void) | null = null;
   private notesInput(): void {
     window.clearTimeout(this.notesTimer);
-    this.notesTimer = window.setTimeout(() => {
-      const s = this.holderKind === 'slide' ? this.slide : undefined;
-      if (!s) return;
-      const v = this.roots.notes.value;
-      if (v !== (s.notes ?? '')) this.apply([{ op: 'set', path: [...slidePath(s.id), 'notes'], value: v }], 'Edit notes', `notes:${s.id}`);
-    }, 300);
+    const sid = this.holderKind === 'slide' ? this.current : '';
+    const v = this.roots.notes.value;
+    this.notesSave = sid ? () => {
+      this.notesSave = null;
+      const s = this.doc.slide(sid);
+      if (s && v !== (s.notes ?? '')) this.doc.apply([{ op: 'set', path: [...slidePath(sid), 'notes'], value: v }], 'Edit notes', `notes:${sid}`);
+    } : null;
+    this.notesTimer = window.setTimeout(() => this.notesSave?.(), 300);
   }
 
   syncNotes(): void {
@@ -262,7 +270,8 @@ export class Editor {
       this.menu.openAt(x, y);
       return;
     }
-    if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste'];
+    const targets = this.commands.all().map((c) => c.id).filter((id) => id.startsWith('copy-slides-to:') && id !== `copy-slides-to:${this.doc.id}`);
+    if (kind === 'thumb') items = ['new-slide', 'duplicate-slide', 'delete-slide', 'hide-slide', '-', 'add-section', 'rename-section', '-', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', '-', 'review-ready', 'review-approve', 'review-changes', '-', 'copy', 'paste', ...(targets.length ? [{ label: 'Copy Slides To', items: targets }] : [])];
     else if (kind === 'element' && this.selected()[0]?.type === 'table') items = ['table-merge', 'table-split', '-', { label: 'Insert', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right'] }, { label: 'Delete', items: ['table-delete-row', 'table-delete-col', 'delete'] }, { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, '-', 'table-distribute-rows', 'table-distribute-cols', 'table-header-row', 'table-banded-rows', '-', 'cut', 'copy', 'paste', 'duplicate', '-', 'add-comment', 'alt-text'];
     else if (kind === 'element') items = ['cut', 'copy', 'paste', 'duplicate', 'delete', '-', { label: 'Order', items: ['bring-front', 'bring-forward', 'send-backward', 'send-back'] }, { label: 'Align', items: ['align-left', 'align-center', 'align-right', 'align-top', 'align-middle', 'align-bottom', '-', 'distribute-h', 'distribute-v'] }, 'group', 'ungroup', '-', 'flip-h', 'flip-v', 'lock', ...(this.selected()[0]?.type === 'shape' ? ['edit-points'] : []), ...(this.selected().length > 1 ? [MERGE_MENU] : []), '-', 'insert-link', 'add-comment', 'alt-text'];
     else items = ['paste', '-', 'new-slide', { label: 'Layout', items: layoutMenuItems(this.doc.deck, (id) => !!this.commands.get(id)) }, 'reset-slide', 'format-background', '-', { label: 'Grid and Guides', items: ['view-gridlines', 'view-guides', 'view-smart', '-', 'guide-add-v', 'guide-add-h', '-', 'grid-guides'] }, '-', 'add-comment'];
@@ -424,32 +433,50 @@ export class Editor {
   copy(cut = false): void {
     if (this.selection.length) {
       const els = this.holderKind === 'slide' ? this.selected() : this.selection.map((id) => this.element(id)).filter((e): e is SlideElement => !!e);
-      this.clip = { kind: 'elements', items: clone(els.map((e) => {
+      const items = clone(els.map((e) => {
         const f = resolvedFrame(this.doc.deck, this.slide as Slide, e);
         return { ...e, ...f };
-      })) };
+      }));
+      setClip({ kind: 'elements', deck: this.doc.id, items, carry: carryOf(this.doc.deck, items) });
       const text = this.selected().map((e) => ('text' in e && e.text ? e.text.paras.map((p) => p.runs.map((r) => r.t).join('')).join('\n') : '')).filter(Boolean).join('\n\n');
       void navigator.clipboard?.writeText(text || 'formdeck objects').catch(() => undefined);
       if (cut) this.deleteSelection();
     } else if (this.holderKind === 'slide') {
       const ids = this.slideSel.length ? this.slideSel : [this.current];
-      this.clip = { kind: 'slides', items: clone(this.doc.deck.slides.filter((s) => ids.includes(s.id))) };
-      if (cut) { const r = this.slideSel; this.apply(r.map((id) => ({ op: 'del', path: ['slides'], id }) as Op), 'Cut slides'); }
+      const clip = slideClip(this.doc.deck, ids);
+      if (!clip) return;
+      setClip(clip);
+      if (cut) this.apply(deleteSlideOps(this.doc, ids), 'Cut slides');
     }
   }
 
+  copySlidesTo(dest: DeckDoc): void {
+    if (this.holderKind !== 'slide' || dest === this.doc) return;
+    const clip = slideClip(this.doc.deck, this.slideSel.length ? this.slideSel : [this.current]);
+    if (!clip) return;
+    const r = pasteSlidesOps(dest, clip, dest.deck.slides.length);
+    const n = r.ids.length;
+    if (dest.apply(r.ops, 'Paste slides') !== null) toast(`Copied ${n} slide${n === 1 ? '' : 's'} to the end of ${dest.deck.title || 'Untitled deck'}.`);
+  }
+
   paste(): void {
-    const c = this.clip;
-    const s = this.slide;
+    const c = getClip();
     if (!c) return;
+    if (c.deck === this.doc.id) { this.pasteClip(c); return; }
+    const deck = this.doc.deck;
+    const fams = fontsOfDeck({ theme: deck.theme, masters: [], layouts: [], slides: c.kind === 'slides' ? c.items : [{ elements: c.items }], media: c.carry.media });
+    void ensureFonts(fams).then(() => { if (!this.bye.signal.aborted) this.pasteClip(c); });
+  }
+
+  private pasteClip(c: Clip): void {
+    const s = this.slide;
     const used = this.doc.usedIds();
     if (c.kind === 'elements' && s) {
+      const foreign = c.deck !== this.doc.id;
       const ids: string[] = [];
       let idx = Math.max(9, ...s.elements.map((x) => x.ph?.idx ?? 0));
       const ops: Op[] = c.items.map((e) => {
-        const copy = clone(e);
-        copy.id = this.doc.nextId('e', used);
-        if (copy.type === 'group') for (const ch of copy.children) ch.id = this.doc.nextId('e', used);
+        const copy = reid(this.doc, e, used);
         if (s.elements.some((x) => x.ph && copy.ph && x.ph.type === copy.ph.type && (x.ph.idx ?? 0) === (copy.ph.idx ?? 0))) {
           if (this.holderKind === 'layout' && copy.ph && !TITLE_KINDS.has(copy.ph.type)) copy.ph = { ...copy.ph, idx: ++idx };
           else { delete copy.ph; delete copy.slot; }
@@ -459,21 +486,14 @@ export class Editor {
         ids.push(copy.id);
         return { op: 'ins', path: [...slidePath(s.id), 'elements'], value: copy } as Op;
       });
-      remapCopies(c.items, ops.map((o) => (o as { value: SlideElement }).value));
-      this.clip = { kind: 'elements', items: c.items.map((e) => ({ ...e, x: (e.x ?? 0) + 12, y: (e.y ?? 0) + 12 })) };
-      if (this.apply([...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
+      const made = ops.map((o) => (o as { value: SlideElement }).value);
+      remapCopies(c.items, made);
+      if (foreign) relink(made, new Map(), true);
+      setClip({ ...c, items: c.items.map((e) => ({ ...e, x: (e.x ?? 0) + 12, y: (e.y ?? 0) + 12 })) });
+      if (this.apply([...(foreign ? carryOps(this.doc.deck, c.carry) : []), ...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
     } else if (c.kind === 'slides' && this.holderKind === 'slide') {
-      const at = this.doc.slideIndex(this.current) + 1;
-      const ids: string[] = [];
-      const ops: Op[] = c.items.map((sl, i) => {
-        const copy = clone(sl);
-        copy.id = this.doc.nextId('s', used);
-        for (const e of copy.elements) e.id = this.doc.nextId('e', used);
-        remapCopies(sl.elements, copy.elements);
-        ids.push(copy.id);
-        return { op: 'ins', path: ['slides'], index: at + i, value: copy } as Op;
-      });
-      if (this.apply(ops, 'Paste slides')) this.setSlideSelection(ids, ids[0]);
+      const r = pasteSlidesOps(this.doc, c, this.doc.slideIndex(this.current) + 1);
+      if (this.apply(r.ops, 'Paste slides') && r.ids.length) this.setSlideSelection(r.ids, r.ids[0]);
     }
   }
 

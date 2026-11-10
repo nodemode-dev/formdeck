@@ -205,6 +205,7 @@ const PREFIX: Array<[RegExp, string, string]> = [
   [/^insert-/, 'Insert', 'Use when something new should go on the slide.'],
   [/^shape:/, 'Insert', 'Use when this shape should be drawn on the slide; the label names the shape.'],
   [/^layout:/, 'Home', 'Use when the selected slides should take this layout; their content moves into its placeholders.'],
+  [/^copy-slides-to:/, 'Home', 'Use when the selected slides should be copied to the end of another open deck; the label names that deck.'],
   [/^set-/, 'Format', 'Use when the selection needs an exact value; the params say which.'],
   [/^go-to-slide$/, 'View', 'Use when the window should show a slide by its number.'],
   [/^zoom-|^view-/, 'View', 'Use when the view should change; the deck does not.'],

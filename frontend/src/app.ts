@@ -138,6 +138,7 @@ export async function startApp(): Promise<void> {
 
   const home = new Home({
     openDeck: (id) => void openDeck(id),
+    closeDeck: (id) => void closeDeck(id),
     createDeck: async (template, title) => {
       try {
         const d = await api.create({ template, title: title ?? 'Untitled deck' });
@@ -202,6 +203,8 @@ export async function startApp(): Promise<void> {
         const at = editor ? openDecks.findIndex((t) => t.doc === editor?.doc) + 1 : openDecks.length;
         doc.onAck = () => renderTabs();
         openDecks.splice(at, 0, { id, doc, off: doc.on(() => renderTabs()) });
+        commands.remove(`copy-slides-to:${id}`);
+        commands.add({ id: `copy-slides-to:${id}`, label: () => doc.deck.title || 'Untitled deck', enabled: () => !!editor && editor.doc !== doc && editor.holderKind === 'slide', run: () => editor?.copySlidesTo(doc) });
       }
       attach(doc);
       home.close();
@@ -222,6 +225,7 @@ export async function startApp(): Promise<void> {
     }
     openDecks.splice(i, 1);
     tab.off();
+    commands.remove(`copy-slides-to:${id}`);
     renderTabs();
     if (!openDecks.length) home.open();
     for (let n = 0; tab.doc.hasPending && n < 100; n++) await new Promise((r) => window.setTimeout(r, 100));
@@ -249,6 +253,9 @@ export async function startApp(): Promise<void> {
     remember(ed);
     ed.dispose();
     editor = null;
+    toolbar.attach(null);
+    inspector.attach(null);
+    drawTools.attach(null);
     views?.hide();
     setHidden(altView, true);
     syncChrome();
@@ -276,6 +283,7 @@ export async function startApp(): Promise<void> {
       if (sel.length) ed.select(sel);
     }
     if (place && place.zoom !== 'fit') ed.stage.setZoom(place.zoom);
+    live.presence(doc.id, ed.current, ed.selection);
     ed.stage.layout();
     const refresh = (): void => { toolbar.sync(); inspector.sync(); syncChrome(); };
     editorOff.push(watchLinks(ed), installModelHandle(ed));

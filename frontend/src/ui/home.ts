@@ -11,6 +11,7 @@ import { dismissToast, pushToast, toast } from './toast';
 
 export interface HomeHooks {
   openDeck(id: string): void;
+  closeDeck(id: string): void;
   createDeck(template: string, title?: string): Promise<void>;
   openFiles(files: File[]): void;
   intake(files: File[], template?: string): void;
@@ -399,7 +400,7 @@ export class Home {
       try { await api.remove(id); done.push(id); } catch (e) { toast(`Could not delete a deck: ${e instanceof Error ? e.message : e}`, 'error'); }
     }
     if (!done.length) return;
-    for (const id of done) this.selected.delete(id);
+    for (const id of done) { this.selected.delete(id); this.hooks.closeDeck(id); }
     const titles = done.map((id) => this.decks.find((d) => d.id === id)?.title ?? 'Untitled deck');
     this.decks = this.decks.filter((d) => !done.includes(d.id));
     this.renderDecks();
