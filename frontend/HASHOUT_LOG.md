@@ -769,3 +769,23 @@ A pending step that failed to re-apply during a rebase was dropped without being
 ## 171. New ids never collide, and a deleted deck lets go · _v0.36.0 (engine/doc.ts usedIds; live/socket.ts deleted, onDeleted, close)
 
 `usedIds` covered slides, elements, comments and sections only, so `nextId` could mint an id already used by a master, layout, guide, animation, component (key or child), macro or custom show; it now walks all of them. On the engine's `deleted` message the socket stops the doc from sending, forgets it and its queued messages, rejects waiting opens and calls `onDeleted`; `close` is safe for a deck it no longer has.
+
+## 172. A tab comes back as it was left · _v0.36.0 (app.ts OpenDeck.place view and master, remember, attach, viewsCtor preload; editor/editor.ts returnSlide)
+
+`remember` kept only slide, selection and zoom and `attach` always hid the alternative view, so a deck left in Slide Sorter, Outline or Master view came back in Normal, and in Master view (where `current` is a layout or master id) at slide 1. A tab now keeps its view and, in Master view, the layout or master in front and the slide to return to; `attach` restores the slide and selection, then re-enters Master view or shows the sorter or outline. The views module is loaded once at start-up and the constructor kept, so a restored view is built and shown in the same frame as the editor, with no frame of the normal stage; if the module is somehow not loaded yet the old import path runs and a failure resets the editor to normal.
+
+## 173. Collaborators keep their place and colour across tabs · _v0.36.0 (app.ts presence, peerSeq, onPresence; editor/editor.ts setPeer seen and colour, PEER_COLORS)
+
+Presence for decks other than the active editor's was dropped and each new Editor started with no peers, so collaborators' cursors vanished on every tab switch until they moved. `app.ts` keeps presence per open deck (name, slide, selection, time, and a colour fixed when the collaborator first appears) and replays it into the new Editor in arrival order with the original timestamps, so expiry stays at 20 s and colours never change; a closed deck's entries go with it.
+
+## 174. A deck deleted elsewhere closes its tab · _v0.36.0 (app.ts live.onDeleted; io/api.ts remove, removedHere)
+
+When the engine reports a deck deleted, its tab closes through `closeDeck(id, true)` with a toast naming the deck. The toast is skipped for a deck this window deleted itself (Home's Trash, Delete Deck): `api.remove` records the id before the request, because the engine's message can arrive before the request returns.
+
+## 175. Closing a window waits for unsaved edits · _v0.36.0 (app.ts beforeunload, onCloseRequested; src-tauri/capabilities/default.json core:window:allow-destroy)
+
+A window closed with steps still unacknowledged lost them. In a browser, `beforeunload` asks for confirmation only while a deck has pending steps. In the desktop app the close-requested handler prevents the close only while something is pending, disposes the editor (flushing a notes or title edit), waits up to 5 s for acknowledgements, ignores further close requests meanwhile, then closes, falling back to destroy, and re-attaches the deck if both fail. Tauri's `onCloseRequested` destroys the window itself when the handler does not prevent it, which needs `core:window:allow-destroy`; without it no window could be closed.
+
+## 176. A deck keeps at least one slide · _v0.36.0 (editor/commands.ts delete-slide; editor/editor.ts copy cut; editor/views.ts deleteSlide)
+
+Deleting or cutting every slide left the editor with no current slide and an empty stage. Delete Slide, the outline's delete and Cut refuse when the selection is the whole deck, with "A deck needs at least one slide."; Cut still copies the slides.

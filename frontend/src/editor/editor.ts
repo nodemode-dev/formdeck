@@ -27,7 +27,7 @@ const PEER_TTL = 20000;
 
 export interface Peer { name: string; slide?: string; sel?: string[]; color: string; seen: number }
 
-const PEER_COLORS = ['#3b82f6', '#10b981', '#a855f7', '#eab308', '#ec4899', '#06b6d4'];
+export const PEER_COLORS = ['#3b82f6', '#10b981', '#a855f7', '#eab308', '#ec4899', '#06b6d4'];
 
 export interface EditorRoots { stage: HTMLElement; stripScroll: HTMLElement; stripCount: HTMLElement; notes: HTMLTextAreaElement; title: HTMLInputElement }
 
@@ -448,7 +448,8 @@ export class Editor {
       const clip = slideClip(this.doc.deck, ids);
       if (!clip) return;
       setClip(clip);
-      if (cut) this.apply(deleteSlideOps(this.doc, ids), 'Cut slides');
+      if (cut && this.doc.deck.slides.every((s) => ids.includes(s.id))) toast('A deck needs at least one slide. The slides were copied instead.');
+      else if (cut) this.apply(deleteSlideOps(this.doc, ids), 'Cut slides');
     }
   }
 
@@ -517,14 +518,17 @@ export class Editor {
 
   setStatus(el: HTMLElement | null, text: string): void { setText(el, text); }
 
-  setPeer(client: string, name: string | undefined, slide: string | undefined, sel: string[] | undefined): void {
+  setPeer(client: string, name: string | undefined, slide: string | undefined, sel: string[] | undefined, seen?: number, colour?: string): void {
     const prev = this.peers.get(client);
-    const color = prev?.color ?? PEER_COLORS[this.peers.size % PEER_COLORS.length];
-    this.peers.set(client, { name: name || 'Collaborator', slide, sel, color, seen: performance.now() });
+    const color = prev?.color ?? colour ?? PEER_COLORS[this.peers.size % PEER_COLORS.length];
+    const at = seen ?? performance.now();
+    this.peers.set(client, { name: name || 'Collaborator', slide, sel, color, seen: at });
     this.stage.drawOverlay();
     window.clearTimeout(this.peerTimer);
-    this.peerTimer = window.setTimeout(() => this.prunePeers(), PEER_TTL + 50);
+    this.peerTimer = window.setTimeout(() => this.prunePeers(), Math.max(0, at + PEER_TTL - performance.now()) + 50);
   }
+
+  get returnSlide(): string { return this.returnTo; }
 
   private prunePeers(): void {
     const now = performance.now();

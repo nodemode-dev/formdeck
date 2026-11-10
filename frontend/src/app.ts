@@ -1,7 +1,8 @@
 import type { DeckDoc } from './engine/doc';
 import type { Color } from './engine/model';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
-import { api } from './io/api';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { api, removedHere } from './io/api';
 import { LiveClient } from './live/socket';
 import { ensureFonts, fontsOfDeck } from './render/fonts';
 import { PLAYER_EVENT } from './render/slide';
@@ -24,7 +25,7 @@ import { installResponsive } from './ui/responsive';
 import { toast } from './ui/toast';
 import { DeckTabs } from './ui/tabs';
 import { openWindow } from './ui/windows';
-import { Editor } from './editor/editor';
+import { Editor, PEER_COLORS } from './editor/editor';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
@@ -133,6 +134,8 @@ export async function startApp(): Promise<void> {
   let editorOff: Array<() => void> = [];
   let agentsAllowed = false;
   let views: { refresh(): void; show(kind: 'sorter' | 'outline'): void; hide(): void } | null = null;
+  let viewsCtor: (new (el: HTMLElement, get: () => Editor | null) => NonNullable<typeof views>) | null = null;
+  void import('./editor/views').then((m) => { viewsCtor = m.AltViews; }).catch(() => undefined);
   let exts: FormdeckExtensions | null = null;
   const bridge = new AgentBridge({ extension: (name, args) => exts ? exts.agent(name, args) : Promise.resolve({ content: [{ type: 'text', text: 'The extension host is still starting.' }], isError: true }), editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
 
@@ -172,8 +175,11 @@ export async function startApp(): Promise<void> {
     inspector.sync();
   };
 
-  interface OpenDeck { id: string; doc: DeckDoc; off: () => void; place?: { slide: string; sel: string[]; zoom: number | 'fit' } }
+  interface OpenDeck { id: string; doc: DeckDoc; off: () => void; place?: { slide: string; sel: string[]; zoom: number | 'fit'; view: 'normal' | 'sorter' | 'outline'; master?: { kind: 'layout' | 'master'; id: string } } }
   const openDecks: OpenDeck[] = [];
+  const PRESENCE_TTL = 20000;
+  const presence = new Map<string, Map<string, { name?: string; slide?: string; sel?: string[]; at: number; color: string }>>();
+  const peerSeq = new Map<string, number>();
   const opening = new Set<string>();
   const tabStrip = new DeckTabs(q(root, '.fd-tabs'), {
     activate: (id) => void openDeck(id),
@@ -225,6 +231,8 @@ export async function startApp(): Promise<void> {
     }
     openDecks.splice(i, 1);
     tab.off();
+    presence.delete(id);
+    peerSeq.delete(id);
     commands.remove(`copy-slides-to:${id}`);
     renderTabs();
     if (!openDecks.length) home.open();
@@ -242,7 +250,9 @@ export async function startApp(): Promise<void> {
 
   function remember(ed: Editor): void {
     const tab = openDecks.find((t) => t.doc === ed.doc);
-    if (tab) tab.place = { slide: ed.current, sel: [...ed.selection], zoom: ed.stage.zoom };
+    if (!tab) return;
+    const inMaster = ed.holderKind !== 'slide';
+    tab.place = { slide: inMaster ? ed.returnSlide : ed.current, sel: inMaster ? [] : [...ed.selection], zoom: ed.stage.zoom, view: ed.view, master: inMaster ? { kind: ed.holderKind as 'layout' | 'master', id: ed.current } : undefined };
   }
 
   function detach(): void {
@@ -282,7 +292,16 @@ export async function startApp(): Promise<void> {
       const sel = place.sel.filter((s) => ids.includes(s));
       if (sel.length) ed.select(sel);
     }
+    if (place?.master) {
+      ed.enterMaster();
+      ed.setHolder(place.master.kind, place.master.id);
+    }
     if (place && place.zoom !== 'fit') ed.stage.setZoom(place.zoom);
+    const peerNow = performance.now();
+    const known = presence.get(doc.id);
+    if (known) {
+      for (const [client, p] of known) if (peerNow - p.at < PRESENCE_TTL) ed.setPeer(client, p.name, p.slide, p.sel, p.at, p.color);
+    }
     live.presence(doc.id, ed.current, ed.selection);
     ed.stage.layout();
     const refresh = (): void => { toolbar.sync(); inspector.sync(); syncChrome(); };
@@ -300,8 +319,25 @@ export async function startApp(): Promise<void> {
     }));
     doc.onAck = () => { syncChrome(); renderTabs(); };
     editorOff.push(() => { doc.onAck = openDecks.some((t) => t.doc === doc) ? () => renderTabs() : null; });
-    if (views) views.hide();
-    setHidden(altView, true);
+    const wantView = place && !place.master ? place.view : 'normal';
+    ed.view = wantView;
+    if (wantView === 'normal') {
+      if (views) views.hide();
+      setHidden(altView, true);
+    } else if (views || viewsCtor) {
+      views ??= new viewsCtor!(altView, () => editor);
+      views.show(wantView);
+      setHidden(altView, false);
+    } else {
+      void import('./editor/views').then((m) => {
+        if (editor !== ed || ed.view !== wantView) return;
+        views ??= new m.AltViews(altView, () => editor);
+        views.show(wantView);
+        setHidden(altView, false);
+      }).catch(() => {
+        if (editor === ed) ed.view = 'normal';
+      });
+    }
     refresh();
     renderTabs();
     scheduleThumb();
@@ -343,7 +379,54 @@ export async function startApp(): Promise<void> {
   live.onNotice = (t, k) => toast(t, k);
   live.onStatus = () => syncChrome();
   window.addEventListener(PLAYER_EVENT, () => queueMicrotask(() => { toolbar.sync(); syncChrome(); }));
-  live.onPresence = (m) => { if (editor && m.deck === editor.doc.id) editor.setPeer(m.client, m.name, m.slide, m.sel); };
+  live.onPresence = (m) => {
+    if (!openDecks.some((t) => t.id === m.deck)) return;
+    let peers = presence.get(m.deck);
+    if (!peers) { peers = new Map(); presence.set(m.deck, peers); }
+    const now = performance.now();
+    const color = peers.get(m.client)?.color ?? PEER_COLORS[(peerSeq.get(m.deck) ?? 0) % PEER_COLORS.length];
+    if (!peers.has(m.client)) peerSeq.set(m.deck, (peerSeq.get(m.deck) ?? 0) + 1);
+    peers.set(m.client, { name: m.name, slide: m.slide, sel: m.sel, at: now, color });
+    for (const [c, p] of peers) if (now - p.at >= PRESENCE_TTL) peers.delete(c);
+    if (editor && m.deck === editor.doc.id) editor.setPeer(m.client, m.name, m.slide, m.sel, now, color);
+  };
+  live.onDeleted = (deck) => {
+    const tab = openDecks.find((t) => t.id === deck);
+    if (!tab) return;
+    if (!removedHere(deck)) toast(`${tab.doc.deck.title || 'Untitled deck'} was deleted in another window.`, 'info');
+    void closeDeck(deck, true);
+  };
+  const unsaved = (): boolean => openDecks.some((t) => t.doc.hasPending);
+  window.addEventListener('beforeunload', (e) => {
+    if ('__TAURI_INTERNALS__' in window || !unsaved()) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  if ('__TAURI_INTERNALS__' in window) {
+    let closing = false;
+    let final = false;
+    void getCurrentWindow().onCloseRequested(async (ev) => {
+      if (final || (!closing && !unsaved())) return;
+      ev.preventDefault();
+      if (closing) return;
+      closing = true;
+      const back = editor?.doc ?? null;
+      detach();
+      for (let n = 0; unsaved() && n < 50; n++) await new Promise((r) => window.setTimeout(r, 100));
+      final = true;
+      try {
+        await getCurrentWindow().close();
+      } catch {
+        try {
+          await getCurrentWindow().destroy();
+        } catch {
+          closing = false;
+          final = false;
+          if (back && openDecks.some((t) => t.doc === back)) attach(back);
+        }
+      }
+    }).catch(() => undefined);
+  }
   const followShow = (deck: string, m: Record<string, unknown>, tries = 0): void => {
     const ed = editor;
     if (ed && deck === ed.doc.id) { void import('./present/show').then((s) => s.followShow({ doc: ed.doc, live }, m)); return; }

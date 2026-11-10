@@ -6,6 +6,7 @@ import { SlideView } from '../render/slide';
 import { comboOf } from '../ui/commands';
 import { el, escapeHtml, q, setClass, setHidden, setHtml, setStyleVar, setText, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
+import { toast } from '../ui/toast';
 import { deleteSlideOps, dirtyOp, fillPlaceholderOps, moveSlidesOps, newSlideOps } from './actions';
 import type { Editor } from './editor';
 
@@ -833,6 +834,7 @@ class Outline extends Pane {
     const ed = this.ed;
     if (!ed) return;
     const ids = ed.doc.deck.slides.map((s) => s.id);
+    if (ids.length <= 1) { toast('A deck needs at least one slide.'); return; }
     const i = ids.indexOf(sid);
     const next = ids[i - 1] ?? ids[i + 1];
     const row = this.rows.get(sid);
