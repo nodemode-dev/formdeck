@@ -233,6 +233,10 @@ export class LiveClient {
       return;
     }
     if (t === 'tool') {
+      if (typeof m.until === 'number' && Date.now() > m.until) {
+        this.raw({ t: 'toolResult', id: m.id, result: { content: [{ type: 'text', text: `The window received ${String(m.name)} after the engine stopped waiting, so it did not run it.` }], isError: true } });
+        return;
+      }
       let result: unknown;
       try {
         result = this.onTool ? await this.onTool(String(m.name), (m.args as Record<string, unknown>) ?? {}) : { content: [{ type: 'text', text: 'formdeck has no window tools ready.' }], isError: true };

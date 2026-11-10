@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 from app.core import ids
 from app.services.store import STORE
@@ -50,7 +51,7 @@ async def window_call(name: str, args: dict, deck: str | None = None, timeout: f
             pending.add(rid)
         try:
             try:
-                await client.send({"t": "tool", "id": rid, "name": name, "args": args})
+                await client.send({"t": "tool", "id": rid, "name": name, "args": args, "until": int((time.time() + wait) * 1000)})
             except Exception:
                 STORE.clients.pop(client.id, None)
                 continue
@@ -59,7 +60,7 @@ async def window_call(name: str, args: dict, deck: str | None = None, timeout: f
                 out = await asyncio.wait_for(fut, wait)
             except asyncio.TimeoutError:
                 if not safe:
-                    return {"content": [{"type": "text", "text": f"The formdeck window did not answer {name} within {int(timeout)} seconds."}], "isError": True}
+                    return {"content": [{"type": "text", "text": f"The formdeck window did not answer {name} within {int(timeout)} seconds. It will not start the call now, but if it had already started, the change may still appear."}], "isError": True}
                 continue
             if out is WINDOW_GONE:
                 if not safe:

@@ -861,3 +861,7 @@ The engine's restore now returns how many duplicate ids it gave fresh ones (back
 ## 194. Source formatting is recognised by what it looks like · _v0.37.0 (editor/clipboard.ts canon, fnv1a, masterPrint, layoutPrint, importSource)
 
 Review of 183 found the reuse key fragile: it was the source deck id plus the master or layout id, so the same source reopened under another id (Save As, a copy, a re-import) counted as new, and pptx and odp export dropped the key, so every later paste added another "Name 2" master. Decks have no stable identity to key on, so the key is now a fingerprint of the content: FNV-1a (32-bit, written here) over a canonical JSON (keys sorted, every `id` dropped) of the master's theme, background, text styles and elements, or the layout's name and elements. Names and ids stay out of it, so renames and re-ids still match; an edited source master is new, as it should be. Reuse also accepts the earlier key form. The key survives export and import (backend 121).
+
+## 195. A late tool call is refused, not run · _v0.37.0 (live/socket.ts tool handler)
+
+A window frozen past the engine's wait (a debugger pause, a hung main thread) used to run a buffered mutating tool call when it woke, after the caller had been told it timed out. Tool messages now carry `until` (backend 122); a call handled after that moment answers that it arrived too late and does nothing.
