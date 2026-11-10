@@ -469,3 +469,7 @@ FORMAT.md keeps group children in slide coordinates and the renderer draws a gro
 ## 98. Overflow slides do not repeat the section, and picture bullets keep their picture · _v0.35.0 (services/compiler/compile.py split_overflow; services/compiler/spec.py parse_slide)
 
 A slide that overflowed was split into copies of its whole spec, so each "(cont.)" slide repeated `section`, `kicker` and `subtitle`, and the deck got a second section of the same name starting at the continuation. Every chunk after the first drops those three, as it already dropped the image and notes. A bullet that was only a picture became an empty bullet and the picture was lost on every layout except team (which reads `entry["image"]` and clears the bullets first); bullet pictures now join the slide's images like a picture on its own line, and a bullet left with no text is dropped.
+
+## 99. Switching template keeps every preserved layout · _v0.35.0 (services/templates/remap.py remap)
+
+`kept` held the old-to-preserved layout map for the whole loop, but the branch for slides without a spec rebound it to the slide's element list, so every slide after the first such slide lost its preserved layout and was laid out by kind instead. The element list is `els`.
