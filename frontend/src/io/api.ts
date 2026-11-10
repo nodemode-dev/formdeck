@@ -69,7 +69,7 @@ export const api = {
   saveTemplate: (deckId: string, name: string) => post<{ template: string }>(`/api/decks/${deckId}/save-template`, { name }),
   versions: (deckId: string) => get<{ versions: Array<{ n: number; name: string; at: string; slides: number }> }>(`/api/decks/${deckId}/versions`),
   saveVersion: (deckId: string, name: string) => post<{ n: number }>(`/api/decks/${deckId}/versions`, { name }),
-  restoreVersion: (deckId: string, n: number) => post<{ rev: number }>(`/api/decks/${deckId}/versions/${n}/restore`),
+  restoreVersion: (deckId: string, n: number) => post<{ rev: number; repaired?: number }>(`/api/decks/${deckId}/versions/${n}/restore`),
   version: (deckId: string, n: number) => get<{ info: { n: number; name: string; at: string }; deck: Deck }>(`/api/decks/${deckId}/versions/${n}`),
   activity: (deckId: string, who = '', limit = 300) => get<{ entries: ActivityEntry[]; people: string[]; total: number }>(`/api/decks/${deckId}/activity?limit=${limit}${who ? `&who=${encodeURIComponent(who)}` : ''}`),
   async compareFile(file: File): Promise<{ deck: Deck; name: string }> {

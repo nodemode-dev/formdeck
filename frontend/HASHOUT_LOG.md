@@ -853,3 +853,7 @@ Review of 180 found build storms: the native focus event built even before the f
 ## 192. A drifting finger keeps its drop · _v0.37.0 (editor/filmstrip.ts showDrop, touchDown, down)
 
 Review of 187 found that the inside test gave slack only along the strip, so on the phone's horizontal strip a touch drag whose finger drifted a few pixels above or below it cancelled the drop. `showDrop` takes a cross-axis slack: 32 px for touch, 8 px for mouse and pen. The Escape and pointer cancel paths now also remove the `life` abort listener, which used to linger until dispose, one closure per cancelled drag.
+
+## 193. Restore says when it repaired ids · _v0.37.0 (io/api.ts restoreVersion; ui/dialogs-file.ts VersionsDialog)
+
+The engine's restore now returns how many duplicate ids it gave fresh ones (backend 112, 117), and the Versions dialog ignored the result. When the count is above zero the restore toast adds "1 duplicate id was given a new one." or "N duplicate ids were given new ones."; otherwise it reads as before. The engine's 404, 409 and 422 messages already reach the dialog's "Could not restore" line as written.

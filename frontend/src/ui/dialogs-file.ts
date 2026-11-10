@@ -1721,10 +1721,12 @@ class VersionsDialog extends Dialog {
     setDisabled(b, true);
     this.status.busy(`Restoring ${v.name}`);
     try {
-      await api.restoreVersion(ed.doc.id, v.n);
+      const res = await api.restoreVersion(ed.doc.id, v.n);
       this.status.done();
       this.close();
-      toast(`Restored ${v.name || `version ${v.n}`} · Undo with ${formatKeys('Mod+Z')}`);
+      const fixed = res.repaired ?? 0;
+      const note = fixed > 0 ? ` ${fixed === 1 ? '1 duplicate id was given a new one.' : `${fixed} duplicate ids were given new ones.`}` : '';
+      toast(`Restored ${v.name || `version ${v.n}`} · Undo with ${formatKeys('Mod+Z')}${note ? '.' : ''}${note}`);
     } catch (e) {
       this.status.error(`Could not restore: ${errText(e)}`);
     } finally {
