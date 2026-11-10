@@ -6,5 +6,5 @@ export async function openWindow(deckId?: string): Promise<void> {
     await invoke('open_window', { url: url.toString() });
     return;
   }
-  window.open(url.toString(), '_blank');
+  if (!window.open(url.toString(), '_blank')) throw new Error('the browser blocked the new window. Allow pop-ups for formdeck and try again.');
 }
