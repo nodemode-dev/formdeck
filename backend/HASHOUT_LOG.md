@@ -473,3 +473,19 @@ A slide that overflowed was split into copies of its whole spec, so each "(cont.
 ## 99. Switching template keeps every preserved layout · _v0.35.0 (services/templates/remap.py remap)
 
 `kept` held the old-to-preserved layout map for the whole loop, but the branch for slides without a spec rebound it to the slide's element list, so every slide after the first such slide lost its preserved layout and was laid out by kind instead. The element list is `els`.
+
+## 100. A step id is applied once, across reconnects and restarts · _v0.36.0 (services/store.py Session.applied, remember, step dup, save_now steps.json, session load; routers/live.py step dup message)
+
+After a dropped connection the window re-sends the steps it never saw acknowledged, with their original ids, and some of them already reached the engine. Each session remembers its last 2000 applied step ids; a repeated id applies nothing, leaves rev alone and answers `{"dup": true}`, which `live.py` turns into a `dup` message to the sender (the window then undoes its local copy). The record is written to `steps.json` beside `deck.json` from the same snapshot as each save and read back when the session is opened, so it survives `close_if_idle` and an engine restart; it never enters `deck.json`, so packages and exports do not carry it. Ids are recorded only after a step passes validation, so a refused step is never called a duplicate.
+
+## 101. A step that breaks the deck's structure is refused · _v0.36.0 (services/store.py integrity, integrity_reason, structural, step)
+
+Any op used to be accepted, so one step could change the deck id, delete every master, delete a layout slides still use or leave a slide without a layout, and that was saved. When a step touches the structure (the deck id, whole slides, layouts or masters, a slide's layout or a layout's master), `step` compares the integrity of the deck before and after; a violation the step introduced rolls the deck back with the inverse ops and raises `OpError` with a reason ("the step would leave slide s4 without a layout"), so the existing reject paths answer. Comparing with the state before the step keeps legacy decks that already break a rule editable. Text and frame edits skip both checks. Undo and redo replay states that were already valid and are not checked.
+
+## 102. Undo merges only edits to the same thing · _v0.36.0 (services/store.py op_targets, Step.targets, step coalesce)
+
+Steps with the same coalesce key from one client within 1.5 s merged into one undo entry whatever they touched, so nudging a shape on slide 1 and another on slide 2 undid together, and so did two slide inserts. Each step now carries its targets (slide and element ids, or the path plus the inserted or deleted id), and a step merges only when its targets equal the top entry's.
+
+## 103. A deleted deck stays deleted and every window hears of it · _v0.36.0 (services/store.py Session.deleted, Session.io, delete, save_now, step, _travel; routers/decks.py delete_deck; routers/live.py presence, unsub)
+
+A save already writing in a worker thread when the deck was deleted wrote `deck.json` again and the deck came back in the library, and windows that had the deck open kept sending steps that were refused with no explanation. `delete` marks the session deleted, cancels its save task and moves the folder under the session's io lock, which `save_now` also holds and checks before writing; `DELETE /decks/{id}` runs it in a thread so the event loop never waits on a write, then sends `{"t":"deleted"}` to every subscribed client, unsubscribes them and clears the deck's show and question state. A step or undo already queued behind the lock raises "the deck was deleted". `live.py` also records the deck each window shows (`client.active`, from presence, cleared on unsubscribe and delete) for the bridge (104).

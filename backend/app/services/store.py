@@ -4,7 +4,9 @@ import itertools
 import json
 import re
 import shutil
+import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -15,6 +17,7 @@ COALESCE_SECONDS = 1.5
 HISTORY_LIMIT = 400
 SAVE_DELAY = 0.8
 ACTIVITY_LIMIT = 2000
+APPLIED_LIMIT = 2000
 ACTIVITY_TRIM_BYTES = 900_000
 TRASH_ENTRY = re.compile(r"(d_[A-Za-z0-9_]+)-(\d{1,12})")
 
@@ -30,6 +33,7 @@ class Step:
     at: float
     turn: str | None = None
     coalesce: str | None = None
+    targets: frozenset = frozenset()
 
 
 class Client:
@@ -54,6 +58,84 @@ class Session:
     saved_rev: int = 0
     last_turn: str | None = None
     activity: list = field(default_factory=list)
+    applied: deque = field(default_factory=deque)
+    applied_set: set = field(default_factory=set)
+    deleted: bool = False
+    io: threading.Lock = field(default_factory=threading.Lock)
+
+    def remember(self, step_id: str) -> None:
+        if step_id in self.applied_set:
+            return
+        self.applied.append(step_id)
+        self.applied_set.add(step_id)
+        while len(self.applied) > APPLIED_LIMIT:
+            self.applied_set.discard(self.applied.popleft())
+
+
+def op_targets(ops: list) -> frozenset:
+    out = set()
+    for op in ops:
+        path = op.get("path") or []
+        if path[:1] == ["slides"] and len(path) >= 2 and isinstance(path[1], dict):
+            if len(path) >= 4 and path[2] == "elements" and isinstance(path[3], dict):
+                out.add(("slides", path[1].get("id"), path[3].get("id")))
+            else:
+                out.add(("slides", path[1].get("id")))
+        else:
+            ident = None
+            if op.get("op") in ("ins", "del"):
+                v = op.get("value")
+                ident = v.get("id") if isinstance(v, dict) and v.get("id") is not None else op.get("id")
+            out.add(("path", json.dumps(path, sort_keys=True, default=str), json.dumps(ident, default=str)))
+    return frozenset(out)
+
+
+def structural(ops: list) -> bool:
+    for op in ops:
+        path = op.get("path") or []
+        if not path or (path[0] in ("id", "slides", "layouts", "masters") and len(path) <= 2):
+            return True
+        if len(path) == 3 and path[0] == "slides" and path[2] == "layout":
+            return True
+        if len(path) == 3 and path[0] == "layouts" and path[2] == "master":
+            return True
+    return False
+
+
+def integrity(deck: dict) -> set:
+    out = set()
+    masters = [m.get("id") for m in deck.get("masters") or [] if isinstance(m, dict)]
+    layouts = [x for x in deck.get("layouts") or [] if isinstance(x, dict)]
+    slides = [x for x in deck.get("slides") or [] if isinstance(x, dict)]
+    mset, lset = set(masters), {x.get("id") for x in layouts}
+    if not masters:
+        out.add(("nomaster", ""))
+    for kind, seq in (("masters", masters), ("layouts", [x.get("id") for x in layouts]), ("slides", [x.get("id") for x in slides])):
+        seen = set()
+        for i in seq:
+            if i in seen:
+                out.add(("dup-" + kind, i))
+            seen.add(i)
+    for x in layouts:
+        if x.get("master") not in mset:
+            out.add(("layout-master", x.get("id")))
+    for x in slides:
+        if x.get("layout") not in lset:
+            out.add(("slide-layout", x.get("id")))
+    return out
+
+
+def integrity_reason(deck_id_changed: bool, new: set) -> str:
+    if deck_id_changed:
+        return "the step would change the deck id"
+    kind, i = sorted(new, key=str)[0]
+    if kind == "nomaster":
+        return "the step would leave the deck without a master"
+    if kind == "layout-master":
+        return f"the step would leave layout {i} without a master"
+    if kind == "slide-layout":
+        return f"the step would leave slide {i} without a layout"
+    return f"the step would duplicate the {kind[4:]} id {i}"
 
 
 def deck_dir(deck_id: str) -> Path:
@@ -211,6 +293,12 @@ class Store:
             raise KeyError(deck_id)
         deck = model.normalize(json.loads(path.read_text(encoding="utf-8")))
         s = Session(deck=deck)
+        try:
+            for x in json.loads((deck_dir(deck_id) / "steps.json").read_text(encoding="utf-8"))[-APPLIED_LIMIT:]:
+                if isinstance(x, str):
+                    s.remember(x)
+        except (OSError, ValueError, TypeError):
+            pass
         self.sessions[deck_id] = s
         return s
 
@@ -226,12 +314,16 @@ class Store:
         s = self.sessions.get(deck_id)
         if s is None:
             return
-        rev, deck = snap or (s.rev, copy.deepcopy(s.deck))
+        rev, deck, applied = snap or (s.rev, copy.deepcopy(s.deck), list(s.applied))
         d = deck_dir(deck_id)
-        _write_json(d / "deck.json", deck)
-        _write_json(d / "info.json", model.summary(deck))
-        s.saved_rev = max(s.saved_rev, rev)
-        self._flush_activity(deck_id, s)
+        with s.io:
+            if s.deleted or self.sessions.get(deck_id) is not s:
+                return
+            _write_json(d / "deck.json", deck)
+            _write_json(d / "steps.json", applied)
+            _write_json(d / "info.json", model.summary(deck))
+            s.saved_rev = max(s.saved_rev, rev)
+            self._flush_activity(deck_id, s)
 
     def _schedule_save(self, deck_id: str) -> None:
         s = self.sessions[deck_id]
@@ -240,9 +332,9 @@ class Store:
 
         async def later():
             await asyncio.sleep(SAVE_DELAY)
-            while s.rev != s.saved_rev and self.sessions.get(deck_id) is s:
+            while s.rev != s.saved_rev and not s.deleted and self.sessions.get(deck_id) is s:
                 async with s.lock:
-                    snap = (s.rev, copy.deepcopy(s.deck))
+                    snap = (s.rev, copy.deepcopy(s.deck), list(s.applied))
                 await asyncio.to_thread(self.save_now, deck_id, snap)
         try:
             s.save_task = asyncio.get_running_loop().create_task(later())
@@ -271,13 +363,27 @@ class Store:
                    coalesce: str | None = None, step_id: str | None = None, turn: str | None = None, who: str | None = None) -> dict:
         s = self.session(deck_id)
         async with s.lock:
+            if s.deleted:
+                raise opsmod.OpError("the deck was deleted")
+            if step_id and step_id in s.applied_set:
+                return {"rev": s.rev, "step": step_id, "dup": True}
+            check = structural(ops)
+            before = integrity(s.deck) if check else set()
+            deck_key = s.deck.get("id")
             inverse = opsmod.apply_all(s.deck, ops)
+            fresh = integrity(s.deck) - before if check else set()
+            idchanged = s.deck.get("id") != deck_key
+            if fresh or idchanged:
+                opsmod.apply_all(s.deck, inverse)
+                raise opsmod.OpError(integrity_reason(idchanged, fresh))
             s.rev += 1
             sid = step_id or f"k{next(self._steps)}"
+            s.remember(sid)
             now = time.monotonic()
             top = s.undo[-1] if s.undo else None
             slides = touched_slides(s.deck, ops) or touched_slides(s.deck, inverse)
-            if coalesce and top and top.coalesce == coalesce and top.client == client and now - top.at < COALESCE_SECONDS:
+            targets = op_targets(ops)
+            if coalesce and top and top.coalesce == coalesce and top.client == client and now - top.at < COALESCE_SECONDS and top.targets == targets:
                 top.ops = top.ops + ops
                 top.inverse = inverse + top.inverse
                 top.at = now
@@ -286,7 +392,7 @@ class Store:
                     last["at"] = model.now_iso()
                     last["slides"] = last["slides"] + [x for x in slides if x not in last["slides"]]
             else:
-                s.undo.append(Step(sid, label, origin, client, list(ops), inverse, now, turn, coalesce))
+                s.undo.append(Step(sid, label, origin, client, list(ops), inverse, now, turn, coalesce, targets))
                 del s.undo[:-HISTORY_LIMIT]
                 who = who or self.who(client, origin)
                 self._log(s, sid, who, origin, label, slides)
@@ -308,7 +414,9 @@ class Store:
     async def _travel(self, deck_id: str, client: str | None, scope: str, back: bool) -> dict | None:
         s = self.session(deck_id)
         async with s.lock:
-            source, target = (s.undo, s.redo) if back else (s.redo, s.undo)
+            if s.deleted:
+                raise opsmod.OpError("the deck was deleted")
+            source, target =(s.undo, s.redo) if back else (s.redo, s.undo)
             if not source:
                 return None
             batch = [source.pop()]
@@ -351,13 +459,22 @@ class Store:
             self.sessions.pop(deck_id, None)
 
     def delete(self, deck_id: str) -> None:
-        self.sessions.pop(deck_id, None)
+        s = self.sessions.pop(deck_id, None)
         d = deck_dir(deck_id)
-        if d.is_dir():
-            trash = config.decks_dir() / ".trash"
-            trash.mkdir(exist_ok=True)
-            dest = trash / f"{deck_id}-{int(time.time())}"
-            shutil.move(str(d), str(dest))
+        if s is not None:
+            s.deleted = True
+            task = s.save_task
+            if task is not None and not task.done():
+                try:
+                    task.get_loop().call_soon_threadsafe(task.cancel)
+                except RuntimeError:
+                    pass
+        with s.io if s is not None else threading.Lock():
+            if d.is_dir():
+                trash = config.decks_dir() / ".trash"
+                trash.mkdir(exist_ok=True)
+                dest = trash / f"{deck_id}-{int(time.time())}"
+                shutil.move(str(d), str(dest))
 
     def _trash_entry(self, entry: str) -> Path:
         if not TRASH_ENTRY.fullmatch(entry or ""):

@@ -108,9 +108,17 @@ def get_deck(deck_id: str) -> dict:
 
 
 @router.delete("/decks/{deck_id}")
-def delete_deck(deck_id: str) -> dict:
+async def delete_deck(deck_id: str) -> dict:
+    from app.routers import live
     _session_or_404(deck_id)
-    STORE.delete(deck_id)
+    await asyncio.to_thread(STORE.delete, deck_id)
+    live.SHOWS.pop(deck_id, None)
+    live.QUESTIONS.pop(deck_id, None)
+    await STORE.broadcast(deck_id, {"t": "deleted", "deck": deck_id})
+    for c in list(STORE.clients.values()):
+        c.decks.discard(deck_id)
+        if getattr(c, "active", None) == deck_id:
+            c.active = None
     return {"ok": True}
 
 

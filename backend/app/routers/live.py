@@ -161,11 +161,15 @@ async def handle(client: Client, msg: dict) -> None:
         return
     if t == "unsub":
         client.decks.discard(deck_id)
+        if getattr(client, "active", None) == deck_id:
+            client.active = None
         STORE.close_if_idle(deck_id)
         return
     if t == "step":
         try:
-            await STORE.step(deck_id, msg.get("ops") or [], msg.get("label") or "Edit", "user", client.id, msg.get("coalesce"), msg.get("id"))
+            result = await STORE.step(deck_id, msg.get("ops") or [], msg.get("label") or "Edit", "user", client.id, msg.get("coalesce"), msg.get("id"))
+            if isinstance(result, dict) and result.get("dup"):
+                await client.send({"t": "dup", "deck": deck_id, "id": msg.get("id"), "rev": result["rev"]})
         except (opsmod.OpError, KeyError, TypeError, IndexError) as exc:
             await client.send({"t": "reject", "deck": deck_id, "id": msg.get("id"), "error": str(exc)})
             try:
@@ -187,4 +191,5 @@ async def handle(client: Client, msg: dict) -> None:
         return
     if t == "presence":
         client.focus = (deck_id, msg.get("slide"))
+        client.active = deck_id
         await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "name": client.name, "slide": msg.get("slide"), "sel": msg.get("sel")}, skip=client.id)
