@@ -849,3 +849,7 @@ Review of 185 found that the Editor sends presence on every slide or selection c
 ## 191. One menu build per reason · _v0.37.0 (ui/native-menu.ts NativeMenus.build, watchNative)
 
 Review of 180 found build storms: the native focus event built even before the first build (forcing a second through `again`), a focus built twice (DOM and native event), and a window-closed event built three times. `build(force)` now skips a non-forced call that would rebuild the same signature and text mode within 300 ms of the last build, and a non-forced call during a build of the same shape no longer queues another; the native focus handler waits for the first build; the window-closed reclaim forces one build when this window is key and skips its 150 and 600 ms retries once that succeeds.
+
+## 192. A drifting finger keeps its drop · _v0.37.0 (editor/filmstrip.ts showDrop, touchDown, down)
+
+Review of 187 found that the inside test gave slack only along the strip, so on the phone's horizontal strip a touch drag whose finger drifted a few pixels above or below it cancelled the drop. `showDrop` takes a cross-axis slack: 32 px for touch, 8 px for mouse and pen. The Escape and pointer cancel paths now also remove the `life` abort listener, which used to linger until dispose, one closure per cancelled drag.

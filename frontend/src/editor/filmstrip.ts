@@ -354,6 +354,7 @@ export class Filmstrip {
     const ac = new AbortController();
     const kill = (): void => {
       ac.abort();
+      this.life.signal.removeEventListener('abort', kill);
       press.cancel();
       node?.classList.remove('is-lifted');
       this.dragIds = null;
@@ -369,7 +370,7 @@ export class Filmstrip {
       if (ev.pointerId !== e.pointerId) return;
       if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) moved = true;
       if (!lifted) { press.move(ev); return; }
-      this.showDrop(ev.clientX, ev.clientY);
+      this.showDrop(ev.clientX, ev.clientY, 32);
     };
     const done = (ev: PointerEvent): void => {
       if (ev.pointerId !== e.pointerId) return;
@@ -438,6 +439,7 @@ export class Filmstrip {
     const ac = new AbortController();
     const kill = (): void => {
       ac.abort();
+      this.life.signal.removeEventListener('abort', kill);
       this.dragIds = null;
       this.dropAt = -1;
       for (const it of this.items.values()) it.node.classList.remove('is-drop-before', 'is-drop-after');
@@ -465,14 +467,14 @@ export class Filmstrip {
     }, { capture: true, signal: ac.signal });
   }
 
-  private showDrop(x: number, y: number): void {
+  private showDrop(x: number, y: number, cross = 8): void {
     const slides = this.ed.doc.deck.slides;
     const horiz = this.horizontal();
     const sr = this.scroll.getBoundingClientRect();
     const m = 12;
     const inside = horiz
-      ? x >= sr.left - m && x <= sr.right + m && y >= sr.top && y <= sr.bottom
-      : y >= sr.top - m && y <= sr.bottom + m && x >= sr.left && x <= sr.right;
+      ? x >= sr.left - m && x <= sr.right + m && y >= sr.top - cross && y <= sr.bottom + cross
+      : y >= sr.top - m && y <= sr.bottom + m && x >= sr.left - cross && x <= sr.right + cross;
     if (!inside) {
       this.dropAt = -1;
       for (const it of this.items.values()) it.node.classList.remove('is-drop-before', 'is-drop-after');
