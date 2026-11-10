@@ -544,6 +544,10 @@ export class Editor {
     this.peerTimer = window.setTimeout(() => this.prunePeers(), Math.max(0, at + PEER_TTL - performance.now()) + 50);
   }
 
+  removePeer(client: string): void {
+    if (this.peers.delete(client)) this.stage.drawOverlay();
+  }
+
   get returnSlide(): string { return this.returnTo; }
 
   private prunePeers(): void {

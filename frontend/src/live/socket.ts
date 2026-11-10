@@ -6,6 +6,8 @@ import { addAgents } from '../editor/mentions';
 type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 type Notice = (text: string, kind: 'info' | 'error') => void;
 
+export interface PresenceMessage { deck: string; client: string; name?: string; slide?: string; sel?: string[]; gone?: boolean }
+
 interface Waiter { resolve: (doc: DeckDoc) => void; reject: (e: Error) => void }
 
 export class LiveClient {
@@ -19,7 +21,7 @@ export class LiveClient {
   private connSeq = 0;
   onTool: ToolHandler | null = null;
   onNotice: Notice | null = null;
-  onPresence: ((m: { deck: string; client: string; name?: string; slide?: string; sel?: string[] }) => void) | null = null;
+  onPresence: ((m: PresenceMessage) => void) | null = null;
   onStatus: ((connected: boolean) => void) | null = null;
   onLibrary: (() => void) | null = null;
   onShow: ((deck: string, m: Record<string, unknown>) => void) | null = null;
@@ -27,7 +29,15 @@ export class LiveClient {
   onDeleted: ((deck: string) => void) | null = null;
   agents = false;
 
-  constructor(private readonly name = 'window') {}
+  lastPresence = 0;
+
+  constructor(private name = 'window') {}
+
+  setName(name: string): void {
+    if (name === this.name) return;
+    this.name = name;
+    this.raw({ t: 'hello', kind: 'window', name, agents: this.agents });
+  }
 
   connect(): void {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -114,7 +124,10 @@ export class LiveClient {
 
   undo(deckId: string, scope: 'step' | 'turn' = 'step'): void { this.raw({ t: 'undo', deck: deckId, scope }); }
   redo(deckId: string): void { this.raw({ t: 'redo', deck: deckId }); }
-  presence(deckId: string, slide: string | null, sel: string[]): void { this.raw({ t: 'presence', deck: deckId, slide, sel }); }
+  presence(deckId: string, slide: string | null, sel: string[]): void {
+    if (this.connected) this.lastPresence = performance.now();
+    this.raw({ t: 'presence', deck: deckId, slide, sel });
+  }
   away(): void { this.raw({ t: 'away' }); }
   show(deckId: string, m: Record<string, unknown>): void { this.raw({ t: 'show', deck: deckId, m }); }
   ask(deckId: string, text: string, name = ''): void { this.raw({ t: 'question', deck: deckId, text, name }); }
@@ -201,7 +214,7 @@ export class LiveClient {
       return;
     }
     if (t === 'presence') {
-      this.onPresence?.(m as unknown as { deck: string; client: string; name?: string; slide?: string; sel?: string[] });
+      this.onPresence?.(m as unknown as PresenceMessage);
       return;
     }
     if (t === 'library') {

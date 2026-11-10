@@ -62,6 +62,7 @@ import { setMarqueeRule } from './editor/stage';
 import { aidPrefs } from './editor/rulers';
 import { groupChain } from './editor/actions';
 import { guest, guestName } from './io/guest';
+import { loadMe, myName } from './editor/mentions';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
 
@@ -120,7 +121,21 @@ export async function startApp(): Promise<void> {
   mountOnce(host, SHELL);
   const root = q(host, '.fd-app');
   const commands = new Commands();
-  const live = new LiveClient(guest() ? guestName() || 'Guest' : navigator.platform || 'window');
+  const windowLabel = (): string => {
+    let n = '';
+    try {
+      n = sessionStorage.getItem('formdeck.windowNo') ?? '';
+      if (!n) { n = String(10 + Math.floor(Math.random() * 90)); sessionStorage.setItem('formdeck.windowNo', n); }
+    } catch { n = n || String(10 + Math.floor(Math.random() * 90)); }
+    return `Guest ${n}`;
+  };
+  const liveName = (): string => {
+    if (guest()) return guestName() || 'Guest';
+    const mine = myName();
+    return mine && mine !== 'You' ? mine : windowLabel();
+  };
+  const live = new LiveClient(liveName());
+  void loadMe().then(() => live.setName(liveName()));
   const contextMenu = new PopupMenu(commands, null, true);
   const presentMenu = new PopupMenu(commands, null, true);
   const toolbar = new Toolbar(q(root, '.fd-options'), commands);
@@ -396,8 +411,19 @@ export async function startApp(): Promise<void> {
     else if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
   };
   window.addEventListener(PLAYER_EVENT, () => queueMicrotask(() => { toolbar.sync(); syncChrome(); }));
+  const heartbeat = window.setInterval(() => {
+    if (!editor || home.isOpen || !live.connected) return;
+    if (performance.now() - live.lastPresence < 7500) return;
+    live.presence(editor.doc.id, editor.current, editor.selection);
+  }, 8000);
+  window.addEventListener('pagehide', () => window.clearInterval(heartbeat), { once: true });
   live.onPresence = (m) => {
     if (!openDecks.some((t) => t.id === m.deck)) return;
+    if (m.gone) {
+      presence.get(m.deck)?.delete(m.client);
+      if (editor && m.deck === editor.doc.id) editor.removePeer(m.client);
+      return;
+    }
     let peers = presence.get(m.deck);
     if (!peers) { peers = new Map(); presence.set(m.deck, peers); }
     const now = performance.now();

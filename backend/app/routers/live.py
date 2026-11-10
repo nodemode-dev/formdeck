@@ -54,6 +54,10 @@ async def live(ws: WebSocket) -> None:
     finally:
         STORE.clients.pop(client.id, None)
         for deck_id in list(client.decks):
+            try:
+                await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "gone": True}, skip=client.id)
+            except Exception:
+                pass
             STORE.close_if_idle(deck_id)
 
 
@@ -170,6 +174,7 @@ async def handle(client: Client, msg: dict) -> None:
         client.decks.discard(deck_id)
         if getattr(client, "active", None) == deck_id:
             client.active = None
+        await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "gone": True}, skip=client.id)
         STORE.close_if_idle(deck_id)
         return
     if t == "step":

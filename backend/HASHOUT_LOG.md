@@ -537,3 +537,7 @@ After 110 the picture is inset to where the image is drawn, but PowerPoint draws
 ## 115. `away` clears a window's active deck · _v0.37.0 (routers/live.py handle)
 
 The window sends `{t: 'away'}` when it shows Home (frontend 185). The engine clears `client.active` (the bridge's ranking key) and `client.focus` (the MCP "Looking at" line), and if a deck was active broadcasts a presence with no slide and no selection to that deck so peers drop the outline. It is handled before the share-guest check, which would otherwise refuse a message with no deck, and it does nothing else for guests.
+
+## 116. A client that goes says so · _v0.37.0 (routers/live.py live, handle unsub)
+
+Nothing told peers that a window had closed or unsubscribed, so its outline lingered until their TTL. When a socket closes, the engine now broadcasts `{t: 'presence', deck, client, gone: true}` to every deck the client was subscribed to (after dropping it from the client table, before `close_if_idle`), and an `unsub` broadcasts the same for that deck. Frontend 188.
