@@ -23,9 +23,9 @@ body.nm-home #toast-root { z-index: var(--z-home-preview); }
 .fd-menu-btn:hover, .fd-menu-btn.is-open { background: var(--bg-tertiary); color: var(--text-primary); }
 .has-native-menus .fd-menubar { display: none; }
 .has-native-menus .fd-titlebar { grid-template-columns: auto minmax(0, 1fr) auto; }
-.fd-tabs { display: flex; align-items: stretch; min-width: 0; padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
-.fd-tabs::-webkit-scrollbar { display: none; }
-.fd-tab-list { display: flex; align-items: stretch; min-width: 0; }
+.fd-tabs { display: flex; align-items: stretch; min-width: 0; padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); overflow: hidden; }
+.fd-tab-list { display: flex; align-items: stretch; flex: 1 1 0; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.fd-tab-list::-webkit-scrollbar { display: none; }
 .fd-tab { position: relative; display: flex; align-items: center; gap: var(--space-1); flex: 0 1 auto; width: 200px; min-width: 112px; padding: 0 var(--space-1) 0 var(--space-3); border: 0; border-right: 1px solid var(--line-0); background: transparent; color: var(--text-secondary); font-size: var(--fd-12); cursor: default; }
 .fd-tab:hover { background: var(--surface-2); color: var(--text-primary); }
 .fd-tab[aria-selected="true"] { background: var(--surface-0); color: var(--text-primary); }
@@ -194,7 +194,8 @@ body.theme-light .fd-seg button.is-on { color: color-mix(in srgb, var(--accent-c
 .fd-status-right { display: flex; align-items: center; gap: var(--space-3); flex: none; }
 .fd-st { display: inline-flex; align-items: center; gap: 6px; flex: none; font-variant-numeric: tabular-nums; }
 .fd-st-slide { min-width: 84px; }
-.fd-st-save { min-width: 112px; }
+.fd-st-save { box-sizing: border-box; width: calc(24ch + 6px + 6px); }
+.fd-st-save-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .fd-st-busy { min-width: 80px; color: var(--text-secondary); visibility: hidden; }
 .fd-st-busy.is-shown { visibility: visible; }
 .fd-st-hint { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
