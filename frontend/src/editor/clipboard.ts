@@ -15,13 +15,13 @@ let held: { at: number; clip: Clip } | null = null;
 
 export function setClip(clip: Clip): void {
   held = { at: Date.now(), clip };
-  try { localStorage.setItem(KEY, JSON.stringify(held)); } catch { try { localStorage.removeItem(KEY); } catch { return; } }
+  try { localStorage.setItem(KEY, JSON.stringify(held)); } catch { try { localStorage.setItem(KEY, JSON.stringify({ at: held.at })); } catch { try { localStorage.removeItem(KEY); } catch { return; } } }
 }
 
 export function getClip(): Clip | null {
   let shared: { at: number; clip: Clip } | null = null;
   try { const raw = localStorage.getItem(KEY); shared = raw ? JSON.parse(raw) as { at: number; clip: Clip } : null; } catch { shared = null; }
-  if (shared?.clip && typeof shared.at === 'number' && (!held || shared.at > held.at)) held = shared;
+  if (shared && typeof shared.at === 'number' && (!held || shared.at > held.at)) held = shared.clip ? shared : null;
   return held?.clip ?? null;
 }
 

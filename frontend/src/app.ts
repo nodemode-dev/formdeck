@@ -138,7 +138,7 @@ export async function startApp(): Promise<void> {
 
   const home = new Home({
     openDeck: (id) => void openDeck(id),
-    closeDeck: (id) => void closeDeck(id),
+    closeDeck: (id) => void closeDeck(id, true),
     createDeck: async (template, title) => {
       try {
         const d = await api.create({ template, title: title ?? 'Untitled deck' });
@@ -214,7 +214,7 @@ export async function startApp(): Promise<void> {
     } finally { opening.delete(id); }
   }
 
-  async function closeDeck(id: string): Promise<void> {
+  async function closeDeck(id: string, gone = false): Promise<void> {
     const i = openDecks.findIndex((t) => t.id === id);
     if (i < 0) return;
     const tab = openDecks[i];
@@ -228,7 +228,7 @@ export async function startApp(): Promise<void> {
     commands.remove(`copy-slides-to:${id}`);
     renderTabs();
     if (!openDecks.length) home.open();
-    for (let n = 0; tab.doc.hasPending && n < 100; n++) await new Promise((r) => window.setTimeout(r, 100));
+    for (let n = 0; !gone && tab.doc.hasPending && n < 100; n++) await new Promise((r) => window.setTimeout(r, 100));
     if (!openDecks.some((t) => t.id === id)) { tab.doc.onAck = null; live.close(id); }
   }
 
@@ -356,7 +356,7 @@ export async function startApp(): Promise<void> {
   const hooks: AppHooks = {
     editor: () => editor,
     home: () => { home.open(); },
-    closeDeck: (id) => void closeDeck(id),
+    closeDeck: (id) => void closeDeck(id, true),
     newDeck: () => { home.open(); home.show('templates'); },
     openFile: () => {
       const input = document.createElement('input');

@@ -745,3 +745,7 @@ In a browser, `window.open` returns null when pop-ups are blocked and throws not
 ## 165. Each show talks to its own audience window · _v0.35.0 (present/show.ts openAudience, swapDisplays)
 
 The show's BroadcastChannel was made only for an explicit Presenter View start, but the use-presenter-view preference with two screens, and turning Presenter View on during the show, open the audience window too; with no channel `post` did nothing and the audience never followed. `openAudience` makes the channel when the show has none (never for a remote show), before the window opens, so its hello is answered; `close` already closes it. In a browser every show named its audience pop-up `formdeck-audience`, so a presenter show in a second window opened over the first window's audience; the name now carries the deck id.
+
+## 166. Review follow-ups to 162 and 163 · _v0.35.0 (editor/clipboard.ts setClip, getClip; editor/editor.ts setCurrent; app.ts closeDeck gone)
+
+When a copy is too large for `localStorage`, the window now writes a stamp with no clip instead of nothing, and a window whose own clip is older than a stamp drops it, so no window pastes something older than the last copy made anywhere; the window that copied keeps its clip in memory. Changing slide runs a pending notes save first, so typing on the next slide inside 300 ms cannot replace the save of the previous one. `closeDeck(id, true)`, used after a deck is deleted (Home's Trash and Delete Deck), does not wait for pending steps the engine will never acknowledge.

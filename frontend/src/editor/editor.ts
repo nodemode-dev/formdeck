@@ -189,6 +189,8 @@ export class Editor {
       return;
     }
     if (!this.doc.slide(id) || id === this.current) { this.strip.mark(); return; }
+    window.clearTimeout(this.notesTimer);
+    this.notesSave?.();
     if (this.stage.editing) this.stage.endEdit();
     this.current = id;
     this.selection = [];
