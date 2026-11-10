@@ -789,3 +789,7 @@ A window closed with steps still unacknowledged lost them. In a browser, `before
 ## 176. A deck keeps at least one slide · _v0.36.0 (editor/commands.ts delete-slide; editor/editor.ts copy cut; editor/views.ts deleteSlide)
 
 Deleting or cutting every slide left the editor with no current slide and an empty stage. Delete Slide, the outline's delete and Cut refuse when the selection is the whole deck, with "A deck needs at least one slide."; Cut still copies the slides.
+
+## 177. Filmstrip drags end with their strip · _v0.36.0 (editor/filmstrip.ts life, dispose, down, touchDown, dragLayout)
+
+The three drags (slide reorder by mouse, touch drag, layout drag in Master view) put pointer and touch listeners on the window that only their own pointerup removed, so a tab switch in the middle of a drag left them live on a disposed strip: the non-passive touchmove could block scrolling and a later pointerup could apply a reorder. Each drag has its own AbortController tied to a strip-lifetime controller that `dispose` aborts; ending that way clears the drop markers and cancels the press timer and applies nothing. A drag cannot start on a disposed strip (an abort listener added to an aborted signal never fires), and the mouse drag now ends on pointercancel too, without applying.
