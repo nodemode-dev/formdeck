@@ -284,6 +284,10 @@ class OdpReader:
             cx = a0 * (w / 2) + c0 * (h / 2) + e0
             cy = b0 * (w / 2) + d0 * (h / 2) + f0
             rot = round(math.degrees(math.atan2(b0, a0)) % 360, 2)
+            sx = math.hypot(a0, b0)
+            sy = abs(a0 * d0 - b0 * c0) / sx if sx > 1e-9 else 0.0
+            if sx > 1e-9 and sy > 1e-9 and (abs(sx - 1) > 1e-6 or abs(sy - 1) > 1e-6):
+                w, h = w * sx, h * sy
             x, y = cx - w / 2, cy - h / 2
         return round(x, 2), round(y, 2), round(w, 2), round(h, 2), rot
 
