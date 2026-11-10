@@ -392,6 +392,20 @@ class ElementWriter:
             c_nv_pr.set("name", str(el["name"]))
         if el.get("alt"):
             c_nv_pr.set("descr", str(el["alt"]))
+        if el.get("hidden"):
+            c_nv_pr.set("hidden", "1")
+        hlink = hyperlink_element(el.get("link"), self.ctx)
+        if hlink is not None:
+            for old in c_nv_pr.findall("{http://schemas.openxmlformats.org/drawingml/2006/main}hlinkClick"):
+                c_nv_pr.remove(old)
+            c_nv_pr.append(hlink)
+        if el.get("id"):
+            self._ids[str(el["id"])] = movie.shape_id
+        framed = self._xfrm(el)
+        xfrm = pic.spPr.find("{http://schemas.openxmlformats.org/drawingml/2006/main}xfrm")
+        if framed is not None and xfrm is not None:
+            for key, value in framed.attrib.items():
+                xfrm.set(key, value)
         for media in pic.nvPicPr.nvPr.iter("{http://schemas.microsoft.com/office/powerpoint/2010/main}media"):
             media_settings(media, el, self.ctx.media.info(str(el.get("src"))) or {}, data, mime)
             break

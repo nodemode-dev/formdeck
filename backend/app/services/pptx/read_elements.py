@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 from .colors import degrees
@@ -381,7 +382,55 @@ def read_group(grp, ctx, tf: Transform) -> dict | None:
     el["children"] = children
     if "x" not in el:
         el.update(_bounds(children))
+    elif el.get("rot") or el.get("flipH") or el.get("flipV"):
+        _bake_group_transform(el, children)
     return el
+
+
+def _bake_group_transform(el: dict, children: list) -> None:
+    gx, gy = el["x"] + el["w"] / 2, el["y"] + el["h"] / 2
+    angle = math.radians(el.get("rot") or 0)
+    cos, sin = math.cos(angle), math.sin(angle)
+    flip_h, flip_v = bool(el.get("flipH")), bool(el.get("flipV"))
+    rot = el.get("rot") or 0
+    for key in ("rot", "flipH", "flipV"):
+        el.pop(key, None)
+
+    def apply(items: list) -> None:
+        for child in items:
+            if "x" in child:
+                dx = child["x"] + child["w"] / 2 - gx
+                dy = child["y"] + child["h"] / 2 - gy
+                if flip_h:
+                    dx = -dx
+                if flip_v:
+                    dy = -dy
+                mx, my = gx + dx * cos - dy * sin, gy + dx * sin + dy * cos
+                child["x"] = round(mx - child["w"] / 2, 2)
+                child["y"] = round(my - child["h"] / 2, 2)
+                if child.get("type") != "group":
+                    own = child.get("rot") or 0
+                    if flip_h:
+                        own = -own
+                        child["flipH"] = not child.get("flipH")
+                    if flip_v:
+                        own = -own
+                        child["flipV"] = not child.get("flipV")
+                    total = (own + rot) % 360
+                    for key in ("rot", "flipH", "flipV"):
+                        if not child.get(key):
+                            child.pop(key, None)
+                    if total:
+                        child["rot"] = round(total, 2)
+                    else:
+                        child.pop("rot", None)
+            if child.get("children"):
+                apply(child["children"])
+                if child.get("type") == "group":
+                    child.update(_bounds(child["children"]))
+
+    apply(children)
+    el.update(_bounds(children))
 
 
 def _bounds(children: list) -> dict:
