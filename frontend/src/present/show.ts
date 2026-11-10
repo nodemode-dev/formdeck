@@ -1337,7 +1337,14 @@ class Show {
         let k = -1;
         for (let j = base + 1; j < list.length && k < 0; j++) if (this.doc.slide(list[j])) k = j;
         for (let j = Math.min(base, list.length) - 1; j >= 0 && k < 0; j--) if (this.doc.slide(list[j])) k = j;
-        if (k >= 0) { this.run(() => void this.go(list[k], 'built', false, k)); return; }
+        if (k >= 0) {
+          const id = list[k];
+          const nk = this.prune(k);
+          this.run(() => void this.go(id, 'built', false, nk));
+          return;
+        }
+        this.prune(-1);
+        if (!this.audienceMode && !this.opts.remote) toast('The slide range or custom show no longer has any slides, so the whole deck plays.');
       }
       const i = clamp(this.curIndex, 0, deck.slides.length - 1);
       const s = deck.slides.slice(i).find((x) => !x.hidden) ?? deck.slides.slice(0, i).reverse().find((x) => !x.hidden) ?? deck.slides[i];
@@ -1345,6 +1352,12 @@ class Show {
       return;
     }
     this.curIndex = this.doc.slideIndex(this.cur);
+    if (this.list) {
+      const l = this.list;
+      const at = l[this.pos] === this.cur ? this.pos : l.indexOf(this.cur, Math.max(0, this.pos));
+      const nk = this.prune(at >= 0 ? at : l.indexOf(this.cur));
+      if (nk >= 0) this.pos = nk;
+    }
     const view = this.views.get(this.cur);
     if (view && (broad || t.slides.has(this.cur))) {
       this.steps = this.stepsFor(view);
@@ -1353,6 +1366,20 @@ class Show {
       else this.applyState(view, this.steps, this.step);
     }
     this.syncUi();
+  }
+
+  private prune(keep: number): number {
+    const list = this.list;
+    if (!list) return -1;
+    const next: string[] = [];
+    let out = -1;
+    list.forEach((id, i) => {
+      if (i === keep) out = next.length;
+      if (this.doc.slide(id)) next.push(id);
+    });
+    if (next.length === list.length) return keep;
+    this.list = next.length ? next : null;
+    return next.length ? out : -1;
   }
 
   private tame(view: SlideView): void {
