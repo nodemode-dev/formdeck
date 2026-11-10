@@ -205,8 +205,12 @@ async def restore_version(deck_id: str, n: int) -> dict:
     _session_or_404(deck_id)
     try:
         return await STORE.restore_version(deck_id, n)
-    except (OSError, KeyError, ValueError):
+    except opsmod.OpError as exc:
+        raise HTTPException(409, f"This version cannot be restored: {exc}")
+    except FileNotFoundError:
         raise HTTPException(404, "There is no such version.")
+    except (OSError, KeyError, ValueError) as exc:
+        raise HTTPException(422, f"This version could not be read: {exc}")
 
 
 @router.put("/decks/{deck_id}/thumb")

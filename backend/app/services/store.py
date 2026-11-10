@@ -125,6 +125,51 @@ def integrity(deck: dict) -> set:
     return out
 
 
+def repair_ids(deck: dict) -> int:
+    fixed = 0
+    masters = [x for x in deck.get("masters") or [] if isinstance(x, dict)]
+    layouts = [x for x in deck.get("layouts") or [] if isinstance(x, dict)]
+    slides = [x for x in deck.get("slides") or [] if isinstance(x, dict)]
+    used = {str(x.get("id")) for x in (*masters, *layouts, *slides) if x.get("id") is not None}
+    used |= {str(c.get("id")) for c in deck.get("comments") or [] if isinstance(c, dict) and c.get("id") is not None}
+    used |= {str(c.get("id")) for c in deck.get("sections") or [] if isinstance(c, dict) and c.get("id") is not None}
+    counter = ids.Counter(used | model.all_element_ids(deck))
+
+    def mint(old, default: str) -> str:
+        m = re.match(r"[A-Za-z_]*", str(old) if old is not None else "")
+        return counter.next((m.group(0) if m else "") or default)
+
+    for default, seq in (("m", masters), ("l", layouts), ("s", slides)):
+        seen = set()
+        for x in seq:
+            if x.get("id") in seen or x.get("id") is None:
+                x["id"] = mint(x.get("id"), default)
+                fixed += 1
+            seen.add(x["id"])
+    owner = {u: None for u in {str(x["id"]) for x in (*masters, *layouts, *slides)} | used}
+    for holder in (*masters, *layouts, *slides):
+        for el in model.iter_elements(holder.get("elements") or []):
+            if not isinstance(el, dict):
+                continue
+            old = el.get("id")
+            if old is not None and str(old) not in owner:
+                owner[str(old)] = id(holder)
+                continue
+            ambiguous = old is not None and owner.get(str(old)) == id(holder)
+            new = mint(old, "e")
+            el["id"] = new
+            owner[new] = id(holder)
+            fixed += 1
+            if old is not None and not ambiguous:
+                for a in holder.get("animations") or []:
+                    if isinstance(a, dict) and a.get("target") == old:
+                        a["target"] = new
+                for c in deck.get("comments") or []:
+                    if isinstance(c, dict) and holder.get("id") is not None and c.get("slide") == holder.get("id") and c.get("element") == old:
+                        c["element"] = new
+    return fixed
+
+
 def integrity_reason(deck_id_changed: bool, new: set) -> str:
     if deck_id_changed:
         return "the step would change the deck id"
@@ -550,12 +595,13 @@ class Store:
     async def restore_version(self, deck_id: str, n: int, client: str | None = None) -> dict:
         p = deck_dir(deck_id) / "versions" / f"{int(n)}.json"
         old = json.loads(p.read_text(encoding="utf-8"))["deck"]
+        repaired = repair_ids(old)
         cur = self.session(deck_id).deck
         ops = [{"op": "set", "path": [k], "value": copy.deepcopy(old[k])} for k in ("title", "size", "theme", "masters", "layouts", "slides", "sections", "comments", "media") if k in old and old[k] != cur.get(k)]
         was, now = (old.get("meta") or {}).get("template"), (cur.get("meta") or {}).get("template")
         if was != now:
             ops.append({"op": "set", "path": ["meta", "template"], **({"value": was} if was is not None else {})})
-        return await self.step(deck_id, ops, f"Restore {n}", "user", client)
+        return {**await self.step(deck_id, ops, f"Restore {n}", "user", client), "repaired": repaired}
 
 
 STORE = Store()
