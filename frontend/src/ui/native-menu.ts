@@ -52,6 +52,18 @@ export class NativeMenus {
     document.addEventListener('focusin', focus);
     document.addEventListener('focusout', focus);
     window.addEventListener('focus', () => { if (this.items.length) void this.build().catch(() => undefined); });
+    void this.watchNative();
+  }
+
+  private async watchNative(): Promise<void> {
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      const { listen } = await import('@tauri-apps/api/event');
+      const win = getCurrentWindow();
+      const reclaim = (): void => { void win.isFocused().then((on) => { if (on) return this.build(); }).catch(() => undefined); };
+      await win.onFocusChanged(({ payload: focused }) => { if (focused) void this.build().catch(() => undefined); });
+      await listen('formdeck://window-closed', () => { reclaim(); window.setTimeout(reclaim, 150); window.setTimeout(reclaim, 600); });
+    } catch { return; }
   }
 
   private signature(): string {
