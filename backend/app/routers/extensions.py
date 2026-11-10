@@ -180,16 +180,18 @@ async def agent_list() -> dict:
     return {"product": PRODUCT, "root": data["root"], "live": bridge.window_connected(), "extensions": rows}
 
 
-async def agent_command(ext_id: str, command: str, args: dict) -> dict:
+async def agent_command(ext_id: str, command: str, args: dict, deck: str | None = None) -> dict:
     if not bridge.window_connected():
         return {"ok": False, "error": "No formdeck window is open. Extensions run in the window: start it with ./formdeck boot (or open the app), then retry."}
-    out = await bridge.window_call("extension_command", {"id": ext_id, "command": command, "args": args or {}}, None, 150)
+    payload = {"id": ext_id, "command": command, "args": args or {}, **({"deck": deck} if deck else {})}
+    out = await bridge.window_call("extension_command", payload, deck or None, 150)
     if out is None:
         return {"ok": False, "error": "No formdeck window answered. Open the app, then retry."}
     text = " ".join(c.get("text", "") for c in out.get("content", []) if c.get("type") == "text").strip()
     if out.get("isError"):
         return {"ok": False, "error": text or "formdeck gave no reason."}
-    return {"ok": True, "result": (out.get("structuredContent") or {}).get("result", text), "text": text}
+    structured = out.get("structuredContent") or {}
+    return {"ok": True, "result": structured.get("result", text), "text": text, "deck": structured.get("deck") or deck}
 
 
 @router.get("/agent")

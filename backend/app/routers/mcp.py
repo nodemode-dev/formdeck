@@ -229,15 +229,16 @@ TOOLS = [
     _tool("list_commands", "The editor's command catalogue, the same commands as the ribbon, menus and shortcuts: id, label, group, what it does and when to use it. "
           "text narrows by words (all must match), group by one group; id returns one command with its parameters.",
           {"text": _S, "group": _S, "id": _S, "limit": {"type": "integer", "description": "Most rows to return (default 60)"}}, read=True),
-    _tool("run_command", "Runs one editor command in the open formdeck window, on the open deck and current selection, as one undoable step, exactly as the person's click would. "
+    _tool("run_command", "Runs one editor command in the open formdeck window, on the deck in front (or the deck you name) and its current selection, as one undoable step, exactly as the person's click would. "
           "Use list_commands to find the id. A command marked risky cannot be undone; pass confirm true for it.",
           {"id": {"type": "string", "description": "Command id from list_commands, such as align-center or format-painter"}, "params": {"type": "object", "description": "Parameters the command lists, if any"},
-           "confirm": {"type": "boolean"}}, ["id"]),
+           "confirm": {"type": "boolean"}, "deck": {"type": "string", "description": "The deck to run on; the window brings it to the front first. Omit to use the deck in front"}}, ["id"]),
     _tool("extensions_list", "The Form extensions formdeck found (installed by FormPortal or run from a folder by form.ext): id, name, version, source, state (ready, needs-permission, refused with the reason) and the commands each contributes.",
           {}, read=True),
     _tool("extension_command", "Runs a command an extension contributes, in the open formdeck window, as the person's click on it in the Extensions menu would; the person is asked to allow the extension the first time. "
           "id and command come from extensions_list.",
-          {"id": {"type": "string", "description": "Extension id"}, "command": {"type": "string", "description": "Command id the extension contributes"}, "args": {"type": "object", "description": "Arguments passed to the extension with the command"}},
+          {"id": {"type": "string", "description": "Extension id"}, "command": {"type": "string", "description": "Command id the extension contributes"}, "args": {"type": "object", "description": "Arguments passed to the extension with the command"},
+           "deck": {"type": "string", "description": "The deck to run on; the window brings it to the front first. Omit to use the deck in front"}},
           ["id", "command"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
@@ -1781,11 +1782,13 @@ async def t_run_command(a: Agent, args: dict) -> dict:
     found = cat.find(cid)
     if found and found.get("risky") and args.get("confirm") is not True:
         raise ToolError(f"{cid} cannot be undone. Ask the person, then call again with confirm true.")
-    out = await cat.execute(cid, args.get("params") if isinstance(args.get("params"), dict) else {})
+    deck = str(args.get("deck") or "").strip() or None
+    out = await cat.execute(cid, args.get("params") if isinstance(args.get("params"), dict) else {}, deck)
     if not out["ok"]:
         return _fail(out["error"])
     result = out.get("result")
-    return _ok(f"Ran {cid}." + (f" {result}" if isinstance(result, str) and result else ""), {"id": cid, "result": result})
+    ran_on = out.get("deck") or deck
+    return _ok(f"Ran {cid}" + (f" on deck {ran_on}" if ran_on else "") + "." + (f" {result}" if isinstance(result, str) and result else ""), {"id": cid, "deck": ran_on, "result": result})
 
 
 async def t_extensions_list(a: Agent, args: dict) -> dict:
@@ -1805,10 +1808,15 @@ async def t_extension_command(a: Agent, args: dict) -> dict:
     command = str(args.get("command") or "").strip()
     if not ext_id or not command:
         raise ToolError("Give id and command, from extensions_list.")
-    out = await exts.agent_command(ext_id, command, args.get("args") if isinstance(args.get("args"), dict) else {})
+    deck = str(args.get("deck") or "").strip() or None
+    out = await exts.agent_command(ext_id, command, args.get("args") if isinstance(args.get("args"), dict) else {}, deck)
     if not out["ok"]:
         return _fail(out["error"])
-    return _ok(out.get("text") or f"Ran {ext_id}: {command}.", {"id": ext_id, "command": command, "result": out.get("result")})
+    ran_on = out.get("deck") or deck
+    text = out.get("text") or f"Ran {ext_id}: {command}."
+    if ran_on and str(ran_on) not in text:
+        text += f" Deck: {ran_on}."
+    return _ok(text, {"id": ext_id, "command": command, "deck": ran_on, "result": out.get("result")})
 
 
 HANDLERS = {name[2:]: fn for name, fn in globals().items() if name.startswith("t_") and callable(fn)}

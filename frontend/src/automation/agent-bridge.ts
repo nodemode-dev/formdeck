@@ -116,6 +116,7 @@ export class AgentBridge {
   private readonly thumbSig = new Map<string, string>();
   private consentAsk: Promise<boolean> | null = null;
   private consentDlg: Consent | null = null;
+  private readonly holds = new Map<string, { n: number; had: boolean }>();
 
   constructor(private readonly h: BridgeHooks) {}
 
@@ -127,8 +128,9 @@ export class AgentBridge {
       if (name === 'focus') return await this.focus(args);
       if (name === 'video_frame') return await this.videoFrame(args);
       if (name === 'consent') return await this.consent(args);
-      if (name === 'run_command' && this.h.command) return await this.h.command(args);
-      if ((name === 'extensions_list' || name === 'extension_command') && this.h.extension) return await this.h.extension(name, args);
+      if (name === 'run_command' && this.h.command) return await this.onDeck(args, () => this.h.command!(args));
+      if (name === 'extension_command' && this.h.extension) return await this.onDeck(args, () => this.h.extension!(name, args));
+      if (name === 'extensions_list' && this.h.extension) return await this.h.extension(name, args);
       return fail(`The formdeck window has no tool named ${name}.`);
     } catch (e) {
       return fail(`${name} did not finish: ${errText(e)}`);
@@ -201,13 +203,38 @@ export class AgentBridge {
     const id = str(args.deck) || ed?.doc.id;
     if (!id) throw new Error('name a deck: no deck is open in the window');
     if (ed && ed.doc.id === id) return fn(ed.doc);
-    const had = this.h.live.doc(id);
-    const doc = await this.h.live.open(id);
+    let hold = this.holds.get(id);
+    if (!hold) {
+      hold = { n: 0, had: !!this.h.live.doc(id) };
+      this.holds.set(id, hold);
+    }
+    hold.n++;
     try {
+      const doc = await this.h.live.open(id);
       return await fn(doc);
     } finally {
-      if (!had && this.h.editor()?.doc.id !== id) this.h.live.close(id);
+      hold.n--;
+      if (hold.n === 0) {
+        if (this.holds.get(id) === hold) this.holds.delete(id);
+        if (!hold.had && this.h.editor()?.doc.id !== id) this.h.live.close(id);
+      }
     }
+  }
+
+  private async onDeck(args: Args, call: () => Promise<ToolResult>): Promise<ToolResult> {
+    const want = str(args.deck);
+    if (want && this.h.editor()?.doc.id !== want) {
+      let why = '';
+      try { await this.h.open(want); } catch (e) { why = errText(e); }
+      if (this.h.editor()?.doc.id !== want) return fail(`The deck ${want} could not be opened in the window${why ? `: ${why}` : ''}, so the command was not run.`);
+    }
+    const res = await call();
+    const doc = this.h.editor()?.doc;
+    if (res.isError || !doc) return res;
+    const tag = `Ran on deck "${doc.deck.title}" (${doc.id}).`;
+    const first = res.content[0];
+    const content: Content[] = first && first.type === 'text' ? [{ type: 'text', text: `${first.text}\n${tag}` }, ...res.content.slice(1)] : [{ type: 'text', text: tag }, ...res.content];
+    return { ...res, content, structuredContent: { ...(res.structuredContent ?? {}), deck: doc.id } };
   }
 
   private renderSlides(args: Args): Promise<ToolResult> {

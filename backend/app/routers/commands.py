@@ -63,7 +63,7 @@ def near(cid: str) -> list[str]:
     return [c["id"] for c in _state["commands"] if word and word in c.get("id", "").lower()][:5]
 
 
-async def execute(cid: str, params: dict) -> dict:
+async def execute(cid: str, params: dict, deck: str | None = None) -> dict:
     _load()
     found = find(cid)
     if _state["commands"] and found is None:
@@ -71,7 +71,8 @@ async def execute(cid: str, params: dict) -> dict:
         return {"ok": False, "error": f"No command has the id {cid}." + (f" Did you mean {', '.join(hint)}?" if hint else "") + " Search with GET /api/commands?text=word."}
     if not bridge.window_connected():
         return {"ok": False, "error": "No formdeck window is open. Start it with ./formdeck boot (or open the app), then retry."}
-    out = await bridge.window_call("run_command", {"id": cid, "params": params or {}}, None, 120)
+    payload = {"id": cid, "params": params or {}, **({"deck": deck} if deck else {})}
+    out = await bridge.window_call("run_command", payload, deck or None, 120)
     if out is None:
         return {"ok": False, "error": "No formdeck window answered. Open the app, then retry."}
     text = " ".join(c.get("text", "") for c in out.get("content", []) if c.get("type") == "text").strip()
@@ -79,7 +80,7 @@ async def execute(cid: str, params: dict) -> dict:
     if out.get("isError"):
         return {"ok": False, "error": text or "formdeck gave no reason. Check the window, then retry.", "risky": risky}
     structured = out.get("structuredContent") or {}
-    return {"ok": True, "result": structured.get("result", text), "risky": risky}
+    return {"ok": True, "result": structured.get("result", text), "risky": risky, "deck": structured.get("deck") or deck}
 
 
 @router.post("/catalogue")
