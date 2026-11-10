@@ -29,6 +29,17 @@ LAYOUT_TYPES = {
 }
 TEXT_STYLE_TAGS = (("title", "p:titleStyle"), ("body", "p:bodyStyle"), ("other", "p:otherStyle"))
 THUMBNAIL_RT = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail"
+ORIGIN_EXT_URI = "{formdeck-origin}"
+ORIGIN_NS = "urn:formdeck:origin"
+
+
+def write_origin(part_el, holder: dict) -> None:
+    origin = holder.get("origin")
+    if not isinstance(origin, str) or not origin:
+        return
+    ext = make("p:ext", {"uri": ORIGIN_EXT_URI})
+    etree.SubElement(ext, f"{{{ORIGIN_NS}}}origin", {"val": origin}, nsmap={"fd": ORIGIN_NS})
+    append_presentation_ext(part_el, ext)
 
 
 def write_pptx(deck: dict, media, out: str | Path | BinaryIO, *, template: bool = False, font_scales: dict | None = None, embed_fonts: str | None = None) -> list[str]:
@@ -206,6 +217,7 @@ class _Exporter:
             if isinstance(level, dict) and level and default_style is not None:
                 self._set_level(default_style, index, level_element(level, index, self.ctx))
         write_part_guides(root, master.get("guides"))
+        write_origin(root, master)
 
     @staticmethod
     def _set_level(style_el, index: int, new_level) -> None:
@@ -268,6 +280,7 @@ class _Exporter:
         writer = ElementWriter(self.ctx, master_elements=master.get("elements"), layout_part=True)
         writer.write_all(layout.get("elements") or [], sp_tree)
         write_part_guides(root, layout.get("guides"))
+        write_origin(root, layout)
         return part
 
     def _create_slides(self) -> list:

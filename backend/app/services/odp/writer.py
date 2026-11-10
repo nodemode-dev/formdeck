@@ -49,6 +49,7 @@ PH_CLASS = {"title": "title", "ctrTitle": "title", "subTitle": "subtitle", "body
             "dt": "date-time", "ftr": "footer", "sldNum": "page-number"}
 MATH_TAG = "formdeck-math:"
 MATH_TAGS = (MATH_TAG, "formsld-math:")
+FD_NS = "urn:formdeck:origin"
 _XML_BAD = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
 
 
@@ -1096,6 +1097,12 @@ class OdpWriter:
             bg = lay.get("background") if isinstance(lay.get("background"), dict) else master.get("background")
             dp = self.page_style(sreg, bg if isinstance(bg, dict) else {"type": "solid", "color": "lt1"}, theme, None)
             mp = _el("style:master-page", {"style:name": name, "style:display-name": lay.get("name") or name, "style:page-layout-name": "PM1", "draw:style-name": dp})
+            foreign = {k: v for k, v in (("origin", lay.get("origin")), ("master-origin", master.get("origin"))) if isinstance(v, str) and v}
+            if foreign:
+                tagged = etree.Element(mp.tag, dict(mp.attrib), nsmap={**NS, "formdeck": FD_NS})
+                for k, v in foreign.items():
+                    tagged.set(f"{{{FD_NS}}}{k}", _xml_clean(v))
+                mp = tagged
             ctx = {"layout": {"elements": []}, "master": master, "theme": theme, "page_styles": page_styles, "is_master": True, "chain": False}
             if not lay.get("hideMasterShapes"):
                 self.write_elements(mp, [e for e in master.get("elements") or [] if not e.get("ph")], ctx, sreg)

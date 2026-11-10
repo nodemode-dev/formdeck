@@ -39,6 +39,10 @@ def is_odp(data: bytes) -> bool:
         return False
 
 
+FD_ORIGIN = "{urn:formdeck:origin}origin"
+FD_MASTER_ORIGIN = "{urn:formdeck:origin}master-origin"
+
+
 def _a(node, name: str, default=None):
     if node is None:
         return default
@@ -1003,6 +1007,9 @@ class OdpReader:
             if w and h:
                 deck["size"] = {"w": round(w, 2), "h": round(h, 2)}
         master = deck["masters"][0]
+        first_origin = pages[0].get(FD_MASTER_ORIGIN) if pages else None
+        if first_origin:
+            master["origin"] = first_origin
         master["name"] = _a(pages[0], "style:display-name") or _a(pages[0], "style:name") if pages else "Master"
         first = _a(pages[0], "style:name") if pages else ""
         titles = self.text_levels(self.master_scope, first, "title", 1)
@@ -1050,6 +1057,8 @@ class OdpReader:
                     e["ph"]["idx"] = n
                     n += 1
             layout = {"id": lid, "master": master["id"], "name": disp, "elements": elements}
+            if mp.get(FD_ORIGIN):
+                layout["origin"] = mp.get(FD_ORIGIN)
             bg = self.fill(self.page_props(self.master_scope, _a(mp, "draw:style-name")))
             if bg is not None and bg != master.get("background"):
                 layout["background"] = bg

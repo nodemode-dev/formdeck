@@ -857,3 +857,7 @@ Review of 187 found that the inside test gave slack only along the strip, so on 
 ## 193. Restore says when it repaired ids · _v0.37.0 (io/api.ts restoreVersion; ui/dialogs-file.ts VersionsDialog)
 
 The engine's restore now returns how many duplicate ids it gave fresh ones (backend 112, 117), and the Versions dialog ignored the result. When the count is above zero the restore toast adds "1 duplicate id was given a new one." or "N duplicate ids were given new ones."; otherwise it reads as before. The engine's 404, 409 and 422 messages already reach the dialog's "Could not restore" line as written.
+
+## 194. Source formatting is recognised by what it looks like · _v0.37.0 (editor/clipboard.ts canon, fnv1a, masterPrint, layoutPrint, importSource)
+
+Review of 183 found the reuse key fragile: it was the source deck id plus the master or layout id, so the same source reopened under another id (Save As, a copy, a re-import) counted as new, and pptx and odp export dropped the key, so every later paste added another "Name 2" master. Decks have no stable identity to key on, so the key is now a fingerprint of the content: FNV-1a (32-bit, written here) over a canonical JSON (keys sorted, every `id` dropped) of the master's theme, background, text styles and elements, or the layout's name and elements. Names and ids stay out of it, so renames and re-ids still match; an edited source master is new, as it should be. Reuse also accepts the earlier key form. The key survives export and import (backend 121).

@@ -13,6 +13,24 @@ export interface SlidesClip { kind: 'slides'; deck: string; items: Slide[]; carr
 type Origin = { origin?: string };
 const originOf = (h: Master | Layout): string | undefined => (h as (Master | Layout) & Origin).origin;
 
+function canon(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(canon);
+  if (!v || typeof v !== 'object') return v;
+  const o = v as Rec;
+  const out: Rec = {};
+  for (const k of Object.keys(o).sort()) if (k !== 'id' && o[k] !== undefined) out[k] = canon(o[k]);
+  return out;
+}
+
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+}
+
+const masterPrint = (m: Master, fallback: Theme): string => `m:${fnv1a(JSON.stringify(canon({ theme: m.theme ?? fallback, background: m.background ?? null, textStyles: m.textStyles, elements: m.elements })))}`;
+const layoutPrint = (l: Layout): string => `l:${fnv1a(JSON.stringify(canon({ name: l.name, elements: l.elements })))}`;
+
 export interface Xf { s: number; ox: number; oy: number }
 type Rec = Record<string, unknown>;
 const r1 = (v: number): number => Math.round(v * 10) / 10;
@@ -255,10 +273,11 @@ function importSource(doc: DeckDoc, clip: SlidesClip, used: Set<string>, X: Xf |
     const L = src.layouts[id];
     const M = L ? src.masters[L.master] : undefined;
     if (!L || !M) continue;
-    const mkey = `${clip.deck}/${M.id}`;
+    const mkey = masterPrint(M, src.theme);
+    const mold = `${clip.deck}/${M.id}`;
     let mid = masterMap.get(M.id);
     if (!mid) {
-      const have = [...deck.masters, ...madeMasters].find((m) => originOf(m) === mkey);
+      const have = [...deck.masters, ...madeMasters].find((m) => { const o = originOf(m); return o === mkey || o === mold; });
       if (have) mid = have.id;
       else {
         const copy = clone(M) as Master & Origin;
@@ -280,8 +299,9 @@ function importSource(doc: DeckDoc, clip: SlidesClip, used: Set<string>, X: Xf |
       }
       masterMap.set(M.id, mid);
     }
-    const lkey = `${clip.deck}/${L.id}`;
-    const have = [...deck.layouts, ...madeLayouts].find((l) => l.master === mid && originOf(l) === lkey);
+    const lkey = layoutPrint(L);
+    const lold = `${clip.deck}/${L.id}`;
+    const have = [...deck.layouts, ...madeLayouts].find((l) => { const o = originOf(l); return l.master === mid && (o === lkey || o === lold); });
     if (have) { layouts.set(id, have); continue; }
     const copy = clone(L) as Layout & Origin;
     copy.id = uniqueLayoutId({ ...deck, masters: [...deck.masters, ...madeMasters], layouts: [...deck.layouts, ...madeLayouts] }, L.name);
