@@ -30,6 +30,7 @@ export class LiveClient {
   agents = false;
 
   lastPresence = 0;
+  private held = false;
 
   constructor(private name = 'window') {}
 
@@ -125,10 +126,12 @@ export class LiveClient {
   undo(deckId: string, scope: 'step' | 'turn' = 'step'): void { this.raw({ t: 'undo', deck: deckId, scope }); }
   redo(deckId: string): void { this.raw({ t: 'redo', deck: deckId }); }
   presence(deckId: string, slide: string | null, sel: string[]): void {
+    if (this.held) return;
     if (this.connected) this.lastPresence = performance.now();
     this.raw({ t: 'presence', deck: deckId, slide, sel });
   }
-  away(): void { this.raw({ t: 'away' }); }
+  away(): void { this.held = true; this.raw({ t: 'away' }); }
+  resume(): void { this.held = false; }
   show(deckId: string, m: Record<string, unknown>): void { this.raw({ t: 'show', deck: deckId, m }); }
   ask(deckId: string, text: string, name = ''): void { this.raw({ t: 'question', deck: deckId, text, name }); }
 

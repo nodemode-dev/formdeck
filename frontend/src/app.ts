@@ -177,7 +177,10 @@ export async function startApp(): Promise<void> {
     demo: (id) => void openDemo(id),
     onVisible: (open) => {
       if (open) live.away();
-      else if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
+      else {
+        live.resume();
+        if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
+      }
     },
   });
 
@@ -407,8 +410,9 @@ export async function startApp(): Promise<void> {
   live.onStatus = (connected) => {
     syncChrome();
     if (!connected) return;
-    if (home.isOpen) live.away();
-    else if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
+    if (home.isOpen) { live.away(); return; }
+    live.resume();
+    if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
   };
   window.addEventListener(PLAYER_EVENT, () => queueMicrotask(() => { toolbar.sync(); syncChrome(); }));
   const heartbeat = window.setInterval(() => {
