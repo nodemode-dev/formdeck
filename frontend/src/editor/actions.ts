@@ -74,15 +74,32 @@ export function newSlideOps(doc: DeckDoc, layoutId: string, at: number): { ops: 
 export function reid(doc: DeckDoc, el: SlideElement, used: Set<string>): SlideElement {
   const copy = clone(el);
   const walk = (e: SlideElement): void => {
+    const old = e.id;
     e.id = doc.nextId('e', used);
-    if (e.type === 'group') e.children.forEach(walk);
+    if (e.type !== 'group') return;
+    if (!e.diagram) { e.children.forEach(walk); return; }
+    for (const k of e.children) {
+      k.id = k.id.startsWith(`${old}_`) ? `${e.id}_${k.id.slice(old.length + 1)}` : doc.nextId('e', used);
+      if (k.type === 'group') k.children.forEach(walk);
+    }
   };
   walk(copy);
   return copy;
 }
 
+export function pairIds(orig: SlideElement[], copies: SlideElement[], map = new Map<string, string>()): Map<string, string> {
+  orig.forEach((e, i) => {
+    const c = copies[i];
+    if (!c) return;
+    map.set(e.id, c.id);
+    if (e.type === 'group' && c.type === 'group') pairIds(e.children, c.children, map);
+  });
+  return map;
+}
+
 export function duplicateSlideOps(doc: DeckDoc, ids: string[]): { ops: Op[]; ids: string[] } {
   const used = doc.usedIds();
+  for (const sl of doc.deck.slides) for (const a of sl.animations ?? []) used.add(a.id);
   const ops: Op[] = [];
   const out: string[] = [];
   const order = doc.deck.slides.map((s) => s.id).filter((id) => ids.includes(id));
@@ -94,7 +111,8 @@ export function duplicateSlideOps(doc: DeckDoc, ids: string[]): { ops: Op[]; ids
     copy.id = doc.nextId('s', used);
     copy.elements = s.elements.map((e) => reid(doc, e, used));
     remapCopies(s.elements, copy.elements);
-    copy.animations = [];
+    const paired = pairIds(s.elements, copy.elements);
+    copy.animations = (s.animations ?? []).filter((a) => paired.has(a.target)).map((a) => ({ ...clone(a), id: doc.nextId('a', used), target: paired.get(a.target) as string }));
     const at = doc.slideIndex(sid) + 1 + offset;
     ops.push({ op: 'ins', path: ['slides'], index: at, value: copy });
     out.push(copy.id);

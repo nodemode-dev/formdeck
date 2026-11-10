@@ -2,7 +2,7 @@ import type { DeckDoc } from '../engine/doc';
 import type { Component, Deck, Layout, MediaInfo, NamedColor, NamedTextStyle, Slide, SlideElement } from '../engine/model';
 import type { Op } from '../engine/ops';
 import type { Frame } from '../engine/resolve';
-import { clone, layoutKeeps, reid, resolvedFrame } from './actions';
+import { clone, layoutKeeps, pairIds, reid, resolvedFrame } from './actions';
 import { remapCopies } from './connectors';
 
 export interface Carry { media: Record<string, MediaInfo>; components: Record<string, Component>; namedStyles: Record<string, NamedTextStyle>; namedColors: Record<string, NamedColor> }
@@ -78,16 +78,6 @@ export function slideClip(deck: Deck, ids: string[]): SlidesClip | null {
   }
   const items = clone(picked);
   return { kind: 'slides', deck: deck.id, items, carry: carryOf(deck, items), layouts, frames };
-}
-
-function pairIds(orig: SlideElement[], copies: SlideElement[], map = new Map<string, string>()): Map<string, string> {
-  orig.forEach((e, i) => {
-    const c = copies[i];
-    if (!c) return;
-    map.set(e.id, c.id);
-    if (e.type === 'group' && c.type === 'group') pairIds(e.children, c.children, map);
-  });
-  return map;
 }
 
 export function relink(value: unknown, slides: Map<string, string>, foreign: boolean): void {
