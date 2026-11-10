@@ -134,8 +134,15 @@ export async function startApp(): Promise<void> {
   let editorOff: Array<() => void> = [];
   let agentsAllowed = false;
   let views: { refresh(): void; show(kind: 'sorter' | 'outline'): void; hide(): void } | null = null;
-  let viewsCtor: (new (el: HTMLElement, get: () => Editor | null) => NonNullable<typeof views>) | null = null;
-  void import('./editor/views').then((m) => { viewsCtor = m.AltViews; }).catch(() => undefined);
+  type ViewsCtor = new (el: HTMLElement, get: () => Editor | null) => NonNullable<typeof views>;
+  let viewsCtor: ViewsCtor | null = null;
+  let viewsLoad: Promise<ViewsCtor> | null = null;
+  let viewSeq = 0;
+  const loadViews = (): Promise<ViewsCtor> => {
+    viewsLoad ??= import('./editor/views').then((m) => { viewsCtor = m.AltViews; return m.AltViews; }, (e: unknown) => { viewsLoad = null; throw e; });
+    return viewsLoad;
+  };
+  loadViews().catch(() => undefined);
   let exts: FormdeckExtensions | null = null;
   const bridge = new AgentBridge({ extension: (name, args) => exts ? exts.agent(name, args) : Promise.resolve({ content: [{ type: 'text', text: 'The extension host is still starting.' }], isError: true }), editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
 
@@ -153,6 +160,10 @@ export async function startApp(): Promise<void> {
     preferences: () => commands.run('preferences'),
     agents: () => commands.run('agents'),
     demo: (id) => void openDemo(id),
+    onVisible: (open) => {
+      if (open) live.away();
+      else if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
+    },
   });
 
   let demoBusy = false;
@@ -272,9 +283,10 @@ export async function startApp(): Promise<void> {
   }
 
   function attach(doc: DeckDoc): void {
+    if (editor && editor.doc === doc) return;
     for (const off of editorOff) off();
     editorOff = [];
-    if (editor && editor.doc !== doc) { remember(editor); editor.dispose(); }
+    if (editor) { remember(editor); editor.dispose(); }
     prepareStills(doc.deck);
     const ed = new Editor(doc, { stage: stageEl, stripScroll: q(root, '.fd-strip-scroll'), stripCount: q(root, '.fd-strip-count'), notes: q<HTMLTextAreaElement>(root, '.fd-notes-text'), title: q<HTMLInputElement>(root, '.fd-doc-title') }, commands, contextMenu, live);
     editor = ed;
@@ -302,7 +314,7 @@ export async function startApp(): Promise<void> {
     if (known) {
       for (const [client, p] of known) if (peerNow - p.at < PRESENCE_TTL) ed.setPeer(client, p.name, p.slide, p.sel, p.at, p.color);
     }
-    live.presence(doc.id, ed.current, ed.selection);
+    if (!home.isOpen) live.presence(doc.id, ed.current, ed.selection);
     ed.stage.layout();
     const refresh = (): void => { toolbar.sync(); inspector.sync(); syncChrome(); };
     editorOff.push(watchLinks(ed), installModelHandle(ed));
@@ -329,9 +341,9 @@ export async function startApp(): Promise<void> {
       views.show(wantView);
       setHidden(altView, false);
     } else {
-      void import('./editor/views').then((m) => {
+      void loadViews().then((Ctor) => {
         if (editor !== ed || ed.view !== wantView) return;
-        views ??= new m.AltViews(altView, () => editor);
+        views ??= new Ctor(altView, () => editor);
         views.show(wantView);
         setHidden(altView, false);
       }).catch(() => {
@@ -377,7 +389,12 @@ export async function startApp(): Promise<void> {
   }
 
   live.onNotice = (t, k) => toast(t, k);
-  live.onStatus = () => syncChrome();
+  live.onStatus = (connected) => {
+    syncChrome();
+    if (!connected) return;
+    if (home.isOpen) live.away();
+    else if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
+  };
   window.addEventListener(PLAYER_EVENT, () => queueMicrotask(() => { toolbar.sync(); syncChrome(); }));
   live.onPresence = (m) => {
     if (!openDecks.some((t) => t.id === m.deck)) return;
@@ -457,9 +474,19 @@ export async function startApp(): Promise<void> {
       const ed = editor;
       if (!ed) return;
       if (v !== 'normal' && ed.holderKind !== 'slide') commands.run('close-master');
-      ed.view = v;
-      if (v === 'normal') { views?.hide(); setHidden(altView, true); ed.stage.layout(); }
-      else void import('./editor/views').then((m) => { views ??= new m.AltViews(altView, () => editor); views.show(v); setHidden(altView, false); });
+      const seq = ++viewSeq;
+      if (v === 'normal') { ed.view = v; views?.hide(); setHidden(altView, true); ed.stage.layout(); }
+      else if (viewsCtor) { ed.view = v; views ??= new viewsCtor(altView, () => editor); views.show(v); setHidden(altView, false); }
+      else {
+        void loadViews().then((Ctor) => {
+          if (seq !== viewSeq || editor !== ed) return;
+          ed.view = v;
+          views ??= new Ctor(altView, () => editor);
+          views.show(v);
+          setHidden(altView, false);
+          syncChrome();
+        }, () => { if (seq === viewSeq) toast('The view could not be loaded. Check your connection or reload formdeck.', 'error'); });
+      }
       syncChrome();
     },
     toggle: (part) => {
@@ -597,7 +624,7 @@ export async function startApp(): Promise<void> {
   if (editor) exts.attach(editor);
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'new-window', 'deck-new-window', 'close-tab', 'close-other-tabs', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
-    { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
+    { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'paste-source', 'duplicate', 'delete', '-', 'select-all', 'find'] },
     { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'next-tab', 'prev-tab', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', ...(isMacDesktop() ? ['menus-in-window'] : []), 'media-controls-editor', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'change-case', 'clear-format', 'replace-fonts', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', { label: 'Picture', items: ['picture-reset', 'picture-reset-size', 'compress-pictures', '-', 'crop-aspect-1-1', 'crop-aspect-4-3', 'crop-aspect-16-9'] }, 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },

@@ -87,6 +87,13 @@ async def handle(client: Client, msg: dict) -> None:
     t = msg.get("t")
     deck_id = msg.get("deck")
     share = getattr(client, "share", None)
+    if t == "away":
+        left = getattr(client, "active", None)
+        client.active = None
+        client.focus = None
+        if left:
+            await STORE.broadcast(left, {"t": "presence", "deck": left, "client": client.id, "name": client.name, "slide": None, "sel": []}, skip=client.id)
+        return
     if share:
         refusal = guest_refusal(share, str(t), deck_id, msg)
         if refusal:

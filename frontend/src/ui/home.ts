@@ -18,6 +18,7 @@ export interface HomeHooks {
   preferences(): void;
   agents(): void;
   demo(id: DemoId): void;
+  onVisible?(open: boolean): void;
 }
 
 type View = 'start' | 'recent' | 'templates' | 'trash';
@@ -469,18 +470,22 @@ export class Home {
   }
 
   open(): void {
+    const was = this.isOpen;
     setHidden(this.root, false);
     document.body.classList.add('nm-home');
     document.title = 'formdeck';
     void this.load();
+    if (!was) this.hooks.onVisible?.(true);
   }
 
   close(): void {
+    const was = this.isOpen;
     setHidden(this.root, true);
     this.closeMenu();
     this.askClose();
     this.clearSelection();
     document.body.classList.remove('nm-home');
+    if (was) this.hooks.onVisible?.(false);
   }
 
   get isOpen(): boolean { return !this.root.hidden; }
