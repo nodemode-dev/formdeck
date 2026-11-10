@@ -105,8 +105,9 @@ class SetupShowDialog extends Dialog {
     setChecked(this.noNarration, !!s.noNarration);
     setChecked(this.noAnimation, !!s.noAnimation);
     this.from.max = this.to.max = String(Math.max(1, n));
-    this.from.value = String(s.range?.from ?? 1);
-    this.to.value = String(s.range?.to ?? n);
+    const rf = Math.min(Math.max(1, Math.round(s.range?.from ?? 1)), Math.max(1, n));
+    this.from.value = String(rf);
+    this.to.value = String(Math.min(Math.max(rf, Math.round(s.range?.to ?? n)), Math.max(1, n)));
     this.custom.replaceChildren(...shows.map((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; return o; }));
     if (s.customShow && shows.some((c) => c.id === s.customShow)) this.custom.value = s.customShow;
     this.sync();

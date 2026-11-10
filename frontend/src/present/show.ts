@@ -449,11 +449,17 @@ class Show {
     const custom = this.opts.custom ?? (this.fromStart() ? this.set.customShow : null);
     const cs = custom ? deck.customShows?.find((c) => c.id === custom) : undefined;
     if (cs?.slides.some((id) => this.doc.slide(id))) return [...cs.slides];
-    if (this.opts.custom) toast('That custom show has no slides, so the whole deck plays.');
+    const say = this.audienceMode || this.opts.remote ? (): void => undefined : toast;
     const r = this.fromStart() ? this.set.range : null;
-    if (!r || !(r.from >= 1)) return null;
-    const ids = deck.slides.slice(r.from - 1, Math.max(r.from, r.to)).filter((s) => !s.hidden).map((s) => s.id);
-    return ids.length ? ids : null;
+    const ok = !!r && r.from >= 1;
+    const ids = ok ? deck.slides.slice(r.from - 1, Math.max(r.from, r.to)).filter((s) => !s.hidden).map((s) => s.id) : [];
+    if (ids.length) {
+      if (custom) say('That custom show has no slides, so the slide range plays.');
+      return ids;
+    }
+    if (custom) say('That custom show has no slides, so the whole deck plays.');
+    else if (ok) say('The slide range in Set Up Show has no slides to play, so the whole deck plays.');
+    return null;
   }
 
   private nav(dir: 1 | -1): [Slide, number] | undefined {
@@ -1324,6 +1330,15 @@ class Show {
     this.grid?.sync(t);
     if (!deck.slides.length) { void this.close(); return; }
     if (!this.doc.slide(this.cur)) {
+      const list = this.list;
+      if (list) {
+        const at = list[this.pos] === this.cur ? this.pos : list.indexOf(this.cur);
+        const base = at >= 0 ? at : this.pos;
+        let k = -1;
+        for (let j = base + 1; j < list.length && k < 0; j++) if (this.doc.slide(list[j])) k = j;
+        for (let j = Math.min(base, list.length) - 1; j >= 0 && k < 0; j--) if (this.doc.slide(list[j])) k = j;
+        if (k >= 0) { this.run(() => void this.go(list[k], 'built', false, k)); return; }
+      }
       const i = clamp(this.curIndex, 0, deck.slides.length - 1);
       const s = deck.slides.slice(i).find((x) => !x.hidden) ?? deck.slides.slice(0, i).reverse().find((x) => !x.hidden) ?? deck.slides[i];
       this.run(() => void this.go(s.id, 'built', false));
