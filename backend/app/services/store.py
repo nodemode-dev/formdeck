@@ -222,14 +222,15 @@ class Store:
         self.save_now(deck["id"])
         return deck
 
-    def save_now(self, deck_id: str) -> None:
+    def save_now(self, deck_id: str, snap: tuple | None = None) -> None:
         s = self.sessions.get(deck_id)
         if s is None:
             return
+        rev, deck = snap or (s.rev, copy.deepcopy(s.deck))
         d = deck_dir(deck_id)
-        _write_json(d / "deck.json", s.deck)
-        _write_json(d / "info.json", model.summary(s.deck))
-        s.saved_rev = s.rev
+        _write_json(d / "deck.json", deck)
+        _write_json(d / "info.json", model.summary(deck))
+        s.saved_rev = max(s.saved_rev, rev)
         self._flush_activity(deck_id, s)
 
     def _schedule_save(self, deck_id: str) -> None:
@@ -239,8 +240,10 @@ class Store:
 
         async def later():
             await asyncio.sleep(SAVE_DELAY)
-            if s.rev != s.saved_rev:
-                await asyncio.to_thread(self.save_now, deck_id)
+            while s.rev != s.saved_rev and self.sessions.get(deck_id) is s:
+                async with s.lock:
+                    snap = (s.rev, copy.deepcopy(s.deck))
+                await asyncio.to_thread(self.save_now, deck_id, snap)
         try:
             s.save_task = asyncio.get_running_loop().create_task(later())
         except RuntimeError:

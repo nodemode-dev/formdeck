@@ -58,6 +58,8 @@ def _index_of(lst: list, op: dict) -> int:
 
 
 def apply(doc, op: dict) -> dict:
+    if not isinstance(op, dict):
+        raise OpError("an op must be an object")
     kind = op.get("op")
     path = list(op.get("path") or [])
     if kind == "set":

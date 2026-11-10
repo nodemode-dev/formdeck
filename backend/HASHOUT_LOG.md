@@ -437,3 +437,11 @@ LocalGuard: a sandboxed frame has an opaque origin, so its module scripts and fe
 `/fetch` is `net.fetch`: https only, every address the host resolves to must be global (no loopback, private, link-local or multicast), no redirects followed, 50 MB, 30 s, `Host` and `Cookie` dropped. `/save` writes the bytes to the path the person picked in the desktop save dialog (the browser build never calls it). `/manage` opens `formai://extensions?product=formdeck` with the platform opener. MCP and CLI reach the window through `bridge.window_call` with the tool names `extensions_list` and `extension_command`; consent is decided in the window, so the engine never grants. `extension_command` is in MUTATING, so agent consent applies first, as for `run_command`.
 
 The file route answers HEAD as well as GET (it fell through to the static mount before and answered 404), so the guard's GET and HEAD exception and the route agree.
+
+## 91. Autosave writes a snapshot taken under the lock · _v0.35.0 (services/store.py save_now, _schedule_save later)
+
+`save_now` ran in a worker thread, serialised the live `s.deck` and only then set `saved_rev = rev`, so a step applied on the loop thread during the write counted as saved without being written; its own save was skipped because the save task was still running, and `close_if_idle` could then drop the session with the edit lost. A threaded walk of a dict the loop was changing could also fail outright. `later` now takes `(rev, deepcopy(deck))` under `s.lock`, the thread writes only that snapshot, `saved_rev` takes the captured rev (never lower than it was), and the task loops until nothing newer is unsaved, stopping if the session was deleted or replaced. Callers without a snapshot (create, `/save`) take one on the loop thread.
+
+## 92. An op that is not an object is refused, not fatal · _v0.35.0 (services/ops.py apply)
+
+A step whose ops list held a string or null raised `AttributeError` in `apply`, which `live.handle` does not catch, so the WebSocket closed and every deck open in that window disconnected. `apply` raises `OpError` for a non-object op, so the step is rolled back and refused through the existing reject path, on the socket and on `POST /decks/{id}/steps` alike.
