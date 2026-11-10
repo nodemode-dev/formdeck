@@ -22,6 +22,12 @@ ACTIVITY_TRIM_BYTES = 900_000
 TRASH_ENTRY = re.compile(r"(d_[A-Za-z0-9_]+)-(\d{1,12})")
 
 
+class VersionUnreadable(ValueError):
+    def __init__(self, message: str, missing: bool = False):
+        super().__init__(message)
+        self.missing = missing
+
+
 @dataclass
 class Step:
     id: str
@@ -45,6 +51,8 @@ class Client:
         self.decks: set[str] = set()
         self.seen = time.monotonic()
         self.agents = False
+        self.away = False
+        self.pending: set[str] = set()
 
 
 @dataclass
@@ -125,7 +133,42 @@ def integrity(deck: dict) -> set:
     return out
 
 
-def repair_ids(deck: dict) -> int:
+def _dicts(seq) -> list:
+    return [x for x in seq or [] if isinstance(x, dict)] if isinstance(seq, list) else []
+
+
+def _all_ids(deck: dict) -> set:
+    out: set = set()
+
+    def add(x) -> None:
+        if isinstance(x, dict) and x.get("id") is not None:
+            out.add(str(x["id"]))
+
+    def walk(elements) -> None:
+        for e in _dicts(elements):
+            add(e)
+            if e.get("type") == "group":
+                walk(e.get("children"))
+
+    for key in ("masters", "layouts", "slides"):
+        for h in _dicts(deck.get(key)):
+            add(h)
+            walk(h.get("elements"))
+            for g in _dicts(h.get("guides")) + _dicts(h.get("animations")):
+                add(g)
+    for key in ("comments", "sections", "guides", "macros", "customShows"):
+        for x in _dicts(deck.get(key)):
+            add(x)
+    comps = deck.get("components")
+    for key, c in (comps.items() if isinstance(comps, dict) else []):
+        out.add(str(key))
+        if isinstance(c, dict):
+            add(c)
+            walk(c.get("children"))
+    return out
+
+
+def repair_ids(deck: dict, extra=None) -> int:
     fixed = 0
     masters = [x for x in deck.get("masters") or [] if isinstance(x, dict)]
     layouts = [x for x in deck.get("layouts") or [] if isinstance(x, dict)]
@@ -133,7 +176,10 @@ def repair_ids(deck: dict) -> int:
     used = {str(x.get("id")) for x in (*masters, *layouts, *slides) if x.get("id") is not None}
     used |= {str(c.get("id")) for c in deck.get("comments") or [] if isinstance(c, dict) and c.get("id") is not None}
     used |= {str(c.get("id")) for c in deck.get("sections") or [] if isinstance(c, dict) and c.get("id") is not None}
-    counter = ids.Counter(used | model.all_element_ids(deck))
+    reserved = _all_ids(deck)
+    for other in ([extra] if isinstance(extra, dict) else extra or []):
+        reserved |= _all_ids(other)
+    counter = ids.Counter(used | model.all_element_ids(deck) | reserved)
 
     def mint(old, default: str) -> str:
         m = re.match(r"[A-Za-z_]*", str(old) if old is not None else "")
@@ -147,9 +193,19 @@ def repair_ids(deck: dict) -> int:
                 fixed += 1
             seen.add(x["id"])
     owner = {u: None for u in {str(x["id"]) for x in (*masters, *layouts, *slides)} | used}
+    handled: set = set()
+
+    def retarget(holder: dict, old, new) -> None:
+        for a in holder.get("animations") or []:
+            if isinstance(a, dict) and a.get("target") == old:
+                a["target"] = new
+        for c in deck.get("comments") or []:
+            if isinstance(c, dict) and holder.get("id") is not None and c.get("slide") == holder.get("id") and c.get("element") == old:
+                c["element"] = new
+
     for holder in (*masters, *layouts, *slides):
         for el in model.iter_elements(holder.get("elements") or []):
-            if not isinstance(el, dict):
+            if not isinstance(el, dict) or id(el) in handled:
                 continue
             old = el.get("id")
             if old is not None and str(old) not in owner:
@@ -161,12 +217,22 @@ def repair_ids(deck: dict) -> int:
             owner[new] = id(holder)
             fixed += 1
             if old is not None and not ambiguous:
-                for a in holder.get("animations") or []:
-                    if isinstance(a, dict) and a.get("target") == old:
-                        a["target"] = new
-                for c in deck.get("comments") or []:
-                    if isinstance(c, dict) and holder.get("id") is not None and c.get("slide") == holder.get("id") and c.get("element") == old:
-                        c["element"] = new
+                retarget(holder, old, new)
+            if old is not None and "diagram" in el and isinstance(el.get("children"), list):
+                prefix = str(old) + "_"
+                for ch in el["children"]:
+                    cid = ch.get("id") if isinstance(ch, dict) else None
+                    if cid is None or not str(cid).startswith(prefix):
+                        continue
+                    cand = new + "_" + str(cid)[len(prefix):]
+                    if cand in counter.used:
+                        continue
+                    counter.used.add(cand)
+                    ch["id"] = cand
+                    owner[cand] = id(holder)
+                    handled.add(id(ch))
+                    fixed += 1
+                    retarget(holder, cid, cand)
     return fixed
 
 
@@ -594,9 +660,16 @@ class Store:
 
     async def restore_version(self, deck_id: str, n: int, client: str | None = None) -> dict:
         p = deck_dir(deck_id) / "versions" / f"{int(n)}.json"
-        old = json.loads(p.read_text(encoding="utf-8"))["deck"]
-        repaired = repair_ids(old)
+        try:
+            old = json.loads(p.read_text(encoding="utf-8"))["deck"]
+        except FileNotFoundError:
+            raise VersionUnreadable("There is no such version.", missing=True) from None
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise VersionUnreadable(f"The file is damaged ({type(exc).__name__}).") from None
+        if not isinstance(old, dict):
+            raise VersionUnreadable("The file does not hold a deck.")
         cur = self.session(deck_id).deck
+        repaired = repair_ids(old, cur)
         ops = [{"op": "set", "path": [k], "value": copy.deepcopy(old[k])} for k in ("title", "size", "theme", "masters", "layouts", "slides", "sections", "comments", "media") if k in old and old[k] != cur.get(k)]
         was, now = (old.get("meta") or {}).get("template"), (cur.get("meta") or {}).get("template")
         if was != now:

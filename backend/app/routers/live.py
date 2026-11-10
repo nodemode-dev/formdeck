@@ -11,6 +11,7 @@ from app.services.store import STORE, Client
 
 router = APIRouter()
 TOOL_RESULTS: dict[str, asyncio.Future] = {}
+WINDOW_GONE: dict = {"windowGone": True}
 SHOWS: dict[str, dict] = {}
 QUESTIONS: dict[str, list] = {}
 SHOW_TYPES = {"goto", "end", "black", "white", "normal", "laser", "zoom", "ink", "media", "cc"}
@@ -53,6 +54,10 @@ async def live(ws: WebSocket) -> None:
         pass
     finally:
         STORE.clients.pop(client.id, None)
+        for rid in list(client.pending):
+            fut = TOOL_RESULTS.get(rid)
+            if fut and not fut.done():
+                fut.set_result(WINDOW_GONE)
         for deck_id in list(client.decks):
             try:
                 await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "gone": True}, skip=client.id)
@@ -95,6 +100,7 @@ async def handle(client: Client, msg: dict) -> None:
         left = getattr(client, "active", None)
         client.active = None
         client.focus = None
+        client.away = True
         if left:
             await STORE.broadcast(left, {"t": "presence", "deck": left, "client": client.id, "name": client.name, "slide": None, "sel": []}, skip=client.id)
         return
@@ -202,6 +208,9 @@ async def handle(client: Client, msg: dict) -> None:
             await client.send({"t": "notice", "kind": "info", "text": f"Nothing to {t}."})
         return
     if t == "presence":
+        if deck_id not in client.decks:
+            return
         client.focus = (deck_id, msg.get("slide"))
         client.active = deck_id
+        client.away = False
         await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "name": client.name, "slide": msg.get("slide"), "sel": msg.get("sel")}, skip=client.id)

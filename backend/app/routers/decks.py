@@ -16,7 +16,7 @@ from app.routers.exports import _target
 from app.services import compiler, model, package, templates
 from app.services import ops as opsmod
 from app.services.media import store as media_store
-from app.services.store import STORE, deck_dir
+from app.services.store import STORE, VersionUnreadable, deck_dir
 
 router = APIRouter()
 log = logging.getLogger(__name__)
@@ -205,12 +205,12 @@ async def restore_version(deck_id: str, n: int) -> dict:
     _session_or_404(deck_id)
     try:
         return await STORE.restore_version(deck_id, n)
+    except VersionUnreadable as exc:
+        if exc.missing:
+            raise HTTPException(404, "There is no such version.")
+        raise HTTPException(422, f"This version could not be read: {exc}")
     except opsmod.OpError as exc:
         raise HTTPException(409, f"This version cannot be restored: {exc}")
-    except FileNotFoundError:
-        raise HTTPException(404, "There is no such version.")
-    except (OSError, KeyError, ValueError) as exc:
-        raise HTTPException(422, f"This version could not be read: {exc}")
 
 
 @router.put("/decks/{deck_id}/thumb")
