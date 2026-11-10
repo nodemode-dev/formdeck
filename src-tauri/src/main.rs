@@ -42,11 +42,26 @@ fn openable(path: &std::path::Path) -> bool {
             .unwrap_or(false)
 }
 
+fn deck_window(handle: &tauri::AppHandle) -> Option<tauri::WebviewWindow> {
+    handle.get_webview_window("main").or_else(|| {
+        let mut decks: Vec<(usize, tauri::WebviewWindow)> = handle
+            .webview_windows()
+            .into_iter()
+            .filter_map(|(label, window)| label.strip_prefix("deck-").and_then(|n| n.parse().ok()).map(|n| (n, window)))
+            .collect();
+        decks.sort_by_key(|(n, _)| *n);
+        match decks.iter().position(|(_, window)| window.is_focused().unwrap_or(false)) {
+            Some(at) => Some(decks.swap_remove(at).1),
+            None => decks.pop().map(|(_, window)| window),
+        }
+    })
+}
+
 fn hand_over(handle: &tauri::AppHandle, paths: Vec<String>) {
     if paths.is_empty() {
         return;
     }
-    match handle.get_webview_window("main") {
+    match deck_window(handle) {
         Some(window) => {
             let list = serde_json::to_string(&paths).unwrap_or_else(|_| "[]".into());
             let _ = window.eval(&format!(
@@ -213,7 +228,7 @@ fn main() {
                 .map(|path| path.to_string_lossy().into_owned())
                 .collect();
             hand_over(app, paths);
-            if let Some(window) = app.get_webview_window("main") {
+            if let Some(window) = deck_window(app) {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
             }
