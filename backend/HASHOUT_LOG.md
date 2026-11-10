@@ -465,3 +465,7 @@ FORMAT.md keeps group children in slide coordinates and the renderer draws a gro
 ## 97. Videos keep hidden, link, rotation, flips and glue in .pptx · _v0.35.0 (services/pptx/write_elements.py ElementWriter._movie)
 
 `_movie` builds the picture through python-pptx's `add_movie` and copied only the name and alt text, bypassing the helpers every other writer uses, so a video came out visible, unlinked and unrotated, and a connector glued to it lost its end because its shape id was never recorded. It now sets `hidden`, replaces python-pptx's media `hlinkClick` with the element's link (a `cNvPr` holds one), copies `_xfrm`'s rotation and flips onto the picture's `a:xfrm`, and records the id in `_ids`.
+
+## 98. Overflow slides do not repeat the section, and picture bullets keep their picture · _v0.35.0 (services/compiler/compile.py split_overflow; services/compiler/spec.py parse_slide)
+
+A slide that overflowed was split into copies of its whole spec, so each "(cont.)" slide repeated `section`, `kicker` and `subtitle`, and the deck got a second section of the same name starting at the continuation. Every chunk after the first drops those three, as it already dropped the image and notes. A bullet that was only a picture became an empty bullet and the picture was lost on every layout except team (which reads `entry["image"]` and clears the bullets first); bullet pictures now join the slide's images like a picture on its own line, and a bullet left with no text is dropped.

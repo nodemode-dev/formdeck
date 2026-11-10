@@ -509,6 +509,9 @@ def split_overflow(spec: dict, semantic: str) -> list[dict]:
             s["title"] = f"{spec.get('title', '')} (cont.)".strip()
             s.pop("image", None)
             s.pop("notes", None)
+            s.pop("section", None)
+            s.pop("kicker", None)
+            s.pop("subtitle", None)
             s["layout"] = "content" if semantic in ("imageLeft", "imageRight") else semantic
         out.append(s)
     return out

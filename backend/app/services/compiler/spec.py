@@ -179,6 +179,11 @@ def parse_slide(lines: list[str]) -> dict | None:
             people.append(p)
         s["people"] = people
         bullets = []
+    if bullets:
+        for b in bullets:
+            if b.get("image"):
+                images.append({"src": b["image"], "alt": ""})
+        bullets = [b for b in bullets if b["text"] or not b.get("image")]
     if columns:
         def col(c):
             out = {"heading": c["heading"]}
