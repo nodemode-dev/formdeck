@@ -25,7 +25,7 @@ import { installResponsive } from './ui/responsive';
 import { toast } from './ui/toast';
 import { DeckTabs } from './ui/tabs';
 import { openWindow } from './ui/windows';
-import { Editor, PEER_COLORS } from './editor/editor';
+import { announceEditor, Editor, PEER_COLORS, retireEditor } from './editor/editor';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
@@ -291,8 +291,10 @@ export async function startApp(): Promise<void> {
     const ed = editor;
     if (!ed) return;
     remember(ed);
+    retireEditor();
     ed.dispose();
     editor = null;
+    announceEditor(null);
     toolbar.attach(null);
     inspector.attach(null);
     drawTools.attach(null);
@@ -305,7 +307,7 @@ export async function startApp(): Promise<void> {
     if (editor && editor.doc === doc) return;
     for (const off of editorOff) off();
     editorOff = [];
-    if (editor) { remember(editor); editor.dispose(); }
+    if (editor) { remember(editor); retireEditor(); editor.dispose(); }
     prepareStills(doc.deck);
     const ed = new Editor(doc, { stage: stageEl, stripScroll: q(root, '.fd-strip-scroll'), stripCount: q(root, '.fd-strip-count'), notes: q<HTMLTextAreaElement>(root, '.fd-notes-text'), title: q<HTMLInputElement>(root, '.fd-doc-title') }, commands, contextMenu, live);
     editor = ed;
@@ -315,6 +317,7 @@ export async function startApp(): Promise<void> {
     exts?.attach(ed);
     inspector.attach(ed);
     drawTools.attach(ed);
+    announceEditor(ed);
     ed.stage.onZoom = (pct) => { setText(status.zoom, `${pct}%`); setValue(zoomSlider, String(pct)); };
     const place = openDecks.find((t) => t.doc === doc)?.place;
     if (place && doc.slide(place.slide)) {

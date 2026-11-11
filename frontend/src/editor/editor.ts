@@ -24,6 +24,32 @@ import { Stage } from './stage';
 
 export type EditorEvent = 'selection' | 'current' | 'doc' | 'edit' | 'view';
 const PEER_TTL = 20000;
+const PASTE_STEP = 12;
+
+function shiftElement(e: SlideElement, dx: number, dy: number): void {
+  e.x = (e.x ?? 0) + dx;
+  e.y = (e.y ?? 0) + dy;
+  if (e.type === 'group') for (const k of e.children) shiftElement(k, dx, dy);
+}
+
+export interface EditorBinder { retire?: () => void; bind: (ed: Editor | null) => void }
+const binders = new Set<EditorBinder>();
+let boundEditor: Editor | null = null;
+
+export function watchEditor(b: EditorBinder): () => void {
+  binders.add(b);
+  b.bind(boundEditor);
+  return () => { binders.delete(b); };
+}
+
+export function retireEditor(): void {
+  for (const b of [...binders]) b.retire?.();
+}
+
+export function announceEditor(ed: Editor | null): void {
+  boundEditor = ed;
+  for (const b of [...binders]) b.bind(ed);
+}
 
 export interface Peer { name: string; slide?: string; sel?: string[]; color: string; seen: number }
 
@@ -71,6 +97,7 @@ export class Editor {
     this.notesSave?.();
     if (document.activeElement === this.roots.title) this.roots.title.blur();
     this.bye.abort();
+    this.listeners.clear();
     this.offDoc();
     collab.unwatch(this.doc);
     if (this.holderKind !== 'slide') setHolderResolver(null);
@@ -120,7 +147,10 @@ export class Editor {
     this.emit('doc');
   }
 
+  get alive(): boolean { return !this.bye.signal.aborted; }
+
   apply(ops: Op[], label = 'Edit', coalesce?: string): boolean {
+    if (this.bye.signal.aborted) return false;
     if (ops.length && this.holderKind !== 'slide') ops = holderOps(this.doc.deck, ops);
     else if (ops.length) ops = diagramSync(this.doc, ops);
     if (!ops.length) return false;
@@ -499,15 +529,14 @@ export class Editor {
           if (this.holderKind === 'layout' && copy.ph && !TITLE_KINDS.has(copy.ph.type)) copy.ph = { ...copy.ph, idx: ++idx };
           else { delete copy.ph; delete copy.slot; }
         }
-        copy.x = (copy.x ?? 0) + 12;
-        copy.y = (copy.y ?? 0) + 12;
+        shiftElement(copy, PASTE_STEP, PASTE_STEP);
         ids.push(copy.id);
         return { op: 'ins', path: [...slidePath(s.id), 'elements'], value: copy } as Op;
       });
       const made = ops.map((o) => (o as { value: SlideElement }).value);
       remapCopies(c.items, made);
       if (foreign) relink(made, new Map(), true);
-      setClip({ ...c, items: c.items.map((e) => ({ ...e, x: (e.x ?? 0) + 12, y: (e.y ?? 0) + 12 })) });
+      setClip({ ...c, items: c.items.map((e) => { const n = clone(e); shiftElement(n, PASTE_STEP, PASTE_STEP); return n; }) });
       const carry = xf ? scaleCarry(c.carry, xf) : c.carry;
       if (this.apply([...(foreign ? carryOps(this.doc.deck, carry) : []), ...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
     } else if (c.kind === 'slides' && this.holderKind === 'slide') {

@@ -1,4 +1,4 @@
-import type { Editor } from '../editor/editor';
+import { watchEditor, type Editor } from '../editor/editor';
 import { clone, dirtyOp, resolvedFrame, setProp } from '../editor/actions';
 import { PRESET_GROUPS, presetGeometry } from '../engine/geometry/presets';
 import { parsePath } from '../engine/geometry/path';
@@ -1393,6 +1393,20 @@ class FindPanel {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.close(); return; }
       if (e.key === 'Enter' && e.target === this.find) { e.preventDefault(); this.step(e.shiftKey ? -1 : 1); }
       else if (e.key === 'Enter' && e.target === this.repl) { e.preventDefault(); if (e.metaKey || e.ctrlKey) this.replaceAll(); else this.replaceOne(); }
+    });
+    watchEditor({
+      bind: (ed) => {
+        if (ed === this.ed) return;
+        this.off?.();
+        this.off = null;
+        this.ed = ed;
+        this.cur = -1;
+        this.hits = [];
+        this.spots = [];
+        if (!ed) { this.close(); return; }
+        this.off = ed.on('doc', () => { if (!this.pop.hidden) this.schedule(); });
+        if (!this.pop.hidden) this.search();
+      },
     });
   }
 
