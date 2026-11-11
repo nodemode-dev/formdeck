@@ -42,9 +42,114 @@ app/services/package.py      .fdec pack and unpack (older .fsld read too)
 15. Animations in PowerPoint files · services/pptx/write_anim.py, read_anim.py
 16. The animate MCP tool · routers/mcp.py
 17. Covered merged cells read as span 1 · services/pptx/read_table.py
+18. Motion paths in PowerPoint files · services/pptx/write_anim.py, read_anim.py
+19. Find text in a PDF and redact it · services/pdf/search.py, routers/pdf.py
+20. Headers, footers, Bates numbers and cropping · services/pdf/edit.py
+21. PDF comment threads · services/pdf/annot.py, routers/pdf.py
+22. The library says whether a thumbnail exists · services/store.py
+23. Table borders and margins in PowerPoint files · services/pptx/write_table.py, read_table.py
+24. Connectors, freeforms and guides in PowerPoint files · services/pptx/write_elements.py, read_elements.py, geom.py, guides.py
+25. Show settings, custom shows and narration in PowerPoint files · services/pptx/show_props.py, write_media.py, write_anim.py
+26. Outline and GIF export · routers/exports.py
+27. PDF reflow, Word, forms, sanitising and compare · services/pdf/layout.py, word.py, forms.py, sanitize.py, create.py, compare.py
+28. Who changed what · services/store.py, routers/decks.py, routers/mcp.py
+29. The PDF workbench became formpdf · services/pdf_pages.py, routers/media.py, routers/mcp.py, main.py
+30. A theme part per master · services/pptx/writer.py, reader.py, services/templates/masters.py, model.py
+31. Native WordArt in PowerPoint files · services/pptx/text_fx.py, services/text_effects.py
+32. Equations: OMML out, LaTeX back · services/pptx/omml.py, pptx/math_picture.py, services/equations.py
+33. OpenDocument .odp · services/odp/writer.py, reader.py, geometry.py, common.py, routers/decks.py
+34. Media settings in PowerPoint files · services/pptx/write_media.py, read_media.py, write_anim.py, services/av_probe.py
 35. formsld becomes formdeck, old installs keep working · core/config.py, formdeck_engine.py, services/model.py, services/odp, routers/mcp.py
 36. .fdec deck files · services/package.py, routers/decks.py, routers/mcp.py, setup/cli.py, setup/agents.py
 37. Video size from MP4 track headers · services/av_probe.py, services/media.py
+38. Id steps reach group children · services/ops.py
+39. Run language in .pptx · services/pptx/read_text.py, write_text.py
+40. Tagged PDF by post-processing · services/pdf_tags.py, routers/exports.py
+41. One provider interface, one tool loop · services/chat/providers.py, engine.py, tools.py
+42. Chat keys outside settings · services/chat/keys.py
+43. Chat over its own event stream, and the agent inbox · routers/chat.py, services/chat/convo.py, routers/mcp.py
+44. Uncompressed EOT for embedded fonts · services/pptx/eot.py, embed_fonts.py
+45. Where an embedded font comes from · services/pptx/font_sources.py, core/config.py, services/model.py
+46. Charts linked to a workbook · services/workbook.py, routers/workbooks.py, services/pptx/write_chart.py, read_chart.py
+47. pptx 3-D and SmartArt data · services/pptx/text_fx.py, read_diagram.py, read_elements.py
+48. 3D models in .pptx · services/pptx/write_model3d.py, read_model3d.py, write_elements.py, read_elements.py, core/ids.py, services/media.py
+49. MicroType Express decoder · services/pptx/mtx.py, eot.py
+50. Absent font styles are not errors · services/pptx/embed_fonts.py
+51. VBA is listed, never run · services/pptx/reader.py, services/model.py
+52. Date and slide number fields in .pptx · services/pptx/write_text.py, read_text.py
+53. Stock pictures come through the engine by id · services/stock.py, routers/stock.py
+54. AI pictures reuse the chat's OpenAI-compatible settings · services/ai_images.py, routers/ai_images.py
+55. Subtitle translation is a translate-only call with a short timeout · services/chat/translate.py, routers/captions.py
+56. Add-in packages are checked, pinned and served sandboxed · services/addins.py, routers/addins.py, addins/
+57. Claude Code inside the engine, and the list cache hints · services/terminal.py, services/claude_code.py, routers/terminal.py, routers/commands.py, routers/mcp.py, services/chat/engine.py
+58. User fonts and chart axes · services/media.py, routers/media.py, services/pptx/write_chart.py, read_chart.py
+59. Command parameters in the catalogue · routers/mcp.py, setup/catalogue.py
+60. Adopting a Claude Code conversation into the chat · services/claude_code.py, services/chat/engine.py, services/chat/convo.py, routers/chat.py
+61. PDF text layer fonts and the PDF/UA check · services/pdf_fonts.py, routers/exports.py, setup/pdf_check.py
+62. Sharing on the local network · services/share.py, routers/share.py, routers/live.py, main.py
+63. The show relay and audience questions · routers/live.py
+64. Live text in the PDF · routers/exports.py, services/pdf_fonts.py
+65. Fallback fonts and width fitting · services/pdf_fonts.py, routers/exports.py
+66. One save path rule, import dates · routers/exports.py, routers/decks.py
+67. Trash routes and a steady desktop port · services/store.py, routers/decks.py, formdeck_engine.py, read_elements.py, write_elements.py
+68. Local network only when sharing; local paths; compress; review flag · services/share.py, routers/media.py, services/model.py, services/pptx/reader.py, routers/system.py
+69. Slide folders, handouts, guides on masters · routers/exports.py, services/pptx/guides.py, services/pptx/writer.py
+70. UI preferences in settings; agent handoff; review is human · routers/system.py, services/model.py, routers/mcp.py
+71. PDF comments, handout outline, a seeded index · routers/exports.py, main.py, routers/system.py
+72. Restore, picture zips, combo charts, alt text · services/store.py, routers/exports.py, services/pptx/write_chart.py, services/lint.py
+73. Unpacking dropped zips, placeholder frames · routers/media.py, services/pptx/write_elements.py
+74. The PDF text layer keeps to itself · routers/exports.py
+75. What the Grogo test found · services/compiler/compile.py, routers/mcp.py, services/pptx/write_elements.py, services/templates/generator.py
+76. A first-frame still for each video · services/media.py, routers/media.py
+77. Stills are versioned and revalidated · services/media.py, routers/media.py
+78. Template names that are not PowerPoint's or Apple's · services/templates/catalog.py
+79. Fonts with a Reserved Font Name ship whole · services/full_fonts.py, services/pptx/font_sources.py, frontend/src/render/fonts.ts, render/full-fonts/*.css, public/fonts/full
+80. posterSecondFrame is a stored setting · routers/system.py
+81. Agent layout ideas reach the person's own agent · services/chat/ideas.py, routers/chat.py, routers/mcp.py, services/chat/convo.py, routers/system.py
+82. LocalGuard: only this computer's own window and agents reach the engine · core/local_guard.py, main.py
+83. LocalGuard refuses cross-site requests that carry no Origin · core/local_guard.py
+84. The LAN share listens on 8298 · services/share.py, docs/MANUAL.md
+85. Only the window grants agent access · core/local_guard.py, routers/system.py
+86. A measured shrink reaches placeholders that inherit their autofit · services/pptx/write_text.py
+87. The family test suite · backend/tests, backend/requirements-test.txt, .github/workflows/ci.yml
+88. The window's scripts keep their types on Windows · main.py
+89. Homebrew's rustup passes the desktop check · setup/desktop_check
+90. The Form extension host's engine side · services/formext_host.py, routers/extensions.py, main.py, core/local_guard.py, routers/mcp.py, setup/catalogue.py
+91. Autosave writes a snapshot taken under the lock · services/store.py
+92. An op that is not an object is refused, not fatal · services/ops.py
+93. Downloads name the file in any script, and exports read a copy · routers/decks.py
+94. A package member larger than an upload is refused · services/package.py
+95. OpenDocument tables, notes and names survive the round trip · services/odp/reader.py, services/odp/writer.py
+96. Rotated and flipped groups import as drawn · services/pptx/read_elements.py
+97. Videos keep hidden, link, rotation, flips and glue in .pptx · services/pptx/write_elements.py
+98. Overflow slides do not repeat the section, and picture bullets keep their picture · services/compiler/compile.py, services/compiler/spec.py
+99. Switching template keeps every preserved layout · services/templates/remap.py
+100. A step id is applied once, across reconnects and restarts · services/store.py, routers/live.py
+101. A step that breaks the deck's structure is refused · services/store.py
+102. Undo merges only edits to the same thing · services/store.py
+103. A deleted deck stays deleted and every window hears of it · services/store.py, routers/decks.py, routers/live.py
+104. Window tools reach the right window, once · services/bridge.py
+105. Agent commands name their deck · routers/mcp.py, routers/commands.py, routers/extensions.py, frontend/src/automation/agent-bridge.ts
+106. Nothing in a slide script is dropped for lack of room · services/compiler/spec.py, services/compiler/compile.py, services/autodraft.py, docs/FORMAT.md, routers/mcp.py
+107. Packages are bounded and their media ids remapped by structure · services/package.py
+108. Unpacking a zip stops at the upload limit · routers/media.py
+109. A failed intake upload leaves nothing behind, and paging says when it is past the end · routers/intake.py, services/intake/__init__.py
+110. An outward crop imports at the size it is drawn · services/pptx/read_elements.py
+111. Read-only window tools fail over in proportional slices · services/bridge.py
+112. Restoring an old version repairs its duplicate ids · services/store.py, routers/decks.py
+113. ODP transforms were checked against LibreOffice; matrix and skew now read · services/odp/reader.py
+114. An outward-cropped picture keeps its border on the frame · services/pptx/read_elements.py
+115. `away` clears a window's active deck · routers/live.py
+116. A client that goes says so · routers/live.py
+117. Repair keeps diagrams whole and mints ids nobody holds · services/store.py, routers/decks.py
+118. Failover never starves a window, notices a window that closes, and skips Home · services/bridge.py, routers/live.py, services/store.py
+119. An ODP transform's scale reaches the frame · services/odp/reader.py
+120. Intake says how much of a big table or PDF it kept · services/intake/tables.py, intake/__init__.py, intake/digest.py
+121. A master's and layout's `origin` survives pptx and odp · services/pptx/writer.py, pptx/reader.py, odp/writer.py, odp/reader.py
+122. A window does not start a tool call the engine gave up on · services/bridge.py
+123. Only the outline moves to the frame · services/pptx/read_elements.py
+124. Several masters survive an ODP round trip · services/odp/writer.py, odp/reader.py, odp/common.py
+125. Hidden and unused masters keep their shapes; a master theme from a file is cleaned · services/odp/writer.py, odp/reader.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 

@@ -39,12 +39,189 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 17. Table cells are edited in place · editor/stage.ts, render/table.ts, editor/table-edit.ts
 18. The Animate tab · editor/animation-pane.ts
 19. Links, spacing, effects, picture adjustments, theme editing, replies · ui/link-dialog.ts, editor/inspector.ts
+20. Slide master view edits holders through slide paths · engine/holders.ts, engine/ops.ts, editor/master-view.ts, editor/editor.ts
+21. Motion paths are SVG data relative to the element centre · present/effects.ts, editor/animation-pane.ts
+22. Superscript, subscript and caps · editor/commands.ts, editor/stage.ts, ui/commands.ts
+23. Reflections · render/slide.ts, editor/inspector.ts
+24. PDF Edit tab, comment threads and find to redact · pdf/panels.ts, pdf/annotate.ts
+25. Small fixes · ui/home.ts, io/api.ts, editor/inspector.ts, automation/agent-bridge.ts
+26. Preset shapes are evaluated from the ECMA-376 definitions · engine/geometry/presets.ts, engine/geometry/ooxml-presets.json
+27. Moving a group moves its children · editor/actions.ts
+28. Zero shift on Home and in the workbench · ui/home.ts, styles/shell.css, pdf/panels.ts, styles/pdf.css, app.ts
+29. Tables: border drag, cell ranges, rows that shrink · editor/table-drag.ts, editor/table-panel.ts, editor/table-edit.ts, render/table.ts
+30. Drawing, connectors, rulers and the selection pane · editor/draw-tool.ts, editor/points-edit.ts, editor/connectors.ts, editor/rulers.ts, editor/selection-pane.ts, engine/geometry/path.ts, engine/geometry/connectors.ts, render/slide.ts
+31. Show setup, custom shows, narration, captions and video · present/show.ts, present/steps.ts, present/recorder.ts, present/captions.ts, present/video-export.ts, present/show-dialogs.ts, present/show-commands.ts
+32. PDF page layouts, reading mode, forms, stamps and compare · pdf/viewer.ts, pdf/reading.ts, pdf/form.ts, pdf/stamps.ts, pdf/compare.ts, pdf/create.ts
+33. Mentions, activity and comparing decks · editor/mentions.ts, editor/compare.ts, ui/review-dialogs.ts
+34. The PDF workbench became formpdf · app.ts, editor/editor.ts, editor/commands.ts, io/api.ts
+35. Several masters, each with its own theme · engine/resolve.ts, editor/master-view.ts
+36. Merge shapes · engine/geometry/boolean.ts, editor/merge-shapes.ts
+37. WordArt as an overlay over the editable flow · render/text-fx.ts, editor/text-effects.ts, ui/wordart-gallery.ts
+38. Equations as stored MathML · render/math.ts, editor/equation-editor.ts, editor/equation-commands.ts
+39. Media playback and the icon library · editor/media-panel.ts, ui/dialogs-media.ts, present/media-play.ts, present/show.ts, ui/dialogs-icons.ts
 40. formsld becomes formdeck · main.ts, app.ts, present/show.ts
 41. The fd- prefix and .fdec files · all styles and ui modules, editor/commands.ts, ui/dialogs-file.ts, app.ts
 42. Typing into what you select · editor/stage.ts, app.ts
 43. Menu bar dropdowns stay under the bar · ui/menu.ts
 44. Playing media in the editor · editor/media-preview.ts, editor/commands.ts, editor/toolbar.ts, editor/editor.ts
 45. Toasts stack upward · ui/toast.ts
+46. Selecting and editing inside a group · editor/stage.ts, editor/actions.ts, editor/editor.ts, engine/ops.ts
+47. Spelling engine on nspell with lazily fetched Hunspell files · editor/spelling.ts, nspell.d.ts
+48. Proofing language lives on runs · engine/model.ts, render/text.ts
+49. The spelling pass rescans after every action · ui/dialogs-spelling.ts
+50. Structure for the tagged PDF comes from the mounted slide · render/pdf-struct.ts, render/raster.ts, automation/agent-bridge.ts
+51. Chat panel patches nodes and keeps the composer still · ui/chat-panel.ts, styles/chat.css, editor/inspector.ts
+52. Contrast and names from an automated audit · styles/tokens.css, ui/themes.ts, styles/shell.css, ui/home.ts, app.ts, ui/link-dialog.ts, ui/dialogs-insert.ts, editor/inspector.ts
+53. Diagrams are groups with generated children · engine/model.ts, editor/diagram.ts
+54. Diagram text syncs inside Editor.apply · editor/diagram-sync.ts, editor/editor.ts, render/slide.ts
+55. One 3-D renderer for text and shapes · render/fx3d.ts, render/text-fx.ts, render/slide.ts, render/raster.ts
+56. Linked charts follow the file, not a timer per chart · editor/chart-links.ts, ui/dialogs-insert.ts, editor/commands.ts
+57. The ribbon owns its height · ui/ribbon.ts, editor/toolbar.ts, styles/ribbon.css
+58. Ribbon built on first attach, its commands in the constructor · editor/toolbar.ts, ui/qat.ts, ui/dialogs-customize.ts
+59. A 3D model is a picture with a model · engine/model.ts, render/slide.ts, render/model3d.ts
+60. Publishing is a file, not a service · ui/dialogs-publish.ts
+61. Presenter View laid out as PowerPoint's · present/show.ts, styles/present.css
+62. Which display the slides go to · present/show.ts, present/presenter-prefs.ts, src-tauri/src/main.rs
+63. Zoom into the slide · present/show.ts, styles/present.css
+64. Macros in a locked-down Worker, one step per run · editor/macros.ts, editor/macro-worker.ts, editor/macro-ops.ts, ui/dialogs-macros.ts, engine/ops.ts
+65. Ribbon follow-ups: galleries, Format Painter, Header & Footer, crop, shape 3-D · editor/ribbon-galleries.ts, editor/format-painter.ts, editor/header-footer.ts, editor/crop-tool.ts, editor/shape-3d.ts, editor/shape-effects.ts, ui/dialogs-header-footer.ts, engine/datefmt.ts, render/text.ts
+66. The status bar hears its own acks · engine/doc.ts, app.ts
+67. The desktop packages · src-tauri/tauri.conf.json, src-tauri/flatpak/, .github/workflows/desktop.yml
+68. Stock Images dialog · ui/dialogs-stock.ts, styles/stock.css
+69. Generate and Edit with AI · ui/dialogs-ai-image.ts, styles/ai-image.css, editor/media-commands.ts
+70. Subtitles with translation and docked positions · present/captions.ts, present/caption-translate.ts, ui/dialogs-captions.ts, present/show.ts, styles/present.css
+71. Add-ins run in the macro sandbox with permission modes · editor/addins.ts, ui/dialogs-addins.ts, styles/addins.css, editor/macros.ts, editor/macro-worker.ts
+72. The ribbon shrinks group by group · ui/ribbon.ts, styles/ribbon.css
+73. Touch and narrow layouts are classes on one root · ui/responsive.ts, ui/touch.ts, styles/responsive.css, editor/stage.ts, editor/filmstrip.ts, present/show.ts
+74. Bold on an empty text box · editor/commands.ts
+75. The macOS desktop build and E0463 · src-tauri/Cargo.toml, setup/desktop_check, setup/desktop_build, setup/install_desktop
+76. One build script at the root · build, setup/desktop_build
+77. Terminal dock, command catalogue and languages · ui/terminal-dock.ts, styles/terminal.css, automation/catalogue.ts, automation/command-meta.ts, ui/command-palette.ts, i18n/index.ts, app.ts
+78. The designer wishlist, as small commands · editor/font-commands.ts, editor/svg-import.ts, render/chart.ts, ui/dialogs-insert.ts, editor/animation-pane.ts, editor/format-painter.ts, editor/commands.ts, editor/outline-dialog.ts, ui/colorpop.ts, ui/report-dialog.ts, editor/credit-caption.ts
+79. Components and named text styles are data, not a new element type · editor/components.ts, engine/model.ts
+80. Plurals by override part, and the chat to terminal handoff · i18n/index.ts, i18n/keys/part11.json, ui/chat-panel.ts, ui/dialogs-file.ts
+81. Command parameters, colour styles, the translation tool · ui/commands.ts, automation/catalogue.ts, editor/param-commands.ts, editor/colour-styles.ts, i18n/index.ts, setup/i18n_tool.py
+82. From Claude Code... in the chat · ui/chat-panel.ts
+83. Chart alt text from data · render/pdf-struct.ts
+84. The guest window and the Share dialog · io/guest.ts, engine/doc.ts, ui/dialogs-share.ts, io/api.ts, main.ts
+85. Following a show from a share link, and Questions in Presenter View · present/show.ts, live/socket.ts, app.ts
+86. Words for live PDF text, and the bare picture · render/raster.ts, automation/agent-bridge.ts
+87. Word widths, and the guest's name · render/raster.ts, io/guest.ts, main.ts
+88. Shortcut editor, highlighter, Slide Zoom · ui/dialogs-file.ts, present/show.ts, editor/slide-zoom.ts
+89. Key tips and density · ui/key-tips.ts, ui/ribbon.ts, editor/toolbar.ts, ui/themes.ts, index.html
+90. Speech Rehearsal · present/coach.ts, present/captions.ts, present/show.ts
+91. Design Ideas and the live camera · editor/design-ideas.ts, editor/camera.ts, present/show.ts
+92. New-deck defaults, picture-filled text, macOS devices · services/templates, routers/system, ui/dialogs-file.ts, editor/text-effects.ts, render/text-fx.ts, src-tauri/Info.plist, src-tauri/entitlements.plist
+93. The drag-box rule · editor/stage.ts, app.ts, ui/dialogs-file.ts
+94. The sharing relay and other publishers' catalogs · relay/formdeck_relay.py, services/relay.py, services/share.py, routers/share.py, services/addins.py, ui/dialogs-share.ts, ui/dialogs-addins.ts
+95. Relay streaming and the empty-body race · services/relay.py, relay/formdeck_relay.py, io/guest.ts, main.ts
+96. The slide-edge line, and the relay over HTTPS · styles/slides.css, render/slide.ts, relay/formdeck_relay.py, services/relay.py, routers/share.py
+97. Select first, edit on text · editor/stage.ts, app.ts, styles/slides.css, editor/editor.ts
+98. Formatting the selection while editing · editor/stage.ts, editor/toolbar.ts, ui/dropdown.ts, render/fonts.ts, render/text.ts, editor/actions.ts
+99. Chat in the dock · ui/terminal-dock.ts, app.ts, editor/inspector.ts, ui/icons.ts
+100. Native save path, drop in the desktop window, show keys · ui/dialogs-file.ts, app.ts, present/show.ts, editor/media-commands.ts
+101. The app icon redrawn as a fanned deck · assets/formdeck_mark.svg, assets/icon_src/, ui/brand.ts, public/favicon.svg, public/splash.html, src-tauri/icons/*
+102. Grid, guides and smart guides as PowerPoint draws them · editor/rulers.ts, editor/stage.ts, styles/draw.css, editor/draw-commands.ts
+103. Lock aspect ratio · engine/model.ts, editor/stage.ts, editor/inspector.ts
+104. Review shows with company · editor/collab-state.ts, editor/inspector.ts, editor/filmstrip.ts, editor/toolbar.ts
+105. Trash and a pane that stays put · ui/home.ts, app.ts, io/api.ts
+106. Review is a choice, made for sharing · editor/collab-state.ts, editor/commands.ts, editor/inspector.ts, ui/dialogs-share.ts
+107. Editing keys as PowerPoint maps them · editor/stage.ts, app.ts, editor/commands.ts
+108. Slide show keys and picture tools · present/show.ts, editor/crop-tool.ts, ui/dialogs-compress.ts, ui/dialogs-replace-fonts.ts, ui/dialogs-file.ts
+109. Export as PowerPoint lays it out; AutoFit readout · ui/dialogs-file.ts, automation/agent-bridge.ts, editor/inspector.ts, render/text.ts, editor/toolbar.ts
+110. A presentation opens as itself from every door · ui/home.ts, app.ts
+111. Preferences live with the engine · io/ui-settings.ts, main.ts
+112. The agent hands off; people review · editor/inspector.ts, engine/model.ts, editor/stage.ts, editor/rulers.ts
+113. Shapes are drawn, PDFs carry comments · editor/draw-tool.ts, editor/draw-commands.ts, ui/dialogs-insert.ts, ui/dialogs-file.ts, ui/dialogs-compress.ts, io/ui-settings.ts
+114. Closing the partials from the window pass · render/text.ts, editor/stage.ts, editor/inspector.ts, editor/actions.ts, editor/points-edit.ts, editor/draw-commands.ts, app.ts, present/video-export.ts, ui/dialogs-file.ts
+115. Drop anything, save anywhere · app.ts, ui/dialogs-file.ts, ui/home.ts, editor/editor.ts
+116. An icons-only rail, the Quick Access Toolbar in the status bar · ui/ribbon.ts, ui/qat.ts, styles/ribbon.css, styles/shell.css, ui/key-tips.ts, editor/toolbar.ts, ui/icons.ts
+117. The window takes poster frames for agents · automation/agent-bridge.ts
+118. One command shape across the family · ui/commands.ts, automation/catalogue.ts, editor/param-commands.ts, editor/draw-commands.ts, ui/dialogs-insert.ts, ui/icons.ts
+119. Start is a presentation, not a sparkle · ui/icons.ts, ui/home.ts
+120. A dropped picture or video no longer locks the window · editor/stage.ts, styles/slides.css, src-tauri/src/main.rs
+121. The owner's icon · assets/icon_src/formdeck_icon_source.png, assets/*.png, assets/formdeck_mark.svg, src-tauri/icons/*, public/favicon.*, public/icon-*.png, public/apple-touch-icon.png, public/splash.html, ui/brand.ts
+122. The ribbon shrinks level by level · ui/ribbon.ts, styles/ribbon.css, editor/toolbar.ts
+123. No sparkle icon · ui/icons.ts, editor/toolbar.ts, editor/media-commands.ts, ui/chat-panel.ts
+124. One row grid across the ribbon, free room spread · styles/ribbon.css, styles/ribbon-galleries.css, ui/ribbon.ts
+125. A drop lands under the pointer · app.ts
+126. Content shows on the pasteboard · styles/slides.css
+127. Home is two rows · editor/toolbar.ts, styles/ribbon.css
+128. Autoplay video has no player chrome in the show · render/slide.ts
+129. A video is patched, never rebuilt, and autoplay starts on its first frame · render/slide.ts, present/media-play.ts, styles/slides.css
+130. The credit reads by nodemode-ai · ui/home.ts
+131. Hiding the Format pane is a tab on its edge · styles/shell.css, ui/panel-group.ts
+132. The menus live in the macOS menu bar on the desktop · ui/native-menu.ts, app.ts, index.html, styles/shell.css
+133. Show videos open on their first frame and play from it, in every start mode · render/slide.ts, present/media-play.ts, present/show.ts, styles/present.css
+134. Home's side panel resizes and collapses like the deck panes · ui/home.ts, styles/shell.css
+135. A Notes button in the status bar · app.ts, editor/commands.ts, styles/shell.css
+136. Videos show their first frame everywhere they play · render/video-still.ts, render/slide.ts, app.ts, present/show.ts
+137. Selecting a video opens Video Playback, and the player can be turned on · editor/toolbar.ts, editor/media-commands.ts, engine/model.ts, present/show.ts
+138. The desktop opens from a real splash straight into the finished app · public/splash.html, ui/dom.ts, src-tauri/src/main.rs, src-tauri/tauri.conf.json, src-tauri/Cargo.toml, src-tauri/build.rs, src-tauri/capabilities
+139. A video never shows a frame other than its start frame before it plays · render/video-still.ts, render/slide.ts, styles/slides.css
+140. The editor's video player locks video editing while it is on · editor/stage.ts, editor/media-commands.ts, app.ts, styles/shell.css
+141. The status bar keeps Save, and Settings joins the title bar · ui/qat.ts, app.ts
+142. Own names for borrowed feature labels · editor/toolbar.ts, editor/text-effects.ts, editor/design-ideas.ts, editor/slide-zoom.ts, editor/diagram-commands.ts, editor/inspector.ts, editor/ribbon-galleries.ts, ui/dialogs-diagram.ts, ui/wordart-gallery.ts, automation/command-meta.ts, i18n keys and every locale
+143. Preferences take the family's layout · ui/dialogs-file.ts, ui/icons.ts, styles/app-dialogs.css, app.ts
+144. The editor's player keeps Video Playback and warns beside it · editor/media-commands.ts, editor/toolbar.ts, editor/stage.ts, render/slide.ts, app.ts, styles/ribbon.css
+145. Added videos get their second frame as the poster · render/video-still.ts, editor/editor.ts, ui/dialogs-file.ts
+146. Crafter Ideas lists every layout; suggestions belong to the person's agent · editor/design-ideas.ts, ui/dialogs-file.ts, io/api.ts
+147. The credit reads by nodemode.ai · ui/home.ts
+148. Vite 8.3.5 clears the dev server's launch-editor advisories · frontend/package.json
+149. The window smoke (F7) · tests/window/test_window.py
+150. The splash card no longer moves while the page streams in · public/splash.html
+151. build_app takes formcompiler's --config and --target · build_app
+152. The Windows build stops on a failed step and names the engine for --target · setup/desktop_build.bat, backend/oc_install.bat, frontend/oc_install.bat, setup/install_desktop.bat
+153. Slide fonts load without a stylesheet, so the window's own text never falls back · render/fonts.ts, index.html
+154. The Help dialog and the About metadata name NodeAgentc, Inc. and the licence · ui/dialogs-file.ts, ui/native-menu.ts, src-tauri/tauri.conf.json, src-tauri/flatpak
+155. README in the Form family template (Mackin's #8), merged with main · README.md, src-tauri/tauri.conf.json
+156. The splash, its corners and the reveal match the Form family reference · public/splash.html, src-tauri/src/reveal.rs, src-tauri/src/main.rs, src-tauri/tauri.conf.json, src-tauri/build.rs, src-tauri/capabilities, src-tauri/Cargo.toml, ui/dom.ts
+157. The Form extension host beside the add-ins · extensions/host-bridge.ts, extensions/host.ts, styles/extensions.css, app.ts, editor/addins.ts, automation/agent-bridge.ts
+158. The three browser demos open inside the app · ui/demos.ts, ui/home.ts, app.ts, ui/menu.ts, styles/shell.css, scripts/demo-media.py, public/demos/
+159. A closed editor lets go of everything it hooked · editor/editor.ts, editor/stage.ts, editor/rulers.ts
+160. Deck tabs and more windows · app.ts, ui/tabs.ts, ui/windows.ts, ui/home.ts, ui/native-menu.ts, ui/dialogs-file.ts, editor/commands.ts, styles/shell.css, styles/tokens.css, src-tauri/src/main.rs, src-tauri/src/reveal.rs
+161. Deleting slides keeps sections, comments and custom shows whole · editor/actions.ts
+162. One clipboard for every deck and window · editor/clipboard.ts, editor/editor.ts, app.ts, automation/command-meta.ts
+163. A tab switch keeps typing in its own deck · editor/editor.ts, app.ts, ui/home.ts
+164. A blocked pop-up keeps the tab · ui/windows.ts
+165. Each show talks to its own audience window · present/show.ts
+166. Review follow-ups to 162 and 163 · editor/clipboard.ts, editor/editor.ts, app.ts
+167. Each deck window has its own audience window · src-tauri/src/main.rs, src-tauri/capabilities/default.json
+168. Files opened from the system reach a deck window after main closes · src-tauri/src/main.rs
+169. Edits survive a dropped connection, exactly once · engine/doc.ts, live/socket.ts
+170. The window resyncs instead of drifting · engine/doc.ts, live/socket.ts
+171. New ids never collide, and a deleted deck lets go · engine/doc.ts, live/socket.ts
+172. A tab comes back as it was left · app.ts, editor/editor.ts
+173. Collaborators keep their place and colour across tabs · app.ts, editor/editor.ts
+174. A deck deleted elsewhere closes its tab · app.ts, io/api.ts
+175. Closing a window waits for unsaved edits · app.ts, src-tauri/capabilities/default.json
+176. A deck keeps at least one slide · editor/commands.ts, editor/editor.ts, editor/views.ts
+177. Filmstrip drags end with their strip · editor/filmstrip.ts
+178. Duplicate keeps animations, and copied diagrams stay diagrams · editor/actions.ts, editor/clipboard.ts
+179. The show says what it plays · present/show.ts, present/show-dialogs.ts
+180. The macOS app menu follows the key window · ui/native-menu.ts, src-tauri/src/main.rs
+181. The status bar and the new-tab button hold still · styles/shell.css, ui/tabs.ts
+182. Pasted slides and objects fit a deck of another size · editor/clipboard.ts, editor/editor.ts
+183. Paste with Source Formatting · editor/clipboard.ts, editor/editor.ts, editor/commands.ts, automation/command-meta.ts, app.ts
+184. The sorter and outline views load once and fail out loud · app.ts
+185. A window showing Home stops counting as looking at a deck · app.ts, live/socket.ts, ui/home.ts
+186. Attaching the deck that is already attached does nothing · app.ts
+187. A thumbnail drag cancels outside the strip and on Escape · editor/filmstrip.ts
+188. Peers leave when they leave, stay while they stay, and have names · app.ts, live/socket.ts, editor/editor.ts, editor/stage.ts
+189. The show counts what is left · present/show.ts
+190. Away holds until Home closes · live/socket.ts, app.ts
+191. One menu build per reason · ui/native-menu.ts
+192. A drifting finger keeps its drop · editor/filmstrip.ts
+193. Restore says when it repaired ids · io/api.ts, ui/dialogs-file.ts
+194. Source formatting is recognised by what it looks like · editor/clipboard.ts
+195. A late tool call is refused, not run · live/socket.ts
+196. Renaming yourself reaches peers and mentions at once · editor/mentions.ts, ui/dialogs-file.ts, app.ts
+197. Panes act on the deck in front · editor/editor.ts, app.ts, ui/dialogs-diagram.ts, ui/dialogs-insert.ts
+198. Every duplicate moves, children included · editor/editor.ts
+199. Copy, cut, delete and duplicate follow the pane you are in · editor/editor.ts, editor/commands.ts, editor/views.ts
+200. A failed views chunk recovers, and Reload brings the tabs back · app.ts, ui/toast.ts
+201. Text in a flipped shape is never mirrored · render/slide.ts
+202. Reload never strands the window; arrows follow the pane · app.ts, editor/editor.ts, editor/stage.ts, editor/selection-pane.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
