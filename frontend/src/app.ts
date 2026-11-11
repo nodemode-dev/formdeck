@@ -1033,5 +1033,5 @@ export async function startApp(): Promise<void> {
     void openPaths(files);
   }
   revealApp();
-  document.title = `formdeck ${VERSION}`;
+  if (!editor) document.title = `formdeck ${VERSION}`;
 }

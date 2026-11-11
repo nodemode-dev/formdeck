@@ -222,6 +222,7 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 200. A failed views chunk recovers, and Reload brings the tabs back · app.ts, ui/toast.ts
 201. Text in a flipped shape is never mirrored · render/slide.ts
 202. Reload never strands the window; arrows follow the pane · app.ts, editor/editor.ts, editor/stage.ts, editor/selection-pane.ts
+203. A deck opened at start keeps its tab title · app.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -1070,3 +1071,7 @@ The first comparison of formdeck against LibreOffice renders of nested rotated a
 ## 202. Reload never strands the window; arrows follow the pane · _v0.38.0 (app.ts reloadWindow, beforeunload, key handler, loadViews, start-up restore; editor/editor.ts flush; editor/stage.ts, editor/selection-pane.ts setPane callers)
 
 Review of 199 and 200 found four faults. Reload detached the editor before waiting for unacknowledged edits, so with the engine down the browser asked "Leave site?" and a cancel left a window with no editor, while the desktop app reloaded and lost the edits. `Editor.flush()` now writes pending notes and the title without disposing; Reload flushes, waits up to 5 s with the editor attached, and if edits are still pending keeps everything as it is, forgets the saved tabs and says to reload when the connection is back; otherwise it marks the reload so the leave guard stays quiet, then detaches and reloads. With an object selected and the slides pane active, the arrow keys, F2, Enter, Tab and type-to-edit still acted on the object while Copy and Delete acted on slides; they now follow `slideContext` too, so the arrows step through slides. Restore opened the front deck a second time (two error toasts if it had been deleted); it now attaches the already opened tab. `loadViews` took the first URL anywhere in an error message; it now accepts only the dynamic-import failure forms of Chrome and Firefox with a `.js` URL. The review also suggested that `select()` should stop moving to the stage pane for selections the user did not make; no such caller exists today (undo, agents and peers do not select elements), while a dozen insert paths in other modules (Select All, group, camera, zoom, equations, 3D, merge, SVG) rely on it to put Delete back on the new object, so `select()` keeps that rule and the user-driven callers also say so explicitly.
+
+## 203. A deck opened at start keeps its tab title · _v0.38.0 (app.ts startApp)
+
+The last line of start-up set the page title to "formdeck" and the version, after the editor had already titled the page with the deck, so a window opened on a deck (from `?deck=`, a restore after Reload, or a file) showed the version instead of the deck's name until the next title change. It now sets that title only when no deck is open.
