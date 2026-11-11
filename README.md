@@ -8,7 +8,7 @@
   with an MCP server so an agent can draft a deck from your material. Local-first, no account.</p>
 
 <p align="center">
-  <img alt="version 0.36.0" src="https://img.shields.io/badge/version-0.36.0-eef0f4?style=flat-square">
+  <img alt="version 0.37.0" src="https://img.shields.io/badge/version-0.37.0-eef0f4?style=flat-square">
   <img alt="TypeScript and Vite" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="Python and FastAPI" src="https://img.shields.io/badge/Python-FastAPI-009688?style=flat-square">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
