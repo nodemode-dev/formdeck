@@ -13,7 +13,7 @@ from app.services import model
 from app.services.lint import _chain, _frame, _master, _prop, _styles
 
 from . import geometry
-from .common import MIMETYPE, NS, TEMPLATE_MIMETYPE, duration, length, q, safe_name
+from .common import FORMDECK_NS, MIMETYPE, NS, TEMPLATE_MIMETYPE, duration, length, q, safe_name
 
 ODF_TYPES = {
     "rect": "rectangle", "roundRect": "round-rectangle", "ellipse": "ellipse", "triangle": "isosceles-triangle", "rtTriangle": "right-triangle",
@@ -49,7 +49,7 @@ PH_CLASS = {"title": "title", "ctrTitle": "title", "subTitle": "subtitle", "body
             "dt": "date-time", "ftr": "footer", "sldNum": "page-number"}
 MATH_TAG = "formdeck-math:"
 MATH_TAGS = (MATH_TAG, "formsld-math:")
-FD_NS = "urn:formdeck:origin"
+FD_NS = FORMDECK_NS
 _XML_BAD = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
 
 
@@ -1084,6 +1084,7 @@ class OdpWriter:
         sreg.add(notes_layout)
         master_pages = []
         used_names: set[str] = set()
+        theme_seen: set[str] = set()
         for lay in layouts:
             master = _master(deck, lay)
             theme = model.theme_of(deck, None, master)
@@ -1097,7 +1098,14 @@ class OdpWriter:
             bg = lay.get("background") if isinstance(lay.get("background"), dict) else master.get("background")
             dp = self.page_style(sreg, bg if isinstance(bg, dict) else {"type": "solid", "color": "lt1"}, theme, None)
             mp = _el("style:master-page", {"style:name": name, "style:display-name": lay.get("name") or name, "style:page-layout-name": "PM1", "draw:style-name": dp})
-            foreign = {k: v for k, v in (("origin", lay.get("origin")), ("master-origin", master.get("origin"))) if isinstance(v, str) and v}
+            mid = str(master.get("id") or "")
+            foreign = {k: v for k, v in (("origin", lay.get("origin")), ("master-origin", master.get("origin")), ("master", mid),
+                                         ("master-name", master.get("name"))) if isinstance(v, str) and v}
+            if mid and isinstance(master.get("theme"), dict) and mid not in theme_seen:
+                foreign["master-theme"] = json.dumps(master["theme"], separators=(",", ":"), ensure_ascii=True)
+            theme_seen.add(mid)
+            if lay.get("hideMasterShapes"):
+                foreign["hide-master-shapes"] = "true"
             if foreign:
                 tagged = etree.Element(mp.tag, dict(mp.attrib), nsmap={**NS, "formdeck": FD_NS})
                 for k, v in foreign.items():
@@ -1105,7 +1113,11 @@ class OdpWriter:
                 mp = tagged
             ctx = {"layout": {"elements": []}, "master": master, "theme": theme, "page_styles": page_styles, "is_master": True, "chain": False}
             if not lay.get("hideMasterShapes"):
+                before = len(mp)
                 self.write_elements(mp, [e for e in master.get("elements") or [] if not e.get("ph")], ctx, sreg)
+                if mid:
+                    for child in list(mp)[before:]:
+                        child.set(f"{{{FD_NS}}}scope", "master")
             self.write_elements(mp, [e for e in lay.get("elements") or [] if not e.get("ph")], ctx, sreg)
             for e in lay.get("elements") or []:
                 if e.get("ph") and e["ph"].get("type") not in ("dt", "ftr", "sldNum"):

@@ -41,6 +41,11 @@ def is_odp(data: bytes) -> bool:
 
 FD_ORIGIN = "{urn:formdeck:origin}origin"
 FD_MASTER_ORIGIN = "{urn:formdeck:origin}master-origin"
+FD_MASTER = "{urn:formdeck:origin}master"
+FD_MASTER_NAME = "{urn:formdeck:origin}master-name"
+FD_MASTER_THEME = "{urn:formdeck:origin}master-theme"
+FD_SCOPE = "{urn:formdeck:origin}scope"
+FD_HIDE_MASTER = "{urn:formdeck:origin}hide-master-shapes"
 
 
 def _a(node, name: str, default=None):
@@ -992,26 +997,12 @@ class OdpReader:
             out.append(lvl)
         return out
 
-    def build(self, as_template: bool) -> dict:
-        deck = model.new_deck("Presentation")
-        deck["layouts"], deck["slides"] = [], []
-        meta = etree.fromstring(self.z.read("meta.xml")) if "meta.xml" in self.z.namelist() else None
-        title = meta.find(".//" + q("dc:title")) if meta is not None else None
-        if title is not None and (title.text or "").strip():
-            deck["title"] = title.text.strip()
-        mstyles = self.styles.find(q("office:master-styles"))
-        pages = [mp for mp in (mstyles if mstyles is not None else []) if _loc(mp) == "master-page"]
-        if pages:
-            pl = self.master_scope.props("page-layout", _a(pages[0], "style:page-layout-name"), "style:page-layout-properties")
-            w, h = pt(pl.get(_k("fo:page-width"))), pt(pl.get(_k("fo:page-height")))
-            if w and h:
-                deck["size"] = {"w": round(w, 2), "h": round(h, 2)}
-        master = deck["masters"][0]
-        first_origin = pages[0].get(FD_MASTER_ORIGIN) if pages else None
-        if first_origin:
-            master["origin"] = first_origin
-        master["name"] = _a(pages[0], "style:display-name") or _a(pages[0], "style:name") if pages else "Master"
-        first = _a(pages[0], "style:name") if pages else ""
+    def fill_master(self, deck: dict, master: dict, gpages: list, first_group: bool) -> None:
+        p0 = gpages[0] if gpages else None
+        if p0 is not None and p0.get(FD_MASTER_ORIGIN):
+            master["origin"] = p0.get(FD_MASTER_ORIGIN)
+        master["name"] = (p0.get(FD_MASTER_NAME) or _a(p0, "style:display-name") or _a(p0, "style:name")) if p0 is not None else "Master"
+        first = _a(p0, "style:name") if p0 is not None else ""
         titles = self.text_levels(self.master_scope, first, "title", 1)
         bodies = self.text_levels(self.master_scope, first, "outline", 9)
         if titles:
@@ -1027,15 +1018,67 @@ class OdpReader:
         if dflt is not None:
             tp = self.run_style(Scope(None, None, {"graphic": dflt}), "graphic", None)
             master["textStyles"]["other"] = [{"sz": tp.get("sz", 18), "font": tp.get("font") or "+mn", "color": tp.get("color") or "tx1"}]
-        fonts = deck["theme"]["fonts"]
-        if titles and titles[0].get("font"):
-            fonts["major"] = titles[0]["font"]
-        if bodies and bodies[0].get("font"):
-            fonts["minor"] = bodies[0]["font"]
-        if pages:
-            bg = self.fill(self.page_props(self.master_scope, _a(pages[0], "draw:style-name")))
+        if first_group:
+            fonts = deck["theme"]["fonts"]
+            if titles and titles[0].get("font"):
+                fonts["major"] = titles[0]["font"]
+            if bodies and bodies[0].get("font"):
+                fonts["minor"] = bodies[0]["font"]
+        if p0 is not None:
+            bg = self.fill(self.page_props(self.master_scope, _a(p0, "draw:style-name")))
             if bg is not None:
                 master["background"] = bg
+            raw = p0.get(FD_MASTER_THEME)
+            if raw:
+                try:
+                    theme = json.loads(raw)
+                except ValueError:
+                    theme = None
+                if isinstance(theme, dict) and isinstance(theme.get("colors"), dict) and isinstance(theme.get("fonts"), dict):
+                    master["theme"] = theme
+        scoped = next((mp for mp in gpages if any(c.get(FD_SCOPE) == "master" for c in mp)), None)
+        if scoped is not None:
+            elements = []
+            for child in scoped:
+                if child.get(FD_SCOPE) == "master":
+                    el = self.shape(child, self.master_scope, True)
+                    if el:
+                        elements.append(el)
+            master["elements"] = elements
+
+    def build(self, as_template: bool) -> dict:
+        deck = model.new_deck("Presentation")
+        deck["layouts"], deck["slides"] = [], []
+        meta = etree.fromstring(self.z.read("meta.xml")) if "meta.xml" in self.z.namelist() else None
+        title = meta.find(".//" + q("dc:title")) if meta is not None else None
+        if title is not None and (title.text or "").strip():
+            deck["title"] = title.text.strip()
+        mstyles = self.styles.find(q("office:master-styles"))
+        pages = [mp for mp in (mstyles if mstyles is not None else []) if _loc(mp) == "master-page"]
+        if pages:
+            pl = self.master_scope.props("page-layout", _a(pages[0], "style:page-layout-name"), "style:page-layout-properties")
+            w, h = pt(pl.get(_k("fo:page-width"))), pt(pl.get(_k("fo:page-height")))
+            if w and h:
+                deck["size"] = {"w": round(w, 2), "h": round(h, 2)}
+        groups: dict[str, list] = {}
+        for mp in pages:
+            groups.setdefault(mp.get(FD_MASTER) or next(iter(groups), ""), []).append(mp)
+        if not groups:
+            groups[""] = []
+        template = copy.deepcopy(deck["masters"][0])
+        page_master: dict[int, dict] = {}
+        masters_out = []
+        for gi, (key, gpages) in enumerate(groups.items()):
+            master = deck["masters"][0] if gi == 0 else copy.deepcopy(template)
+            if key:
+                master["id"] = key
+            elif gi:
+                master["id"] = f"m{gi + 1}"
+            self.fill_master(deck, master, gpages, gi == 0)
+            masters_out.append(master)
+            for mp in gpages:
+                page_master[id(mp)] = master
+        deck["masters"] = masters_out
         by_page: dict[str, str] = {}
         used: set[str] = set()
         for mp in pages:
@@ -1046,8 +1089,11 @@ class OdpReader:
             while lid in used:
                 lid, n = f"{base_id}_{n}", n + 1
             used.add(lid)
+            master = page_master[id(mp)]
             elements = []
             for child in mp:
+                if child.get(FD_SCOPE) == "master":
+                    continue
                 el = self.shape(child, self.master_scope, True)
                 if el:
                     elements.append(el)
@@ -1059,13 +1105,15 @@ class OdpReader:
             layout = {"id": lid, "master": master["id"], "name": disp, "elements": elements}
             if mp.get(FD_ORIGIN):
                 layout["origin"] = mp.get(FD_ORIGIN)
+            if mp.get(FD_HIDE_MASTER) == "true":
+                layout["hideMasterShapes"] = True
             bg = self.fill(self.page_props(self.master_scope, _a(mp, "draw:style-name")))
             if bg is not None and bg != master.get("background"):
                 layout["background"] = bg
             deck["layouts"].append(layout)
             by_page[name] = lid
         if not deck["layouts"]:
-            deck["layouts"].append({"id": "l_blank", "master": master["id"], "name": "Blank", "elements": []})
+            deck["layouts"].append({"id": "l_blank", "master": deck["masters"][0]["id"], "name": "Blank", "elements": []})
         assign_semantics(deck["layouts"], {})
         master_frames = {}
         for lay in deck["layouts"]:
