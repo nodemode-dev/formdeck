@@ -154,9 +154,29 @@ export async function startApp(): Promise<void> {
   let viewsCtor: ViewsCtor | null = null;
   let viewsLoad: Promise<ViewsCtor> | null = null;
   let viewSeq = 0;
+  let viewsUrl = '';
+  let viewsTry = 0;
   const loadViews = (): Promise<ViewsCtor> => {
-    viewsLoad ??= import('./editor/views').then((m) => { viewsCtor = m.AltViews; return m.AltViews; }, (e: unknown) => { viewsLoad = null; throw e; });
+    const ready = (m: { AltViews: ViewsCtor }): ViewsCtor => { viewsCtor = m.AltViews; return m.AltViews; };
+    const fresh = (): Promise<ViewsCtor> => import(/* @vite-ignore */ `${viewsUrl}?retry=${++viewsTry}`).then(ready);
+    const first = (): Promise<ViewsCtor> => import('./editor/views').then(ready, (e: unknown) => {
+      const found = /https?:\/\/[^\s'"]+/.exec(e instanceof Error ? e.message : String(e));
+      if (!found) throw e;
+      viewsUrl = found[0].split('?')[0];
+      return fresh();
+    });
+    viewsLoad ??= (viewsUrl ? fresh() : first()).catch((e: unknown) => { viewsLoad = null; throw e; });
     return viewsLoad;
+  };
+  const reloadWindow = (): void => {
+    const ids = openDecks.map((t) => t.id);
+    const front = editor?.doc.id ?? '';
+    try { sessionStorage.setItem('formdeck.restore', JSON.stringify({ ids, front })); } catch { }
+    detach();
+    void (async () => {
+      for (let n = 0; unsaved() && n < 50; n++) await new Promise((r) => window.setTimeout(r, 100));
+      location.reload();
+    })();
   };
   loadViews().catch(() => undefined);
   let exts: FormdeckExtensions | null = null;
@@ -519,7 +539,7 @@ export async function startApp(): Promise<void> {
           views.show(v);
           setHidden(altView, false);
           syncChrome();
-        }, () => { if (seq === viewSeq) toast('The view could not be loaded. Check your connection or reload formdeck.', 'error'); });
+        }, () => { if (seq === viewSeq) toast('The view could not be loaded. Check your connection, then reload formdeck.', 'error', { label: 'Reload', run: reloadWindow }); });
       }
       syncChrome();
     },
@@ -986,7 +1006,18 @@ export async function startApp(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');
   const files = params.getAll('open').filter(Boolean);
-  if (want) await openDeck(want);
+  let restore: { ids: string[]; front: string } | null = null;
+  try {
+    const raw = sessionStorage.getItem('formdeck.restore');
+    sessionStorage.removeItem('formdeck.restore');
+    const parsed = raw ? JSON.parse(raw) as { ids?: unknown; front?: unknown } : null;
+    if (parsed && Array.isArray(parsed.ids)) restore = { ids: parsed.ids.filter((x): x is string => typeof x === 'string'), front: typeof parsed.front === 'string' ? parsed.front : '' };
+  } catch { restore = null; }
+  if (restore?.ids.length) {
+    for (const id of restore.ids) await openDeck(id);
+    if (restore.front) await openDeck(restore.front);
+    if (!openDecks.length) home.open();
+  } else if (want) await openDeck(want);
   else home.open();
   if (files.length) {
     history.replaceState(null, '', location.pathname);
