@@ -1085,7 +1085,19 @@ class OdpWriter:
         master_pages = []
         used_names: set[str] = set()
         theme_seen: set[str] = set()
+        shows: dict[int, bool] = {}
         for lay in layouts:
+            m = _master(deck, lay)
+            shows[id(m)] = shows.get(id(m), False) or not lay.get("hideMasterShapes")
+        carried: set[int] = set()
+        carriers = []
+        carrier_ids = {str(_master(deck, l).get("id") or "") for l in layouts}
+        for m in masters:
+            mid = str(m.get("id") or "")
+            if mid and mid not in carrier_ids:
+                carrier_ids.add(mid)
+                carriers.append({"id": f"_carrier_{mid}", "master": mid, "name": m.get("name") or mid, "elements": [], "hideMasterShapes": True, "_carrier": True})
+        for lay in layouts + carriers:
             master = _master(deck, lay)
             theme = model.theme_of(deck, None, master)
             base = safe_name(lay.get("name") or lay.get("id") or "Layout")
@@ -1106,6 +1118,8 @@ class OdpWriter:
             theme_seen.add(mid)
             if lay.get("hideMasterShapes"):
                 foreign["hide-master-shapes"] = "true"
+            if lay.get("_carrier"):
+                foreign["carrier"] = "true"
             if foreign:
                 tagged = etree.Element(mp.tag, dict(mp.attrib), nsmap={**NS, "formdeck": FD_NS})
                 for k, v in foreign.items():
@@ -1118,6 +1132,16 @@ class OdpWriter:
                 if mid:
                     for child in list(mp)[before:]:
                         child.set(f"{{{FD_NS}}}scope", "master")
+            elif mid and not shows.get(id(master), False) and id(master) not in carried:
+                carried.add(id(master))
+                before = len(mp)
+                self.write_elements(mp, [e for e in master.get("elements") or [] if not e.get("ph")], ctx, sreg)
+                for child in list(mp)[before:]:
+                    if child.get(f"{{{NS['draw']}}}display") == "none":
+                        child.set(f"{{{FD_NS}}}scope", "master")
+                    else:
+                        child.set(f"{{{NS['draw']}}}display", "none")
+                        child.set(f"{{{FD_NS}}}scope", "master-hidden")
             self.write_elements(mp, [e for e in lay.get("elements") or [] if not e.get("ph")], ctx, sreg)
             for e in lay.get("elements") or []:
                 if e.get("ph") and e["ph"].get("type") not in ("dt", "ftr", "sldNum"):

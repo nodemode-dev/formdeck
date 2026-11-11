@@ -46,6 +46,9 @@ FD_MASTER_NAME = "{urn:formdeck:origin}master-name"
 FD_MASTER_THEME = "{urn:formdeck:origin}master-theme"
 FD_SCOPE = "{urn:formdeck:origin}scope"
 FD_HIDE_MASTER = "{urn:formdeck:origin}hide-master-shapes"
+FD_CARRIER = "{urn:formdeck:origin}carrier"
+MASTER_SCOPES = ("master", "master-hidden")
+HEX_COLOR = re.compile(r"#[0-9A-Fa-f]{6}")
 
 
 def _a(node, name: str, default=None):
@@ -997,6 +1000,23 @@ class OdpReader:
             out.append(lvl)
         return out
 
+    @staticmethod
+    def clean_theme(theme) -> dict | None:
+        if not isinstance(theme, dict) or not isinstance(theme.get("colors"), dict) or not isinstance(theme.get("fonts"), dict):
+            return None
+        colors = {}
+        for k, dflt in model.DEFAULT_THEME["colors"].items():
+            v = theme["colors"].get(k)
+            colors[k] = v.upper() if isinstance(v, str) and HEX_COLOR.fullmatch(v) else dflt
+        fonts = {}
+        for k, dflt in model.DEFAULT_THEME["fonts"].items():
+            v = theme["fonts"].get(k)
+            v = re.sub(r"[\x00-\x1f\x7f]", "", v).strip() if isinstance(v, str) else ""
+            fonts[k] = v[:64] if v else dflt
+        name = theme.get("name")
+        name = re.sub(r"[\x00-\x1f\x7f]", "", name).strip()[:64] if isinstance(name, str) else ""
+        return {"name": name or "theme", "colors": colors, "fonts": fonts}
+
     def fill_master(self, deck: dict, master: dict, gpages: list, first_group: bool) -> None:
         p0 = gpages[0] if gpages else None
         if p0 is not None and p0.get(FD_MASTER_ORIGIN):
@@ -1034,15 +1054,18 @@ class OdpReader:
                     theme = json.loads(raw)
                 except ValueError:
                     theme = None
-                if isinstance(theme, dict) and isinstance(theme.get("colors"), dict) and isinstance(theme.get("fonts"), dict):
-                    master["theme"] = theme
-        scoped = next((mp for mp in gpages if any(c.get(FD_SCOPE) == "master" for c in mp)), None)
+                clean = self.clean_theme(theme)
+                if clean:
+                    master["theme"] = clean
+        scoped = next((mp for mp in gpages if any(c.get(FD_SCOPE) in MASTER_SCOPES for c in mp)), None)
         if scoped is not None:
             elements = []
             for child in scoped:
-                if child.get(FD_SCOPE) == "master":
+                if child.get(FD_SCOPE) in MASTER_SCOPES:
                     el = self.shape(child, self.master_scope, True)
                     if el:
+                        if child.get(FD_SCOPE) == "master-hidden":
+                            el.pop("hidden", None)
                         elements.append(el)
             master["elements"] = elements
 
@@ -1068,12 +1091,15 @@ class OdpReader:
         template = copy.deepcopy(deck["masters"][0])
         page_master: dict[int, dict] = {}
         masters_out = []
+        used_mids: set[str] = set()
         for gi, (key, gpages) in enumerate(groups.items()):
             master = deck["masters"][0] if gi == 0 else copy.deepcopy(template)
             if key:
                 master["id"] = key
-            elif gi:
-                master["id"] = f"m{gi + 1}"
+            base_mid, k = master["id"], 2
+            while master["id"] in used_mids:
+                master["id"], k = f"{base_mid}_{k}", k + 1
+            used_mids.add(master["id"])
             self.fill_master(deck, master, gpages, gi == 0)
             masters_out.append(master)
             for mp in gpages:
@@ -1082,6 +1108,8 @@ class OdpReader:
         by_page: dict[str, str] = {}
         used: set[str] = set()
         for mp in pages:
+            if mp.get(FD_CARRIER) == "true":
+                continue
             name = _a(mp, "style:name")
             disp = _a(mp, "style:display-name") or name
             lid = "l_" + (re.sub(r"[^a-z0-9]+", "_", disp.lower()).strip("_") or "layout")
@@ -1092,7 +1120,7 @@ class OdpReader:
             master = page_master[id(mp)]
             elements = []
             for child in mp:
-                if child.get(FD_SCOPE) == "master":
+                if child.get(FD_SCOPE) in MASTER_SCOPES:
                     continue
                 el = self.shape(child, self.master_scope, True)
                 if el:
