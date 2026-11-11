@@ -1113,8 +1113,13 @@ class OdpWriter:
             mid = str(master.get("id") or "")
             foreign = {k: v for k, v in (("origin", lay.get("origin")), ("master-origin", master.get("origin")), ("master", mid),
                                          ("master-name", master.get("name"))) if isinstance(v, str) and v}
-            if mid and isinstance(master.get("theme"), dict) and mid not in theme_seen:
-                foreign["master-theme"] = json.dumps(master["theme"], separators=(",", ":"), ensure_ascii=True)
+            if not master_pages and isinstance(deck.get("theme"), dict):
+                foreign["deck-theme"] = json.dumps(deck["theme"], separators=(",", ":"), ensure_ascii=True)
+            if mid and mid not in theme_seen:
+                if isinstance(master.get("theme"), dict):
+                    foreign["master-theme"] = json.dumps(master["theme"], separators=(",", ":"), ensure_ascii=True)
+                if master.get("preserve"):
+                    foreign["master-preserve"] = "true"
             theme_seen.add(mid)
             if lay.get("hideMasterShapes"):
                 foreign["hide-master-shapes"] = "true"

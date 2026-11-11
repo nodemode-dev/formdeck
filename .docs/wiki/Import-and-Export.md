@@ -8,7 +8,7 @@
 
 ## Slides from PDF pages
 
-Insert > Slides from PDF Pages adds one slide per page of a PDF at the end of the deck: the page as a picture fitted to the slide, its text in the speaker notes, all in one undo step (`backend/app/services/pdf_pages.py`, `frontend/src/editor/editor.ts insertPdfPages`). A PDF opened or dropped anywhere else goes to Start from your material and becomes editable slides. Editing PDFs themselves is [formpdf](https://github.com/nodemode-ai/formpdf)'s job.
+Insert > Slides from PDF Pages adds one slide per page of a PDF at the end of the deck: the page as a picture fitted to the slide, its text in the speaker notes, all in one undo step (`backend/app/services/pdf_pages.py`, `frontend/src/editor/editor.ts insertPdfPages`). A PDF opened or dropped anywhere else goes to Start from your material and becomes editable slides. Editing PDFs themselves is [formpdf](https://github.com/nodemode-dev/formpdf)'s job.
 
 ## PDF and pictures
 
@@ -16,7 +16,7 @@ The window renders each slide to a canvas (`frontend/src/render/raster.ts`) and 
 
 ## The .fdec package
 
-One zip with `deck.json` and every media file, for formdeck on any computer and for agents. The layout is in [FORMAT.md](https://github.com/nodemode-ai/formdeck/blob/main/docs/FORMAT.md#the-fdec-package).
+One zip with `deck.json` and every media file, for formdeck on any computer and for agents. The layout is in [FORMAT.md](https://github.com/nodemode-dev/formdeck/blob/main/docs/FORMAT.md#the-fdec-package).
 
 ## Print
 

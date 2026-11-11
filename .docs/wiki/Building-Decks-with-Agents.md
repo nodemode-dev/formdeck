@@ -34,4 +34,4 @@ The first agent edit asks the person once in the window: Allow agents to edit? T
 
 ## Without the window
 
-`./formdeck build-deck notes.md q3.pdf shots/ --template aurora --brief "investor update" --out update.pptx`. Options are in the [manual](https://github.com/nodemode-ai/formdeck/blob/main/docs/MANUAL.md#the-headless-cli).
+`./formdeck build-deck notes.md q3.pdf shots/ --template aurora --brief "investor update" --out update.pptx`. Options are in the [manual](https://github.com/nodemode-dev/formdeck/blob/main/docs/MANUAL.md#the-headless-cli).

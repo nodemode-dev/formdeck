@@ -4,7 +4,7 @@ formdeck ships 67 original templates in 9 categories (Pitch 8, Business 8, Minim
 
 title, section, agenda, content, twoContent, comparison, imageLeft, imageRight, imageFull, gallery, bigNumber, stats, quote, timeline, process, team, chart, table, titleOnly, closing, blank.
 
-Each layout names its placeholders by slot (title, subtitle, body, image, number, stat1, quote, by and so on); the slot table is in [FORMAT.md, Templates](https://github.com/nodemode-ai/formdeck/blob/main/docs/FORMAT.md#templates). Because the slots are shared, Change template restyles a deck without losing content: slides compiled from a spec are recompiled, hand-edited ones keep their elements and move into the new layout's slots.
+Each layout names its placeholders by slot (title, subtitle, body, image, number, stat1, quote, by and so on); the slot table is in [FORMAT.md, Templates](https://github.com/nodemode-dev/formdeck/blob/main/docs/FORMAT.md#templates). Because the slots are shared, Change template restyles a deck without losing content: slides compiled from a spec are recompiled, hand-edited ones keep their elements and move into the new layout's slots.
 
 ## Your own templates
 

@@ -44,6 +44,8 @@ FD_MASTER_ORIGIN = "{urn:formdeck:origin}master-origin"
 FD_MASTER = "{urn:formdeck:origin}master"
 FD_MASTER_NAME = "{urn:formdeck:origin}master-name"
 FD_MASTER_THEME = "{urn:formdeck:origin}master-theme"
+FD_MASTER_PRESERVE = "{urn:formdeck:origin}master-preserve"
+FD_DECK_THEME = "{urn:formdeck:origin}deck-theme"
 FD_SCOPE = "{urn:formdeck:origin}scope"
 FD_HIDE_MASTER = "{urn:formdeck:origin}hide-master-shapes"
 FD_CARRIER = "{urn:formdeck:origin}carrier"
@@ -1017,6 +1019,15 @@ class OdpReader:
         name = re.sub(r"[\x00-\x1f\x7f]", "", name).strip()[:64] if isinstance(name, str) else ""
         return {"name": name or "theme", "colors": colors, "fonts": fonts}
 
+    @classmethod
+    def json_theme(cls, raw) -> dict | None:
+        if not raw:
+            return None
+        try:
+            return cls.clean_theme(json.loads(raw))
+        except ValueError:
+            return None
+
     def fill_master(self, deck: dict, master: dict, gpages: list, first_group: bool) -> None:
         p0 = gpages[0] if gpages else None
         if p0 is not None and p0.get(FD_MASTER_ORIGIN):
@@ -1038,7 +1049,10 @@ class OdpReader:
         if dflt is not None:
             tp = self.run_style(Scope(None, None, {"graphic": dflt}), "graphic", None)
             master["textStyles"]["other"] = [{"sz": tp.get("sz", 18), "font": tp.get("font") or "+mn", "color": tp.get("color") or "tx1"}]
-        if first_group:
+        deck_theme = self.json_theme(p0.get(FD_DECK_THEME)) if first_group and p0 is not None else None
+        if deck_theme:
+            deck["theme"] = deck_theme
+        elif first_group:
             fonts = deck["theme"]["fonts"]
             if titles and titles[0].get("font"):
                 fonts["major"] = titles[0]["font"]
@@ -1048,15 +1062,11 @@ class OdpReader:
             bg = self.fill(self.page_props(self.master_scope, _a(p0, "draw:style-name")))
             if bg is not None:
                 master["background"] = bg
-            raw = p0.get(FD_MASTER_THEME)
-            if raw:
-                try:
-                    theme = json.loads(raw)
-                except ValueError:
-                    theme = None
-                clean = self.clean_theme(theme)
-                if clean:
-                    master["theme"] = clean
+            clean = self.json_theme(p0.get(FD_MASTER_THEME))
+            if clean:
+                master["theme"] = clean
+            if p0.get(FD_MASTER_PRESERVE) == "true":
+                master["preserve"] = True
         scoped = next((mp for mp in gpages if any(c.get(FD_SCOPE) in MASTER_SCOPES for c in mp)), None)
         if scoped is not None:
             elements = []
