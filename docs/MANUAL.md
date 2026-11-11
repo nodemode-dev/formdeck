@@ -1,6 +1,6 @@
 # formdeck manual
 
-formdeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.6.0. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-ai/formpdf); in formdeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formdeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formdeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.38.0. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-ai/formpdf); in formdeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formdeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -46,12 +46,14 @@ The desktop app needs no Python or Node: the engine travels inside it and starts
 
 The package registers .fdec, .fsld, .pptx and .odp files with formdeck. Uninstalling leaves the library in `~/formdeck`.
 
+**Windows.** The desktop app can show several windows at once, each with its own deck tabs (see Deck tabs and windows). File > New Window opens another window the size of the one you used, set a little down and to the right of it. A window closes without losing work: if edits are still being saved, the window waits for them (a few seconds at most) before it goes. Each window has its own slide show window, so presenting from two decks does not mix them up. When you open a .fdec, .pptx or other deck file from the system while formdeck is running, it opens in a window that is already running (the first window while it is open, otherwise the one in front); formdeck does not start a second copy of itself. On macOS the menu bar at the top of the screen follows the window in front, so a menu command runs in the window you are looking at. The Presenter View and print commands also act on the window that asked for them.
+
 ## Home
 
 Home opens when no deck is open, and from the formdeck mark in the title bar or File > Home (Alt+Mod+H).
 
 - **Start** greets you with three ways in: Choose files (opens the material dialog), Paste text (notes, a brief, an outline or a slide script, sent to the same dialog as `pasted.md`) and Use your agent (the Agents dialog). Open file and Blank deck sit at the top right. Below are your recent decks and the template gallery.
-- **Recent decks** lists everything in the library, newest first. Decks save as you work.
+- **Recent decks** lists everything in the library, newest first. Decks save as you work. The side panel also lists the decks you have open in this window; click one to go back to it.
 - **Templates** shows all templates with category chips and a search box. Click one to name the deck and Use template, or download it as .pptx or .potx.
 - **Claude Code, Codex, Cursor** opens the Agents dialog; **Local only** is a reminder that decks stay on this computer; **Preferences** opens Preferences.
 
@@ -66,6 +68,11 @@ The material dialog (New deck from files) turns your documents into a drafted de
 3. **What should this deck do?** The brief: audience, goal, tone and length.
 4. **Template.** Pick one from the grid (category chips and search work here too). The line under the grid names its heading and body fonts.
 5. **Slides** (Auto, 6, 8, 10, 12, 16 or 20) and **Size** (Widescreen 16:9, Standard 4:3, Google Slides 16:9).
+
+**Big files.** Two limits apply to the material, and the intake says when it has reached one instead of dropping data quietly:
+
+- **Tables.** A table from a CSV, TSV or Excel file keeps its first 500 rows. The intake shows a table's rows as "rows 1-500 of 1200, first 500 kept", and its overview as "1200 rows, first 500 kept". The notes also tell an agent that the rows after the 500th were not kept and are not available, for example "700 more rows were not kept, only the first 500 of 1200 are available". A file of 500 rows or fewer reads as before. For a longer table, cut it down in your spreadsheet first.
+- **PDF pages.** The pages of a PDF are rendered as pictures up to page 300 (these are the page pictures used for scanned PDFs and for pictures of pages). For a longer PDF the intake adds a line such as "page renders stop at 300 of 301 pages". The limit is on the page pictures, not on the reading of the text.
 
 Then choose:
 
@@ -93,18 +100,29 @@ The window has a title bar (menus, the deck title, undo and redo, panel toggles,
 
 | Menu | Holds |
 | --- | --- |
-| File | Home, New Deck, Open, Save, Save As, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, OpenDocument Presentation, PDF, Pictures, formdeck file, Video, Animated GIF, Outline as Text, Outline as Rich Text), Print or Save as PDF, Delete Deck |
-| Edit | Undo, Redo, Undo Agent Turn, Cut, Copy, Paste, Duplicate, Delete, Select All, Find and Replace |
-| View | Normal, Slide Sorter, Outline, Slide Master, zoom, Ruler, Gridlines, Guides, Grid and Guides, show or hide the slides panel, properties panel and speaker notes |
+| File | Home, New Deck, Open, New Window, Move Deck to New Window, Close Tab, Close Other Tabs, Save, Save As, Save a Copy in Library, Save Version, Save as Template, Export (PowerPoint, PowerPoint Template, OpenDocument Presentation, PDF, Pictures, formdeck file, Publish as Web Page, Video, Animated GIF, Outline as Text, Outline as Rich Text), Share Deck, Print or Save as PDF, Options (Preferences, Customize the Ribbon, Customize Quick Access Toolbar), Delete Deck |
+| Edit | Undo, Redo, Undo Agent Turn, Cut, Copy, Paste, Paste with Source Formatting, Duplicate, Delete, Select All, Find and Replace |
+| View | Normal, Slide Sorter, Outline, Slide Master, zoom, Ruler, Gridlines, Guides, Grid and Guides, show or hide the slides panel, properties panel and speaker notes, Next Tab, Previous Tab, Terminal, Claude Code, Chat with Claude, Find a Command, Player in Editor, Macros, Ribbon Options |
 | Insert | New Slide, Duplicate Slide, Text Box, Picture, Video or Audio, Shapes, Line, Arrow, Connector, Freeform and Scribble, Table, Table (rows, columns, merge, split, distribute, header and banded rows), Chart, Text Art, Equation, Icons, Slides from PDF Pages, Link, New Comment |
 | Format | Bold, Italic, Underline, Strikethrough, Superscript, Subscript, All Caps, Small Caps, font size up and down, Clear Formatting, alignment, bullets, numbering, list levels, vertical alignment, Fill Colour, Outline Colour, Text Effects, Transform Text, Clear Text Effects, Alt Text, Edit Points, Merge Shapes (Union, Combine, Fragment, Intersect, Subtract), media Playback (Trim, Poster Frame), Table Style, Table Borders |
 | Slide | New, Duplicate, Delete, Hide Slide, Layout (grouped by master), Reset Slide, Format Background, Change Template, Slide Size, Add Section, Rename Section; in Master view also Insert Slide Master, Insert Slide Master from Template, Duplicate, Delete and Preserve Master |
 | Arrange | order, align, distribute, flip, rotate, Group, Ungroup, Lock, Selection Pane |
 | Review | Spelling, Language, Check Deck, Activity, Compare, Mark Ready for Review, Approve Slide, Request Changes, Back to Draft, New Comment, Start from Your Material, Agents and MCP |
 | Present | From Beginning, From Current Slide, Presenter View, Custom Shows, Set Up Show, Record, Clear timings and narration |
-| Help | formdeck Help, Keyboard Shortcuts, Show Key Tips, Preferences |
+| Help | formdeck Help, Keyboard Shortcuts, Show Key Tips, Demos (three finished decks that open in the app: Worlds Beyond, Why We Keep Going Back and Mill Street Roastery), Preferences |
 
-Right-click a slide thumbnail, an object or the empty slide for the matching short menu.
+Right-click a slide thumbnail, an object or the empty slide for the matching short menu. The thumbnail menu also holds Copy, Paste, Paste with Source Formatting and Copy Slides To (see Copying and pasting between decks).
+
+### Deck tabs and windows
+
+A row of tabs sits under the title bar with one tab for each deck open in the window. Click a tab to switch to that deck; the tab shows a small dot while edits are still being saved. The plus button at the right of the row opens Home on the templates, to start another deck. Opening a deck that is already open just switches to its tab.
+
+- **Close** a tab with its cross, a middle click, or File > Close Tab (Mod+W). File > Close Other Tabs closes all but the one in front. Closing the last tab opens Home. A tab waits a few seconds for edits that are still on their way before it lets go of the deck.
+- **Move between tabs** with Ctrl+Tab and Ctrl+Shift+Tab, or Ctrl+Page Down and Ctrl+Page Up (Ctrl on every system, including macOS), or View > Next Tab and Previous Tab. Right-click a tab for Close Tab, Close Other Tabs, Move Deck to New Window and New Window.
+- **A tab comes back as you left it.** Each tab remembers its slide, selection and zoom, and whether you were in Normal, Slide Sorter, Outline or Slide Master view. Decks in the background stay up to date with agents and other windows, and a background tab keeps its own typing and notes: switching tabs never moves an edit to another deck. Panes that work on the deck in front (the Diagram text pane, Find and Replace) follow the tab you switch to.
+- **New Window** (File > New Window, Shift+Mod+N) opens another formdeck window on Home. **Move Deck to New Window** opens the open deck in a window of its own and closes its tab here. In the browser a new window is a new browser window, so allow pop-ups for formdeck; if the browser blocks it, formdeck says so and keeps the tab where it was. All windows share the same engine, so a deck open in two windows is edited live in both.
+- **A deck deleted in another window** closes its tab, with a note saying so.
+- If the window ever needs a reload (for example when a part of the app could not be loaded), the message has a Reload button; formdeck then opens your tabs again in the same order, with the deck you were on in front.
 
 ### Toolbar
 
@@ -124,7 +142,21 @@ Narrow windows rearrange themselves: from 1280 pixels the properties panel opens
 
 Click a thumbnail to go to a slide; Shift or Mod click to select several; drag to reorder (a selection moves together). The badges on a thumbnail show hidden slides, comments and review status. Slide > Add Section starts a named section at the current slide; double-click a section head to rename it. With no object selected, the arrow keys and Page Up and Page Down move between slides, and Home and End go to the first and last.
 
-### On the slide
+Deleting slides takes their comments with them and removes them from every custom show, and a section left with no slides goes too. One Undo brings the slides, comments, sections and custom show entries back. A deck always keeps at least one slide: cutting or deleting every slide is refused, and Cut copies the slides instead and says so.
+
+### Copying and pasting between decks
+
+Copy, Cut and Paste work on objects and on slides, inside a deck, between two decks in the same window (tabs) and between windows. There is one clipboard for all of them: the last thing you copied in any window is what Paste gives, and it stays when you switch tabs.
+
+**Which one is copied.** Copy, Cut, Delete and Duplicate act on the pane you last worked in, as PowerPoint does. Click or draw on the slide, or select objects from anywhere, and they act on the selected objects. Click a thumbnail in the slides panel (or work in Slide Sorter) and they act on the selected slides, even if objects are still selected on the slide; a click on a thumbnail also clears the object selection. The right-click menu on a thumbnail or an object sets the pane the same way. Tabbing into the slides panel with the keyboard keeps the object selection, but it does nothing until you go back to the slide. Paste does not depend on the pane: objects land on the current slide, slides land after the current slide. In Slide Sorter the slides are always what Copy, Cut, Delete and Duplicate act on.
+
+**Slides.** Paste puts the slides after the current slide, selects them, and is one undo step. In another deck each pasted slide takes that deck's own look: formdeck picks the layout with the same name and kind, otherwise the same kind, otherwise the same name, otherwise the deck's content layout, the way PowerPoint's default paste uses the destination theme. A placeholder that the new layout has no place for keeps the frame it had. Pictures, video, audio, fonts, components, named text styles and named colours that the slides use come along. Animations, connectors and links between the pasted slides follow the new copies; a link to a slide that stays behind in the other deck is removed. Duplicate keeps animations too, and a copied diagram stays a diagram you can edit.
+
+**Copy Slides To.** Right-click the selected slides in the slides panel and choose Copy Slides To, then pick another open deck by its title. The slides are added at the end of that deck, with the same rules as Paste. The list names the other decks you have open in this window.
+
+**A deck of another slide size.** When the source and the destination are different sizes (for example a 16:9 slide pasted into a 4:3 deck) formdeck scales everything pasted by the same amount, as large as fits, and centres it, so nothing hangs off the slide. Positions and sizes, text sizes and spacing, line widths, shadows, glows, table sizes and motion paths are scaled together; proportions such as crop, opacity and percentage line spacing stay as they were. Equal sizes are pasted unchanged. This applies to slides, to objects, and to Copy Slides To.
+
+**Paste with Source Formatting** (Edit menu and the thumbnail menu) keeps the look the slides had in their own deck, instead of taking the destination's. It is available when the clipboard holds slides copied from another deck. It adds the slides' slide master (with its own theme: colours, fonts and background) and the layouts they use to your deck, and puts the slides on them. The master is added as a preserved master, so it stays when you change template, with a name that is unique in your deck (the source name, then the name followed by 2, 3 and so on). Pictures, fonts and the other things the slides use come along, and it is one undo step, which removes the slides, the master and the layouts together. Paste it a second time, or paste more slides with the same source look, and formdeck reuses the master and layouts it already brought in instead of adding copies. It recognises them by what they look like (theme, background, text styles and shapes), not by name, so this still works after you rename a layout, save a copy of the source or re-import it. If you edit the pasted master, a later paste from the unedited source adds a new one. The source look survives export: .pptx and .odp files keep the mark that tells formdeck the master is the same one, so reopening the file and pasting again does not add another copy. A clipboard filled by an older formdeck has no source look, and then Paste with Source Formatting is off.
 
 - Click to select, Shift-click to add, drag on empty space for a marquee (it selects every object it touches; Preferences > Editing > Drag box can make it select only objects it fully encloses). Drag to move; smart guides snap to other objects and the slide edges, and Alt-drag skips snapping. Drag a handle to resize (Shift keeps proportions) and the round handle to rotate. Arrow keys nudge by 1 point, Shift-arrow by 10.
 - Double-click a placeholder or shape to type (Enter does the same for a selected shape). Esc finishes typing; Tab indents a list item while typing. Double-click a chart to edit its data and a picture to replace it.
@@ -247,6 +279,14 @@ Every change shows on the slides at once and is one undo step. Presenting, revie
 
 Edit > Find and Replace (Mod+F) searches every text box, speaker notes included, with Match case and Whole words. Enter and Shift+Enter step through the matches; Replace changes the current one and Replace All changes them all in one undoable step.
 
+### Collaborators
+
+When another window, or a person on a share link, has the same deck open, you see where they are working. On the slide you are looking at, each object they have selected gets an outline in their colour with their name on it. Nothing shows for a collaborator who is on a different slide.
+
+- **Names.** A window uses the name in Preferences > New Decks > Author. Without one it is shown as Guest and a two-digit number that stays the same for that window. Change the Author field and everyone sees the new name at once (it also becomes your name in comment mentions). A person on a share link is asked for a name when they first open the link.
+- **Colours.** Each deck gives its collaborators colours (blue, green, purple, yellow, pink, cyan) in the order they appear. A person keeps their colour in that deck for as long as you have it open, including when you switch to another tab and back.
+- **Coming and going.** An outline disappears when the person closes or reloads their window, leaves the deck, or switches to Home. A person who sits still keeps their outline while their window is open; one whose window has gone quiet for about 20 seconds is dropped.
+
 ### Sharing on this network
 
 formdeck answers only the computer it runs on, and that is the default. To work on a deck with people on the same network (an office or home Wi-Fi), open File > Share Deck and tick **Allow other computers on this network**. formdeck then also listens on port 8298 (set `FORMDECK_LAN_PORT` to change it) and the dialog shows this computer's address.
@@ -298,7 +338,7 @@ Review > Language sets the language of the selected text, the selected objects o
 
 ### Saving and versions
 
-Decks save to the library as you work; the status bar says Saving or Saved. Save (Mod+S) also writes the deck back to the file it came from, if it was opened from one. Save As saves a copy as a .fdec or .pptx file (the browser downloads it; the desktop app asks for a path) or as a separate deck in your library. File > Save Version names a snapshot; Version history lists them and Restore puts one back. Delete Deck moves a deck to the trash folder in the library.
+Decks save to the library as you work; the status bar says Saving or Saved. Save (Mod+S) also writes the deck back to the file it came from, if it was opened from one. Save As saves a copy as a .fdec or .pptx file (the browser downloads it; the desktop app asks for a path) or as a separate deck in your library. File > Save Version opens Version history: type a name (for example Before the board review) and Save a version to keep a snapshot, and the list below shows every version with its age and slide count. Restore asks twice: the button turns into Confirm restore for four seconds, and a second click puts that version back as one step you can undo with Mod+Z. Versions saved by older builds can contain two objects with the same id, which a deck no longer accepts. When you restore such a version, formdeck repairs it first and gives the later copies new ids (the first one keeps its id; a copied diagram's parts, and the animations and comment anchors of a renamed object, follow it) and the message adds "1 duplicate id was given a new one." or "N duplicate ids were given new ones." Nothing you can see changes. If the version file is missing or damaged, the dialog says it could not restore and why. Delete Deck moves a deck to the trash folder in the library.
 
 ## Keyboard shortcuts
 
@@ -307,6 +347,9 @@ Decks save to the library as you work; the status bar says Saving or Saved. Save
 | File | Home | Alt+Mod+H |
 | | New Deck | Alt+Mod+N |
 | | Open | Mod+O |
+| | New Window | Shift+Mod+N |
+| | Close Tab | Mod+W |
+| | Next Tab, Previous Tab | Ctrl+Tab and Ctrl+Shift+Tab (or Ctrl+Page Down and Ctrl+Page Up), Ctrl on every system |
 | | Save | Mod+S |
 | | Save As | Shift+Mod+S |
 | | Print | Mod+P |
@@ -398,7 +441,9 @@ Zoom into the slide shows a box: click the part to enlarge, drag to move around,
 
 **Speech Rehearsal** (Slide Show tab, or Present > Speech Rehearsal) does the same while listening to you through the subtitle recognizer, so subtitles turn on for the rehearsal. While you speak it suggests slowing down or speeding up, names filler words, and says when you read a slide's text word for word (six words in a row from the slide). At the end, beside Keep timings, it reports your pace in words per minute against the usual 100 to 165, the filler words it heard, and how often you read the slide. Filler words are known for English, Spanish, French, German, Italian, Portuguese and Dutch; pace advice is not given for Chinese, Japanese, Korean or Thai. Speech recognition often leaves out "um" and "uh", so those counts can be low. It needs Chrome or Edge, a microphone and a network connection, and uses the spoken language set in Subtitle Settings.
 
-**Set Up Show** (Present > Set Up Show): Presented by a speaker, or Browsed at a kiosk (a kiosk show loops and moves on only by its timings, links and media; Esc still ends it). Loop continuously until Esc repeats the show; Show without narration keeps recorded voice silent; Show without animation shows every slide fully built. Show slides chooses All, a From and To range, or a custom show; Advance slides chooses Manually or Using timings, if present; and the pen colour sets the starting ink. From Beginning and presenter view follow these settings; From Current Slide plays the deck in order from where you are. The settings are kept in PowerPoint files.
+**Set Up Show** (Present > Set Up Show): Presented by a speaker, or Browsed at a kiosk (a kiosk show loops and moves on only by its timings, links and media; Esc still ends it). Loop continuously until Esc repeats the show; Show without narration keeps recorded voice silent; Show without animation shows every slide fully built. Show slides chooses All, a From and To range, or a custom show; Advance slides chooses Manually or Using timings, if present; and the pen colour sets the starting ink. From Beginning and presenter view follow these settings; From Current Slide plays the deck in order from where you are. The settings are kept in PowerPoint files. A From and To range skips hidden slides.
+
+**If slides change during a show.** The show plays the slides that are left. When the slide on screen is deleted while a range or custom show is running, the show moves to the next slide of that list that still exists, or to the one before it if there is none after, and the counter ("3 / 4", "Slide 3 of 12") counts only the slides that are left. Deleting slides outside the list changes nothing, and a slide you add during the show does not join it. A custom show or range that no longer fits the deck is not silent: if the custom show is empty, the slide range plays instead; if the range is empty too, the whole deck plays, and a message in your own window says which happened (the audience window and people following over the network see no message). If every slide of the list is deleted mid-show, the same kind of message says that the range or custom show has no slides left and the whole deck plays. Set Up Show shows an out-of-date range clamped to the deck, but does not save it until you press OK.
 
 **Custom Shows** (Present > Custom Shows): click New, type a name and click slides in the left list to add them (a slide can appear more than once, and hidden slides play when added); reorder with the arrows and remove with the cross; Copy and Delete work on the selected show; Show presents it. Custom shows are kept in PowerPoint files.
 
@@ -411,7 +456,7 @@ Zoom into the slide shows a box: click the part to enlarge, drag to move around,
 formdeck no longer edits PDFs; that moved to formpdf (github.com/nodemode-ai/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In formdeck a PDF is one of two things:
 
 - **Material for a deck.** Open a .pdf (File > Open or Home > Open file) or drop one on the window and Start from your material opens with the PDF attached. Add a brief, pick a template and Draft: formdeck reads the PDF's headings, text, tables and pictures and drafts real, editable slides. Scanned PDFs without a text layer arrive as page pictures. The first time this happens a note says so.
-- **Slides from PDF pages.** In an open deck, Insert > Slides from PDF Pages asks for a PDF and adds one slide per page at the end of the deck (up to 300 pages), leaving you on the slide you were on: each slide shows the page as a picture fitted to the slide on white, and the page's text goes into the speaker notes, so it stays searchable and an agent can read it. The new slides start in Draft and the whole import is one Undo step. Use it when the slides must look exactly like the PDF, for example last year's talk that only survives as a handout; use the material route when you want slides you can edit. A password-protected PDF is refused; unlock it in formpdf first.
+- **Slides from PDF pages.** In an open deck, Insert > Slides from PDF Pages asks for a PDF and adds one slide per page at the end of the deck (up to 300 pages; for a longer PDF the message says "the first 300 of 301 pages" and the rest are left out), leaving you on the slide you were on: each slide shows the page as a picture fitted to the slide on white, and the page's text goes into the speaker notes, so it stays searchable and an agent can read it. The new slides start in Draft and the whole import is one Undo step. Use it when the slides must look exactly like the PDF, for example last year's talk that only survives as a handout; use the material route when you want slides you can edit. A password-protected PDF is refused; unlock it in formpdf first.
 
 Exporting a deck as PDF and printing are unchanged (see Import, export and print).
 
@@ -423,7 +468,7 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
 - **Export** (File > Export or the Export button):
   - PowerPoint (.pptx): editable slides for PowerPoint, Keynote and Google Slides. Fonts: choose Do not embed (the computer that opens it needs the template's fonts or substitutes similar ones), Only characters used or All characters, as in PowerPoint's Embed fonts in the file. Embedded fonts are the deck's regular, bold, italic and bold italic styles, skipped with a warning when the font's license forbids embedding. A .pptx that embeds fonts brings them in with the deck, including the compressed fonts PowerPoint and Google Slides write; a font that cannot be read is listed in the toast and the deck opens without it.
   - Template (.potx): the masters, layouts, colours and fonts.
-  - OpenDocument Presentation (.odp): for LibreOffice Impress and other OpenDocument apps. It keeps masters and layouts (as master pages), text formatting, bullets and numbering, shapes, freeforms, lines and connectors, pictures with cropping, tables, charts, speaker notes, transitions, hidden slides and comments; equations become formula objects, or readable linear text inside sentences. OpenDocument cannot carry text transparency, soft edges or gradients with more than two colours. In this release an .odp also flattens several masters into one, leaves out Text Art transforms, glow and text outlines, and leaves out media trim, fades and poster frames; the slides still look right, and .pptx keeps all of it.
+  - OpenDocument Presentation (.odp): for LibreOffice Impress and other OpenDocument apps. It keeps masters and layouts (as master pages), text formatting, bullets and numbering, shapes, freeforms, lines and connectors, pictures with cropping, tables, charts, speaker notes, transitions, hidden slides and comments; equations become formula objects, or readable linear text inside sentences. OpenDocument cannot carry text transparency, soft edges or gradients with more than two colours. A deck with several slide masters keeps all of them: each master's name, theme (colours and fonts), background, text styles and shapes are written into the .odp, and formdeck gives them back when it opens the file, so a deck made with Paste with Source Formatting or Insert Slide Master comes back with the same masters. LibreOffice itself has no separate masters and layouts, and drops formdeck's extra marks when it saves the file; a file that LibreOffice (or another app) saved, or that never came from formdeck, opens with one master. Only the first master supplies the deck's theme fonts. An .odp still leaves out Text Art transforms, glow and text outlines, and media trim, fades and poster frames; the slides still look right, and .pptx keeps all of it.
   - PDF: one page per slide with searchable text and an outline of slide titles. Choose All, Current, Selected or Custom slides (`1-3, 5, 8-`), Standard or High quality, and whether to include hidden slides. Publish chooses Slides, Handouts (1, 2, 3, 4, 6 or 9 per page, horizontal or vertical order, Automatic, Letter or A4 paper, with the same outline) or Notes pages; Frame slides draws a thin border. When the deck has open comments, Include comments adds each one, with its replies, as a PDF comment note on its slide. The PDF is tagged for screen readers: each slide is a section in its reading order (the order in the selection pane's Reading order view), titles are headings, bullets are lists, tables keep header cells, and pictures and charts are figures with their alt text; decorative pictures, footers and slide numbers are skipped. Add alt text to every picture before exporting. The slide itself is a picture with an invisible text layer and the fonts are not embedded, so a strict PDF/UA checker may still report issues.
   - PNG or JPEG: the current slide or all slides at 1x, 2x or 3x; several slides arrive as a .zip.
   - formdeck (.fdec): one file with every slide, picture and the template.
@@ -451,7 +496,16 @@ The Agents dialog (title bar, Review > Agents and MCP, or Home) shows the same s
 
 ### Consent
 
-Agents can read decks, but the first time one tries to change something formdeck asks in the window: **Allow agents to edit?** with Allow and Not now. The switch lives in Preferences > Agents, the Agents dialog and the Agent tab; turning it off stops all agent edits. The server listens on 127.0.0.1 only.
+Agents can read decks, but the first time one tries to change something formdeck asks in the window: **Allow Claude Code to edit your decks?** (the title names the agent) with Allow and Not now. The switch is **Let agents read and edit decks** in the Agents dialog, **Let Claude Code, Codex and Cursor read and edit decks** in Preferences > Plugins, and in the Agent tab; turning it off stops all agent edits. Only the formdeck window can turn it on; an agent cannot grant itself access. The server listens on 127.0.0.1 only.
+
+### Which window answers
+
+Some of what an agent does needs a window: running an editor command, measuring text, drawing slide pictures for checks, exporting pictures, taking a video's poster frame. With several windows open, formdeck sends the request to the window that is showing the deck the agent named (or the deck in front), preferring the window you used most recently. A window that is showing Home is tried last.
+
+- Requests that only read, such as drawing slides and measuring, move on to the next window if the first one does not answer in time. The wait is shared between the windows, and a window that has closed is skipped at once.
+- Requests that change the deck go to one window only and are never repeated on another, so a change cannot happen twice. If that window is closed before it answers, the agent is told "The window closed before it answered."
+- If a window is frozen (a stuck page, a paused debugger) and does not answer within the request's time limit (between 20 seconds and a few minutes, depending on the request), the agent is told that no window answered, and that the change may still land if the window had already started it. A window that wakes up later refuses a request the engine had already given up on, so the deck does not change after the agent was told it failed.
+- With no window open, a request that needs one fails with a message asking you to reopen formdeck; a deck check falls back to the checks the engine can make without a window.
 
 ### Working with an agent
 
@@ -513,7 +567,7 @@ Help > Preferences (Mod+,), also the gear in the title bar. The sections sit in 
 - **General**: save to the library as you work; Reset All Preferences, which returns every preference kept in the window (theme, ribbon, Quick Access Toolbar, panel sizes) to how formdeck comes and reloads. Decks and the library are kept.
 - **Interface**: theme, accent colour, language, and density: Compact, Standard or Comfortable, which sizes buttons, the ribbon, the title bar and the status bar.
 - **Tools**: Customize the Ribbon, Customize Quick Access Toolbar and Keyboard Shortcuts open their dialogs; Icons-only ribbon, Simplified ribbon and, on the macOS desktop app, Menus in the window.
-- **New Decks**: default template; slide size, used when a new deck is not given one; heading and body fonts, which replace the template's theme fonts in every new deck; and the author written into exported files.
+- **New Decks**: default template; slide size, used when a new deck is not given one; heading and body fonts, which replace the template's theme fonts in every new deck; and the author, written into exported files and shown to collaborators as your name (see Collaborators).
 - **Editing**: units (points, inches, centimetres or pixels) and what a drag box selects.
 - **Video and Audio**: use the second frame as the poster of an added video (on by default; off keeps the first frame), and the video player in the editor.
 - **Plugins**: let Claude Code, Codex and Cursor read and edit decks, and where Claude Code is found and starts.
@@ -548,5 +602,9 @@ engine.json                      the running engine's port and process, removed 
 - **Something was missing after opening a .pptx**: the toast lists what could not be kept. Animations, ink, embedded fonts and linked media are the usual ones; SmartArt arrives as grouped shapes.
 - **An agent cannot connect**: check that formdeck is running, that the address in the Agents dialog matches your agent's config, and that Let agents read and edit decks is on. Claude Desktop needs the stdio entry (`./formdeck mcp`), not the URL. In Claude Code, `/mcp` shows the server's state.
 - **An agent's edits went wrong**: Edit > Undo Agent Turn, or File > Save Version before a big request and restore it from Version history.
+- **An agent says no window answered**: the window it needs is closed, frozen or busy. Reload or reopen the formdeck window; a change the agent was told had failed is not applied later (see Which window answers).
+- **A pasted slide looks wrong in another deck**: plain Paste uses the destination's layouts and theme. Use Edit > Paste with Source Formatting to keep the look of the slide's own deck.
+- **A table or PDF seems cut short in the draft**: tables keep 500 rows and PDF page pictures stop at page 300 (see Starting from your material).
+- **The window says a part of the app could not be loaded**: press Reload in the message; your open tabs come back.
 - **A PDF opens the material dialog instead of a viewer**: that is by design since 0.6.0. formdeck uses PDFs as material or as slides; to view or edit the PDF itself, use formpdf.
 - **Slides from PDF Pages refuses a PDF**: if it is password protected, unlock it in formpdf first; otherwise it may be damaged. A `Pdf` folder left in the data folder by an older version is no longer used and can be moved to formpdf's folder or deleted.
