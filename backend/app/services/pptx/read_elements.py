@@ -1,3 +1,5 @@
+import copy
+import math
 from dataclasses import dataclass
 
 from .colors import degrees
@@ -313,7 +315,8 @@ def read_pic(pic, ctx, tf: Transform, frame_xfrm=None) -> dict | None:
         el["lockAspect"] = False
     el["src"] = poster
     el.update(read_frame(frame_xfrm if frame_xfrm is not None else find(sp_pr, "a:xfrm"), tf))
-    _read_crop(el, find(blip_fill, "a:srcRect"), find(blip_fill, "a:stretch/a:fillRect"), ctx)
+    full_frame = {k: el[k] for k in ("x", "y", "w", "h", "rot", "flipH", "flipV") if k in el}
+    outward = _read_crop(el, find(blip_fill, "a:srcRect"), find(blip_fill, "a:stretch/a:fillRect"), ctx)
     _read_adjust(el, blip)
     prst = find(sp_pr, "a:prstGeom")
     if prst is not None and prst.get("prst", "rect") != "rect":
@@ -326,23 +329,73 @@ def read_pic(pic, ctx, tf: Transform, frame_xfrm=None) -> dict | None:
     effects = read_effects(find(sp_pr, "a:effectLst"), ctx)
     if effects:
         el["effects"] = effects
+    if outward and full_frame.get("w") and line and line.get("type") != "none" and not el.get("ph"):
+        return _frame_group(el, full_frame, ctx)
     return el
 
 
-def _read_crop(el: dict, src_rect, fill_rect, ctx) -> None:
-    crop = {k: min(max(int_attr(src_rect, k, 0) / 100000, 0.0), 0.99) for k in ("l", "t", "r", "b")}
+def _frame_group(pic: dict, full_frame: dict, ctx) -> dict:
+    frame = {"id": ctx.element_id(), "type": "shape", **full_frame, "fill": {"type": "none"}}
+    if pic.get("mask"):
+        frame["geom"] = pic["mask"]
+    frame["line"] = pic.pop("line")
+    if pic.get("effects"):
+        frame["effects"] = copy.deepcopy(pic["effects"])
+    group = {"id": pic["id"], "type": "group"}
+    for key in ("name", "alt", "hidden", "link", "locked"):
+        if key in pic:
+            group[key] = pic.pop(key)
+    pic["id"] = ctx.element_id()
+    group["children"] = [frame, pic]
+    group.update({k: full_frame[k] for k in ("x", "y", "w", "h")})
+    return group
+
+
+def _read_crop(el: dict, src_rect, fill_rect, ctx) -> bool:
+    raw = {k: int_attr(src_rect, k, 0) / 100000 for k in ("l", "t", "r", "b")}
+    crop = {k: min(max(v, 0.0), 0.99) for k, v in raw.items()}
+    outward = any(
+        1 - raw[a] - raw[b] > 0 and (raw[a] < 0 or raw[b] < 0) for a, b in (("l", "r"), ("t", "b"))
+    )
+    if outward:
+        _inset_outward(el, raw)
     if any(crop.values()):
         el["crop"] = {k: round(v, 5) for k, v in crop.items()}
+    if outward:
+        el["fit"] = "stretch"
+        return True
     if any(int_attr(fill_rect, k, 0) > 0 for k in ("l", "t", "r", "b")):
         el["fit"] = "contain"
-        return
+        return False
     info = ctx.deck_media.get(el["src"], {})
     if not info.get("w") or not info.get("h") or not el.get("w") or not el.get("h"):
-        return
+        return False
     vis_w = info["w"] * max(1 - crop["l"] - crop["r"], 0.01)
     vis_h = info["h"] * max(1 - crop["t"] - crop["b"], 0.01)
     if abs((vis_w / vis_h) / (el["w"] / el["h"]) - 1) > 0.01:
         el["fit"] = "stretch"
+    return False
+
+
+def _inset_outward(el: dict, raw: dict) -> None:
+    if not el.get("w") or not el.get("h"):
+        return
+    win_w = 1 - raw["l"] - raw["r"]
+    win_h = 1 - raw["t"] - raw["b"]
+    off_l, off_r = (max(-raw["l"], 0.0) / win_w, max(-raw["r"], 0.0) / win_w) if win_w > 0 else (0.0, 0.0)
+    off_t, off_b = (max(-raw["t"], 0.0) / win_h, max(-raw["b"], 0.0) / win_h) if win_h > 0 else (0.0, 0.0)
+    w, h = el["w"], el["h"]
+    dx, dy = (off_l - off_r) * w / 2, (off_t - off_b) * h / 2
+    if el.get("flipH"):
+        dx = -dx
+    if el.get("flipV"):
+        dy = -dy
+    angle = math.radians(el.get("rot") or 0)
+    cx = el["x"] + w / 2 + dx * math.cos(angle) - dy * math.sin(angle)
+    cy = el["y"] + h / 2 + dx * math.sin(angle) + dy * math.cos(angle)
+    new_w, new_h = w * (1 - off_l - off_r), h * (1 - off_t - off_b)
+    el["w"], el["h"] = round(new_w, 2), round(new_h, 2)
+    el["x"], el["y"] = round(cx - new_w / 2, 2), round(cy - new_h / 2, 2)
 
 
 def _read_adjust(el: dict, blip) -> None:
@@ -381,7 +434,55 @@ def read_group(grp, ctx, tf: Transform) -> dict | None:
     el["children"] = children
     if "x" not in el:
         el.update(_bounds(children))
+    elif el.get("rot") or el.get("flipH") or el.get("flipV"):
+        _bake_group_transform(el, children)
     return el
+
+
+def _bake_group_transform(el: dict, children: list) -> None:
+    gx, gy = el["x"] + el["w"] / 2, el["y"] + el["h"] / 2
+    angle = math.radians(el.get("rot") or 0)
+    cos, sin = math.cos(angle), math.sin(angle)
+    flip_h, flip_v = bool(el.get("flipH")), bool(el.get("flipV"))
+    rot = el.get("rot") or 0
+    for key in ("rot", "flipH", "flipV"):
+        el.pop(key, None)
+
+    def apply(items: list) -> None:
+        for child in items:
+            if "x" in child:
+                dx = child["x"] + child["w"] / 2 - gx
+                dy = child["y"] + child["h"] / 2 - gy
+                if flip_h:
+                    dx = -dx
+                if flip_v:
+                    dy = -dy
+                mx, my = gx + dx * cos - dy * sin, gy + dx * sin + dy * cos
+                child["x"] = round(mx - child["w"] / 2, 2)
+                child["y"] = round(my - child["h"] / 2, 2)
+                if child.get("type") != "group":
+                    own = child.get("rot") or 0
+                    if flip_h:
+                        own = -own
+                        child["flipH"] = not child.get("flipH")
+                    if flip_v:
+                        own = -own
+                        child["flipV"] = not child.get("flipV")
+                    total = (own + rot) % 360
+                    for key in ("rot", "flipH", "flipV"):
+                        if not child.get(key):
+                            child.pop(key, None)
+                    if total:
+                        child["rot"] = round(total, 2)
+                    else:
+                        child.pop("rot", None)
+            if child.get("children"):
+                apply(child["children"])
+                if child.get("type") == "group":
+                    child.update(_bounds(child["children"]))
+
+    apply(children)
+    el.update(_bounds(children))
 
 
 def _bounds(children: list) -> dict:

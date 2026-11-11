@@ -30,6 +30,7 @@ export class Filmstrip {
   private slideTop = 0;
   private readonly ro = new ResizeObserver(() => this.resize());
   private unsub: () => void = () => undefined;
+  private readonly life = new AbortController();
 
   constructor(private readonly ed: Editor, private readonly scroll: HTMLElement, private readonly count: HTMLElement) {
     this.list = el('<div class="fd-strip-list" role="listbox" tabindex="0" aria-label="Slides" aria-multiselectable="true"></div>');
@@ -63,6 +64,9 @@ export class Filmstrip {
   }
 
   dispose(): void {
+    this.life.abort();
+    this.dragIds = null;
+    this.dropAt = -1;
     this.unsub();
     this.ro.disconnect();
     this.list.remove();
@@ -109,6 +113,7 @@ export class Filmstrip {
   }
 
   private dragLayout(id: string, y0: number): void {
+    if (this.life.signal.aborted) return;
     let active = false;
     let drop = -1;
     const clear = (): void => { for (const it of this.mitems.values()) setClass(it.node, 'is-drop-after', false); };
@@ -130,10 +135,12 @@ export class Filmstrip {
       if (ev.clientY < sr.top + 30) this.scroll.scrollTop -= 8;
       if (ev.clientY > sr.bottom - 30) this.scroll.scrollTop += 8;
     };
+    const ac = new AbortController();
+    const kill = (): void => { ac.abort(); clear(); };
+    this.life.signal.addEventListener('abort', kill, { once: true });
     const done = (): void => {
-      window.removeEventListener('pointermove', moving);
-      window.removeEventListener('pointerup', done);
-      window.removeEventListener('pointercancel', done);
+      ac.abort();
+      this.life.signal.removeEventListener('abort', kill);
       clear();
       const g = this.layoutGroup(id);
       if (!active || drop < 0 || !g) return;
@@ -144,9 +151,15 @@ export class Filmstrip {
       const index = before < rest.length ? all.indexOf(rest[before]) : all.indexOf(rest[rest.length - 1]) + 1;
       if (index >= 0) this.ed.apply([{ op: 'move', path: ['layouts'], id, index }], 'Move layout');
     };
-    window.addEventListener('pointermove', moving);
-    window.addEventListener('pointerup', done);
-    window.addEventListener('pointercancel', done);
+    window.addEventListener('pointermove', moving, { signal: ac.signal });
+    window.addEventListener('pointerup', done, { signal: ac.signal });
+    window.addEventListener('pointercancel', done, { signal: ac.signal });
+    window.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape' || !active) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      kill();
+    }, { capture: true, signal: ac.signal });
   }
 
   private holderScale(kind: 'layout' | 'master'): number {
@@ -332,22 +345,32 @@ export class Filmstrip {
   }
 
   private touchDown(e: PointerEvent, id: string): void {
+    if (this.life.signal.aborted) return;
     const node = this.items.get(id)?.node;
     const x0 = e.clientX, y0 = e.clientY;
     let lifted = false, moved = false;
     const press = new Press(380, 8);
     const block = (ev: TouchEvent): void => { if (lifted && ev.cancelable) ev.preventDefault(); };
+    const ac = new AbortController();
+    const kill = (): void => {
+      ac.abort();
+      this.life.signal.removeEventListener('abort', kill);
+      press.cancel();
+      node?.classList.remove('is-lifted');
+      this.dragIds = null;
+      this.dropAt = -1;
+      for (const it of this.items.values()) it.node.classList.remove('is-drop-before', 'is-drop-after');
+    };
+    this.life.signal.addEventListener('abort', kill, { once: true });
     const off = (): void => {
-      window.removeEventListener('pointermove', moving);
-      window.removeEventListener('pointerup', done);
-      window.removeEventListener('pointercancel', done);
-      window.removeEventListener('touchmove', block);
+      ac.abort();
+      this.life.signal.removeEventListener('abort', kill);
     };
     const moving = (ev: PointerEvent): void => {
       if (ev.pointerId !== e.pointerId) return;
       if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) moved = true;
       if (!lifted) { press.move(ev); return; }
-      this.showDrop(ev.clientX, ev.clientY);
+      this.showDrop(ev.clientX, ev.clientY, 32);
     };
     const done = (ev: PointerEvent): void => {
       if (ev.pointerId !== e.pointerId) return;
@@ -376,14 +399,20 @@ export class Filmstrip {
       this.dragIds = this.ed.slideSel.length ? [...this.ed.slideSel] : [id];
       node?.classList.add('is-lifted');
     });
-    window.addEventListener('pointermove', moving);
-    window.addEventListener('pointerup', done);
-    window.addEventListener('pointercancel', done);
-    window.addEventListener('touchmove', block, { passive: false });
+    window.addEventListener('pointermove', moving, { signal: ac.signal });
+    window.addEventListener('pointerup', done, { signal: ac.signal });
+    window.addEventListener('pointercancel', done, { signal: ac.signal });
+    window.addEventListener('touchmove', block, { passive: false, signal: ac.signal });
+    window.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape' || !lifted) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      kill();
+    }, { capture: true, signal: ac.signal });
   }
 
   private down(e: PointerEvent): void {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || this.life.signal.aborted) return;
     const id = this.idAt(e.target);
     if (!id) return;
     if (e.pointerType === 'touch') { this.touchDown(e, id); return; }
@@ -407,9 +436,18 @@ export class Filmstrip {
       if (!this.dragIds) return;
       this.showDrop(ev.clientX, ev.clientY);
     };
+    const ac = new AbortController();
+    const kill = (): void => {
+      ac.abort();
+      this.life.signal.removeEventListener('abort', kill);
+      this.dragIds = null;
+      this.dropAt = -1;
+      for (const it of this.items.values()) it.node.classList.remove('is-drop-before', 'is-drop-after');
+    };
+    this.life.signal.addEventListener('abort', kill, { once: true });
     const done = (): void => {
-      window.removeEventListener('pointermove', moving);
-      window.removeEventListener('pointerup', done);
+      ac.abort();
+      this.life.signal.removeEventListener('abort', kill);
       if (this.dragIds && this.dropAt >= 0) {
         const ops = moveSlidesOps(this.ed.doc, this.dragIds, this.dropAt);
         if (ops.length) this.ed.apply(ops, this.dragIds.length > 1 ? 'Move slides' : 'Move slide');
@@ -418,13 +456,30 @@ export class Filmstrip {
       this.dropAt = -1;
       for (const it of this.items.values()) it.node.classList.remove('is-drop-before', 'is-drop-after');
     };
-    window.addEventListener('pointermove', moving);
-    window.addEventListener('pointerup', done);
+    window.addEventListener('pointermove', moving, { signal: ac.signal });
+    window.addEventListener('pointerup', done, { signal: ac.signal });
+    window.addEventListener('pointercancel', kill, { signal: ac.signal });
+    window.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape' || !this.dragIds) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      kill();
+    }, { capture: true, signal: ac.signal });
   }
 
-  private showDrop(x: number, y: number): void {
+  private showDrop(x: number, y: number, cross = 8): void {
     const slides = this.ed.doc.deck.slides;
     const horiz = this.horizontal();
+    const sr = this.scroll.getBoundingClientRect();
+    const m = 12;
+    const inside = horiz
+      ? x >= sr.left - m && x <= sr.right + m && y >= sr.top - cross && y <= sr.bottom + cross
+      : y >= sr.top - m && y <= sr.bottom + m && x >= sr.left - cross && x <= sr.right + cross;
+    if (!inside) {
+      this.dropAt = -1;
+      for (const it of this.items.values()) it.node.classList.remove('is-drop-before', 'is-drop-after');
+      return;
+    }
     let at = slides.length;
     for (let i = 0; i < slides.length; i++) {
       const it = this.items.get(slides[i].id);
@@ -439,7 +494,6 @@ export class Filmstrip {
       setClass(it.node, 'is-drop-before', i === at);
       setClass(it.node, 'is-drop-after', at === slides.length && i === slides.length - 1);
     });
-    const sr = this.scroll.getBoundingClientRect();
     if (horiz) {
       if (x < sr.left + 30) this.scroll.scrollLeft -= 8;
       if (x > sr.right - 30) this.scroll.scrollLeft += 8;

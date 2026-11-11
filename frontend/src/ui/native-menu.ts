@@ -45,6 +45,9 @@ export class NativeMenus {
   private stateTimer = 0;
   private textMode = false;
   private shape = '';
+  private builtAt = 0;
+  private inflight = '';
+  private inflightText = false;
 
   constructor(private readonly commands: Commands, private readonly menus: () => MenuDef[]) {
     for (const ev of ['pointerup', 'keyup'] as const) window.addEventListener(ev, () => { if (this.items.length) this.refresh(); }, { passive: true });
@@ -52,18 +55,48 @@ export class NativeMenus {
     document.addEventListener('focusin', focus);
     document.addEventListener('focusout', focus);
     window.addEventListener('focus', () => { if (this.items.length) void this.build().catch(() => undefined); });
+    void this.watchNative();
+  }
+
+  private async watchNative(): Promise<void> {
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      const { listen } = await import('@tauri-apps/api/event');
+      const win = getCurrentWindow();
+      let reclaimed = false;
+      const reclaim = (): void => {
+        if (reclaimed) return;
+        void win.isFocused().then((on) => { if (on) return this.build(true).then(() => { reclaimed = true; }); }).catch(() => undefined);
+      };
+      await win.onFocusChanged(({ payload: focused }) => { if (focused && this.items.length) void this.build().catch(() => undefined); });
+      await listen('formdeck://window-closed', () => {
+        reclaimed = false;
+        reclaim();
+        window.setTimeout(reclaim, 150);
+        window.setTimeout(reclaim, 600);
+      });
+    } catch { return; }
   }
 
   private signature(): string {
     return JSON.stringify(this.menus().map((d) => (typeof d.items === 'function' ? d.items() : d.items)));
   }
 
-  async build(): Promise<void> {
-    if (this.building) { this.again = true; return; }
+  async build(force = false): Promise<void> {
+    const textNow = typing();
+    const sigNow = this.signature();
+    if (this.building) {
+      if (!force && sigNow === this.inflight && textNow === this.inflightText) return;
+      this.again = true;
+      return;
+    }
+    if (!force && this.items.length && performance.now() - this.builtAt < 300 && sigNow === this.shape && textNow === this.textMode) return;
     this.building = true;
+    this.inflight = sigNow;
+    this.inflightText = textNow;
     try {
       const api: Api = await import('@tauri-apps/api/menu');
-      const textMode = typing();
+      const textMode = textNow;
       const items: typeof this.items = [];
       const sep = (): Promise<unknown> => api.PredefinedMenuItem.new({ item: 'Separator' });
       const make = async (spec: MenuSpec): Promise<unknown> => {
@@ -124,6 +157,7 @@ export class NativeMenus {
       this.items = items;
       this.textMode = textMode;
       this.shape = this.signature();
+      this.builtAt = performance.now();
       document.documentElement.classList.add('has-native-menus');
     } catch (err) {
       if (!this.items.length) document.documentElement.classList.remove('has-native-menus');

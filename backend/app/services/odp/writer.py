@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import math
+import re
 import zipfile
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from app.services import model
 from app.services.lint import _chain, _frame, _master, _prop, _styles
 
 from . import geometry
-from .common import MIMETYPE, NS, TEMPLATE_MIMETYPE, duration, length, q, safe_name
+from .common import FORMDECK_NS, MIMETYPE, NS, TEMPLATE_MIMETYPE, duration, length, q, safe_name
 
 ODF_TYPES = {
     "rect": "rectangle", "roundRect": "round-rectangle", "ellipse": "ellipse", "triangle": "isosceles-triangle", "rtTriangle": "right-triangle",
@@ -48,6 +49,12 @@ PH_CLASS = {"title": "title", "ctrTitle": "title", "subTitle": "subtitle", "body
             "dt": "date-time", "ftr": "footer", "sldNum": "page-number"}
 MATH_TAG = "formdeck-math:"
 MATH_TAGS = (MATH_TAG, "formsld-math:")
+FD_NS = FORMDECK_NS
+_XML_BAD = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
+
+
+def _xml_clean(s: str) -> str:
+    return _XML_BAD.sub("", s)
 
 
 def _el(tag: str, attrs: dict | None = None, parent=None, text: str | None = None):
@@ -55,9 +62,9 @@ def _el(tag: str, attrs: dict | None = None, parent=None, text: str | None = Non
     for k, v in (attrs or {}).items():
         if v is None:
             continue
-        node.set(q(k) if ":" in k else k, str(v))
+        node.set(q(k) if ":" in k else k, _xml_clean(str(v)))
     if text is not None:
-        node.text = text
+        node.text = _xml_clean(text)
     return node
 
 
@@ -552,11 +559,23 @@ class OdpWriter:
         self.files[f"ObjectReplacements/{name}"] = (png, "image/png")
         return name, w, asc, desc, ann.text
 
+    def slide_names(self) -> dict:
+        if getattr(self, "_slide_names", None) is None:
+            names: dict = {}
+            used: set = set()
+            for i, s in enumerate(self.deck.get("slides") or []):
+                base = str(s.get("name") or f"page{i + 1}").replace(",", " ")
+                name, n = base, 1
+                while name in used:
+                    n += 1
+                    name = f"{base} {n}"
+                used.add(name)
+                names.setdefault(s.get("id"), name)
+            self._slide_names = names
+        return self._slide_names
+
     def slide_name(self, slide_id: str) -> str:
-        for i, s in enumerate(self.deck.get("slides") or []):
-            if s.get("id") == slide_id:
-                return s.get("name") or f"page{i + 1}"
-        return slide_id
+        return self.slide_names().get(slide_id, slide_id)
 
     def frame_attrs(self, x: float, y: float, w: float, h: float, rot: float) -> dict:
         if not rot:
@@ -1065,7 +1084,20 @@ class OdpWriter:
         sreg.add(notes_layout)
         master_pages = []
         used_names: set[str] = set()
+        theme_seen: set[str] = set()
+        shows: dict[int, bool] = {}
         for lay in layouts:
+            m = _master(deck, lay)
+            shows[id(m)] = shows.get(id(m), False) or not lay.get("hideMasterShapes")
+        carried: set[int] = set()
+        carriers = []
+        carrier_ids = {str(_master(deck, l).get("id") or "") for l in layouts}
+        for m in masters:
+            mid = str(m.get("id") or "")
+            if mid and mid not in carrier_ids:
+                carrier_ids.add(mid)
+                carriers.append({"id": f"_carrier_{mid}", "master": mid, "name": m.get("name") or mid, "elements": [], "hideMasterShapes": True, "_carrier": True})
+        for lay in layouts + carriers:
             master = _master(deck, lay)
             theme = model.theme_of(deck, None, master)
             base = safe_name(lay.get("name") or lay.get("id") or "Layout")
@@ -1078,9 +1110,38 @@ class OdpWriter:
             bg = lay.get("background") if isinstance(lay.get("background"), dict) else master.get("background")
             dp = self.page_style(sreg, bg if isinstance(bg, dict) else {"type": "solid", "color": "lt1"}, theme, None)
             mp = _el("style:master-page", {"style:name": name, "style:display-name": lay.get("name") or name, "style:page-layout-name": "PM1", "draw:style-name": dp})
+            mid = str(master.get("id") or "")
+            foreign = {k: v for k, v in (("origin", lay.get("origin")), ("master-origin", master.get("origin")), ("master", mid),
+                                         ("master-name", master.get("name"))) if isinstance(v, str) and v}
+            if mid and isinstance(master.get("theme"), dict) and mid not in theme_seen:
+                foreign["master-theme"] = json.dumps(master["theme"], separators=(",", ":"), ensure_ascii=True)
+            theme_seen.add(mid)
+            if lay.get("hideMasterShapes"):
+                foreign["hide-master-shapes"] = "true"
+            if lay.get("_carrier"):
+                foreign["carrier"] = "true"
+            if foreign:
+                tagged = etree.Element(mp.tag, dict(mp.attrib), nsmap={**NS, "formdeck": FD_NS})
+                for k, v in foreign.items():
+                    tagged.set(f"{{{FD_NS}}}{k}", _xml_clean(v))
+                mp = tagged
             ctx = {"layout": {"elements": []}, "master": master, "theme": theme, "page_styles": page_styles, "is_master": True, "chain": False}
             if not lay.get("hideMasterShapes"):
+                before = len(mp)
                 self.write_elements(mp, [e for e in master.get("elements") or [] if not e.get("ph")], ctx, sreg)
+                if mid:
+                    for child in list(mp)[before:]:
+                        child.set(f"{{{FD_NS}}}scope", "master")
+            elif mid and not shows.get(id(master), False) and id(master) not in carried:
+                carried.add(id(master))
+                before = len(mp)
+                self.write_elements(mp, [e for e in master.get("elements") or [] if not e.get("ph")], ctx, sreg)
+                for child in list(mp)[before:]:
+                    if child.get(f"{{{NS['draw']}}}display") == "none":
+                        child.set(f"{{{FD_NS}}}scope", "master")
+                    else:
+                        child.set(f"{{{NS['draw']}}}display", "none")
+                        child.set(f"{{{FD_NS}}}scope", "master-hidden")
             self.write_elements(mp, [e for e in lay.get("elements") or [] if not e.get("ph")], ctx, sreg)
             for e in lay.get("elements") or []:
                 if e.get("ph") and e["ph"].get("type") not in ("dt", "ftr", "sldNum"):
@@ -1095,9 +1156,7 @@ class OdpWriter:
             _el("draw:frame", {"presentation:class": "notes", "presentation:placeholder": "true", "svg:x": "1.5cm", "svg:y": "14cm", "svg:width": "18cm", "svg:height": "13cm"}, notes)
             master_pages.append((mp, lay))
         pres = _el("office:presentation", {})
-        page_names = {}
-        for i, s in enumerate(deck.get("slides") or []):
-            page_names[s.get("id")] = s.get("name") or f"page{i + 1}"
+        page_names = self.slide_names()
         for i, s in enumerate(deck.get("slides") or []):
             lay = model.find_layout(deck, s.get("layout")) or layouts[0]
             master = _master(deck, lay)

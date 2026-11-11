@@ -39,12 +39,190 @@ src/styles/                 tokens.css (the only z-index source), shell, panels,
 17. Table cells are edited in place · editor/stage.ts, render/table.ts, editor/table-edit.ts
 18. The Animate tab · editor/animation-pane.ts
 19. Links, spacing, effects, picture adjustments, theme editing, replies · ui/link-dialog.ts, editor/inspector.ts
+20. Slide master view edits holders through slide paths · engine/holders.ts, engine/ops.ts, editor/master-view.ts, editor/editor.ts
+21. Motion paths are SVG data relative to the element centre · present/effects.ts, editor/animation-pane.ts
+22. Superscript, subscript and caps · editor/commands.ts, editor/stage.ts, ui/commands.ts
+23. Reflections · render/slide.ts, editor/inspector.ts
+24. PDF Edit tab, comment threads and find to redact · pdf/panels.ts, pdf/annotate.ts
+25. Small fixes · ui/home.ts, io/api.ts, editor/inspector.ts, automation/agent-bridge.ts
+26. Preset shapes are evaluated from the ECMA-376 definitions · engine/geometry/presets.ts, engine/geometry/ooxml-presets.json
+27. Moving a group moves its children · editor/actions.ts
+28. Zero shift on Home and in the workbench · ui/home.ts, styles/shell.css, pdf/panels.ts, styles/pdf.css, app.ts
+29. Tables: border drag, cell ranges, rows that shrink · editor/table-drag.ts, editor/table-panel.ts, editor/table-edit.ts, render/table.ts
+30. Drawing, connectors, rulers and the selection pane · editor/draw-tool.ts, editor/points-edit.ts, editor/connectors.ts, editor/rulers.ts, editor/selection-pane.ts, engine/geometry/path.ts, engine/geometry/connectors.ts, render/slide.ts
+31. Show setup, custom shows, narration, captions and video · present/show.ts, present/steps.ts, present/recorder.ts, present/captions.ts, present/video-export.ts, present/show-dialogs.ts, present/show-commands.ts
+32. PDF page layouts, reading mode, forms, stamps and compare · pdf/viewer.ts, pdf/reading.ts, pdf/form.ts, pdf/stamps.ts, pdf/compare.ts, pdf/create.ts
+33. Mentions, activity and comparing decks · editor/mentions.ts, editor/compare.ts, ui/review-dialogs.ts
+34. The PDF workbench became formpdf · app.ts, editor/editor.ts, editor/commands.ts, io/api.ts
+35. Several masters, each with its own theme · engine/resolve.ts, editor/master-view.ts
+36. Merge shapes · engine/geometry/boolean.ts, editor/merge-shapes.ts
+37. WordArt as an overlay over the editable flow · render/text-fx.ts, editor/text-effects.ts, ui/wordart-gallery.ts
+38. Equations as stored MathML · render/math.ts, editor/equation-editor.ts, editor/equation-commands.ts
+39. Media playback and the icon library · editor/media-panel.ts, ui/dialogs-media.ts, present/media-play.ts, present/show.ts, ui/dialogs-icons.ts
 40. formsld becomes formdeck · main.ts, app.ts, present/show.ts
 41. The fd- prefix and .fdec files · all styles and ui modules, editor/commands.ts, ui/dialogs-file.ts, app.ts
 42. Typing into what you select · editor/stage.ts, app.ts
 43. Menu bar dropdowns stay under the bar · ui/menu.ts
 44. Playing media in the editor · editor/media-preview.ts, editor/commands.ts, editor/toolbar.ts, editor/editor.ts
 45. Toasts stack upward · ui/toast.ts
+46. Selecting and editing inside a group · editor/stage.ts, editor/actions.ts, editor/editor.ts, engine/ops.ts
+47. Spelling engine on nspell with lazily fetched Hunspell files · editor/spelling.ts, nspell.d.ts
+48. Proofing language lives on runs · engine/model.ts, render/text.ts
+49. The spelling pass rescans after every action · ui/dialogs-spelling.ts
+50. Structure for the tagged PDF comes from the mounted slide · render/pdf-struct.ts, render/raster.ts, automation/agent-bridge.ts
+51. Chat panel patches nodes and keeps the composer still · ui/chat-panel.ts, styles/chat.css, editor/inspector.ts
+52. Contrast and names from an automated audit · styles/tokens.css, ui/themes.ts, styles/shell.css, ui/home.ts, app.ts, ui/link-dialog.ts, ui/dialogs-insert.ts, editor/inspector.ts
+53. Diagrams are groups with generated children · engine/model.ts, editor/diagram.ts
+54. Diagram text syncs inside Editor.apply · editor/diagram-sync.ts, editor/editor.ts, render/slide.ts
+55. One 3-D renderer for text and shapes · render/fx3d.ts, render/text-fx.ts, render/slide.ts, render/raster.ts
+56. Linked charts follow the file, not a timer per chart · editor/chart-links.ts, ui/dialogs-insert.ts, editor/commands.ts
+57. The ribbon owns its height · ui/ribbon.ts, editor/toolbar.ts, styles/ribbon.css
+58. Ribbon built on first attach, its commands in the constructor · editor/toolbar.ts, ui/qat.ts, ui/dialogs-customize.ts
+59. A 3D model is a picture with a model · engine/model.ts, render/slide.ts, render/model3d.ts
+60. Publishing is a file, not a service · ui/dialogs-publish.ts
+61. Presenter View laid out as PowerPoint's · present/show.ts, styles/present.css
+62. Which display the slides go to · present/show.ts, present/presenter-prefs.ts, src-tauri/src/main.rs
+63. Zoom into the slide · present/show.ts, styles/present.css
+64. Macros in a locked-down Worker, one step per run · editor/macros.ts, editor/macro-worker.ts, editor/macro-ops.ts, ui/dialogs-macros.ts, engine/ops.ts
+65. Ribbon follow-ups: galleries, Format Painter, Header & Footer, crop, shape 3-D · editor/ribbon-galleries.ts, editor/format-painter.ts, editor/header-footer.ts, editor/crop-tool.ts, editor/shape-3d.ts, editor/shape-effects.ts, ui/dialogs-header-footer.ts, engine/datefmt.ts, render/text.ts
+66. The status bar hears its own acks · engine/doc.ts, app.ts
+67. The desktop packages · src-tauri/tauri.conf.json, src-tauri/flatpak/, .github/workflows/desktop.yml
+68. Stock Images dialog · ui/dialogs-stock.ts, styles/stock.css
+69. Generate and Edit with AI · ui/dialogs-ai-image.ts, styles/ai-image.css, editor/media-commands.ts
+70. Subtitles with translation and docked positions · present/captions.ts, present/caption-translate.ts, ui/dialogs-captions.ts, present/show.ts, styles/present.css
+71. Add-ins run in the macro sandbox with permission modes · editor/addins.ts, ui/dialogs-addins.ts, styles/addins.css, editor/macros.ts, editor/macro-worker.ts
+72. The ribbon shrinks group by group · ui/ribbon.ts, styles/ribbon.css
+73. Touch and narrow layouts are classes on one root · ui/responsive.ts, ui/touch.ts, styles/responsive.css, editor/stage.ts, editor/filmstrip.ts, present/show.ts
+74. Bold on an empty text box · editor/commands.ts
+75. The macOS desktop build and E0463 · src-tauri/Cargo.toml, setup/desktop_check, setup/desktop_build, setup/install_desktop
+76. One build script at the root · build, setup/desktop_build
+77. Terminal dock, command catalogue and languages · ui/terminal-dock.ts, styles/terminal.css, automation/catalogue.ts, automation/command-meta.ts, ui/command-palette.ts, i18n/index.ts, app.ts
+78. The designer wishlist, as small commands · editor/font-commands.ts, editor/svg-import.ts, render/chart.ts, ui/dialogs-insert.ts, editor/animation-pane.ts, editor/format-painter.ts, editor/commands.ts, editor/outline-dialog.ts, ui/colorpop.ts, ui/report-dialog.ts, editor/credit-caption.ts
+79. Components and named text styles are data, not a new element type · editor/components.ts, engine/model.ts
+80. Plurals by override part, and the chat to terminal handoff · i18n/index.ts, i18n/keys/part11.json, ui/chat-panel.ts, ui/dialogs-file.ts
+81. Command parameters, colour styles, the translation tool · ui/commands.ts, automation/catalogue.ts, editor/param-commands.ts, editor/colour-styles.ts, i18n/index.ts, setup/i18n_tool.py
+82. From Claude Code... in the chat · ui/chat-panel.ts
+83. Chart alt text from data · render/pdf-struct.ts
+84. The guest window and the Share dialog · io/guest.ts, engine/doc.ts, ui/dialogs-share.ts, io/api.ts, main.ts
+85. Following a show from a share link, and Questions in Presenter View · present/show.ts, live/socket.ts, app.ts
+86. Words for live PDF text, and the bare picture · render/raster.ts, automation/agent-bridge.ts
+87. Word widths, and the guest's name · render/raster.ts, io/guest.ts, main.ts
+88. Shortcut editor, highlighter, Slide Zoom · ui/dialogs-file.ts, present/show.ts, editor/slide-zoom.ts
+89. Key tips and density · ui/key-tips.ts, ui/ribbon.ts, editor/toolbar.ts, ui/themes.ts, index.html
+90. Speech Rehearsal · present/coach.ts, present/captions.ts, present/show.ts
+91. Design Ideas and the live camera · editor/design-ideas.ts, editor/camera.ts, present/show.ts
+92. New-deck defaults, picture-filled text, macOS devices · services/templates, routers/system, ui/dialogs-file.ts, editor/text-effects.ts, render/text-fx.ts, src-tauri/Info.plist, src-tauri/entitlements.plist
+93. The drag-box rule · editor/stage.ts, app.ts, ui/dialogs-file.ts
+94. The sharing relay and other publishers' catalogs · relay/formdeck_relay.py, services/relay.py, services/share.py, routers/share.py, services/addins.py, ui/dialogs-share.ts, ui/dialogs-addins.ts
+95. Relay streaming and the empty-body race · services/relay.py, relay/formdeck_relay.py, io/guest.ts, main.ts
+96. The slide-edge line, and the relay over HTTPS · styles/slides.css, render/slide.ts, relay/formdeck_relay.py, services/relay.py, routers/share.py
+97. Select first, edit on text · editor/stage.ts, app.ts, styles/slides.css, editor/editor.ts
+98. Formatting the selection while editing · editor/stage.ts, editor/toolbar.ts, ui/dropdown.ts, render/fonts.ts, render/text.ts, editor/actions.ts
+99. Chat in the dock · ui/terminal-dock.ts, app.ts, editor/inspector.ts, ui/icons.ts
+100. Native save path, drop in the desktop window, show keys · ui/dialogs-file.ts, app.ts, present/show.ts, editor/media-commands.ts
+101. The app icon redrawn as a fanned deck · assets/formdeck_mark.svg, assets/icon_src/, ui/brand.ts, public/favicon.svg, public/splash.html, src-tauri/icons/*
+102. Grid, guides and smart guides as PowerPoint draws them · editor/rulers.ts, editor/stage.ts, styles/draw.css, editor/draw-commands.ts
+103. Lock aspect ratio · engine/model.ts, editor/stage.ts, editor/inspector.ts
+104. Review shows with company · editor/collab-state.ts, editor/inspector.ts, editor/filmstrip.ts, editor/toolbar.ts
+105. Trash and a pane that stays put · ui/home.ts, app.ts, io/api.ts
+106. Review is a choice, made for sharing · editor/collab-state.ts, editor/commands.ts, editor/inspector.ts, ui/dialogs-share.ts
+107. Editing keys as PowerPoint maps them · editor/stage.ts, app.ts, editor/commands.ts
+108. Slide show keys and picture tools · present/show.ts, editor/crop-tool.ts, ui/dialogs-compress.ts, ui/dialogs-replace-fonts.ts, ui/dialogs-file.ts
+109. Export as PowerPoint lays it out; AutoFit readout · ui/dialogs-file.ts, automation/agent-bridge.ts, editor/inspector.ts, render/text.ts, editor/toolbar.ts
+110. A presentation opens as itself from every door · ui/home.ts, app.ts
+111. Preferences live with the engine · io/ui-settings.ts, main.ts
+112. The agent hands off; people review · editor/inspector.ts, engine/model.ts, editor/stage.ts, editor/rulers.ts
+113. Shapes are drawn, PDFs carry comments · editor/draw-tool.ts, editor/draw-commands.ts, ui/dialogs-insert.ts, ui/dialogs-file.ts, ui/dialogs-compress.ts, io/ui-settings.ts
+114. Closing the partials from the window pass · render/text.ts, editor/stage.ts, editor/inspector.ts, editor/actions.ts, editor/points-edit.ts, editor/draw-commands.ts, app.ts, present/video-export.ts, ui/dialogs-file.ts
+115. Drop anything, save anywhere · app.ts, ui/dialogs-file.ts, ui/home.ts, editor/editor.ts
+116. An icons-only rail, the Quick Access Toolbar in the status bar · ui/ribbon.ts, ui/qat.ts, styles/ribbon.css, styles/shell.css, ui/key-tips.ts, editor/toolbar.ts, ui/icons.ts
+117. The window takes poster frames for agents · automation/agent-bridge.ts
+118. One command shape across the family · ui/commands.ts, automation/catalogue.ts, editor/param-commands.ts, editor/draw-commands.ts, ui/dialogs-insert.ts, ui/icons.ts
+119. Start is a presentation, not a sparkle · ui/icons.ts, ui/home.ts
+120. A dropped picture or video no longer locks the window · editor/stage.ts, styles/slides.css, src-tauri/src/main.rs
+121. The owner's icon · assets/icon_src/formdeck_icon_source.png, assets/*.png, assets/formdeck_mark.svg, src-tauri/icons/*, public/favicon.*, public/icon-*.png, public/apple-touch-icon.png, public/splash.html, ui/brand.ts
+122. The ribbon shrinks level by level · ui/ribbon.ts, styles/ribbon.css, editor/toolbar.ts
+123. No sparkle icon · ui/icons.ts, editor/toolbar.ts, editor/media-commands.ts, ui/chat-panel.ts
+124. One row grid across the ribbon, free room spread · styles/ribbon.css, styles/ribbon-galleries.css, ui/ribbon.ts
+125. A drop lands under the pointer · app.ts
+126. Content shows on the pasteboard · styles/slides.css
+127. Home is two rows · editor/toolbar.ts, styles/ribbon.css
+128. Autoplay video has no player chrome in the show · render/slide.ts
+129. A video is patched, never rebuilt, and autoplay starts on its first frame · render/slide.ts, present/media-play.ts, styles/slides.css
+130. The credit reads by nodemode-ai · ui/home.ts
+131. Hiding the Format pane is a tab on its edge · styles/shell.css, ui/panel-group.ts
+132. The menus live in the macOS menu bar on the desktop · ui/native-menu.ts, app.ts, index.html, styles/shell.css
+133. Show videos open on their first frame and play from it, in every start mode · render/slide.ts, present/media-play.ts, present/show.ts, styles/present.css
+134. Home's side panel resizes and collapses like the deck panes · ui/home.ts, styles/shell.css
+135. A Notes button in the status bar · app.ts, editor/commands.ts, styles/shell.css
+136. Videos show their first frame everywhere they play · render/video-still.ts, render/slide.ts, app.ts, present/show.ts
+137. Selecting a video opens Video Playback, and the player can be turned on · editor/toolbar.ts, editor/media-commands.ts, engine/model.ts, present/show.ts
+138. The desktop opens from a real splash straight into the finished app · public/splash.html, ui/dom.ts, src-tauri/src/main.rs, src-tauri/tauri.conf.json, src-tauri/Cargo.toml, src-tauri/build.rs, src-tauri/capabilities
+139. A video never shows a frame other than its start frame before it plays · render/video-still.ts, render/slide.ts, styles/slides.css
+140. The editor's video player locks video editing while it is on · editor/stage.ts, editor/media-commands.ts, app.ts, styles/shell.css
+141. The status bar keeps Save, and Settings joins the title bar · ui/qat.ts, app.ts
+142. Own names for borrowed feature labels · editor/toolbar.ts, editor/text-effects.ts, editor/design-ideas.ts, editor/slide-zoom.ts, editor/diagram-commands.ts, editor/inspector.ts, editor/ribbon-galleries.ts, ui/dialogs-diagram.ts, ui/wordart-gallery.ts, automation/command-meta.ts, i18n keys and every locale
+143. Preferences take the family's layout · ui/dialogs-file.ts, ui/icons.ts, styles/app-dialogs.css, app.ts
+144. The editor's player keeps Video Playback and warns beside it · editor/media-commands.ts, editor/toolbar.ts, editor/stage.ts, render/slide.ts, app.ts, styles/ribbon.css
+145. Added videos get their second frame as the poster · render/video-still.ts, editor/editor.ts, ui/dialogs-file.ts
+146. Crafter Ideas lists every layout; suggestions belong to the person's agent · editor/design-ideas.ts, ui/dialogs-file.ts, io/api.ts
+147. The credit reads by nodemode.ai · ui/home.ts
+148. Vite 8.3.5 clears the dev server's launch-editor advisories · frontend/package.json
+149. The window smoke (F7) · tests/window/test_window.py
+150. The splash card no longer moves while the page streams in · public/splash.html
+151. build_app takes formcompiler's --config and --target · build_app
+152. The Windows build stops on a failed step and names the engine for --target · setup/desktop_build.bat, backend/oc_install.bat, frontend/oc_install.bat, setup/install_desktop.bat
+153. Slide fonts load without a stylesheet, so the window's own text never falls back · render/fonts.ts, index.html
+154. The Help dialog and the About metadata name NodeAgentc, Inc. and the licence · ui/dialogs-file.ts, ui/native-menu.ts, src-tauri/tauri.conf.json, src-tauri/flatpak
+155. README in the Form family template (Mackin's #8), merged with main · README.md, src-tauri/tauri.conf.json
+156. The splash, its corners and the reveal match the Form family reference · public/splash.html, src-tauri/src/reveal.rs, src-tauri/src/main.rs, src-tauri/tauri.conf.json, src-tauri/build.rs, src-tauri/capabilities, src-tauri/Cargo.toml, ui/dom.ts
+157. The Form extension host beside the add-ins · extensions/host-bridge.ts, extensions/host.ts, styles/extensions.css, app.ts, editor/addins.ts, automation/agent-bridge.ts
+158. The three browser demos open inside the app · ui/demos.ts, ui/home.ts, app.ts, ui/menu.ts, styles/shell.css, scripts/demo-media.py, public/demos/
+159. A closed editor lets go of everything it hooked · editor/editor.ts, editor/stage.ts, editor/rulers.ts
+160. Deck tabs and more windows · app.ts, ui/tabs.ts, ui/windows.ts, ui/home.ts, ui/native-menu.ts, ui/dialogs-file.ts, editor/commands.ts, styles/shell.css, styles/tokens.css, src-tauri/src/main.rs, src-tauri/src/reveal.rs
+161. Deleting slides keeps sections, comments and custom shows whole · editor/actions.ts
+162. One clipboard for every deck and window · editor/clipboard.ts, editor/editor.ts, app.ts, automation/command-meta.ts
+163. A tab switch keeps typing in its own deck · editor/editor.ts, app.ts, ui/home.ts
+164. A blocked pop-up keeps the tab · ui/windows.ts
+165. Each show talks to its own audience window · present/show.ts
+166. Review follow-ups to 162 and 163 · editor/clipboard.ts, editor/editor.ts, app.ts
+167. Each deck window has its own audience window · src-tauri/src/main.rs, src-tauri/capabilities/default.json
+168. Files opened from the system reach a deck window after main closes · src-tauri/src/main.rs
+169. Edits survive a dropped connection, exactly once · engine/doc.ts, live/socket.ts
+170. The window resyncs instead of drifting · engine/doc.ts, live/socket.ts
+171. New ids never collide, and a deleted deck lets go · engine/doc.ts, live/socket.ts
+172. A tab comes back as it was left · app.ts, editor/editor.ts
+173. Collaborators keep their place and colour across tabs · app.ts, editor/editor.ts
+174. A deck deleted elsewhere closes its tab · app.ts, io/api.ts
+175. Closing a window waits for unsaved edits · app.ts, src-tauri/capabilities/default.json
+176. A deck keeps at least one slide · editor/commands.ts, editor/editor.ts, editor/views.ts
+177. Filmstrip drags end with their strip · editor/filmstrip.ts
+178. Duplicate keeps animations, and copied diagrams stay diagrams · editor/actions.ts, editor/clipboard.ts
+179. The show says what it plays · present/show.ts, present/show-dialogs.ts
+180. The macOS app menu follows the key window · ui/native-menu.ts, src-tauri/src/main.rs
+181. The status bar and the new-tab button hold still · styles/shell.css, ui/tabs.ts
+182. Pasted slides and objects fit a deck of another size · editor/clipboard.ts, editor/editor.ts
+183. Paste with Source Formatting · editor/clipboard.ts, editor/editor.ts, editor/commands.ts, automation/command-meta.ts, app.ts
+184. The sorter and outline views load once and fail out loud · app.ts
+185. A window showing Home stops counting as looking at a deck · app.ts, live/socket.ts, ui/home.ts
+186. Attaching the deck that is already attached does nothing · app.ts
+187. A thumbnail drag cancels outside the strip and on Escape · editor/filmstrip.ts
+188. Peers leave when they leave, stay while they stay, and have names · app.ts, live/socket.ts, editor/editor.ts, editor/stage.ts
+189. The show counts what is left · present/show.ts
+190. Away holds until Home closes · live/socket.ts, app.ts
+191. One menu build per reason · ui/native-menu.ts
+192. A drifting finger keeps its drop · editor/filmstrip.ts
+193. Restore says when it repaired ids · io/api.ts, ui/dialogs-file.ts
+194. Source formatting is recognised by what it looks like · editor/clipboard.ts
+195. A late tool call is refused, not run · live/socket.ts
+196. Renaming yourself reaches peers and mentions at once · editor/mentions.ts, ui/dialogs-file.ts, app.ts
+197. Panes act on the deck in front · editor/editor.ts, app.ts, ui/dialogs-diagram.ts, ui/dialogs-insert.ts
+198. Every duplicate moves, children included · editor/editor.ts
+199. Copy, cut, delete and duplicate follow the pane you are in · editor/editor.ts, editor/commands.ts, editor/views.ts
+200. A failed views chunk recovers, and Reload brings the tabs back · app.ts, ui/toast.ts
+201. Text in a flipped shape is never mirrored · render/slide.ts
+202. Reload never strands the window; arrows follow the pane · app.ts, editor/editor.ts, editor/stage.ts, editor/selection-pane.ts
+203. A deck opened at start keeps its tab title · app.ts
 
 ## 1. Rendering in DOM, 1px = 1pt · _v0.2.0 (render/slide.ts SlideView)
 
@@ -725,3 +903,175 @@ The Editor added `input` and `change` listeners to the shared notes and title fi
 A window holds several decks. Every open deck keeps its LiveClient subscription and DeckDoc, so it stays in step with agents and other windows while it is in the background; only the active one has an Editor, and switching disposes the editor (see 159) and builds one for the next deck, restoring the slide, selection and zoom kept in `place`. Closing a tab waits up to 10 s for the deck's pending steps before `live.close`, and closing the last tab opens Home. Opening a deck that is already open switches to its tab. Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PageDown and Ctrl+PageUp are handled before the command table because `comboOf` drops Ctrl on macOS.
 
 The tab row is a grid row of its own (`--fd-tabs-h`) that is present from the first paint, so opening a second deck moves nothing; every calculation that measured the chrome (`diagram.css`, `insert-dialogs.css`, the dock and view-only rows) adds it. Home covers the window, so its side panel lists the open decks to go back to. New Window and Move Deck to New Window open `?deck=` (or Home) through the shell's `open_window`, which makes a `deck-N` window the size of the one asking, offset by 28 px, concealed until its `app_ready` like the main window; in a browser it is `window.open`. The presenter, swap and print commands act on the window that called them instead of `main`, and on macOS each window rebuilds the shared menu bar when it takes focus so the menus run in the window in front.
+
+## 161. Deleting slides keeps sections, comments and custom shows whole · _v0.35.0 (editor/actions.ts deleteSlideOps, layoutKeeps, reid)
+
+`deleteSlideOps` used to move every section whose first slide was deleted to the next surviving slide, so deleting the first slides of two adjacent sections left two sections starting on one slide and the filmstrip showed only one of them. Sections are now walked from the last to the first: a section keeps the next surviving slide only if no other section already starts there, and otherwise it is deleted, because it has no slides left. Comments on a deleted slide are deleted with it, and the deleted ids leave every custom show, so nothing points at a slide that is gone; undo brings all of it back in one step. `layoutKeeps` is the placeholder test `changeLayoutOps` already used, shared with the clipboard (162), and `reid` is exported for it.
+
+## 162. One clipboard for every deck and window · _v0.35.0 (editor/clipboard.ts setClip, getClip, carryOf, carryOps, slideClip, pasteSlidesOps, relink; editor/editor.ts copy, paste, pasteClip, copySlidesTo, contextMenu; app.ts copy-slides-to commands; automation/command-meta.ts)
+
+The clipboard was a field on the Editor, and since 0.34.0 every tab switch disposes the Editor, so a copy was gone the moment another deck came to the front and no other window ever saw it. The clip now lives in `editor/clipboard.ts`, one per page, and is mirrored to `localStorage` (`formdeck.clip`, stamped with the time) so other windows of the same origin read the newest one on paste; a failed write removes the key rather than leave another window pasting something older. A clip names its deck and carries what its items point at that lives at deck level: media records (any string that is a key of `deck.media`, plus font media whose family a run uses), component definitions, named text styles and named colours. Pasting into the same deck works as before; pasting into another deck adds the missing records first, in the same step. Slides pasted into another deck take the destination's layout with the same name and kind, then the same kind, then the same name, then its content layout, as PowerPoint's default paste does with the destination theme; a placeholder the new layout has no slot for keeps the frame it had, read when it was copied. Every pasted slide gets fresh element ids all the way down nested groups (the old slide paste renamed only the top level), connector glue and animation targets follow the new ids (animations were left pointing at the old ones, and Duplicate still drops them as before), links to slides inside the pasted set follow too, and links to slides that only exist in the other deck are removed. Slide size is not adapted; a 4:3 slide pasted into a 16:9 deck keeps its coordinates. A paste from another deck waits for the clip's fonts (`ensureFonts` after `fontsOfDeck` registers carried font media) before it applies, so text never reflows after it appears. Copy Slides To on a thumbnail's menu lists the other open tabs (commands `copy-slides-to:<deck>`, added when a deck opens and removed when it closes, labelled by the deck's live title) and appends the selected slides to that deck in the background, with a toast; agents see the same commands under Home.
+
+## 163. A tab switch keeps typing in its own deck · _v0.35.0 (editor/editor.ts notesInput, notesSave, dispose; app.ts detach, attach presence, Home closeDeck hook; ui/home.ts trashDecks)
+
+The notes save ran 300 ms after the last key and read the shared notes field and the current slide when it fired. Switching tabs inside that window disposed the old Editor, and the new one filled the field with the other deck's notes, so the old timer wrote deck B's notes into deck A's slide; switching slides inside the window lost the typing the same way. The save now captures the slide id and the text at each keystroke, and `dispose` runs a pending save at once, so it lands in its own deck before the field is refilled. A title still being typed is committed by blurring the field before the listeners are dropped, which fires its `change` while the old Editor still owns it (the new Editor's listener would otherwise have renamed the next deck), and the peer timer is cleared. Closing the last tab also detaches the toolbar, inspector and drawing panes, so none of them keep a disposed Editor and its deck. Trashing a deck from Home closes its tab, which kept taking edits the engine refused. Attaching a deck sends presence at once, so collaborators see where you are without waiting for a click.
+
+## 164. A blocked pop-up keeps the tab · _v0.35.0 (ui/windows.ts openWindow)
+
+In a browser, `window.open` returns null when pop-ups are blocked and throws nothing, so Move Deck to New Window went on to close the tab and the deck disappeared from the window with nowhere to go. `openWindow` now throws when it gets no window, and the commands' existing error toast says what happened while the tab stays.
+
+## 165. Each show talks to its own audience window · _v0.35.0 (present/show.ts openAudience, swapDisplays)
+
+The show's BroadcastChannel was made only for an explicit Presenter View start, but the use-presenter-view preference with two screens, and turning Presenter View on during the show, open the audience window too; with no channel `post` did nothing and the audience never followed. `openAudience` makes the channel when the show has none (never for a remote show), before the window opens, so its hello is answered; `close` already closes it. In a browser every show named its audience pop-up `formdeck-audience`, so a presenter show in a second window opened over the first window's audience; the name now carries the deck id.
+
+## 166. Review follow-ups to 162 and 163 · _v0.35.0 (editor/clipboard.ts setClip, getClip; editor/editor.ts setCurrent; app.ts closeDeck gone)
+
+When a copy is too large for `localStorage`, the window now writes a stamp with no clip instead of nothing, and a window whose own clip is older than a stamp drops it, so no window pastes something older than the last copy made anywhere; the window that copied keeps its clip in memory. Changing slide runs a pending notes save first, so typing on the next slide inside 300 ms cannot replace the save of the previous one. `closeDeck(id, true)`, used after a deck is deleted (Home's Trash and Delete Deck), does not wait for pending steps the engine will never acknowledge.
+
+## 167. Each deck window has its own audience window · _v0.35.1 (src-tauri/src/main.rs open_presenter, swap_presenter; src-tauri/capabilities/default.json windows)
+
+The audience window was one window labelled `presenter` for the whole app, so a Presenter View started in a second deck window navigated the first window's audience window to its own deck and both consoles drove one screen; Swap Displays started from the audience window always swapped it with `main`. `open_presenter` now labels the audience window `presenter-<caller>` (`presenter-main`, `presenter-deck-3`) and reuses only the caller's own, and `swap_presenter` pairs a deck window with `presenter-<label>` and an audience window with the window named after its prefix. The capability covers `presenter-*` instead of `presenter`, so every audience window keeps the permissions the old one had. The browser build already names its pop-up per deck (165).
+
+## 168. Files opened from the system reach a deck window after main closes · _v0.35.1 (src-tauri/src/main.rs deck_window, hand_over, single-instance callback)
+
+`hand_over` gave files opened from the file manager, a second launch or macOS's Opened event to `main`, and queued them in `Pending` when `main` did not exist; `Pending` is read once, when `main` is built at start-up, so with `main` closed and a `deck-N` window still open (the app keeps running) the file was never opened and nothing came to the front. `deck_window` answers `main` when it exists, else the focused `deck-N` window, else the newest one, and both `hand_over` and the second-launch focus use it. Before any deck window exists (start-up) the queue still holds the files for `main`.
+
+## 169. Edits survive a dropped connection, exactly once · _v0.36.0 (engine/doc.ts snapshot, dropPending, apply ids, Pending.sent, conn; live/socket.ts onopen, snapshot, dup, reject, connSeq)
+
+A reconnect snapshot used to clear every pending step, so an edit sent just before the connection dropped (or made while offline) vanished. `snapshot()` now takes the snapshot as the base, re-applies the pending steps on top with their original ids (a step that no longer applies is dropped and its paths repaint), and returns those not yet sent on the current connection, which the socket sends once; queued offline copies are discarded so nothing goes twice. The engine answers a step it already applied with `dup`, and `dropPending` undoes the local copy (the snapshot already holds it), re-applying any later pending steps. A refused step is dropped at its `reject`, before the snapshot that follows, or it would be re-sent forever. Step ids carry a per-page random nonce, because the engine's applied-id record treats any repeat as done and the old `local-N` ids repeated across reloads and windows.
+
+## 170. The window resyncs instead of drifting · _v0.36.0 (engine/doc.ts remote, rebase touched; live/socket.ts resync)
+
+A pending step that failed to re-apply during a rebase was dropped without being counted as touched, so the view kept drawing it, and a foreign step that failed to apply locally was only logged, leaving the window different from the engine for good. Dropped steps now repaint their paths, a failed foreign step sends a fresh `sub` so the engine answers with a snapshot, and an `ops` message whose rev is not newer than the doc's is ignored (an echo of a still-pending step there drops the pending copy), so a message overlapping a snapshot is never applied twice.
+
+## 171. New ids never collide, and a deleted deck lets go · _v0.36.0 (engine/doc.ts usedIds; live/socket.ts deleted, onDeleted, close)
+
+`usedIds` covered slides, elements, comments and sections only, so `nextId` could mint an id already used by a master, layout, guide, animation, component (key or child), macro or custom show; it now walks all of them. On the engine's `deleted` message the socket stops the doc from sending, forgets it and its queued messages, rejects waiting opens and calls `onDeleted`; `close` is safe for a deck it no longer has.
+
+## 172. A tab comes back as it was left · _v0.36.0 (app.ts OpenDeck.place view and master, remember, attach, viewsCtor preload; editor/editor.ts returnSlide)
+
+`remember` kept only slide, selection and zoom and `attach` always hid the alternative view, so a deck left in Slide Sorter, Outline or Master view came back in Normal, and in Master view (where `current` is a layout or master id) at slide 1. A tab now keeps its view and, in Master view, the layout or master in front and the slide to return to; `attach` restores the slide and selection, then re-enters Master view or shows the sorter or outline. The views module is loaded once at start-up and the constructor kept, so a restored view is built and shown in the same frame as the editor, with no frame of the normal stage; if the module is somehow not loaded yet the old import path runs and a failure resets the editor to normal.
+
+## 173. Collaborators keep their place and colour across tabs · _v0.36.0 (app.ts presence, peerSeq, onPresence; editor/editor.ts setPeer seen and colour, PEER_COLORS)
+
+Presence for decks other than the active editor's was dropped and each new Editor started with no peers, so collaborators' cursors vanished on every tab switch until they moved. `app.ts` keeps presence per open deck (name, slide, selection, time, and a colour fixed when the collaborator first appears) and replays it into the new Editor in arrival order with the original timestamps, so expiry stays at 20 s and colours never change; a closed deck's entries go with it.
+
+## 174. A deck deleted elsewhere closes its tab · _v0.36.0 (app.ts live.onDeleted; io/api.ts remove, removedHere)
+
+When the engine reports a deck deleted, its tab closes through `closeDeck(id, true)` with a toast naming the deck. The toast is skipped for a deck this window deleted itself (Home's Trash, Delete Deck): `api.remove` records the id before the request, because the engine's message can arrive before the request returns.
+
+## 175. Closing a window waits for unsaved edits · _v0.36.0 (app.ts beforeunload, onCloseRequested; src-tauri/capabilities/default.json core:window:allow-destroy)
+
+A window closed with steps still unacknowledged lost them. In a browser, `beforeunload` asks for confirmation only while a deck has pending steps. In the desktop app the close-requested handler prevents the close only while something is pending, disposes the editor (flushing a notes or title edit), waits up to 5 s for acknowledgements, ignores further close requests meanwhile, then closes, falling back to destroy, and re-attaches the deck if both fail. Tauri's `onCloseRequested` destroys the window itself when the handler does not prevent it, which needs `core:window:allow-destroy`; without it no window could be closed.
+
+## 176. A deck keeps at least one slide · _v0.36.0 (editor/commands.ts delete-slide; editor/editor.ts copy cut; editor/views.ts deleteSlide)
+
+Deleting or cutting every slide left the editor with no current slide and an empty stage. Delete Slide, the outline's delete and Cut refuse when the selection is the whole deck, with "A deck needs at least one slide."; Cut still copies the slides.
+
+## 177. Filmstrip drags end with their strip · _v0.36.0 (editor/filmstrip.ts life, dispose, down, touchDown, dragLayout)
+
+The three drags (slide reorder by mouse, touch drag, layout drag in Master view) put pointer and touch listeners on the window that only their own pointerup removed, so a tab switch in the middle of a drag left them live on a disposed strip: the non-passive touchmove could block scrolling and a later pointerup could apply a reorder. Each drag has its own AbortController tied to a strip-lifetime controller that `dispose` aborts; ending that way clears the drop markers and cancels the press timer and applies nothing. A drag cannot start on a disposed strip (an abort listener added to an aborted signal never fires), and the mouse drag now ends on pointercancel too, without applying.
+
+## 178. Duplicate keeps animations, and copied diagrams stay diagrams · _v0.36.0 (editor/actions.ts pairIds, reid, duplicateSlideOps; editor/clipboard.ts)
+
+Duplicate Slide cleared `animations` because element ids change; it now keeps each animation whose target was copied, retargeted to the copy and given a fresh id, through `pairIds`, which moved here from the clipboard so paste and duplicate share it. Diagram children are named `${groupId}_${key}` by the generator and found by that prefix in `diagram-sync` and `shapeRole`, but `reid` gave them plain `e<n>` ids, so a duplicated or pasted diagram no longer re-laid out when its items changed. `reid` now names a diagram's direct children from the new group id with their old suffix (unique because the group id is), and gives any deeper descendants fresh ids.
+
+## 179. The show says what it plays · _v0.36.0 (present/show.ts playlist, say, onDoc; present/show-dialogs.ts open)
+
+A Set Up Show range or custom show that no longer fitted the deck (slides deleted or all hidden, the custom show deleted) fell back to the whole deck without a word. Every case now tells the presenter what actually plays: the custom show is empty so the range plays, or the range is empty so the whole deck plays; the audience window and remote viewers stay quiet. Set Up Show clamps a stale range for display only, never writing it until OK. When the current slide is deleted during a range or custom show, the replacement is the next surviving entry of that list (else the previous), found from the current position so a slide listed twice cannot send it backwards, with the position kept in step.
+
+## 180. The macOS app menu follows the key window · _v0.37.0 (ui/native-menu.ts NativeMenus.watchNative; src-tauri/src/main.rs on_window_event)
+
+On macOS the application menu is process-wide, but its items and their actions are made by whichever webview last called `setAsAppMenu`. When that window closed, the menu kept items whose handlers died with it, and nothing rebuilt it unless a DOM focus event happened to fire in another window, which macOS does not guarantee when it makes the next window key. The shell now emits `formdeck://window-closed` from a builder-level `on_window_event` on every `Destroyed`, for every window kind; each window that builds menus rebuilds when it hears it and `isFocused()` says it is key (again at 150 and 600 ms, in case key status lags the event), and on the native `onFocusChanged(true)` as well as the DOM events. Audience windows never build menus, so they cannot take the menu from a deck window. None of this is registered off macOS, where native menus are not built. Reasoned from the Tauri 2 API and checked with `cargo check`; there is no macOS machine here to run it on.
+
+## 181. The status bar and the new-tab button hold still · _v0.37.0 (styles/shell.css .fd-st-save, .fd-tabs, .fd-tab-list; ui/tabs.ts DeckTabs.render)
+
+The save indicator had a 112 px minimum, narrower than "Offline, reconnecting", so a save state change moved the hint and everything after it. It now has a fixed width of 24 characters plus its dot and gap, which fits every save label in every locale except the long offline wording of a few, which ellipsises instead of pushing. The + button followed the last tab, so it jumped whenever a tab opened, closed or was renamed, and because the whole strip scrolled it could scroll out of sight. Only the tab list scrolls now (`flex: 1 1 0`, hidden scrollbar), and the + sits pinned at the strip's right end; the active-tab scroll-into-view check measures the list instead of the strip. DOM and focus order are unchanged.
+
+## 182. Pasted slides and objects fit a deck of another size · _v0.37.0 (editor/clipboard.ts sizeXf, scaleElement, scaleCarry, pasteSlidesOps; editor/editor.ts copy, pasteClip)
+
+Slides or objects pasted from a 16:9 deck into a 4:3 one kept source coordinates and hung off the slide. Clips now carry the source slide size (optional, so a 0.36.0 clip pastes as before), and when it differs from the destination everything pasted is scaled uniformly by `min(dw / sw, dh / sh)` and centred, the way PowerPoint fits content: frames of every element and group child (children hold absolute coordinates), placeholder frames taken from the clip, line widths, shadow, glow, soft edge and reflection distances, bevels and depth, picture blur, table columns, rows and cell borders, chart axis lines, text insets, and in paragraphs, runs and level styles the font size, letter spacing, indents, paragraph spacing and point line spacing, plus motion paths (slide points) and carried components and named text styles. Ratios (adjust handles, crop, percent line spacing, path size, opacity) stay as they are. Equal sizes take no scaling path at all, so their ops are unchanged. `getClip` now keeps the last parsed clip with its raw text, so a menu's enabled check does not reparse a large clip on every pointer event.
+
+## 183. Paste with Source Formatting · _v0.37.0 (editor/clipboard.ts SourceClip, slideClip, importSource; editor/editor.ts canPasteSource, pasteSource; editor/commands.ts paste-source; automation/command-meta.ts; app.ts Edit menu)
+
+Slides pasted into another deck take its layouts and theme (162). The new command keeps the source look instead. A slides clip now also carries the layouts its slides use, their masters with each master's resolved theme (masters can carry their own theme in this model, so nothing has to be baked into elements), and the media and fonts those need. Paste with Source Formatting adds the master as a new preserved master with a fresh id and a unique name, and each used layout under it with a fresh id and no semantic (as Duplicate Master does), with fresh element and guide ids and the size scaling of 182; both are tagged with an `origin` of source deck and id, so a later paste from the same source reuses them instead of piling up copies. Fonts load first, and masters, layouts, carried records and slides go in one step, so one undo removes everything. The command is enabled only for a slides clip from another deck that carries a source section (a 0.36.0 clip does not), and appears in the Edit menu and the thumbnail menu.
+
+## 184. The sorter and outline views load once and fail out loud · _v0.37.0 (app.ts loadViews, hooks.view, attach)
+
+The views chunk was imported twice (a startup preload and again on every switch), and the switch set `ed.view` and hid the normal panes before the import resolved, so a slow load showed an empty frame and a failed one (offline, or an updated build whose old chunk is gone) left a half-switched view and an unhandled rejection. One cached `loadViews()` promise serves the preload, `attach` and the view hook, and is cleared on failure so a later switch retries. When the module is ready the switch is synchronous as before; otherwise the current view stays on screen until it resolves and then everything swaps in one step, with a sequence number dropping a result the user has already moved past. A failure toasts and leaves the view as it was.
+
+## 185. A window showing Home stops counting as looking at a deck · _v0.37.0 (app.ts Home onVisible, live.onStatus, attach; live/socket.ts away; ui/home.ts onVisible)
+
+The engine routes agent tools to the window whose last presence names the deck, and Home did not change that, so a tool could run in a window where nobody was looking at the deck. Home now reports real visibility changes; on open the window sends `{t: 'away'}`, on close it sends presence for the current editor again, and `attach` holds its presence while Home is still up. After a reconnect the window re-sends away or presence, which it never did before, so a reconnected window is ranked again. Engine side: backend 115.
+
+## 186. Attaching the deck that is already attached does nothing · _v0.37.0 (app.ts attach)
+
+`attach` skipped the teardown when given the attached doc but still built a second Editor and wired toolbar, inspector, draw tools, presence and listeners again, so handlers ran twice and the old Editor leaked. It now returns at once for the attached doc; every caller that also needs Home closed already closes it.
+
+## 187. A thumbnail drag cancels outside the strip and on Escape · _v0.37.0 (editor/filmstrip.ts showDrop, down, touchDown, dragLayout)
+
+The 0.36.0 check of a drag interrupted by a tab switch passed (Ctrl+Tab and the palette both left both decks untouched and no marker behind), but it found two gaps. Releasing a drag anywhere outside the strip, over the tab strip for instance, still moved the slides to the clamped end; and Escape did nothing, so the release still moved them. `showDrop` now treats the pointer as outside unless it is within the scroll box across the strip and within 12 px of it along the strip (the auto-scroll zones lie inside the box), and outside it clears the drop index and the markers, so a release there is a no-op and coming back shows them again. Every drag in the file (mouse and pen, touch, layout) listens for Escape in the capture phase while it is live and cancels through its own `kill()`, which aborts the listeners so the later pointer up is ignored; Escape is swallowed only then, so the editor's own Escape is untouched otherwise. Markers only toggle classes, so nothing changes size.
+
+## 188. Peers leave when they leave, stay while they stay, and have names · _v0.37.0 (app.ts liveName, heartbeat, onPresence; live/socket.ts PresenceMessage, setName, lastPresence; editor/editor.ts removePeer; editor/stage.ts drawOverlay)
+
+The first run of presence with three real clients (0.36.0) confirmed distinct, per-deck, tab-stable colours with no layout shift, and found three faults. A closed or reloaded peer stayed on screen until the 20 s TTL, a reload showing a ghost beside the new one, because nothing said a client had gone; the engine now does (backend 116) and the window drops that client from the deck's presence map and the editor's peers at once. A peer who sat still vanished after 20 s, because presence was sent only on slide or selection change; each window now re-sends its presence every 8 s while an editor is up, Home is closed and the socket is connected, skipping a beat if it sent presence in the last 7.5 s (so timer jitter cannot open a 16 s gap against the TTL, which stays as a safety net for older engines). Every label read the platform string ("Linux x86_64"); hello now carries the author name from settings when there is one (re-sent once `loadMe` resolves), else "Guest NN" with a number kept per window in session storage, and share guests keep their own name. The label is now escaped, since it is user text. Away (185) still sends a slide-less presence rather than gone, so a peer who visits Home keeps their colour.
+
+## 189. The show counts what is left · _v0.37.0 (present/show.ts Show.prune, onDoc)
+
+The first run of deletes during a ranged show (0.36.0) confirmed the replacement rule of 179: no crash or blank, next and previous stay on the surviving range slides, deletes outside the range change nothing, and an inserted slide does not join a running range. But the counter and the presenter's "Slide n of m" kept counting the deleted entries ("3 / 4" where "2 / 3" was right), because `onDoc` chose the replacement while `this.list` still held the deleted ids. `prune(keep)` now drops entries whose slide is gone, keeping order and the duplicates a custom show may list, and returns where the kept entry landed; the replacement path prunes before `go`, and when the shown slide survives the position is recomputed as its occurrence nearest the old one, searching forward first as 179 does. Goto messages to the audience window and remote viewers carry the corrected position. When no entry survives, the list is cleared so the counter reads against the deck, and the presenter (not the audience or remote viewers) is told that the range or custom show has no slides left and the whole deck plays.
+
+## 190. Away holds until Home closes · _v0.37.0 (live/socket.ts away, resume, presence; app.ts Home onVisible, live.onStatus)
+
+Review of 185 found that the Editor sends presence on every slide or selection change, including programmatic ones while Home is open (an agent tool moving the slide, a peer deleting the current slide, attach restoring the place), which re-marked the window active and sent agent tools back to a window showing Home. `away()` now sets a hold that makes `presence()` a no-op, and only `resume()` clears it: Home closing and a reconnect with Home closed resume before sending presence, and a reconnect with Home open sends away again. In Chrome, deleting the current slide from another client while Home was open produced no presence frame in 9 s, and closing Home sent exactly one.
+
+## 191. One menu build per reason · _v0.37.0 (ui/native-menu.ts NativeMenus.build, watchNative)
+
+Review of 180 found build storms: the native focus event built even before the first build (forcing a second through `again`), a focus built twice (DOM and native event), and a window-closed event built three times. `build(force)` now skips a non-forced call that would rebuild the same signature and text mode within 300 ms of the last build, and a non-forced call during a build of the same shape no longer queues another; the native focus handler waits for the first build; the window-closed reclaim forces one build when this window is key and skips its 150 and 600 ms retries once that succeeds.
+
+## 192. A drifting finger keeps its drop · _v0.37.0 (editor/filmstrip.ts showDrop, touchDown, down)
+
+Review of 187 found that the inside test gave slack only along the strip, so on the phone's horizontal strip a touch drag whose finger drifted a few pixels above or below it cancelled the drop. `showDrop` takes a cross-axis slack: 32 px for touch, 8 px for mouse and pen. The Escape and pointer cancel paths now also remove the `life` abort listener, which used to linger until dispose, one closure per cancelled drag.
+
+## 193. Restore says when it repaired ids · _v0.37.0 (io/api.ts restoreVersion; ui/dialogs-file.ts VersionsDialog)
+
+The engine's restore now returns how many duplicate ids it gave fresh ones (backend 112, 117), and the Versions dialog ignored the result. When the count is above zero the restore toast adds "1 duplicate id was given a new one." or "N duplicate ids were given new ones."; otherwise it reads as before. The engine's 404, 409 and 422 messages already reach the dialog's "Could not restore" line as written.
+
+## 194. Source formatting is recognised by what it looks like · _v0.37.0 (editor/clipboard.ts canon, fnv1a, masterPrint, layoutPrint, importSource)
+
+Review of 183 found the reuse key fragile: it was the source deck id plus the master or layout id, so the same source reopened under another id (Save As, a copy, a re-import) counted as new, and pptx and odp export dropped the key, so every later paste added another "Name 2" master. Decks have no stable identity to key on, so the key is now a fingerprint of the content: FNV-1a (32-bit, written here) over a canonical JSON (keys sorted, every `id` dropped) of the master's theme, background, text styles and elements, or the layout's name and elements. Names and ids stay out of it, so renames and re-ids still match; an edited source master is new, as it should be. Reuse also accepts the earlier key form. The key survives export and import (backend 121).
+
+## 195. A late tool call is refused, not run · _v0.37.0 (live/socket.ts tool handler)
+
+A window frozen past the engine's wait (a debugger pause, a hung main thread) used to run a buffered mutating tool call when it woke, after the caller had been told it timed out. Tool messages now carry `until` (backend 122); a call handled after that moment answers that it arrived too late and does nothing.
+
+## 196. Renaming yourself reaches peers and mentions at once · _v0.37.0 (editor/mentions.ts setMe, ME_EVENT; ui/dialogs-file.ts preferences author; app.ts)
+
+Peer labels use the author name (188), but `mentions.ts` read it once, so a name changed in Preferences reached neither the peer label nor the "mentions me" check until a reload. Changing the Author field now updates the cached name through `setMe`, which fires `formdeck:me`; the app re-sends hello with the new name, and peers see it with the next presence (at most 8 s, the heartbeat).
+
+## 197. Panes act on the deck in front · _v0.37.0 (editor/editor.ts watchEditor, retireEditor, announceEditor, Editor.apply, alive, dispose; app.ts attach, detach; ui/dialogs-diagram.ts Pane; ui/dialogs-insert.ts FindPanel)
+
+The first run of editing a duplicated diagram (0.36.0) passed: copies by Ctrl+D, Duplicate Slide and Copy Slides To got fresh `${group}_${key}` child ids, edits and undos touched only the copy, no id repeated in 30 snapshots, and reloads rendered both. It also found that the Diagram Text Pane kept the Editor it was opened with, so after a tab switch typing in it wrote to the previous deck. Find and Replace had the same fault. Modeless panes now register with a small registry in `editor.ts`: `attach` and `detach` call `retireEditor()` before disposing the old Editor (the diagram pane flushes pending typing to its own deck then) and `announceEditor()` with the new one (or null), and each pane rebinds; keyed list patching means a rebind does not rebuild rows that did not change. The diagram pane hides with no deck; Find re-runs its search on the new deck, or closes. The inspector panels, selection pane, format painter, crop tool, views, extensions and toolbar already rebind through `attach`, and the modal dialogs block tab switches. As a backstop a disposed Editor's `apply` returns false and its listeners are cleared, so nothing holding a stale Editor can write to a deck that is no longer in front.
+
+## 198. Every duplicate moves, children included · _v0.37.0 (editor/editor.ts shiftElement, pasteClip)
+
+Paste and Duplicate offset a copy by 12 pt by moving its frame, but group and diagram children hold absolute slide coordinates, so a duplicated group or diagram drew exactly on top of its original (its selection box alone moved), and repeating Ctrl+D never moved the visible shapes. `shiftElement` moves the element and every descendant, both for the pasted copy and for the clip that makes the next paste step 12 further. The run that found it reported two copies from one Ctrl+D; one of those was this undisplaced copy, and 80 duplicates at 1500 ms and 120 ms gaps made exactly one copy each.
+
+## 199. Copy, cut, delete and duplicate follow the pane you are in · _v0.38.0 (editor/editor.ts pane, setPane, slideContext, copy, contextMenu, constructor; editor/commands.ts duplicate, delete; editor/views.ts AltViews)
+
+After copying an object, clicking the thumbnail of the same slide and pressing Ctrl+C still copied the object, because the element selection survived and `copy()` copied elements whenever any were selected. PowerPoint decides by the pane with focus, and so does formdeck now. The editor keeps `pane` ('stage' or 'slides'): pointer down or focus on the stage sets it to stage, as does selecting elements from anywhere (inserting, Select All); pointer down or focus in the filmstrip or the Sorter sets it to slides, and the thumbnail context menu does too. `slideContext` (a slide holder with the Sorter showing or the slides pane active) makes Copy, Cut, Delete and Duplicate act on slides even with objects selected; paste is unchanged, an objects clip lands on the current slide and a slides clip after it. A thumbnail click also clears the element selection, as in PowerPoint; tabbing into the filmstrip keeps it, ignored until you return to the stage. Pane changes are a field write, so nothing redraws.
+
+## 200. A failed views chunk recovers, and Reload brings the tabs back · _v0.38.0 (app.ts loadViews, reloadWindow, start-up restore; ui/toast.ts toast action)
+
+184 cleared the cached promise after a failed load so a later switch could retry, but the browser's module map remembers a failed module URL for the life of the page, so every retry failed until a reload. When the error message names the chunk URL (Chrome and Firefox do), `loadViews` now imports `${url}?retry=n`, a fresh module instance (the failed one never ran), and keeps using fresh URLs for later attempts; one success is still shared by every caller. Where the message has no URL (Safari and WKWebView) or the retry fails too, the toast now carries a Reload button: `toast()` takes an optional `{label, run}` action that renders a real button in the existing undo-toast layout (12 s, keyboard reachable, deduplicated on its text). Reload writes the open tabs and the front deck to session storage, detaches the editor so pending notes and titles flush, waits up to 5 s for unacknowledged edits, then reloads; start-up restores those tabs in order with the front deck in front before falling back to `?deck=`. formdeck kept no tab list across a reload before.
+
+## 201. Text in a flipped shape is never mirrored · _v0.38.0 (render/slide.ts textBlock)
+
+The first comparison of formdeck against LibreOffice renders of nested rotated and flipped groups confirmed the 0.35.0 group bake to 0.01 pt in all 13 cases (and pixel-identical re-exports), and found that the window drew the text of any flipped element mirrored, because `boxStyle` applies the flip to the whole box. PowerPoint and LibreOffice never mirror text: under flipH it reads normally, under flipV (and flipH with flipV) it is turned 180 degrees. Since the bake turns a flipped group's flip into flips on its children, every text box in a flipped group was affected, not only flipped text boxes. The box flip stays (geometry, fill, line and pictures mirror as before), and the text layer gets a counter `scale(-1,1)` when exactly one of flipH and flipV is set: with flipH the two cancel, with flipV the result is a 180 degree turn, and with both the box flip already is one. The counter is about the text rectangle's own centre and composes with the vert270 rotation, so insets and anchoring do not move; a bottom-anchored box under flipV shows its text at the top, upside down, where LibreOffice puts it. Raster export walks the computed transforms, so PNG, PDF and video frames follow.
+
+## 202. Reload never strands the window; arrows follow the pane · _v0.38.0 (app.ts reloadWindow, beforeunload, key handler, loadViews, start-up restore; editor/editor.ts flush; editor/stage.ts, editor/selection-pane.ts setPane callers)
+
+Review of 199 and 200 found four faults. Reload detached the editor before waiting for unacknowledged edits, so with the engine down the browser asked "Leave site?" and a cancel left a window with no editor, while the desktop app reloaded and lost the edits. `Editor.flush()` now writes pending notes and the title without disposing; Reload flushes, waits up to 5 s with the editor attached, and if edits are still pending keeps everything as it is, forgets the saved tabs and says to reload when the connection is back; otherwise it marks the reload so the leave guard stays quiet, then detaches and reloads. With an object selected and the slides pane active, the arrow keys, F2, Enter, Tab and type-to-edit still acted on the object while Copy and Delete acted on slides; they now follow `slideContext` too, so the arrows step through slides. Restore opened the front deck a second time (two error toasts if it had been deleted); it now attaches the already opened tab. `loadViews` took the first URL anywhere in an error message; it now accepts only the dynamic-import failure forms of Chrome and Firefox with a `.js` URL. The review also suggested that `select()` should stop moving to the stage pane for selections the user did not make; no such caller exists today (undo, agents and peers do not select elements), while a dozen insert paths in other modules (Select All, group, camera, zoom, equations, 3D, merge, SVG) rely on it to put Delete back on the new object, so `select()` keeps that rule and the user-driven callers also say so explicitly.
+
+## 203. A deck opened at start keeps its tab title · _v0.38.0 (app.ts startApp)
+
+The last line of start-up set the page title to "formdeck" and the version, after the editor had already titled the page with the deck, so a window opened on a deck (from `?deck=`, a restore after Reload, or a file) showed the version instead of the deck's name until the next title change. It now sets that title only when no deck is open.

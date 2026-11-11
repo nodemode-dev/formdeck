@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import re
+import urllib.parse
 from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException, Request, UploadFile
@@ -15,7 +16,7 @@ from app.routers.exports import _target
 from app.services import compiler, model, package, templates
 from app.services import ops as opsmod
 from app.services.media import store as media_store
-from app.services.store import STORE, deck_dir
+from app.services.store import STORE, VersionUnreadable, deck_dir
 
 router = APIRouter()
 log = logging.getLogger(__name__)
@@ -40,6 +41,13 @@ POTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.templa
 def _safe_name(title: str) -> str:
     name = re.sub(r"[^\w\s.-]+", "", title or "deck").strip() or "deck"
     return re.sub(r"\s+", " ", name)[:80]
+
+
+def _disposition(name: str) -> str:
+    ascii_name = name.encode("ascii", "ignore").decode().replace('"', "")
+    if not ascii_name.rsplit(".", 1)[0].strip():
+        ascii_name = "deck." + name.rsplit(".", 1)[-1]
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{urllib.parse.quote(name)}"
 
 
 def _session_or_404(deck_id: str):
@@ -100,9 +108,17 @@ def get_deck(deck_id: str) -> dict:
 
 
 @router.delete("/decks/{deck_id}")
-def delete_deck(deck_id: str) -> dict:
+async def delete_deck(deck_id: str) -> dict:
+    from app.routers import live
     _session_or_404(deck_id)
-    STORE.delete(deck_id)
+    await asyncio.to_thread(STORE.delete, deck_id)
+    live.SHOWS.pop(deck_id, None)
+    live.QUESTIONS.pop(deck_id, None)
+    await STORE.broadcast(deck_id, {"t": "deleted", "deck": deck_id})
+    for c in list(STORE.clients.values()):
+        c.decks.discard(deck_id)
+        if getattr(c, "active", None) == deck_id:
+            c.active = None
     return {"ok": True}
 
 
@@ -189,8 +205,12 @@ async def restore_version(deck_id: str, n: int) -> dict:
     _session_or_404(deck_id)
     try:
         return await STORE.restore_version(deck_id, n)
-    except (OSError, KeyError, ValueError):
-        raise HTTPException(404, "There is no such version.")
+    except VersionUnreadable as exc:
+        if exc.missing:
+            raise HTTPException(404, "There is no such version.")
+        raise HTTPException(422, f"This version could not be read: {exc}")
+    except opsmod.OpError as exc:
+        raise HTTPException(409, f"This version cannot be restored: {exc}")
 
 
 @router.put("/decks/{deck_id}/thumb")
@@ -236,8 +256,10 @@ def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None, embed_fo
 @router.get("/decks/{deck_id}/download")
 async def download(deck_id: str, format: str = "fdec", embedFonts: str | None = None):
     s = _session_or_404(deck_id)
-    data, name, mime = await asyncio.to_thread(export_bytes, s.deck, format, None, embedFonts)
-    return Response(data, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{name}"'})
+    async with s.lock:
+        deck = copy.deepcopy(s.deck)
+    data, name, mime = await asyncio.to_thread(export_bytes, deck, format, None, embedFonts)
+    return Response(data, media_type=mime, headers={"Content-Disposition": _disposition(name)})
 
 
 @router.post("/decks/{deck_id}/export")
@@ -245,7 +267,9 @@ async def export(deck_id: str, body: dict = Body(default={})) -> dict:
     s = _session_or_404(deck_id)
     fmt = body.get("format") or "pptx"
     notes: list[str] = []
-    data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
+    async with s.lock:
+        deck = copy.deepcopy(s.deck)
+    data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
     path, _ = _target(name, body.get("path"))
     if not path.parent.is_dir():
         raise HTTPException(400, f"The folder {path.parent} does not exist.")
@@ -326,7 +350,9 @@ async def save(deck_id: str, body: dict = Body(default={})) -> dict:
     fmt = body.get("format") or path.suffix.lower().lstrip(".") or package.EXT
     if fmt not in (*package.FORMATS, "pptx", "potx", "odp", "otp"):
         fmt = package.EXT
-    data, name, _ = await asyncio.to_thread(export_bytes, s.deck, fmt, body.get("fontScales"), body.get("embedFonts"))
+    async with s.lock:
+        deck = copy.deepcopy(s.deck)
+    data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, body.get("fontScales"), body.get("embedFonts"))
     path, _ = _target(name, str(path))
     try:
         await asyncio.to_thread(path.write_bytes, data)

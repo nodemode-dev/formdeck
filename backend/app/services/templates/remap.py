@@ -52,21 +52,21 @@ def remap(deck: dict, template_deck: dict) -> dict:
         sl = slots(lay) if lay else {}
         slide = copy.deepcopy(s)
         slide["layout"] = lay["id"] if lay else s.get("layout")
-        kept = []
+        els = []
         for el in slide.get("elements", []):
             slot = el.get("slot")
             if el.get("ph") and slot and slot in sl:
                 el["ph"] = copy.deepcopy(sl[slot]["ph"])
-                kept.append(el)
+                els.append(el)
             elif el.get("ph"):
                 x, y, w, h = frame(old, old_layout, el) if old_layout else (el.get("x", 60), el.get("y", 60), el.get("w", 400), el.get("h", 100))
                 el.pop("ph", None)
                 el.pop("slot", None)
                 el.update({"x": el.get("x", x), "y": el.get("y", y), "w": el.get("w", w), "h": el.get("h", h)})
-                kept.append(el)
+                els.append(el)
             else:
-                kept.append(el)
-        slide["elements"] = kept
+                els.append(el)
+        slide["elements"] = els
         new["slides"].append(slide)
     new.setdefault("meta", {})["template"] = (tpl.get("template") or {}).get("id")
     return new

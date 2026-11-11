@@ -34,6 +34,9 @@ export interface IdeasReply { version: number; ideas: Array<{ layout: string; no
 
 export interface WorkbookTable { sheets: string[]; sheet: string; categories: string[]; series: Array<{ name: string; values: Array<number | null> }>; mtime: number; path: string }
 
+const removedIds = new Set<string>();
+export const removedHere = (id: string): boolean => removedIds.has(id);
+
 export const api = {
   health: () => get<{ ok: boolean; version: string }>('/api/health'),
   capabilities: () => get<Record<string, unknown>>('/api/capabilities'),
@@ -51,7 +54,7 @@ export const api = {
   library: () => get<{ decks: DeckSummary[] }>('/api/decks'),
   create: (body: { title?: string; template?: string; size?: string | { w: number; h: number }; firstSlide?: boolean }) => post<DeckSummary>('/api/decks', body),
   deck: (id: string) => get<{ deck: Deck; rev: number }>(`/api/decks/${id}`),
-  remove: (id: string) => fetch(`/api/decks/${id}`, { method: 'DELETE' }).then((r) => json<{ ok: boolean }>(r)),
+  remove: (id: string) => { removedIds.add(id); return fetch(`/api/decks/${id}`, { method: 'DELETE' }).then((r) => json<{ ok: boolean }>(r)); },
   trash: () => get<{ decks: TrashedDeck[] }>('/api/decks/trash'),
   restoreTrashed: (entry: string) => post<DeckSummary>(`/api/decks/trash/${encodeURIComponent(entry)}/restore`),
   purgeTrashed: (entry: string) => fetch(`/api/decks/trash/${encodeURIComponent(entry)}`, { method: 'DELETE' }).then((r) => json<{ ok: boolean }>(r)),
@@ -66,7 +69,7 @@ export const api = {
   saveTemplate: (deckId: string, name: string) => post<{ template: string }>(`/api/decks/${deckId}/save-template`, { name }),
   versions: (deckId: string) => get<{ versions: Array<{ n: number; name: string; at: string; slides: number }> }>(`/api/decks/${deckId}/versions`),
   saveVersion: (deckId: string, name: string) => post<{ n: number }>(`/api/decks/${deckId}/versions`, { name }),
-  restoreVersion: (deckId: string, n: number) => post<{ rev: number }>(`/api/decks/${deckId}/versions/${n}/restore`),
+  restoreVersion: (deckId: string, n: number) => post<{ rev: number; repaired?: number }>(`/api/decks/${deckId}/versions/${n}/restore`),
   version: (deckId: string, n: number) => get<{ info: { n: number; name: string; at: string }; deck: Deck }>(`/api/decks/${deckId}/versions/${n}`),
   activity: (deckId: string, who = '', limit = 300) => get<{ entries: ActivityEntry[]; people: string[]; total: number }>(`/api/decks/${deckId}/activity?limit=${limit}${who ? `&who=${encodeURIComponent(who)}` : ''}`),
   async compareFile(file: File): Promise<{ deck: Deck; name: string }> {

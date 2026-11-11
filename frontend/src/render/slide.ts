@@ -109,7 +109,9 @@ function textBlock(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
     b += Math.max(0, f.h - g.text.y - g.text.h);
   }
   const justify = props.anchor === 'm' ? 'center' : props.anchor === 'b' ? 'flex-end' : 'flex-start';
-  const vert = props.vert === 'vert' || props.vert === 'stacked' ? 'writing-mode:vertical-rl;' : props.vert === 'vert270' ? 'writing-mode:vertical-rl;transform:rotate(180deg);' : '';
+  const counter = !!el.flipH !== !!el.flipV ? 'scale(-1,1)' : '';
+  const txTf = [counter, props.vert === 'vert270' ? 'rotate(180deg)' : ''].filter(Boolean).join(' ');
+  const vert = (props.vert === 'vert' || props.vert === 'stacked' || props.vert === 'vert270' ? 'writing-mode:vertical-rl;' : '') + (txTf ? `transform:${txTf};` : '');
   const cols = props.cols > 1 ? `column-count:${props.cols};column-gap:${round(18)}px;` : '';
   const wrap = props.wrap ? '' : 'white-space:pre;';
   const f3 = fx3Of(el.text?.sp3d, el.text?.scene3d, ctx.deck.theme);

@@ -271,6 +271,12 @@ def _range(n: int, start, end) -> tuple[int, int]:
     return a, b
 
 
+def _past_end(n: int, a: int, unit: str) -> str | None:
+    if a <= n or (n == 0 and a == 1):
+        return None
+    return f"{unit} {a} is past the end; this source has {n} {unit}s"
+
+
 def _expand_markers(text: str, intake: dict) -> str:
     from . import tables
 
@@ -296,8 +302,15 @@ def get_source(intake: dict, source_id: str, start: int | None = None, end: int 
         if t is not None:
             n = len(t["rows"])
             a, b = _range(n, start, end)
-            sub = {**t, "rows": t["rows"][a - 1:b], "rowCount": t.get("rowCount", n) - (a - 1)}
-            return dash_safe(f"<!-- {t['id']} {t.get('name', '')} rows {a}-{b} of {t.get('rowCount', n)} -->\n" + tables.table_md(sub))
+            total = t.get("rowCount", n)
+            if total > n and a > n:
+                return f"row {a} is past the {n} rows kept from {total}"
+            past = _past_end(n, a, "row")
+            if past:
+                return past
+            sub = {**t, "rows": t["rows"][a - 1:b], "moreKept": n - b if b < n else 0, "keptAll": n, "totalAll": total}
+            kept_note = f", first {n} kept" if total > n else ""
+            return dash_safe(f"<!-- {t['id']} {t.get('name', '')} rows {a}-{b} of {total}{kept_note} -->\n" + tables.table_md(sub))
         asset = next((x for x in intake.get("assets", []) if x["id"] == source_id), None)
         if asset is not None:
             return json.dumps(asset, ensure_ascii=False)
@@ -312,6 +325,9 @@ def get_source(intake: dict, source_id: str, start: int | None = None, end: int 
     if k == "pdf":
         pages = src.get("pageText") or []
         a, b = _range(len(pages), start, end)
+        past = _past_end(len(pages), a, "page")
+        if past:
+            return past
         texts = pages[a - 1:b]
         trunc = [n for n in src.get("truncatedPages") or [] if a <= n <= b]
         if trunc and Path(src.get("path", "")).is_file():
@@ -327,9 +343,15 @@ def get_source(intake: dict, source_id: str, start: int | None = None, end: int 
     if k == "pptx" and src.get("slideText"):
         slides = src["slideText"]
         a, b = _range(len(slides), start, end)
+        past = _past_end(len(slides), a, "slide")
+        if past:
+            return past
         body = "\n\n---\n\n".join(_expand_markers(t, intake) for t in slides[a - 1:b])
         return dash_safe(f"<!-- {source_id} {name} slides {a}-{b} of {len(slides)} -->\n" + body)
     text = src.get("text") or ""
     lines = text.split("\n")
     a, b = _range(len(lines), start, end)
+    past = _past_end(len(lines), a, "line")
+    if past:
+        return past
     return dash_safe(f"<!-- {source_id} {name} lines {a}-{b} of {len(lines)} -->\n" + "\n".join(lines[a - 1:b]))

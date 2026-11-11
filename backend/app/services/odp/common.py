@@ -19,6 +19,7 @@ NS = {
     "chart": "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
     "math": "http://www.w3.org/1998/Math/MathML",
 }
+FORMDECK_NS = "urn:formdeck:origin"
 MIMETYPE = "application/vnd.oasis.opendocument.presentation"
 TEMPLATE_MIMETYPE = "application/vnd.oasis.opendocument.presentation-template"
 _UNITS = {"pt": 1.0, "cm": 72 / 2.54, "mm": 72 / 25.4, "in": 72.0, "pc": 12.0, "px": 0.75}

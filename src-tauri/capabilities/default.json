@@ -2,9 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "The windows load the engine's page from the loopback address; through Tauri the page asks the shell for the installed fonts, opens the presenter window and more deck windows (deck-N), prints a window, and on macOS sets its menus in the system menu bar (core:default includes the core menu permissions).",
-  "windows": ["splash", "main", "presenter", "deck-*"],
+  "windows": ["splash", "main", "presenter-*", "deck-*"],
   "remote": {
     "urls": ["http://127.0.0.1:*", "http://localhost:*"]
   },
-  "permissions": ["core:default", "core:window:allow-set-fullscreen", "core:window:allow-close", "allow-system-fonts", "allow-open-window", "allow-open-presenter", "allow-print-window", "allow-monitor-count", "allow-swap-presenter", "allow-app-ready", "dialog:default", "dialog:allow-save", "dialog:allow-open"]
+  "permissions": ["core:default", "core:window:allow-set-fullscreen", "core:window:allow-close", "core:window:allow-destroy","allow-system-fonts", "allow-open-window", "allow-open-presenter", "allow-print-window", "allow-monitor-count", "allow-swap-presenter", "allow-app-ready", "dialog:default", "dialog:allow-save", "dialog:allow-open"]
 }

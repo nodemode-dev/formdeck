@@ -506,11 +506,60 @@ def split_overflow(spec: dict, semantic: str) -> list[dict]:
         s = dict(spec)
         s["bullets"] = ch
         if i:
-            s["title"] = f"{spec.get('title', '')} (cont.)".strip()
+            s["title"] = _cont_title(spec.get("title"))
+            for k in ("steps", "people", "stats", "more_columns"):
+                s.pop(k, None)
             s.pop("image", None)
             s.pop("notes", None)
+            s.pop("section", None)
+            s.pop("kicker", None)
+            s.pop("subtitle", None)
             s["layout"] = "content" if semantic in ("imageLeft", "imageRight") else semantic
         out.append(s)
+    return out
+
+
+def _cont_title(title) -> str:
+    t = str(title or "").strip()
+    while t.endswith("(cont.)"):
+        t = t[:-len("(cont.)")].rstrip()
+    return f"{t} (cont.)".strip()
+
+
+def _continue(spec: dict, layout: str, part: dict) -> dict:
+    s = {k: spec[k] for k in ("background", "transition") if k in spec}
+    s.update(part)
+    s["title"] = _cont_title(spec.get("title"))
+    s["layout"] = layout
+    return s
+
+
+def split_items(spec: dict, semantic: str, warnings: list[str]) -> list[dict]:
+    title = spec.get("title", "") or "Untitled"
+    more = spec.get("more_columns")
+    if more:
+        cols = [c for c in more if isinstance(c, dict)]
+        spec = {k: v for k, v in spec.items() if k != "more_columns"}
+        out = [spec]
+        pair_layout = semantic if semantic in ("twoContent", "comparison") else "comparison"
+        for i in range(0, len(cols), 2):
+            if i + 1 < len(cols):
+                out.append(_continue(spec, pair_layout, {"left": cols[i], "right": cols[i + 1]}))
+            else:
+                out.append(_continue(spec, "content", {"left": cols[i]}))
+        note = "" if semantic in ("twoContent", "comparison") else f" (the {semantic} layout has no column slots, so they continue on comparison slides{', the last one alone on a content slide' if len(cols) % 2 else ''})"
+        warnings.append(f"slide '{title}' has {len(cols) + 2} columns; {len(cols)} moved to {len(out) - 1} continuation slide(s){note}")
+    else:
+        out = [spec]
+    caps = {"timeline": ("steps", 6), "process": ("steps", 6), "team": ("people", 8), "stats": ("stats", 5)}
+    if semantic in caps:
+        key, cap = caps[semantic]
+        items = spec.get(key)
+        if isinstance(items, list) and len(items) > cap:
+            out[0] = {**spec, key: items[:cap]}
+            extra = [_continue(spec, semantic, {key: items[i:i + cap]}) for i in range(cap, len(items), cap)]
+            out[1:1] = extra
+            warnings.append(f"slide '{title}' has {len(items)} {key}; {len(items) - cap} moved to {len(extra)} continuation slide(s)")
     return out
 
 
@@ -687,7 +736,8 @@ def compile_into(deck: dict, slides_spec: list[dict], *, intake: dict | None = N
         if not isinstance(s, dict):
             s = {"title": str(s)}
         semantic = choose_layout(s, i if start_index is None else start_index + i, total if start_index is None else start_index + total)
-        expanded.extend((p, i) for p in split_overflow({**s, "layout": s.get("layout") or semantic}, semantic))
+        for part in split_items({**s, "layout": s.get("layout") or semantic}, semantic, ctx.warnings):
+            expanded.extend((p, i) for p in split_overflow(part, semantic))
     out = []
     for n, (s, i) in enumerate(expanded):
         slide = compile_slide(ctx, s, i if start_index is None else start_index + i, total)

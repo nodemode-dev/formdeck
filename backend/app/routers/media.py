@@ -207,10 +207,22 @@ def _unpack(source) -> dict:
     return {"id": uid, "entries": entries, "skipped": skipped}
 
 
+def _spool_limited(src, dst, name: str) -> None:
+    count = 0
+    while True:
+        chunk = src.read(1024 * 1024)
+        if not chunk:
+            return
+        count += len(chunk)
+        if count > config.MAX_UPLOAD_BYTES:
+            raise HTTPException(413, f"{name} is larger than 1 GB")
+        dst.write(chunk)
+
+
 @router.post("/unpack")
 async def unpack_upload(file: UploadFile) -> dict:
     with tempfile.SpooledTemporaryFile(max_size=64 * 1024 * 1024) as tmp:
-        await asyncio.to_thread(shutil.copyfileobj, file.file, tmp)
+        await asyncio.to_thread(_spool_limited, file.file, tmp, file.filename or "That file")
         tmp.seek(0)
         return await asyncio.to_thread(_unpack, tmp)
 

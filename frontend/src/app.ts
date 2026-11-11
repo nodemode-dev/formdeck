@@ -1,7 +1,8 @@
 import type { DeckDoc } from './engine/doc';
 import type { Color } from './engine/model';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
-import { api } from './io/api';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { api, removedHere } from './io/api';
 import { LiveClient } from './live/socket';
 import { ensureFonts, fontsOfDeck } from './render/fonts';
 import { PLAYER_EVENT } from './render/slide';
@@ -24,7 +25,7 @@ import { installResponsive } from './ui/responsive';
 import { toast } from './ui/toast';
 import { DeckTabs } from './ui/tabs';
 import { openWindow } from './ui/windows';
-import { Editor } from './editor/editor';
+import { announceEditor, Editor, PEER_COLORS, retireEditor } from './editor/editor';
 import { colorOps, layoutCommands, registerCommands, type AppHooks } from './editor/commands';
 import { Inspector } from './editor/inspector';
 import { Toolbar } from './editor/toolbar';
@@ -61,6 +62,7 @@ import { setMarqueeRule } from './editor/stage';
 import { aidPrefs } from './editor/rulers';
 import { groupChain } from './editor/actions';
 import { guest, guestName } from './io/guest';
+import { loadMe, ME_EVENT, myName } from './editor/mentions';
 import type { TerminalDock } from './ui/terminal-dock';
 import { VERSION } from './version';
 
@@ -119,7 +121,22 @@ export async function startApp(): Promise<void> {
   mountOnce(host, SHELL);
   const root = q(host, '.fd-app');
   const commands = new Commands();
-  const live = new LiveClient(guest() ? guestName() || 'Guest' : navigator.platform || 'window');
+  const windowLabel = (): string => {
+    let n = '';
+    try {
+      n = sessionStorage.getItem('formdeck.windowNo') ?? '';
+      if (!n) { n = String(10 + Math.floor(Math.random() * 90)); sessionStorage.setItem('formdeck.windowNo', n); }
+    } catch { n = n || String(10 + Math.floor(Math.random() * 90)); }
+    return `Guest ${n}`;
+  };
+  const liveName = (): string => {
+    if (guest()) return guestName() || 'Guest';
+    const mine = myName();
+    return mine && mine !== 'You' ? mine : windowLabel();
+  };
+  const live = new LiveClient(liveName());
+  void loadMe().then(() => live.setName(liveName()));
+  window.addEventListener(ME_EVENT, () => live.setName(liveName()));
   const contextMenu = new PopupMenu(commands, null, true);
   const presentMenu = new PopupMenu(commands, null, true);
   const toolbar = new Toolbar(q(root, '.fd-options'), commands);
@@ -133,11 +150,49 @@ export async function startApp(): Promise<void> {
   let editorOff: Array<() => void> = [];
   let agentsAllowed = false;
   let views: { refresh(): void; show(kind: 'sorter' | 'outline'): void; hide(): void } | null = null;
+  type ViewsCtor = new (el: HTMLElement, get: () => Editor | null) => NonNullable<typeof views>;
+  let viewsCtor: ViewsCtor | null = null;
+  let viewsLoad: Promise<ViewsCtor> | null = null;
+  let viewSeq = 0;
+  let viewsUrl = '';
+  let viewsTry = 0;
+  let reloading = false;
+  const loadViews = (): Promise<ViewsCtor> => {
+    const ready = (m: { AltViews: ViewsCtor }): ViewsCtor => { viewsCtor = m.AltViews; return m.AltViews; };
+    const fresh = (): Promise<ViewsCtor> => import(/* @vite-ignore */ `${viewsUrl}?retry=${++viewsTry}`).then(ready);
+    const first = (): Promise<ViewsCtor> => import('./editor/views').then(ready, (e: unknown) => {
+      const found = /(?:Failed to fetch dynamically imported module|error loading dynamically imported module):\s*(https?:\/\/[^\s'"?#]+\.js)(?:[?#]\S*)?\s*$/i.exec(e instanceof Error ? e.message : String(e));
+      if (!found) throw e;
+      viewsUrl = found[1];
+      return fresh();
+    });
+    viewsLoad ??= (viewsUrl ? fresh() : first()).catch((e: unknown) => { viewsLoad = null; throw e; });
+    return viewsLoad;
+  };
+  const reloadWindow = (): void => {
+    const ids = openDecks.map((t) => t.id);
+    const front = editor?.doc.id ?? '';
+    try { sessionStorage.setItem('formdeck.restore', JSON.stringify({ ids, front })); } catch { }
+    editor?.flush();
+    void (async () => {
+      for (let n = 0; unsaved() && n < 50; n++) await new Promise((r) => window.setTimeout(r, 100));
+      if (unsaved()) {
+        try { sessionStorage.removeItem('formdeck.restore'); } catch { }
+        toast('Edits are not saved yet. Reload when the connection is back.', 'error');
+        return;
+      }
+      reloading = true;
+      detach();
+      location.reload();
+    })();
+  };
+  loadViews().catch(() => undefined);
   let exts: FormdeckExtensions | null = null;
   const bridge = new AgentBridge({ extension: (name, args) => exts ? exts.agent(name, args) : Promise.resolve({ content: [{ type: 'text', text: 'The extension host is still starting.' }], isError: true }), editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
 
   const home = new Home({
     openDeck: (id) => void openDeck(id),
+    closeDeck: (id) => void closeDeck(id, true),
     createDeck: async (template, title) => {
       try {
         const d = await api.create({ template, title: title ?? 'Untitled deck' });
@@ -149,6 +204,13 @@ export async function startApp(): Promise<void> {
     preferences: () => commands.run('preferences'),
     agents: () => commands.run('agents'),
     demo: (id) => void openDemo(id),
+    onVisible: (open) => {
+      if (open) live.away();
+      else {
+        live.resume();
+        if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
+      }
+    },
   });
 
   let demoBusy = false;
@@ -171,8 +233,11 @@ export async function startApp(): Promise<void> {
     inspector.sync();
   };
 
-  interface OpenDeck { id: string; doc: DeckDoc; off: () => void; place?: { slide: string; sel: string[]; zoom: number | 'fit' } }
+  interface OpenDeck { id: string; doc: DeckDoc; off: () => void; place?: { slide: string; sel: string[]; zoom: number | 'fit'; view: 'normal' | 'sorter' | 'outline'; master?: { kind: 'layout' | 'master'; id: string } } }
   const openDecks: OpenDeck[] = [];
+  const PRESENCE_TTL = 20000;
+  const presence = new Map<string, Map<string, { name?: string; slide?: string; sel?: string[]; at: number; color: string }>>();
+  const peerSeq = new Map<string, number>();
   const opening = new Set<string>();
   const tabStrip = new DeckTabs(q(root, '.fd-tabs'), {
     activate: (id) => void openDeck(id),
@@ -202,6 +267,8 @@ export async function startApp(): Promise<void> {
         const at = editor ? openDecks.findIndex((t) => t.doc === editor?.doc) + 1 : openDecks.length;
         doc.onAck = () => renderTabs();
         openDecks.splice(at, 0, { id, doc, off: doc.on(() => renderTabs()) });
+        commands.remove(`copy-slides-to:${id}`);
+        commands.add({ id: `copy-slides-to:${id}`, label: () => doc.deck.title || 'Untitled deck', enabled: () => !!editor && editor.doc !== doc && editor.holderKind === 'slide', run: () => editor?.copySlidesTo(doc) });
       }
       attach(doc);
       home.close();
@@ -211,7 +278,7 @@ export async function startApp(): Promise<void> {
     } finally { opening.delete(id); }
   }
 
-  async function closeDeck(id: string): Promise<void> {
+  async function closeDeck(id: string, gone = false): Promise<void> {
     const i = openDecks.findIndex((t) => t.id === id);
     if (i < 0) return;
     const tab = openDecks[i];
@@ -222,9 +289,12 @@ export async function startApp(): Promise<void> {
     }
     openDecks.splice(i, 1);
     tab.off();
+    presence.delete(id);
+    peerSeq.delete(id);
+    commands.remove(`copy-slides-to:${id}`);
     renderTabs();
     if (!openDecks.length) home.open();
-    for (let n = 0; tab.doc.hasPending && n < 100; n++) await new Promise((r) => window.setTimeout(r, 100));
+    for (let n = 0; !gone && tab.doc.hasPending && n < 100; n++) await new Promise((r) => window.setTimeout(r, 100));
     if (!openDecks.some((t) => t.id === id)) { tab.doc.onAck = null; live.close(id); }
   }
 
@@ -238,7 +308,9 @@ export async function startApp(): Promise<void> {
 
   function remember(ed: Editor): void {
     const tab = openDecks.find((t) => t.doc === ed.doc);
-    if (tab) tab.place = { slide: ed.current, sel: [...ed.selection], zoom: ed.stage.zoom };
+    if (!tab) return;
+    const inMaster = ed.holderKind !== 'slide';
+    tab.place = { slide: inMaster ? ed.returnSlide : ed.current, sel: inMaster ? [] : [...ed.selection], zoom: ed.stage.zoom, view: ed.view, master: inMaster ? { kind: ed.holderKind as 'layout' | 'master', id: ed.current } : undefined };
   }
 
   function detach(): void {
@@ -247,17 +319,23 @@ export async function startApp(): Promise<void> {
     const ed = editor;
     if (!ed) return;
     remember(ed);
+    retireEditor();
     ed.dispose();
     editor = null;
+    announceEditor(null);
+    toolbar.attach(null);
+    inspector.attach(null);
+    drawTools.attach(null);
     views?.hide();
     setHidden(altView, true);
     syncChrome();
   }
 
   function attach(doc: DeckDoc): void {
+    if (editor && editor.doc === doc) return;
     for (const off of editorOff) off();
     editorOff = [];
-    if (editor && editor.doc !== doc) { remember(editor); editor.dispose(); }
+    if (editor) { remember(editor); retireEditor(); editor.dispose(); }
     prepareStills(doc.deck);
     const ed = new Editor(doc, { stage: stageEl, stripScroll: q(root, '.fd-strip-scroll'), stripCount: q(root, '.fd-strip-count'), notes: q<HTMLTextAreaElement>(root, '.fd-notes-text'), title: q<HTMLInputElement>(root, '.fd-doc-title') }, commands, contextMenu, live);
     editor = ed;
@@ -267,6 +345,7 @@ export async function startApp(): Promise<void> {
     exts?.attach(ed);
     inspector.attach(ed);
     drawTools.attach(ed);
+    announceEditor(ed);
     ed.stage.onZoom = (pct) => { setText(status.zoom, `${pct}%`); setValue(zoomSlider, String(pct)); };
     const place = openDecks.find((t) => t.doc === doc)?.place;
     if (place && doc.slide(place.slide)) {
@@ -275,7 +354,17 @@ export async function startApp(): Promise<void> {
       const sel = place.sel.filter((s) => ids.includes(s));
       if (sel.length) ed.select(sel);
     }
+    if (place?.master) {
+      ed.enterMaster();
+      ed.setHolder(place.master.kind, place.master.id);
+    }
     if (place && place.zoom !== 'fit') ed.stage.setZoom(place.zoom);
+    const peerNow = performance.now();
+    const known = presence.get(doc.id);
+    if (known) {
+      for (const [client, p] of known) if (peerNow - p.at < PRESENCE_TTL) ed.setPeer(client, p.name, p.slide, p.sel, p.at, p.color);
+    }
+    if (!home.isOpen) live.presence(doc.id, ed.current, ed.selection);
     ed.stage.layout();
     const refresh = (): void => { toolbar.sync(); inspector.sync(); syncChrome(); };
     editorOff.push(watchLinks(ed), installModelHandle(ed));
@@ -292,8 +381,25 @@ export async function startApp(): Promise<void> {
     }));
     doc.onAck = () => { syncChrome(); renderTabs(); };
     editorOff.push(() => { doc.onAck = openDecks.some((t) => t.doc === doc) ? () => renderTabs() : null; });
-    if (views) views.hide();
-    setHidden(altView, true);
+    const wantView = place && !place.master ? place.view : 'normal';
+    ed.view = wantView;
+    if (wantView === 'normal') {
+      if (views) views.hide();
+      setHidden(altView, true);
+    } else if (views || viewsCtor) {
+      views ??= new viewsCtor!(altView, () => editor);
+      views.show(wantView);
+      setHidden(altView, false);
+    } else {
+      void loadViews().then((Ctor) => {
+        if (editor !== ed || ed.view !== wantView) return;
+        views ??= new Ctor(altView, () => editor);
+        views.show(wantView);
+        setHidden(altView, false);
+      }).catch(() => {
+        if (editor === ed) ed.view = 'normal';
+      });
+    }
     refresh();
     renderTabs();
     scheduleThumb();
@@ -333,9 +439,73 @@ export async function startApp(): Promise<void> {
   }
 
   live.onNotice = (t, k) => toast(t, k);
-  live.onStatus = () => syncChrome();
+  live.onStatus = (connected) => {
+    syncChrome();
+    if (!connected) return;
+    if (home.isOpen) { live.away(); return; }
+    live.resume();
+    if (editor) live.presence(editor.doc.id, editor.current, editor.selection);
+  };
   window.addEventListener(PLAYER_EVENT, () => queueMicrotask(() => { toolbar.sync(); syncChrome(); }));
-  live.onPresence = (m) => { if (editor && m.deck === editor.doc.id) editor.setPeer(m.client, m.name, m.slide, m.sel); };
+  const heartbeat = window.setInterval(() => {
+    if (!editor || home.isOpen || !live.connected) return;
+    if (performance.now() - live.lastPresence < 7500) return;
+    live.presence(editor.doc.id, editor.current, editor.selection);
+  }, 8000);
+  window.addEventListener('pagehide', () => window.clearInterval(heartbeat), { once: true });
+  live.onPresence = (m) => {
+    if (!openDecks.some((t) => t.id === m.deck)) return;
+    if (m.gone) {
+      presence.get(m.deck)?.delete(m.client);
+      if (editor && m.deck === editor.doc.id) editor.removePeer(m.client);
+      return;
+    }
+    let peers = presence.get(m.deck);
+    if (!peers) { peers = new Map(); presence.set(m.deck, peers); }
+    const now = performance.now();
+    const color = peers.get(m.client)?.color ?? PEER_COLORS[(peerSeq.get(m.deck) ?? 0) % PEER_COLORS.length];
+    if (!peers.has(m.client)) peerSeq.set(m.deck, (peerSeq.get(m.deck) ?? 0) + 1);
+    peers.set(m.client, { name: m.name, slide: m.slide, sel: m.sel, at: now, color });
+    for (const [c, p] of peers) if (now - p.at >= PRESENCE_TTL) peers.delete(c);
+    if (editor && m.deck === editor.doc.id) editor.setPeer(m.client, m.name, m.slide, m.sel, now, color);
+  };
+  live.onDeleted = (deck) => {
+    const tab = openDecks.find((t) => t.id === deck);
+    if (!tab) return;
+    if (!removedHere(deck)) toast(`${tab.doc.deck.title || 'Untitled deck'} was deleted in another window.`, 'info');
+    void closeDeck(deck, true);
+  };
+  const unsaved = (): boolean => openDecks.some((t) => t.doc.hasPending);
+  window.addEventListener('beforeunload', (e) => {
+    if (reloading || '__TAURI_INTERNALS__' in window || !unsaved()) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  if ('__TAURI_INTERNALS__' in window) {
+    let closing = false;
+    let final = false;
+    void getCurrentWindow().onCloseRequested(async (ev) => {
+      if (final || (!closing && !unsaved())) return;
+      ev.preventDefault();
+      if (closing) return;
+      closing = true;
+      const back = editor?.doc ?? null;
+      detach();
+      for (let n = 0; unsaved() && n < 50; n++) await new Promise((r) => window.setTimeout(r, 100));
+      final = true;
+      try {
+        await getCurrentWindow().close();
+      } catch {
+        try {
+          await getCurrentWindow().destroy();
+        } catch {
+          closing = false;
+          final = false;
+          if (back && openDecks.some((t) => t.doc === back)) attach(back);
+        }
+      }
+    }).catch(() => undefined);
+  }
   const followShow = (deck: string, m: Record<string, unknown>, tries = 0): void => {
     const ed = editor;
     if (ed && deck === ed.doc.id) { void import('./present/show').then((s) => s.followShow({ doc: ed.doc, live }, m)); return; }
@@ -348,7 +518,7 @@ export async function startApp(): Promise<void> {
   const hooks: AppHooks = {
     editor: () => editor,
     home: () => { home.open(); },
-    closeDeck: (id) => void closeDeck(id),
+    closeDeck: (id) => void closeDeck(id, true),
     newDeck: () => { home.open(); home.show('templates'); },
     openFile: () => {
       const input = document.createElement('input');
@@ -366,9 +536,19 @@ export async function startApp(): Promise<void> {
       const ed = editor;
       if (!ed) return;
       if (v !== 'normal' && ed.holderKind !== 'slide') commands.run('close-master');
-      ed.view = v;
-      if (v === 'normal') { views?.hide(); setHidden(altView, true); ed.stage.layout(); }
-      else void import('./editor/views').then((m) => { views ??= new m.AltViews(altView, () => editor); views.show(v); setHidden(altView, false); });
+      const seq = ++viewSeq;
+      if (v === 'normal') { ed.view = v; views?.hide(); setHidden(altView, true); ed.stage.layout(); }
+      else if (viewsCtor) { ed.view = v; views ??= new viewsCtor(altView, () => editor); views.show(v); setHidden(altView, false); }
+      else {
+        void loadViews().then((Ctor) => {
+          if (seq !== viewSeq || editor !== ed) return;
+          ed.view = v;
+          views ??= new Ctor(altView, () => editor);
+          views.show(v);
+          setHidden(altView, false);
+          syncChrome();
+        }, () => { if (seq === viewSeq) toast('The view could not be loaded. Check your connection, then reload formdeck.', 'error', { label: 'Reload', run: reloadWindow }); });
+      }
       syncChrome();
     },
     toggle: (part) => {
@@ -506,7 +686,7 @@ export async function startApp(): Promise<void> {
   if (editor) exts.attach(editor);
   const menus: MenuDef[] = [
     { label: 'File', items: ['home', 'new-deck', 'open', '-', 'new-window', 'deck-new-window', 'close-tab', 'close-other-tabs', '-', 'save', 'save-as', 'save-copy', 'save-version', 'save-template', '-', { label: 'Export', items: ['export-pptx', 'export-potx', 'export-odp', 'export-pdf', 'export-png', 'export-fdec', '-', 'export-web', 'export-video', 'export-gif', '-', 'export-txt', 'export-rtf'] }, 'share-network', 'print', '-', { label: 'Options', items: ['preferences', '-', 'ribbon-customize', 'qat-customize'] }, '-', 'delete-deck'] },
-    { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'select-all', 'find'] },
+    { label: 'Edit', items: ['undo', 'redo', 'undo-agent', '-', 'cut', 'copy', 'paste', 'paste-source', 'duplicate', 'delete', '-', 'select-all', 'find'] },
     { label: 'View', items: ['view-normal', 'view-sorter', 'view-outline', 'view-master', '-', 'zoom-in', 'zoom-out', 'zoom-fit', 'zoom-100', '-', 'view-ruler', 'view-gridlines', 'view-guides', 'grid-guides', '-', 'toggle-strip', 'toggle-props', 'toggle-notes', '-', 'next-tab', 'prev-tab', '-', 'view-terminal', 'new-terminal', 'claude-code', 'agent-chat', 'command-palette', ...(isMacDesktop() ? ['menus-in-window'] : []), 'media-controls-editor', '-', { label: 'Macros', items: ['macro-dialog', 'macro-editor'] }, { label: 'Ribbon Options', items: ['ribbon-compact', 'ribbon-collapse', 'ribbon-simplified', '-', 'ribbon-customize', 'qat-customize'] }] },
     { label: 'Insert', items: ['new-slide', 'duplicate-slide', '-', 'insert-text', 'insert-wordart', 'insert-image', 'insert-stock', 'insert-ai-image', 'insert-media', 'insert-icons', 'insert-model3d', 'insert-diagram', 'insert-shapes', 'insert-line', 'insert-arrow', { label: 'Connector', items: ['draw-connector', 'draw-connector-arrow', 'draw-elbow', 'draw-elbow-arrow', 'draw-curved', 'draw-curved-arrow'] }, 'draw-freeform', 'draw-scribble', 'insert-table', { label: 'Table', items: ['table-row-above', 'table-row-below', 'table-col-left', 'table-col-right', '-', 'table-delete-row', 'table-delete-col', '-', 'table-merge', 'table-split', '-', 'table-distribute-rows', 'table-distribute-cols', '-', 'table-select', 'table-header-row', 'table-banded-rows'] }, 'insert-chart', 'insert-equation', '-', 'insert-svg-shapes', 'component-insert', 'add-font', 'insert-pdf-pages', 'insert-slide-zoom', 'insert-camera', '-', 'insert-link', 'header-footer', 'add-comment', '-', ADDIN_MENU] },
     { label: 'Format', items: ['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'all-caps', 'small-caps', '-', 'grow-font', 'shrink-font', 'change-case', 'clear-format', 'replace-fonts', 'format-copy', 'format-paste', 'format-painter-frame', '-', 'text-style-apply', 'text-style-save', 'text-style-update', '-', 'colour-style-apply', 'colour-style-save', 'colour-style-update', '-', 'text-effects', 'text-transform', 'clear-text-effects', '-', 'text-align-l', 'text-align-c', 'text-align-r', 'text-align-j', '-', 'bullets', 'numbering', 'indent', 'outdent', '-', 'anchor-t', 'anchor-m', 'anchor-b', '-', 'fill-color', 'line-color', 'outline-format', 'alt-text', 'picture-credit', { label: 'Picture', items: ['picture-reset', 'picture-reset-size', 'compress-pictures', '-', 'crop-aspect-1-1', 'crop-aspect-4-3', 'crop-aspect-16-9'] }, 'edit-points', 'svg-convert', MERGE_MENU, MEDIA_MENU, DIAGRAM_MENU, MODEL3D_MENU, { label: 'Chart', items: ['edit-chart', 'chart-refresh', 'chart-break-link'] }, '-', { label: 'Table Style', items: ['table-style-none', 'table-style-light1', 'table-style-medium2', 'table-style-dark1', 'table-style-lines', 'table-style-grid'] }, { label: 'Table Borders', items: TABLE_BORDER_MENU }] },
@@ -615,7 +795,7 @@ export async function startApp(): Promise<void> {
       return;
     }
     const modHeld = isMac ? e.metaKey : e.ctrlKey;
-    if (ed && ed.selection.length && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && (modHeld || e.altKey || e.shiftKey) && !(isMac ? e.ctrlKey : e.metaKey) && !(modHeld && e.altKey)) {
+    if (ed && ed.selection.length && !ed.slideContext && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && (modHeld || e.altKey || e.shiftKey) && !(isMac ? e.ctrlKey : e.metaKey) && !(modHeld && e.altKey)) {
       const pf = aidPrefs();
       const base = pf.snapGrid && pf.spacing > 0 ? pf.spacing : 1;
       const sx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
@@ -634,12 +814,12 @@ export async function startApp(): Promise<void> {
     if (ed && !e.metaKey && !e.ctrlKey && !e.altKey) {
       const pf = aidPrefs();
       const step = pf.snapGrid && pf.spacing > 0 ? pf.spacing : 1;
-      if (ed.selection.length && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      if (ed.selection.length && !ed.slideContext && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         e.preventDefault();
         ed.nudge(e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0, e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0);
         return;
       }
-      if (!ed.selection.length && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if ((!ed.selection.length || ed.slideContext) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         ed.step(['ArrowUp', 'PageUp', 'ArrowLeft'].includes(e.key) ? -1 : 1, true);
         return;
@@ -649,16 +829,16 @@ export async function startApp(): Promise<void> {
         ed.select(chain.length ? [chain[chain.length - 1].id] : []);
         return;
       }
-      if (e.key === 'F2' && ed.selection.length === 1) {
+      if (e.key === 'F2' && ed.selection.length === 1 && !ed.slideContext) {
         e.preventDefault();
         ed.stage.startText(ed.selection[0]);
         return;
       }
-      if (e.key === 'Enter' && ed.selection.length === 1) {
+      if (e.key === 'Enter' && ed.selection.length === 1 && !ed.slideContext) {
         const one = ed.selected()[0];
         if (one.type === 'shape') { e.preventDefault(); ed.stage.beginEdit(one.id); return; }
       }
-      if (e.key === 'Tab' && (t === document.body || !!t.closest?.('.fd-stage, .fd-viewport'))) {
+      if (e.key === 'Tab' && !ed.slideContext && (t === document.body || !!t.closest?.('.fd-stage, .fd-viewport'))) {
         const els = (ed.slide?.elements ?? []).filter((x) => !x.hidden);
         if (els.length) {
           e.preventDefault();
@@ -668,7 +848,7 @@ export async function startApp(): Promise<void> {
           return;
         }
       }
-      if (e.key.length === 1 && ed.selection.length === 1) {
+      if (e.key.length === 1 && ed.selection.length === 1 && !ed.slideContext) {
         const one = ed.selected()[0];
         if ((one.type === 'shape' || one.type === 'table') && !one.locked) {
           e.preventDefault();
@@ -834,12 +1014,24 @@ export async function startApp(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');
   const files = params.getAll('open').filter(Boolean);
-  if (want) await openDeck(want);
+  let restore: { ids: string[]; front: string } | null = null;
+  try {
+    const raw = sessionStorage.getItem('formdeck.restore');
+    sessionStorage.removeItem('formdeck.restore');
+    const parsed = raw ? JSON.parse(raw) as { ids?: unknown; front?: unknown } : null;
+    if (parsed && Array.isArray(parsed.ids)) restore = { ids: parsed.ids.filter((x): x is string => typeof x === 'string'), front: typeof parsed.front === 'string' ? parsed.front : '' };
+  } catch { restore = null; }
+  if (restore?.ids.length) {
+    for (const id of restore.ids) await openDeck(id);
+    const front = openDecks.find((t) => t.id === restore?.front);
+    if (front) { attach(front.doc); home.close(); }
+    if (!openDecks.length) home.open();
+  } else if (want) await openDeck(want);
   else home.open();
   if (files.length) {
     history.replaceState(null, '', location.pathname);
     void openPaths(files);
   }
   revealApp();
-  document.title = `formdeck ${VERSION}`;
+  if (!editor) document.title = `formdeck ${VERSION}`;
 }

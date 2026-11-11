@@ -12,6 +12,7 @@ The editor is a title bar with ten menus (File, Edit, View, Insert, Format, Slid
 - **Arrange**: order, align, distribute, group, ungroup, lock.
 - **Properties panel**: Format, Slide (layouts, background, hidden, transition) and Design (template, theme colours and fonts, slide size); Review (status and comments) and Agent (the agent switch and activity).
 - **Views**: Normal, Slide Sorter (drag cards, collapse sections) and Outline (type titles and bullets, Tab to change level).
+- **Several decks**: open decks sit in tabs, and New Window puts one beside another. Copy slides (Mod+C on the slides panel) in one deck and paste them (Mod+V) into another tab or window; they take the matching layouts of the deck they land in and bring their pictures, fonts, components and named styles with them. Copy Slides To on a thumbnail's menu sends the selected slides to the end of another open tab without leaving the one you are in.
 - **Find and replace** across every slide and the notes, with Match case and Whole words.
 - **Review**: each slide is Draft, Review, Changes or Approved; comments attach to slides and can be resolved.
 - **Versions**: decks save as you work; File > Save Version names a snapshot you can restore.

@@ -11,6 +11,7 @@ from app.services.store import STORE, Client
 
 router = APIRouter()
 TOOL_RESULTS: dict[str, asyncio.Future] = {}
+WINDOW_GONE: dict = {"windowGone": True}
 SHOWS: dict[str, dict] = {}
 QUESTIONS: dict[str, list] = {}
 SHOW_TYPES = {"goto", "end", "black", "white", "normal", "laser", "zoom", "ink", "media", "cc"}
@@ -53,7 +54,15 @@ async def live(ws: WebSocket) -> None:
         pass
     finally:
         STORE.clients.pop(client.id, None)
+        for rid in list(client.pending):
+            fut = TOOL_RESULTS.get(rid)
+            if fut and not fut.done():
+                fut.set_result(WINDOW_GONE)
         for deck_id in list(client.decks):
+            try:
+                await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "gone": True}, skip=client.id)
+            except Exception:
+                pass
             STORE.close_if_idle(deck_id)
 
 
@@ -87,6 +96,14 @@ async def handle(client: Client, msg: dict) -> None:
     t = msg.get("t")
     deck_id = msg.get("deck")
     share = getattr(client, "share", None)
+    if t == "away":
+        left = getattr(client, "active", None)
+        client.active = None
+        client.focus = None
+        client.away = True
+        if left:
+            await STORE.broadcast(left, {"t": "presence", "deck": left, "client": client.id, "name": client.name, "slide": None, "sel": []}, skip=client.id)
+        return
     if share:
         refusal = guest_refusal(share, str(t), deck_id, msg)
         if refusal:
@@ -161,11 +178,16 @@ async def handle(client: Client, msg: dict) -> None:
         return
     if t == "unsub":
         client.decks.discard(deck_id)
+        if getattr(client, "active", None) == deck_id:
+            client.active = None
+        await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "gone": True}, skip=client.id)
         STORE.close_if_idle(deck_id)
         return
     if t == "step":
         try:
-            await STORE.step(deck_id, msg.get("ops") or [], msg.get("label") or "Edit", "user", client.id, msg.get("coalesce"), msg.get("id"))
+            result = await STORE.step(deck_id, msg.get("ops") or [], msg.get("label") or "Edit", "user", client.id, msg.get("coalesce"), msg.get("id"))
+            if isinstance(result, dict) and result.get("dup"):
+                await client.send({"t": "dup", "deck": deck_id, "id": msg.get("id"), "rev": result["rev"]})
         except (opsmod.OpError, KeyError, TypeError, IndexError) as exc:
             await client.send({"t": "reject", "deck": deck_id, "id": msg.get("id"), "error": str(exc)})
             try:
@@ -186,5 +208,9 @@ async def handle(client: Client, msg: dict) -> None:
             await client.send({"t": "notice", "kind": "info", "text": f"Nothing to {t}."})
         return
     if t == "presence":
+        if deck_id not in client.decks:
+            return
         client.focus = (deck_id, msg.get("slide"))
+        client.active = deck_id
+        client.away = False
         await STORE.broadcast(deck_id, {"t": "presence", "deck": deck_id, "client": client.id, "name": client.name, "slide": msg.get("slide"), "sel": msg.get("sel")}, skip=client.id)

@@ -27,7 +27,20 @@ from .show_props import read_show
 from .guides import read_guides
 
 R_ID = f"{{{NS['r']}}}id"
-TEXT_STYLE_TAGS = (("title", "p:titleStyle"), ("body", "p:bodyStyle"), ("other", "p:otherStyle"))
+ORIGIN_EXT_URI = "{formdeck-origin}"
+ORIGIN_TAG = "{urn:formdeck:origin}origin"
+
+
+def read_origin(el) -> str | None:
+    for ext in findall(find(el, "p:extLst"), "p:ext"):
+        if ext.get("uri") == ORIGIN_EXT_URI:
+            node = ext.find(ORIGIN_TAG)
+            if node is not None and node.get("val"):
+                return node.get("val")
+    return None
+
+
+TEXT_STYLE_TAGS =(("title", "p:titleStyle"), ("body", "p:bodyStyle"), ("other", "p:otherStyle"))
 INHERITABLE_KEYS = ("x", "geom", "fill", "line", "effects", "path")
 GENERIC_TITLES = {"powerpoint presentation", "presentation", "untitled", "untitled presentation", "slide 1"}
 
@@ -205,6 +218,9 @@ class _Importer:
         master = {"id": master_id, "name": c_sld.get("name") or theme_name, "elements": elements, "textStyles": text_styles}
         if el.get("preserve") in ("1", "true"):
             master["preserve"] = True
+        origin = read_origin(el)
+        if origin:
+            master["origin"] = origin
         background = background_fill(find(c_sld, "p:bg"), self.ctx)
         if background is not None:
             master["background"] = background
@@ -250,6 +266,9 @@ class _Importer:
             layout["background"] = background
         if el.get("showMasterSp") in ("0", "false"):
             layout["hideMasterShapes"] = True
+        origin = read_origin(el)
+        if origin:
+            layout["origin"] = origin
         guides = read_guides(el)
         if guides:
             layout["guides"] = guides

@@ -7,7 +7,7 @@ import { SlideView } from '../render/slide';
 import { cellOrigin, cellRange, tableGrid, type TableGrid } from '../render/table';
 import { fitText, readParas } from '../render/text';
 import { anyDialogOpen } from '../ui/dialogs';
-import { el as html, isMac, setClass, setHidden, setText } from '../ui/dom';
+import { el as html, escapeHtml, isMac, setClass, setHidden, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import type { Editor } from './editor';
 import { bounds, clone, dirtyOp, fillPlaceholderOps, groupChain, refitGroupOps, resolvedFrame, setFrameOps } from './actions';
@@ -397,7 +397,7 @@ export class Stage {
           const el = this.ed.element(id);
           if (!el) continue;
           const f = this.frameOf(el);
-          parts.push(`<div class="fd-presence" style="--peer:${p.color};left:${this.ox + f.x * k - 2}px;top:${this.oy + f.y * k - 2}px;width:${f.w * k + 4}px;height:${f.h * k + 4}px"><span class="fd-presence-name">${p.name}</span></div>`);
+          parts.push(`<div class="fd-presence" style="--peer:${p.color};left:${this.ox + f.x * k - 2}px;top:${this.oy + f.y * k - 2}px;width:${f.w * k + 4}px;height:${f.h * k + 4}px"><span class="fd-presence-name">${escapeHtml(p.name)}</span></div>`);
         }
       }
       if (this.sites) this.sites.forEach((s, i) => parts.push(`<div class="fd-site${i === this.siteHot ? ' is-hot' : ''}" style="left:${this.ox + s.x * k}px;top:${this.oy + s.y * k}px"></div>`));
@@ -1106,7 +1106,7 @@ export class Stage {
     if (!copies.length) return;
     remapCopies(items, copies);
     const ops: Op[] = copies.map((c) => ({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: c }) as Op);
-    if (ed.apply([...ops, ...dirtyOp(s)], 'Copy')) ed.select(fresh);
+    if (ed.apply([...ops, ...dirtyOp(s)], 'Copy')) { ed.setPane('stage'); ed.select(fresh); }
   }
 
   nudgeSize(dw: number, dh: number): void {
@@ -1499,7 +1499,7 @@ export class Stage {
     if (!same) {
       if (this.editing && (this.editing !== id || !this.cell)) this.endEdit();
       else if (this.editing) this.detachCell();
-      if (!(this.ed.selection.length === 1 && this.ed.selection[0] === id)) this.ed.select([id]);
+      if (!(this.ed.selection.length === 1 && this.ed.selection[0] === id)) { this.ed.setPane('stage'); this.ed.select([id]); }
     }
     const flow = this.view?.nodeFor(id)?.querySelector<HTMLElement>(`td[data-r="${r}"][data-c="${c}"] > .fd-cell-flow`);
     if (!flow) return;

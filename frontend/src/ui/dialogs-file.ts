@@ -1,6 +1,7 @@
 import type { AgentBridge } from '../automation/agent-bridge';
 import type { Editor } from '../editor/editor';
 import { addMaster } from '../editor/master-view';
+import { setMe } from '../editor/mentions';
 import { SLIDE_SIZES, type Deck, type Slide, type SlideElement } from '../engine/model';
 import { documentDir } from '@tauri-apps/api/path';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -1721,10 +1722,12 @@ class VersionsDialog extends Dialog {
     setDisabled(b, true);
     this.status.busy(`Restoring ${v.name}`);
     try {
-      await api.restoreVersion(ed.doc.id, v.n);
+      const res = await api.restoreVersion(ed.doc.id, v.n);
       this.status.done();
       this.close();
-      toast(`Restored ${v.name || `version ${v.n}`} · Undo with ${formatKeys('Mod+Z')}`);
+      const fixed = res.repaired ?? 0;
+      const note = fixed > 0 ? ` ${fixed === 1 ? '1 duplicate id was given a new one.' : `${fixed} duplicate ids were given new ones.`}` : '';
+      toast(`Restored ${v.name || `version ${v.n}`} · Undo with ${formatKeys('Mod+Z')}${note ? '.' : ''}${note}`);
     } catch (e) {
       this.status.error(`Could not restore: ${errText(e)}`);
     } finally {
@@ -1954,7 +1957,7 @@ class PreferencesDialog extends Dialog {
     this.fonts = Array.from(box.querySelectorAll<HTMLSelectElement>('[data-font]'));
     this.size.addEventListener('change', () => this.persist({ defaultSize: this.size.value }));
     for (const f of this.fonts) f.addEventListener('change', () => this.persist({ defaultFonts: Object.fromEntries(this.fonts.map((x) => [x.dataset.font as string, x.value])) }));
-    this.author.addEventListener('change', () => this.persist({ author: this.author.value.trim() }));
+    this.author.addEventListener('change', () => { this.persist({ author: this.author.value.trim() }); setMe(this.author.value); });
     segOn(this.units, (v) => this.persist({ units: v }));
     this.marquee = q(box, '[data-seg="marquee"]');
     segOn(this.marquee, (v) => { setMarqueeRule(v); segSet(this.marquee, v); this.persist({ marquee: v }); });

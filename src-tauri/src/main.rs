@@ -5,7 +5,7 @@ mod reveal;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
-use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
@@ -42,11 +42,26 @@ fn openable(path: &std::path::Path) -> bool {
             .unwrap_or(false)
 }
 
+fn deck_window(handle: &tauri::AppHandle) -> Option<tauri::WebviewWindow> {
+    handle.get_webview_window("main").or_else(|| {
+        let mut decks: Vec<(usize, tauri::WebviewWindow)> = handle
+            .webview_windows()
+            .into_iter()
+            .filter_map(|(label, window)| label.strip_prefix("deck-").and_then(|n| n.parse().ok()).map(|n| (n, window)))
+            .collect();
+        decks.sort_by_key(|(n, _)| *n);
+        match decks.iter().position(|(_, window)| window.is_focused().unwrap_or(false)) {
+            Some(at) => Some(decks.swap_remove(at).1),
+            None => decks.pop().map(|(_, window)| window),
+        }
+    })
+}
+
 fn hand_over(handle: &tauri::AppHandle, paths: Vec<String>) {
     if paths.is_empty() {
         return;
     }
-    match handle.get_webview_window("main") {
+    match deck_window(handle) {
         Some(window) => {
             let list = serde_json::to_string(&paths).unwrap_or_else(|_| "[]".into());
             let _ = window.eval(&format!(
@@ -138,7 +153,8 @@ async fn open_window(app: tauri::AppHandle, window: tauri::WebviewWindow, url: S
 async fn open_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow, url: String) -> Result<(), String> {
     let target = loopback_url(&url)?;
     let other = other_monitor(&app, &window);
-    if let Some(existing) = app.get_webview_window("presenter") {
+    let label = format!("presenter-{}", window.label());
+    if let Some(existing) = app.get_webview_window(&label) {
         existing.navigate(target).map_err(|e| e.to_string())?;
         if let Some(m) = &other {
             existing.set_position(tauri::Position::Physical(*m.position())).map_err(|e| e.to_string())?;
@@ -146,7 +162,7 @@ async fn open_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow, url
         }
         return existing.set_focus().map_err(|e| e.to_string());
     }
-    let builder = WebviewWindowBuilder::new(&app, "presenter", WebviewUrl::External(target)).title("formdeck slide show");
+    let builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(target)).title("formdeck slide show");
     let builder = match &other {
         Some(m) => {
             let scale = m.scale_factor();
@@ -170,8 +186,12 @@ fn monitor_count(app: tauri::AppHandle) -> usize {
 
 #[tauri::command]
 async fn swap_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
-    let main = if window.label() == "presenter" { app.get_webview_window("main").ok_or("no main window")? } else { window };
-    let show = app.get_webview_window("presenter").ok_or("no slide show window")?;
+    let owner = window.label().strip_prefix("presenter-").map(str::to_string);
+    let main = match owner {
+        Some(owner) => app.get_webview_window(&owner).ok_or("no window for this slide show")?,
+        None => window,
+    };
+    let show = app.get_webview_window(&format!("presenter-{}", main.label())).ok_or("no slide show window")?;
     let main_at = main.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     let show_at = show.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
     if main_at.position() == show_at.position() {
@@ -208,7 +228,7 @@ fn main() {
                 .map(|path| path.to_string_lossy().into_owned())
                 .collect();
             hand_over(app, paths);
-            if let Some(window) = app.get_webview_window("main") {
+            if let Some(window) = deck_window(app) {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
             }
@@ -217,6 +237,11 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                let _ = window.app_handle().emit("formdeck://window-closed", window.label());
+            }
+        })
         .manage(Backend(Mutex::new(None)))
         .manage(Pending(Mutex::new(Vec::new())))
         .setup(|app| {

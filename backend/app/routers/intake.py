@@ -146,23 +146,38 @@ async def create_intake(files: list[UploadFile] = File(default=[]), intake: str 
     iid = intake or new_id()
     saved = []
     if files:
-        target = folder(iid) / "files"
+        root = folder(iid)
+        root_made = not root.exists()
+        target = root / "files"
+        files_made = not target.exists()
         target.mkdir(parents=True, exist_ok=True)
-        for f in files:
-            p = unique(target, safe_name(f.filename or "file"))
-            size = 0
-            with open(p, "wb") as fh:
-                while True:
-                    chunk = await f.read(1 << 20)
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    if size > config.MAX_UPLOAD_BYTES:
-                        fh.close()
-                        p.unlink(missing_ok=True)
-                        raise HTTPException(413, f"{f.filename} is larger than 1 GB")
-                    fh.write(chunk)
-            saved.append(p)
+        p = None
+        try:
+            for f in files:
+                p = unique(target, safe_name(f.filename or "file"))
+                size = 0
+                target.mkdir(parents=True, exist_ok=True)
+                with open(p, "wb") as fh:
+                    while True:
+                        chunk = await f.read(1 << 20)
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        if size > config.MAX_UPLOAD_BYTES:
+                            raise HTTPException(413, f"{f.filename} is larger than 1 GB")
+                        fh.write(chunk)
+                saved.append(p)
+                p = None
+        except BaseException:
+            for q in [*saved, p]:
+                if q is not None:
+                    q.unlink(missing_ok=True)
+            for d in ([target] if files_made else []) + ([root] if root_made else []):
+                try:
+                    d.rmdir()
+                except OSError:
+                    pass
+            raise
     try:
         it = await asyncio.to_thread(ingest_paths, saved, iid, notes, brief)
     except (KeyError, ValueError) as exc:

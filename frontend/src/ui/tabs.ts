@@ -59,7 +59,7 @@ export class DeckTabs {
     });
     const on = this.list.querySelector<HTMLElement>('.fd-tab[aria-selected="true"]');
     if (on) {
-      const box = this.host.getBoundingClientRect();
+      const box = this.list.getBoundingClientRect();
       const r = on.getBoundingClientRect();
       if (r.left < box.left || r.right > box.right) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }

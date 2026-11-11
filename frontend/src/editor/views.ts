@@ -6,6 +6,7 @@ import { SlideView } from '../render/slide';
 import { comboOf } from '../ui/commands';
 import { el, escapeHtml, q, setClass, setHidden, setHtml, setStyleVar, setText, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
+import { toast } from '../ui/toast';
 import { deleteSlideOps, dirtyOp, fillPlaceholderOps, moveSlidesOps, newSlideOps } from './actions';
 import type { Editor } from './editor';
 
@@ -135,7 +136,8 @@ class Sorter extends Pane {
     this.zoom.value = String(this.width);
     this.io = new IntersectionObserver((entries) => { for (const en of entries) if (en.isIntersecting) this.mount((en.target as HTMLElement).dataset.key ?? ''); }, { root: this.scroll, rootMargin: '400px 0px' });
     this.zoom.addEventListener('input', () => this.setWidth(Number(this.zoom.value)));
-    this.scroll.addEventListener('pointerdown', (e) => this.down(e));
+    this.scroll.addEventListener('pointerdown', (e) => { this.ed?.setPane('slides'); this.down(e); });
+    this.scroll.addEventListener('focusin', () => this.ed?.setPane('slides'));
     this.scroll.addEventListener('keydown', (e) => this.key(e));
     this.scroll.addEventListener('dblclick', (e) => {
       const id = this.idAt(e.target);
@@ -833,6 +835,7 @@ class Outline extends Pane {
     const ed = this.ed;
     if (!ed) return;
     const ids = ed.doc.deck.slides.map((s) => s.id);
+    if (ids.length <= 1) { toast('A deck needs at least one slide.'); return; }
     const i = ids.indexOf(sid);
     const next = ids[i - 1] ?? ids[i + 1];
     const row = this.rows.get(sid);

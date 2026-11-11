@@ -2,7 +2,7 @@ import type { Diagram, GroupElement, ShapeElement, SlideElement, Theme } from '.
 import { slidePath, type Op } from '../engine/ops';
 import { presetGeometry } from '../engine/geometry/presets';
 import { colorCss, slideTheme } from '../engine/resolve';
-import type { Editor } from '../editor/editor';
+import { watchEditor, type Editor } from '../editor/editor';
 import { dirtyOp } from '../editor/actions';
 import { CATEGORIES, COLOR_SCHEMES, generate, fromRows, LAYOUTS, layoutInfo, newDiagram, rowsAdd, rowsMove, rowsRemove, rowsShift, sampleItems, STYLES, toRows, type Row } from '../editor/diagram';
 import { diagramGroup, diagramOps } from '../editor/diagram-sync';
@@ -299,11 +299,13 @@ class Pane {
     this.list.addEventListener('keydown', (e) => this.key(e));
     this.list.addEventListener('focusout', () => this.flush());
     this.list.addEventListener('focusin', (e) => { const id = this.rowOf(e.target); if (id) this.list.dataset.last = id; });
+    watchEditor({ retire: () => this.flush(), bind: (ed) => { if (ed !== this.ed) this.attach(ed); } });
   }
 
   get isOpen(): boolean { return this.open; }
 
   attach(ed: Editor | null): void {
+    if (ed !== this.ed) { this.flush(); this.pending.clear(); window.clearTimeout(this.timer); this.gid = null; }
     for (const off of this.offs) off();
     this.offs = [];
     this.ed = ed;
@@ -327,8 +329,8 @@ class Pane {
 
   sync(): void {
     const c = this.active();
-    setHidden(this.el, !this.open);
-    if (!this.open) return;
+    setHidden(this.el, !this.open || !this.ed);
+    if (!this.open || !this.ed) return;
     const rows = c?.g.diagram ? toRows(c.g.diagram.items) : [];
     if (c && this.gid !== c.g.id) { this.pending.clear(); window.clearTimeout(this.timer); }
     this.gid = c?.g.id ?? null;

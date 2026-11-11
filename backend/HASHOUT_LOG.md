@@ -42,9 +42,114 @@ app/services/package.py      .fdec pack and unpack (older .fsld read too)
 15. Animations in PowerPoint files · services/pptx/write_anim.py, read_anim.py
 16. The animate MCP tool · routers/mcp.py
 17. Covered merged cells read as span 1 · services/pptx/read_table.py
+18. Motion paths in PowerPoint files · services/pptx/write_anim.py, read_anim.py
+19. Find text in a PDF and redact it · services/pdf/search.py, routers/pdf.py
+20. Headers, footers, Bates numbers and cropping · services/pdf/edit.py
+21. PDF comment threads · services/pdf/annot.py, routers/pdf.py
+22. The library says whether a thumbnail exists · services/store.py
+23. Table borders and margins in PowerPoint files · services/pptx/write_table.py, read_table.py
+24. Connectors, freeforms and guides in PowerPoint files · services/pptx/write_elements.py, read_elements.py, geom.py, guides.py
+25. Show settings, custom shows and narration in PowerPoint files · services/pptx/show_props.py, write_media.py, write_anim.py
+26. Outline and GIF export · routers/exports.py
+27. PDF reflow, Word, forms, sanitising and compare · services/pdf/layout.py, word.py, forms.py, sanitize.py, create.py, compare.py
+28. Who changed what · services/store.py, routers/decks.py, routers/mcp.py
+29. The PDF workbench became formpdf · services/pdf_pages.py, routers/media.py, routers/mcp.py, main.py
+30. A theme part per master · services/pptx/writer.py, reader.py, services/templates/masters.py, model.py
+31. Native WordArt in PowerPoint files · services/pptx/text_fx.py, services/text_effects.py
+32. Equations: OMML out, LaTeX back · services/pptx/omml.py, pptx/math_picture.py, services/equations.py
+33. OpenDocument .odp · services/odp/writer.py, reader.py, geometry.py, common.py, routers/decks.py
+34. Media settings in PowerPoint files · services/pptx/write_media.py, read_media.py, write_anim.py, services/av_probe.py
 35. formsld becomes formdeck, old installs keep working · core/config.py, formdeck_engine.py, services/model.py, services/odp, routers/mcp.py
 36. .fdec deck files · services/package.py, routers/decks.py, routers/mcp.py, setup/cli.py, setup/agents.py
 37. Video size from MP4 track headers · services/av_probe.py, services/media.py
+38. Id steps reach group children · services/ops.py
+39. Run language in .pptx · services/pptx/read_text.py, write_text.py
+40. Tagged PDF by post-processing · services/pdf_tags.py, routers/exports.py
+41. One provider interface, one tool loop · services/chat/providers.py, engine.py, tools.py
+42. Chat keys outside settings · services/chat/keys.py
+43. Chat over its own event stream, and the agent inbox · routers/chat.py, services/chat/convo.py, routers/mcp.py
+44. Uncompressed EOT for embedded fonts · services/pptx/eot.py, embed_fonts.py
+45. Where an embedded font comes from · services/pptx/font_sources.py, core/config.py, services/model.py
+46. Charts linked to a workbook · services/workbook.py, routers/workbooks.py, services/pptx/write_chart.py, read_chart.py
+47. pptx 3-D and SmartArt data · services/pptx/text_fx.py, read_diagram.py, read_elements.py
+48. 3D models in .pptx · services/pptx/write_model3d.py, read_model3d.py, write_elements.py, read_elements.py, core/ids.py, services/media.py
+49. MicroType Express decoder · services/pptx/mtx.py, eot.py
+50. Absent font styles are not errors · services/pptx/embed_fonts.py
+51. VBA is listed, never run · services/pptx/reader.py, services/model.py
+52. Date and slide number fields in .pptx · services/pptx/write_text.py, read_text.py
+53. Stock pictures come through the engine by id · services/stock.py, routers/stock.py
+54. AI pictures reuse the chat's OpenAI-compatible settings · services/ai_images.py, routers/ai_images.py
+55. Subtitle translation is a translate-only call with a short timeout · services/chat/translate.py, routers/captions.py
+56. Add-in packages are checked, pinned and served sandboxed · services/addins.py, routers/addins.py, addins/
+57. Claude Code inside the engine, and the list cache hints · services/terminal.py, services/claude_code.py, routers/terminal.py, routers/commands.py, routers/mcp.py, services/chat/engine.py
+58. User fonts and chart axes · services/media.py, routers/media.py, services/pptx/write_chart.py, read_chart.py
+59. Command parameters in the catalogue · routers/mcp.py, setup/catalogue.py
+60. Adopting a Claude Code conversation into the chat · services/claude_code.py, services/chat/engine.py, services/chat/convo.py, routers/chat.py
+61. PDF text layer fonts and the PDF/UA check · services/pdf_fonts.py, routers/exports.py, setup/pdf_check.py
+62. Sharing on the local network · services/share.py, routers/share.py, routers/live.py, main.py
+63. The show relay and audience questions · routers/live.py
+64. Live text in the PDF · routers/exports.py, services/pdf_fonts.py
+65. Fallback fonts and width fitting · services/pdf_fonts.py, routers/exports.py
+66. One save path rule, import dates · routers/exports.py, routers/decks.py
+67. Trash routes and a steady desktop port · services/store.py, routers/decks.py, formdeck_engine.py, read_elements.py, write_elements.py
+68. Local network only when sharing; local paths; compress; review flag · services/share.py, routers/media.py, services/model.py, services/pptx/reader.py, routers/system.py
+69. Slide folders, handouts, guides on masters · routers/exports.py, services/pptx/guides.py, services/pptx/writer.py
+70. UI preferences in settings; agent handoff; review is human · routers/system.py, services/model.py, routers/mcp.py
+71. PDF comments, handout outline, a seeded index · routers/exports.py, main.py, routers/system.py
+72. Restore, picture zips, combo charts, alt text · services/store.py, routers/exports.py, services/pptx/write_chart.py, services/lint.py
+73. Unpacking dropped zips, placeholder frames · routers/media.py, services/pptx/write_elements.py
+74. The PDF text layer keeps to itself · routers/exports.py
+75. What the Grogo test found · services/compiler/compile.py, routers/mcp.py, services/pptx/write_elements.py, services/templates/generator.py
+76. A first-frame still for each video · services/media.py, routers/media.py
+77. Stills are versioned and revalidated · services/media.py, routers/media.py
+78. Template names that are not PowerPoint's or Apple's · services/templates/catalog.py
+79. Fonts with a Reserved Font Name ship whole · services/full_fonts.py, services/pptx/font_sources.py, frontend/src/render/fonts.ts, render/full-fonts/*.css, public/fonts/full
+80. posterSecondFrame is a stored setting · routers/system.py
+81. Agent layout ideas reach the person's own agent · services/chat/ideas.py, routers/chat.py, routers/mcp.py, services/chat/convo.py, routers/system.py
+82. LocalGuard: only this computer's own window and agents reach the engine · core/local_guard.py, main.py
+83. LocalGuard refuses cross-site requests that carry no Origin · core/local_guard.py
+84. The LAN share listens on 8298 · services/share.py, docs/MANUAL.md
+85. Only the window grants agent access · core/local_guard.py, routers/system.py
+86. A measured shrink reaches placeholders that inherit their autofit · services/pptx/write_text.py
+87. The family test suite · backend/tests, backend/requirements-test.txt, .github/workflows/ci.yml
+88. The window's scripts keep their types on Windows · main.py
+89. Homebrew's rustup passes the desktop check · setup/desktop_check
+90. The Form extension host's engine side · services/formext_host.py, routers/extensions.py, main.py, core/local_guard.py, routers/mcp.py, setup/catalogue.py
+91. Autosave writes a snapshot taken under the lock · services/store.py
+92. An op that is not an object is refused, not fatal · services/ops.py
+93. Downloads name the file in any script, and exports read a copy · routers/decks.py
+94. A package member larger than an upload is refused · services/package.py
+95. OpenDocument tables, notes and names survive the round trip · services/odp/reader.py, services/odp/writer.py
+96. Rotated and flipped groups import as drawn · services/pptx/read_elements.py
+97. Videos keep hidden, link, rotation, flips and glue in .pptx · services/pptx/write_elements.py
+98. Overflow slides do not repeat the section, and picture bullets keep their picture · services/compiler/compile.py, services/compiler/spec.py
+99. Switching template keeps every preserved layout · services/templates/remap.py
+100. A step id is applied once, across reconnects and restarts · services/store.py, routers/live.py
+101. A step that breaks the deck's structure is refused · services/store.py
+102. Undo merges only edits to the same thing · services/store.py
+103. A deleted deck stays deleted and every window hears of it · services/store.py, routers/decks.py, routers/live.py
+104. Window tools reach the right window, once · services/bridge.py
+105. Agent commands name their deck · routers/mcp.py, routers/commands.py, routers/extensions.py, frontend/src/automation/agent-bridge.ts
+106. Nothing in a slide script is dropped for lack of room · services/compiler/spec.py, services/compiler/compile.py, services/autodraft.py, docs/FORMAT.md, routers/mcp.py
+107. Packages are bounded and their media ids remapped by structure · services/package.py
+108. Unpacking a zip stops at the upload limit · routers/media.py
+109. A failed intake upload leaves nothing behind, and paging says when it is past the end · routers/intake.py, services/intake/__init__.py
+110. An outward crop imports at the size it is drawn · services/pptx/read_elements.py
+111. Read-only window tools fail over in proportional slices · services/bridge.py
+112. Restoring an old version repairs its duplicate ids · services/store.py, routers/decks.py
+113. ODP transforms were checked against LibreOffice; matrix and skew now read · services/odp/reader.py
+114. An outward-cropped picture keeps its border on the frame · services/pptx/read_elements.py
+115. `away` clears a window's active deck · routers/live.py
+116. A client that goes says so · routers/live.py
+117. Repair keeps diagrams whole and mints ids nobody holds · services/store.py, routers/decks.py
+118. Failover never starves a window, notices a window that closes, and skips Home · services/bridge.py, routers/live.py, services/store.py
+119. An ODP transform's scale reaches the frame · services/odp/reader.py
+120. Intake says how much of a big table or PDF it kept · services/intake/tables.py, intake/__init__.py, intake/digest.py
+121. A master's and layout's `origin` survives pptx and odp · services/pptx/writer.py, pptx/reader.py, odp/writer.py, odp/reader.py
+122. A window does not start a tool call the engine gave up on · services/bridge.py
+123. Only the outline moves to the frame · services/pptx/read_elements.py
+124. Several masters survive an ODP round trip · services/odp/writer.py, odp/reader.py, odp/common.py
+125. Hidden and unused masters keep their shapes; a master theme from a file is cleaned · services/odp/writer.py, odp/reader.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -437,3 +542,143 @@ LocalGuard: a sandboxed frame has an opaque origin, so its module scripts and fe
 `/fetch` is `net.fetch`: https only, every address the host resolves to must be global (no loopback, private, link-local or multicast), no redirects followed, 50 MB, 30 s, `Host` and `Cookie` dropped. `/save` writes the bytes to the path the person picked in the desktop save dialog (the browser build never calls it). `/manage` opens `formai://extensions?product=formdeck` with the platform opener. MCP and CLI reach the window through `bridge.window_call` with the tool names `extensions_list` and `extension_command`; consent is decided in the window, so the engine never grants. `extension_command` is in MUTATING, so agent consent applies first, as for `run_command`.
 
 The file route answers HEAD as well as GET (it fell through to the static mount before and answered 404), so the guard's GET and HEAD exception and the route agree.
+
+## 91. Autosave writes a snapshot taken under the lock · _v0.35.0 (services/store.py save_now, _schedule_save later)
+
+`save_now` ran in a worker thread, serialised the live `s.deck` and only then set `saved_rev = rev`, so a step applied on the loop thread during the write counted as saved without being written; its own save was skipped because the save task was still running, and `close_if_idle` could then drop the session with the edit lost. A threaded walk of a dict the loop was changing could also fail outright. `later` now takes `(rev, deepcopy(deck))` under `s.lock`, the thread writes only that snapshot, `saved_rev` takes the captured rev (never lower than it was), and the task loops until nothing newer is unsaved, stopping if the session was deleted or replaced. Callers without a snapshot (create, `/save`) take one on the loop thread.
+
+## 92. An op that is not an object is refused, not fatal · _v0.35.0 (services/ops.py apply)
+
+A step whose ops list held a string or null raised `AttributeError` in `apply`, which `live.handle` does not catch, so the WebSocket closed and every deck open in that window disconnected. `apply` raises `OpError` for a non-object op, so the step is rolled back and refused through the existing reject path, on the socket and on `POST /decks/{id}/steps` alike.
+
+## 93. Downloads name the file in any script, and exports read a copy · _v0.35.0 (routers/decks.py _disposition, download, export, save)
+
+Starlette encodes header values as latin-1, so a deck titled in Japanese, Cyrillic or any non-Latin script failed its download with a 500. `_disposition` sends an ASCII `filename` (falling back to `deck.<ext>` when nothing ASCII is left) and the real name as `filename*=UTF-8''...` (RFC 6266), which browsers prefer. Download, export and file-linked save handed the live `s.deck` to a worker thread while steps changed it on the loop, which could fail mid-walk or write a file mixing two revisions; they now deep-copy it under `s.lock` first, as duplicate and save-template already did.
+
+## 94. A package member larger than an upload is refused · _v0.35.0 (services/package.py unpack)
+
+`.fdec` import read every `media/` member whole, so a small archive declaring a huge member could exhaust memory. Each member's declared size is checked against `MAX_UPLOAD_BYTES` before it is read, and a larger one raises `ValueError`, which every import route already answers with a 400.
+
+## 95. OpenDocument tables, notes and names survive the round trip · _v0.35.0 (services/odp/reader.py OdpReader.table, read_odp notes and comments; services/odp/writer.py _xml_clean, _el, slide_names, slide_name, build)
+
+LibreOffice collapses runs of identical cells and rows with `table:number-columns-repeated` and `table:number-rows-repeated`, and the reader read each as one, so rows came out short, later cells shifted left and spanned cells lost their merged placeholders. Cells are expanded up to the column count and rows up to 1000 in all (a trailing repeat of 1048576 is common), then trimmed to the declared columns. Notes and comments were read with `itertext()`, which drops `text:s`, `text:tab` and `text:line-break`; they go through `inline()` as body text does. The writer strips characters XML 1.0 does not allow in `_el`, the one place every attribute and text node passes, because lxml refused them and a single control character dropped a shape or failed the whole export. Slide names come from one map that makes them unique (" 2", " 3") and replaces commas, used for `draw:name`, `#` links and custom-show `presentation:pages`, which is comma-separated.
+
+## 96. Rotated and flipped groups import as drawn · _v0.35.0 (services/pptx/read_elements.py read_group, _bake_group_transform)
+
+FORMAT.md keeps group children in slide coordinates and the renderer draws a group with no rotation or flips, but the reader copied a `p:grpSp`'s `rot`, `flipH` and `flipV` onto the group and left the children where `Transform.child` put them, unrotated, so rotated clip art and diagrams came in straight. When a group has a frame and a rotation or flip, every descendant's centre is mirrored about the group centre for each flip and then rotated by the group angle (the OOXML order), its own angle is negated once per flip (a mirror reverses turning) and the group angle added, its flips toggled, and a zero result removes `rot`; nested groups take their children's bounds, and the group drops its own rotation and flips and takes its children's bounds.
+
+## 97. Videos keep hidden, link, rotation, flips and glue in .pptx · _v0.35.0 (services/pptx/write_elements.py ElementWriter._movie)
+
+`_movie` builds the picture through python-pptx's `add_movie` and copied only the name and alt text, bypassing the helpers every other writer uses, so a video came out visible, unlinked and unrotated, and a connector glued to it lost its end because its shape id was never recorded. It now sets `hidden`, replaces python-pptx's media `hlinkClick` with the element's link (a `cNvPr` holds one), copies `_xfrm`'s rotation and flips onto the picture's `a:xfrm`, and records the id in `_ids`.
+
+## 98. Overflow slides do not repeat the section, and picture bullets keep their picture · _v0.35.0 (services/compiler/compile.py split_overflow; services/compiler/spec.py parse_slide)
+
+A slide that overflowed was split into copies of its whole spec, so each "(cont.)" slide repeated `section`, `kicker` and `subtitle`, and the deck got a second section of the same name starting at the continuation. Every chunk after the first drops those three, as it already dropped the image and notes. A bullet that was only a picture became an empty bullet and the picture was lost on every layout except team (which reads `entry["image"]` and clears the bullets first); bullet pictures now join the slide's images like a picture on its own line, and a bullet left with no text is dropped.
+
+## 99. Switching template keeps every preserved layout · _v0.35.0 (services/templates/remap.py remap)
+
+`kept` held the old-to-preserved layout map for the whole loop, but the branch for slides without a spec rebound it to the slide's element list, so every slide after the first such slide lost its preserved layout and was laid out by kind instead. The element list is `els`.
+
+## 100. A step id is applied once, across reconnects and restarts · _v0.36.0 (services/store.py Session.applied, remember, step dup, save_now steps.json, session load; routers/live.py step dup message)
+
+After a dropped connection the window re-sends the steps it never saw acknowledged, with their original ids, and some of them already reached the engine. Each session remembers its last 2000 applied step ids; a repeated id applies nothing, leaves rev alone and answers `{"dup": true}`, which `live.py` turns into a `dup` message to the sender (the window then undoes its local copy). The record is written to `steps.json` beside `deck.json` from the same snapshot as each save and read back when the session is opened, so it survives `close_if_idle` and an engine restart; it never enters `deck.json`, so packages and exports do not carry it. Ids are recorded only after a step passes validation, so a refused step is never called a duplicate.
+
+## 101. A step that breaks the deck's structure is refused · _v0.36.0 (services/store.py integrity, integrity_reason, structural, step)
+
+Any op used to be accepted, so one step could change the deck id, delete every master, delete a layout slides still use or leave a slide without a layout, and that was saved. When a step touches the structure (the deck id, whole slides, layouts or masters, a slide's layout or a layout's master), `step` compares the integrity of the deck before and after; a violation the step introduced rolls the deck back with the inverse ops and raises `OpError` with a reason ("the step would leave slide s4 without a layout"), so the existing reject paths answer. Comparing with the state before the step keeps legacy decks that already break a rule editable. Text and frame edits skip both checks. Undo and redo replay states that were already valid and are not checked.
+
+## 102. Undo merges only edits to the same thing · _v0.36.0 (services/store.py op_targets, Step.targets, step coalesce)
+
+Steps with the same coalesce key from one client within 1.5 s merged into one undo entry whatever they touched, so nudging a shape on slide 1 and another on slide 2 undid together, and so did two slide inserts. Each step now carries its targets (slide and element ids, or the path plus the inserted or deleted id), and a step merges only when its targets equal the top entry's.
+
+## 103. A deleted deck stays deleted and every window hears of it · _v0.36.0 (services/store.py Session.deleted, Session.io, delete, save_now, step, _travel; routers/decks.py delete_deck; routers/live.py presence, unsub)
+
+A save already writing in a worker thread when the deck was deleted wrote `deck.json` again and the deck came back in the library, and windows that had the deck open kept sending steps that were refused with no explanation. `delete` marks the session deleted, cancels its save task and moves the folder under the session's io lock, which `save_now` also holds and checks before writing; `DELETE /decks/{id}` runs it in a thread so the event loop never waits on a write, then sends `{"t":"deleted"}` to every subscribed client, unsubscribes them and clears the deck's show and question state. A step or undo already queued behind the lock raises "the deck was deleted". `live.py` also records the deck each window shows (`client.active`, from presence, cleared on unsubscribe and delete) for the bridge (104).
+
+## 104. Window tools reach the right window, once · _v0.36.0 (services/bridge.py READ_ONLY, windows, window_call)
+
+`window_call` returned a timeout as soon as the first window failed to answer, even with another window open, and ranked a window that merely held a background subscription the same as one showing the deck. Windows are ranked by the deck they show (`client.active`), then subscription, agents allowed and recency. A timeout moves on to the next window only for tools that change nothing (render_slides, measure, export_raster, video_frame, extensions_list), within one total deadline (a third of it, at least 10 s, per window that is not last); every other tool, including any unknown name, stays with one window, because a slow window keeps running and a second send would apply an edit or ask for consent twice. Nothing is sent once the deadline has passed; a late answer from a window given up on finds no future and is ignored by `live.py`.
+
+## 105. Agent commands name their deck · _v0.36.0 (routers/mcp.py run_command and extension_command schemas, t_run_command, t_extension_command; routers/commands.py execute; routers/extensions.py agent_command; frontend/src/automation/agent-bridge.ts onDeck)
+
+`run_command` and `extension_command` could not name a deck and routed with none, so the command ran on whichever deck was in front of whichever window answered, while the tool reported success, and a background tab could never be reached. Both take an optional `deck`, sent in the window's args and as the routing key; the window brings that deck to the front first (or refuses, naming it, if it cannot), and on success adds the deck to the result text and `structuredContent`, which the tool result repeats. Without `deck` they behave as before, now naming the deck they ran on. The HTTP and CLI routes pass no deck and are unchanged.
+
+## 106. Nothing in a slide script is dropped for lack of room · _v0.36.0 (services/compiler/spec.py parse_slide more_columns; services/compiler/compile.py split_items, _continue, _cont_title, split_overflow, compile_into; services/autodraft.py _steps; docs/FORMAT.md; routers/mcp.py guide)
+
+A third `###` column and the steps, people and stats past 6, 8 and 5 were silently cut. The parser keeps extra columns as `more_columns`, and `split_items` continues them, and the extra items of timeline or process, team and stats slides, on "(cont.)" slides of the same kind with a build warning saying how many moved; a lone leftover column goes on a content slide, and columns on a layout without column slots continue on comparison slides. Continuations are built from an allowlist (layout, title, background, transition and the one key being split), so pictures, charts, quotes and sections are never repeated, and `_cont_title` never doubles "(cont.)". Bullet overflow continuations drop these item lists, so each item appears once and in order. The caps apply only to the layouts that draw those items; autodraft no longer pre-truncates steps. FORMAT.md and the agent guide say so.
+
+## 107. Packages are bounded and their media ids remapped by structure · _v0.36.0 (services/package.py MAX_MEMBERS, unpack)
+
+0.35.0 checked each media member's size; a package could still hold thousands of members, or many near the limit. Before anything is read, `unpack` now refuses more than 10000 members, a declared total over 4 times `MAX_UPLOAD_BYTES` (the total `/unpack` allows) and a `deck.json` over `MAX_UPLOAD_BYTES`, with `ValueError` (a 400). When the store gives a media file a new id, the deck used to be rewritten with a global text replace of the quoted old id, which also changed a text run equal to that id and re-mapped chains (a to b while b went to c). The parsed deck is now walked and only `src` and `poster` values are mapped, each once, and the `media` keys are rebuilt (font media are referenced only by key), the same places `model.media_ids` reads.
+
+## 108. Unpacking a zip stops at the upload limit · _v0.36.0 (routers/media.py _spool_limited, unpack_upload)
+
+`POST /unpack` spooled the whole upload to a temporary file before any size check, so a huge zip could fill the temporary disk; `/media` and `/intake` already stopped at `MAX_UPLOAD_BYTES`. The upload is copied in 1 MiB chunks and refused with 413 as soon as it passes the limit; the spooled file is released by its context manager on every path.
+
+## 109. A failed intake upload leaves nothing behind, and paging says when it is past the end · _v0.36.0 (routers/intake.py create_intake; services/intake/__init__.py _past_end, get_source)
+
+When one file of a multi-file upload failed, the files already written stayed in the intake folder. The request now removes only what it wrote, and the folders it created if they are empty, then raises the same error. Each write recreates its folder just before opening the file, so another request's cleanup can never make a later write fail. `get_source` with a start beyond the last page, slide, line or row produced a header like "pages 10-3 of 3" and an empty body; it now answers "page 10 is past the end; this source has 3 pages" in the source's own unit.
+
+## 110. An outward crop imports at the size it is drawn · _v0.36.0 (services/pptx/read_elements.py _read_crop, _inset_outward)
+
+A negative `a:srcRect` side means the picture is drawn smaller than its frame, with empty margin, and the reader clamped it to 0, so the picture filled the frame and the aspect check could choose the wrong fit. When an axis has a negative side and a positive visible window, the frame is shrunk on that axis to the area the picture occupies (each negative side over the window, `neg / (1 - l - r)` of the frame), about the old centre with the shift rotated and mirrored like the element; positive sides stay as crop and `fit` is stretch. An axis whose sides add up to the whole picture or more is malformed and imports as before. An outline or shadow on such a picture now hugs the picture rather than the original frame. The 0.35.0 group bake (96) was checked for nested rotated groups, flipV and rotation with flips, and matched hand-computed centres.
+
+## 111. Read-only window tools fail over in proportional slices · _v0.37.0 (services/bridge.py window_call)
+
+A read-only tool tried the ranked windows in turn, but every window but the last waited `min(max(10, timeout / 3), remaining)`. With a short timeout the 10 second floor was the whole budget, so the first window took everything and there was no failover; with a long one the first window took a third however many windows there were. The k-th of n candidates now waits an equal share of what is left, `remaining / (n - k)`, capped at half the timeout and floored at one second (never more than remaining); the last window gets the rest. Mutating tools still go to one window only. A late answer from a window given up on finds its id already popped from `TOOL_RESULTS` and is ignored.
+
+## 112. Restoring an old version repairs its duplicate ids · _v0.37.0 (services/store.py repair_ids, Store.restore_version; routers/decks.py restore_version)
+
+Since the step integrity check (0.36.0) a version saved by an older build with two objects sharing an id could no longer be restored, and the route reported every failure as "There is no such version." `repair_ids` now runs on the old deck before the set ops are built: the first holder of an id keeps it, and later masters, layouts, slides and elements (group children included, and element ids that collide with any slide, layout, master, comment or section id) get fresh ids from a counter seeded with every id in the deck, keeping their prefix. For a renamed element, the animations and comment anchors of its own slide follow it unless the first holder of that id is on the same slide, where the reference cannot be told apart and stays with the first. The result carries `repaired`. The route now answers 404 only for a missing version file, 409 with the integrity reason if a step is still refused, and 422 for an unreadable file.
+
+## 113. ODP transforms were checked against LibreOffice; matrix and skew now read · _v0.37.0 (services/odp/reader.py OdpReader.frame)
+
+The open question was whether `draw:transform="rotate(a) translate(x y)"` is composed the way LibreOffice means it (rotate about the origin, then translate, radians counter-clockwise) or the SVG way. It was settled against LibreOffice 24.2 itself: rectangles at 0, 30, 90, 200 and 315 degrees, a rotated text box and a rotated group, made as .pptx, converted by soffice to .odp and read by formdeck, landed within 0.04 pt and 0 degrees; the same shapes written by formdeck's writer and converted back by soffice landed within 0.05 pt. Both directions were already right and were not changed. The reader did skip `matrix`, `skewX` and `skewY` terms, so a shape LibreOffice or another producer wrote with a matrix fell to (0, 0) unrotated; they now join the same left-to-right composition (rotation from atan2 of the matrix's b and a).
+
+## 114. An outward-cropped picture keeps its border on the frame · _v0.37.0 (services/pptx/read_elements.py read_pic, _frame_group, _read_crop)
+
+After 110 the picture is inset to where the image is drawn, but PowerPoint draws its outline and effects (shadow, glow, soft edge, reflection) around the full frame, so they came in hugging the smaller image. When the crop is outward and the picture has a visible line or effects, it now imports as a group: a no-fill rectangle (or the picture's mask geometry) with the full frame, rotation, flips, line and effects, and the inset picture without them. The group takes the picture's original id, name, alt text, hidden, link and lock, because the timing reader maps the shape id to that element and checks it at the top level, so animations, connector glue and links reach the visible whole; both children get fresh ids. Rotation stays on each child (the group itself is unrotated, as every baked group is), and the inset already rotates the picture's centre offset. A picture without line or effects imports as before.
+
+## 115. `away` clears a window's active deck · _v0.37.0 (routers/live.py handle)
+
+The window sends `{t: 'away'}` when it shows Home (frontend 185). The engine clears `client.active` (the bridge's ranking key) and `client.focus` (the MCP "Looking at" line), and if a deck was active broadcasts a presence with no slide and no selection to that deck so peers drop the outline. It is handled before the share-guest check, which would otherwise refuse a message with no deck, and it does nothing else for guests.
+
+## 116. A client that goes says so · _v0.37.0 (routers/live.py live, handle unsub)
+
+Nothing told peers that a window had closed or unsubscribed, so its outline lingered until their TTL. When a socket closes, the engine now broadcasts `{t: 'presence', deck, client, gone: true}` to every deck the client was subscribed to (after dropping it from the client table, before `close_if_idle`), and an `unsub` broadcasts the same for that deck. Frontend 188.
+
+## 117. Repair keeps diagrams whole and mints ids nobody holds · _v0.37.0 (services/store.py repair_ids, _all_ids, VersionUnreadable, Store.restore_version; routers/decks.py restore_version)
+
+Review of 112 found three gaps. A diagram group names its direct children `${groupId}_${key}` and diagram sync finds them by that prefix, so renaming a duplicate diagram group while minting unrelated child ids broke its sync; a renamed diagram group now renames those children to the new prefix in the same step (retargeting that slide's animations and comment anchors), minting only if the derived id is taken. The id counter was seeded with fewer id spaces than the window's `usedIds`, and a minted `e2` collided with an animation id in a scratch run; `_all_ids` now covers elements and group children, masters, layouts, slides, their guides and animations, comments, sections, deck guides, macros, custom shows and components, from the old version and the current deck. Errors from saving or from `step` were reported as an unreadable version; only reading and parsing the file now raises `VersionUnreadable` (404 when missing, 422 when damaged or not a deck), `OpError` stays 409, and anything else propagates as itself.
+
+## 118. Failover never starves a window, notices a window that closes, and skips Home · _v0.37.0 (services/bridge.py slice_wait, windows, window_call; routers/live.py live, handle away and presence; services/store.py Client)
+
+The one second floor of 111 could hand the first window a whole short budget (two windows at 1 s) or leave the last almost nothing (three at 2 s). `slice_wait` keeps the equal share capped at half the timeout and raises it to 0.25 s only when that still leaves 0.25 s for each window after it; every count of 1, 2, 3 and 5 windows at 1, 2, 6, 30 and 120 s now splits evenly. A window that closed mid-wait left its future pending, so failover waited out the slice and a mutating tool the whole timeout: each client now records its pending request ids and the socket's `finally` resolves them with a `WINDOW_GONE` sentinel, on which a read-only tool moves on at once and a mutating tool returns "The window closed before it answered." without trying another window. `away` (115) cleared `active` but a Home window still ranked by subscription, and first of all when no deck was named; `client.away` now sorts such windows last for every query until their next presence, and a presence for a deck the client has not subscribed to is ignored.
+
+## 119. An ODP transform's scale reaches the frame · _v0.37.0 (services/odp/reader.py OdpReader.frame)
+
+The composed transform's scale was dropped (already so for `scale()`, and for the `matrix` added in 113), so `scale(2)` or `matrix(2 0 0 2 ...)` imported at half size. After composing, the width is multiplied by the length of the transformed x axis, `hypot(a, b)`, and the height by the scale along y net of shear, `|ad - bc| / hypot(a, b)`, skipped when both are 1 within 1e-6; the centre-based position then uses the new size. Rotation-only transforms, which is everything LibreOffice writes for rotated shapes, are unchanged.
+
+## 120. Intake says how much of a big table or PDF it kept · _v0.37.0 (services/intake/tables.py table_md; intake/__init__.py get_source; intake/digest.py _table, assets_block)
+
+The first run of the big-import paths (0.36.0) found that the release had added no slide, page or row limits of its own and no paging UI: the limits in force are older (300 pages to slides, 300 page renders and 500 table rows in the intake), and the PDF-to-slides toast already says "the first 300 of 301 pages". Two of those older limits were reported wrongly. A table keeps its first 500 rows but every message counted the full file: the header said "rows 1-500 of 1200", the tail promised "(700 more rows)" that `get_source` then called past the end of 500, and a 501-row file lost a row without a word. The header now adds "first 500 kept", the tail separates rows still fetchable from rows not kept ("700 more rows were not kept, only the first 500 of 1200 are available"), a row beyond the kept ones is "past the 500 rows kept from 1200", and the digest line reads "1200 rows, first 500 kept"; files within the limit read exactly as before. A PDF with more pages than the render cap now gets "page renders stop at 300 of 301 pages" under its render line. Per-page text over 4000 characters is not lost (the full page is re-read from the file on request), so it needs no note.
+
+## 121. A master's and layout's `origin` survives pptx and odp · _v0.37.0 (services/pptx/writer.py write_origin; pptx/reader.py read_origin; odp/writer.py, odp/reader.py master pages)
+
+Paste with Source Formatting tags the masters and layouts it brings with an `origin` fingerprint (frontend 194) so a later paste reuses them; the engine kept it in .fdec but pptx and odp dropped it. The pptx writer adds a `p:ext` with URI `{formdeck-origin}` holding `fd:origin val` (namespace `urn:formdeck:origin`) to the part's `p:extLst`, which stays the last child of `p:sldMaster` and `p:sldLayout` as the schema requires, and an unknown ext URI is allowed; the reader reads it back. The odp writer puts `formdeck:origin` (layout) and `formdeck:master-origin` (master) foreign attributes on each `style:master-page`; the reader takes the layout's from its page and the master's from the first page, since ODP holds one master per file.
+
+## 122. A window does not start a tool call the engine gave up on · _v0.37.0 (services/bridge.py window_call)
+
+The first run of failover against real windows (two pages, one frozen with the debugger) passed: read-only tools moved to the other window after half their timeout, a mutating `run_command` was never retried elsewhere, and a window that showed Home was skipped. But when the frozen window resumed, it ran the buffered mutating call, so the deck changed after the caller had been told the call timed out. Each tool message now carries `until`, the epoch milliseconds at which the engine stops waiting for that window; the window refuses a call received after it (frontend 195). Engine and window share a clock because the engine listens on 127.0.0.1 only. The timeout error now says the window will not start the call, and that a call it had already started may still land.
+
+## 123. Only the outline moves to the frame · _v0.37.0 (services/pptx/read_elements.py read_pic, _frame_group)
+
+Review of 114 found two faults. PowerPoint casts a picture's shadow and glow from what the shape actually draws, and the margin of an outward crop is transparent, so effects belong with the image (and the outline), not with an empty frame: a frame with effects but no line drew nothing. The group is now made only when the picture has a visible outline; the outline moves to the frame rectangle, and effects stay on the image with a copy on the frame so the outline casts them too. A picture with effects and no outline stays a single inset picture, as in 110. A placeholder picture keeps its placeholder role by not being grouped.
+
+## 124. Several masters survive an ODP round trip · _v0.38.0 (services/odp/writer.py master pages; odp/reader.py OdpReader.build, fill_master; odp/common.py FORMDECK_NS)
+
+OpenDocument has no master and layout split: the writer emits one `style:master-page` per layout and the reader rebuilt a single master from the first page, so a deck with two masters (from Paste with Source Formatting, a template or a .pptx) came back with every layout under one master and lost the second master's background, text styles, theme and shapes. The writer now tags each master page with formdeck foreign attributes beside the 0.37.0 origin ones: `formdeck:master` (id), `formdeck:master-name`, `formdeck:master-theme` (the master's own theme as compact JSON, once per master, because the page styles only hold resolved colours), `formdeck:hide-master-shapes`, and `formdeck:scope="master"` on each shape that came from the master rather than the layout. The reader groups pages by `formdeck:master` and builds one master per group (id, name, origin, background, text styles and theme from its first page, shapes from the scoped ones), points each layout at its master, keeps scoped shapes out of the layouts and restores hidden master shapes. Only the first master feeds the deck theme fonts, as before. A file without the attributes (LibreOffice's own, or a formdeck file re-saved by LibreOffice, which drops foreign attributes) reads exactly as it did: one master.
+
+## 125. Hidden and unused masters keep their shapes; a master theme from a file is cleaned · _v0.38.0 (services/odp/writer.py master pages; odp/reader.py OdpReader.build, fill_master, clean_theme)
+
+Review of 124 found three gaps. Master shapes were written only on pages of layouts that show them, so a master whose layouts all hide its shapes came back empty, and a master with no layouts was not written at all. Such a master's shapes are now written once on its first page with `draw:display="none"` and `formdeck:scope="master-hidden"` (LibreOffice does not draw them; a shape that was hidden anyway keeps `scope="master"`), and a master with no layouts gets a carrier master page tagged `formdeck:carrier`, which no slide uses, so the file has no extra visible page; the reader takes both scopes and skips carriers when building layouts. The `formdeck:master-theme` JSON was trusted apart from two type checks; `clean_theme` keeps only the twelve theme colour keys with `#RRGGBB` values (others fall back to the default theme's colour), fonts and name as strings stripped of control characters and cut to 64 characters, and drops everything else. Master ids now pass through a used-id set and are made unique with a suffix, and an unreachable fallback branch was removed. A second master that reuses an id already taken by an earlier master is still not written, because layouts name their master by id.
