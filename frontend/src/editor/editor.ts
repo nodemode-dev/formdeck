@@ -63,6 +63,7 @@ export class Editor {
   slideSel: string[] = [];
   view: 'normal' | 'sorter' | 'outline' = 'normal';
   holderKind: HolderKind = 'slide';
+  pane: 'stage' | 'slides' = 'stage';
   private returnTo = '';
   readonly peers = new Map<string, Peer>();
   private peerTimer = 0;
@@ -82,6 +83,15 @@ export class Editor {
     collab.watch(doc);
     this.strip.update();
     this.stage.show(this.current || null);
+    const sig = { signal: this.bye.signal };
+    roots.stage.addEventListener('pointerdown', () => this.setPane('stage'), { capture: true, ...sig });
+    roots.stage.addEventListener('focusin', () => this.setPane('stage'), sig);
+    roots.stripScroll.addEventListener('focusin', () => this.setPane('slides'), sig);
+    roots.stripScroll.addEventListener('pointerdown', (e) => {
+      if (e.target === roots.stripScroll) return;
+      this.setPane('slides');
+      if (this.holderKind === 'slide' && this.view === 'normal') this.select([]);
+    }, { capture: true, ...sig });
     roots.notes.addEventListener('input', () => this.notesInput(), { signal: this.bye.signal });
     roots.title.addEventListener('change', () => {
       const v = roots.title.value.trim() || 'Untitled deck';
@@ -199,7 +209,16 @@ export class Editor {
     return els.map((e) => displayElement(this.doc.deck, this.holderKind, h, e));
   }
 
+  get slideContext(): boolean {
+    return this.holderKind === 'slide' && (this.view === 'sorter' || this.pane === 'slides');
+  }
+
+  setPane(pane: 'stage' | 'slides'): void {
+    this.pane = pane;
+  }
+
   select(ids: string[], emit = true): void {
+    if (ids.length) this.pane = 'stage';
     const same = ids.length === this.selection.length && ids.every((x, i) => x === this.selection[i]);
     if (same) return;
     if (this.stage.editing && !ids.includes(this.stage.editing)) this.stage.endEdit();
@@ -292,6 +311,8 @@ export class Editor {
 
   contextMenu(x: number, y: number, kind: 'element' | 'slide' | 'thumb'): void {
     let items: MenuItem[];
+    if (kind === 'thumb') this.setPane('slides');
+    else if (kind === 'element') this.setPane('stage');
     const has = (list: string[]): string[] => list.filter((id) => id === '-' || this.commands.get(id));
     const phs: MenuItem = { label: 'Insert Placeholder', items: has(PLACEHOLDERS.map((p) => `master-ph-${p.type}`)) };
     if (this.holderKind !== 'slide') {
@@ -463,7 +484,7 @@ export class Editor {
   }
 
   copy(cut = false): void {
-    if (this.selection.length) {
+    if (this.selection.length && !this.slideContext) {
       const els = this.holderKind === 'slide' ? this.selected() : this.selection.map((id) => this.element(id)).filter((e): e is SlideElement => !!e);
       const items = clone(els.map((e) => {
         const f = resolvedFrame(this.doc.deck, this.slide as Slide, e);

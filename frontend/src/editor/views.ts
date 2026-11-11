@@ -136,7 +136,8 @@ class Sorter extends Pane {
     this.zoom.value = String(this.width);
     this.io = new IntersectionObserver((entries) => { for (const en of entries) if (en.isIntersecting) this.mount((en.target as HTMLElement).dataset.key ?? ''); }, { root: this.scroll, rootMargin: '400px 0px' });
     this.zoom.addEventListener('input', () => this.setWidth(Number(this.zoom.value)));
-    this.scroll.addEventListener('pointerdown', (e) => this.down(e));
+    this.scroll.addEventListener('pointerdown', (e) => { this.ed?.setPane('slides'); this.down(e); });
+    this.scroll.addEventListener('focusin', () => this.ed?.setPane('slides'));
     this.scroll.addEventListener('keydown', (e) => this.key(e));
     this.scroll.addEventListener('dblclick', (e) => {
       const id = this.idAt(e.target);
