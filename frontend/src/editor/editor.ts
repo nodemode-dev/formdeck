@@ -101,6 +101,12 @@ export class Editor {
     this.syncTitle();
   }
 
+  flush(): void {
+    window.clearTimeout(this.notesTimer);
+    this.notesSave?.();
+    if (document.activeElement === this.roots.title) this.roots.title.blur();
+  }
+
   dispose(): void {
     window.clearTimeout(this.notesTimer);
     window.clearTimeout(this.peerTimer);
@@ -366,6 +372,7 @@ export class Editor {
     if (!s) return null;
     const r = addElementOps(this.doc, s, el);
     if (!this.apply(r.ops, label)) return null;
+    this.setPane('stage');
     this.select([r.id]);
     return r.id;
   }
@@ -439,7 +446,7 @@ export class Editor {
       ops.push({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: kind === 'image' ? { ...base, type: 'image', src: m.id, fit: 'stretch', alt: m.name.replace(/\.[^.]+$/, '') } : { ...base, type: 'media', kind, src: m.id, ...(poster ? { poster: poster.id } : {}) } });
     });
     const label = metas.length > 1 ? 'Insert files' : metas[0]?.mime.startsWith('video/') ? 'Insert video' : metas[0]?.mime.startsWith('audio/') ? 'Insert audio' : 'Insert picture';
-    if (this.apply([...ops, ...dirtyOp(s)], label)) this.select(ids);
+    if (this.apply([...ops, ...dirtyOp(s)], label)) { this.setPane('stage'); this.select(ids); }
   }
 
   pickPdfPages(): Promise<File | null> {
@@ -559,7 +566,7 @@ export class Editor {
       if (foreign) relink(made, new Map(), true);
       setClip({ ...c, items: c.items.map((e) => { const n = clone(e); shiftElement(n, PASTE_STEP, PASTE_STEP); return n; }) });
       const carry = xf ? scaleCarry(c.carry, xf) : c.carry;
-      if (this.apply([...(foreign ? carryOps(this.doc.deck, carry) : []), ...ops, ...dirtyOp(s)], 'Paste')) this.select(ids);
+      if (this.apply([...(foreign ? carryOps(this.doc.deck, carry) : []), ...ops, ...dirtyOp(s)], 'Paste')) { this.setPane('stage'); this.select(ids); }
     } else if (c.kind === 'slides' && this.holderKind === 'slide') {
       const r = pasteSlidesOps(this.doc, c, this.doc.slideIndex(this.current) + 1, withSource);
       if (this.apply(r.ops, withSource ? 'Paste slides with source formatting' : 'Paste slides') && r.ids.length) this.setSlideSelection(r.ids, r.ids[0]);
@@ -722,6 +729,7 @@ export class Editor {
     const el = placeholderElement(this.doc, h.elements, master, type);
     const label = PLACEHOLDERS.find((p) => p.type === type)?.label.toLowerCase() ?? 'content';
     if (!this.apply([{ op: 'ins', path: [...slidePath(h.id), 'elements'], value: el }], `Insert ${label} placeholder`)) return null;
+    this.setPane('stage');
     this.select([el.id]);
     return el.id;
   }
@@ -731,9 +739,10 @@ export class Editor {
     if (this.holderKind !== 'master' || !h) return null;
     const kinds = kind === 'title' ? TITLE_KINDS : BODY_PH;
     const have = h.elements.find((e) => e.ph && kinds.has(e.ph.type));
-    if (have) { this.select([have.id]); return have.id; }
+    if (have) { this.setPane('stage'); this.select([have.id]); return have.id; }
     const el = masterPlaceholder(this.doc.deck, kind, this.doc.nextId('e'));
     if (!this.apply([{ op: 'ins', path: ['masters', { id: h.id }, 'elements'], value: el }], kind === 'title' ? 'Add title placeholder' : 'Add text placeholder')) return null;
+    this.setPane('stage');
     this.select([el.id]);
     return el.id;
   }

@@ -233,7 +233,7 @@ export class SelectionPane {
     if (!p) return;
     if (a === 'eye') this.apply([r.el.hidden ? { op: 'set', path: [...p, 'hidden'] } : { op: 'set', path: [...p, 'hidden'], value: true }], r.el.hidden ? 'Show object' : 'Hide object');
     if (a === 'lock') this.apply([r.el.locked ? { op: 'set', path: [...p, 'locked'] } : { op: 'set', path: [...p, 'locked'], value: true }], r.el.locked ? 'Unlock' : 'Lock');
-    if (a === 'alt') { ed.select([this.topOf(r)]); ed.run('alt-text'); }
+    if (a === 'alt') { ed.setPane('stage'); ed.select([this.topOf(r)]); ed.run('alt-text'); }
   }
 
   private down(e: PointerEvent): void {
@@ -284,6 +284,7 @@ export class SelectionPane {
     if (!p.moved) {
       const id = p.row.parent ? this.topOf(p.row) : p.row.key;
       const cur = ed.selection;
+      ed.setPane('stage');
       ed.select(p.add ? (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]) : [id]);
       return;
     }

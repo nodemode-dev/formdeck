@@ -1106,7 +1106,7 @@ export class Stage {
     if (!copies.length) return;
     remapCopies(items, copies);
     const ops: Op[] = copies.map((c) => ({ op: 'ins', path: [...slidePath(s.id), 'elements'], value: c }) as Op);
-    if (ed.apply([...ops, ...dirtyOp(s)], 'Copy')) ed.select(fresh);
+    if (ed.apply([...ops, ...dirtyOp(s)], 'Copy')) { ed.setPane('stage'); ed.select(fresh); }
   }
 
   nudgeSize(dw: number, dh: number): void {
@@ -1499,7 +1499,7 @@ export class Stage {
     if (!same) {
       if (this.editing && (this.editing !== id || !this.cell)) this.endEdit();
       else if (this.editing) this.detachCell();
-      if (!(this.ed.selection.length === 1 && this.ed.selection[0] === id)) this.ed.select([id]);
+      if (!(this.ed.selection.length === 1 && this.ed.selection[0] === id)) { this.ed.setPane('stage'); this.ed.select([id]); }
     }
     const flow = this.view?.nodeFor(id)?.querySelector<HTMLElement>(`td[data-r="${r}"][data-c="${c}"] > .fd-cell-flow`);
     if (!flow) return;

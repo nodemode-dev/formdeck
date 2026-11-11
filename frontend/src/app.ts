@@ -156,13 +156,14 @@ export async function startApp(): Promise<void> {
   let viewSeq = 0;
   let viewsUrl = '';
   let viewsTry = 0;
+  let reloading = false;
   const loadViews = (): Promise<ViewsCtor> => {
     const ready = (m: { AltViews: ViewsCtor }): ViewsCtor => { viewsCtor = m.AltViews; return m.AltViews; };
     const fresh = (): Promise<ViewsCtor> => import(/* @vite-ignore */ `${viewsUrl}?retry=${++viewsTry}`).then(ready);
     const first = (): Promise<ViewsCtor> => import('./editor/views').then(ready, (e: unknown) => {
-      const found = /https?:\/\/[^\s'"]+/.exec(e instanceof Error ? e.message : String(e));
+      const found = /(?:Failed to fetch dynamically imported module|error loading dynamically imported module):\s*(https?:\/\/[^\s'"?#]+\.js)(?:[?#]\S*)?\s*$/i.exec(e instanceof Error ? e.message : String(e));
       if (!found) throw e;
-      viewsUrl = found[0].split('?')[0];
+      viewsUrl = found[1];
       return fresh();
     });
     viewsLoad ??= (viewsUrl ? fresh() : first()).catch((e: unknown) => { viewsLoad = null; throw e; });
@@ -172,9 +173,16 @@ export async function startApp(): Promise<void> {
     const ids = openDecks.map((t) => t.id);
     const front = editor?.doc.id ?? '';
     try { sessionStorage.setItem('formdeck.restore', JSON.stringify({ ids, front })); } catch { }
-    detach();
+    editor?.flush();
     void (async () => {
       for (let n = 0; unsaved() && n < 50; n++) await new Promise((r) => window.setTimeout(r, 100));
+      if (unsaved()) {
+        try { sessionStorage.removeItem('formdeck.restore'); } catch { }
+        toast('Edits are not saved yet. Reload when the connection is back.', 'error');
+        return;
+      }
+      reloading = true;
+      detach();
       location.reload();
     })();
   };
@@ -469,7 +477,7 @@ export async function startApp(): Promise<void> {
   };
   const unsaved = (): boolean => openDecks.some((t) => t.doc.hasPending);
   window.addEventListener('beforeunload', (e) => {
-    if ('__TAURI_INTERNALS__' in window || !unsaved()) return;
+    if (reloading || '__TAURI_INTERNALS__' in window || !unsaved()) return;
     e.preventDefault();
     e.returnValue = '';
   });
@@ -787,7 +795,7 @@ export async function startApp(): Promise<void> {
       return;
     }
     const modHeld = isMac ? e.metaKey : e.ctrlKey;
-    if (ed && ed.selection.length && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && (modHeld || e.altKey || e.shiftKey) && !(isMac ? e.ctrlKey : e.metaKey) && !(modHeld && e.altKey)) {
+    if (ed && ed.selection.length && !ed.slideContext && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && (modHeld || e.altKey || e.shiftKey) && !(isMac ? e.ctrlKey : e.metaKey) && !(modHeld && e.altKey)) {
       const pf = aidPrefs();
       const base = pf.snapGrid && pf.spacing > 0 ? pf.spacing : 1;
       const sx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
@@ -806,12 +814,12 @@ export async function startApp(): Promise<void> {
     if (ed && !e.metaKey && !e.ctrlKey && !e.altKey) {
       const pf = aidPrefs();
       const step = pf.snapGrid && pf.spacing > 0 ? pf.spacing : 1;
-      if (ed.selection.length && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      if (ed.selection.length && !ed.slideContext && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         e.preventDefault();
         ed.nudge(e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0, e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0);
         return;
       }
-      if (!ed.selection.length && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if ((!ed.selection.length || ed.slideContext) && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         ed.step(['ArrowUp', 'PageUp', 'ArrowLeft'].includes(e.key) ? -1 : 1, true);
         return;
@@ -821,16 +829,16 @@ export async function startApp(): Promise<void> {
         ed.select(chain.length ? [chain[chain.length - 1].id] : []);
         return;
       }
-      if (e.key === 'F2' && ed.selection.length === 1) {
+      if (e.key === 'F2' && ed.selection.length === 1 && !ed.slideContext) {
         e.preventDefault();
         ed.stage.startText(ed.selection[0]);
         return;
       }
-      if (e.key === 'Enter' && ed.selection.length === 1) {
+      if (e.key === 'Enter' && ed.selection.length === 1 && !ed.slideContext) {
         const one = ed.selected()[0];
         if (one.type === 'shape') { e.preventDefault(); ed.stage.beginEdit(one.id); return; }
       }
-      if (e.key === 'Tab' && (t === document.body || !!t.closest?.('.fd-stage, .fd-viewport'))) {
+      if (e.key === 'Tab' && !ed.slideContext && (t === document.body || !!t.closest?.('.fd-stage, .fd-viewport'))) {
         const els = (ed.slide?.elements ?? []).filter((x) => !x.hidden);
         if (els.length) {
           e.preventDefault();
@@ -840,7 +848,7 @@ export async function startApp(): Promise<void> {
           return;
         }
       }
-      if (e.key.length === 1 && ed.selection.length === 1) {
+      if (e.key.length === 1 && ed.selection.length === 1 && !ed.slideContext) {
         const one = ed.selected()[0];
         if ((one.type === 'shape' || one.type === 'table') && !one.locked) {
           e.preventDefault();
@@ -1015,7 +1023,8 @@ export async function startApp(): Promise<void> {
   } catch { restore = null; }
   if (restore?.ids.length) {
     for (const id of restore.ids) await openDeck(id);
-    if (restore.front) await openDeck(restore.front);
+    const front = openDecks.find((t) => t.id === restore?.front);
+    if (front) { attach(front.doc); home.close(); }
     if (!openDecks.length) home.open();
   } else if (want) await openDeck(want);
   else home.open();
