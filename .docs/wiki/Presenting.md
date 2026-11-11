@@ -20,4 +20,4 @@ Present from the beginning (F5), from the current slide (Shift+F5) or in present
 - **Rehearse** records how long each slide takes; Keep timings saves them as automatic advance.
 - Links on slides open, and video and audio play with their start, end and loop settings.
 
-Details are in the [manual's Presenting section](https://github.com/nodemode-ai/formdeck/blob/main/docs/MANUAL.md#presenting).
+Details are in the [manual's Presenting section](https://github.com/nodemode-dev/formdeck/blob/main/docs/MANUAL.md#presenting).

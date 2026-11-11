@@ -959,6 +959,22 @@ def _register_media(deck: dict, src: str, ops: list, it: dict | None) -> str:
     return src
 
 
+ELEMENT_KEYS = frozenset({
+    "id", "type", "name", "x", "y", "w", "h", "rot", "flipH", "flipV", "ph", "slot", "hidden", "locked", "lockAspect", "alt", "link", "opacity",
+    "geom", "adj", "path", "pathSize", "conn", "fill", "line", "effects", "text", "sp3d", "scene3d", "textStyle", "fillStyle", "camera",
+    "src", "model", "crop", "fit", "focus", "mask", "adjust", "table", "chart", "children", "diagram", "component",
+    "kind", "poster", "autoplay", "loop", "start", "end", "volume", "hideInShow", "narration", "sequence", "fadeIn", "fadeOut", "muted",
+    "fullScreen", "rewind", "bookmarks",
+})
+
+
+def _unknown_keys(keys, extra: frozenset = frozenset()) -> None:
+    bad = sorted(str(k) for k in keys if k not in ELEMENT_KEYS and k not in extra)
+    if bad:
+        raise ToolError(f"Unknown element key{'s' if len(bad) > 1 else ''} {', '.join(bad)}; nothing was changed. An element's frame is x, y, w, h; "
+                        f"the keys are {', '.join(sorted(ELEMENT_KEYS))} (docs/FORMAT.md, Elements).")
+
+
 async def t_edit_elements(a: Agent, args: dict) -> dict:
     deck = _deck(args.get("deck"))
     idx = _index(deck, args.get("slide"))
@@ -981,6 +997,7 @@ async def t_edit_elements(a: Agent, args: dict) -> dict:
             el = copy.deepcopy(ch.get("element") or {})
             if not isinstance(el, dict) or not el:
                 raise ToolError("add needs element: {type, x, y, w, h, ...}.")
+            _unknown_keys(el)
             el.setdefault("type", "shape")
             if not el.get("id") or el["id"] in counter.used:
                 el["id"] = counter.next("e")
@@ -1017,6 +1034,7 @@ async def t_edit_elements(a: Agent, args: dict) -> dict:
             sets = ch.get("set") or {}
             if not isinstance(sets, dict) or not sets:
                 raise ToolError("update needs set: {key: value}.")
+            _unknown_keys([k for k, v in sets.items() if v is not None], frozenset({"warp", "textEffects"}))
             staged = dict(el)
             for k, v in sets.items():
                 if k in ("id", "type"):

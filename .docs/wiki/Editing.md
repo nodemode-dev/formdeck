@@ -17,4 +17,4 @@ The editor is a title bar with ten menus (File, Edit, View, Insert, Format, Slid
 - **Review**: each slide is Draft, Review, Changes or Approved; comments attach to slides and can be resolved.
 - **Versions**: decks save as you work; File > Save Version names a snapshot you can restore.
 
-Every key is in the [manual's shortcut table](https://github.com/nodemode-ai/formdeck/blob/main/docs/MANUAL.md#keyboard-shortcuts) and in the app under Help > Keyboard Shortcuts (Mod+/). What is not built yet (master editing, animation authoring, table cell typing, crop handles) is listed in [PARITY.md](https://github.com/nodemode-ai/formdeck/blob/main/docs/PARITY.md).
+Every key is in the [manual's shortcut table](https://github.com/nodemode-dev/formdeck/blob/main/docs/MANUAL.md#keyboard-shortcuts) and in the app under Help > Keyboard Shortcuts (Mod+/). What is not built yet (master editing, animation authoring, table cell typing, crop handles) is listed in [PARITY.md](https://github.com/nodemode-dev/formdeck/blob/main/docs/PARITY.md).
