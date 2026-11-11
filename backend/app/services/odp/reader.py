@@ -1025,7 +1025,7 @@ class OdpReader:
             return None
         try:
             return cls.clean_theme(json.loads(raw))
-        except ValueError:
+        except (ValueError, RecursionError):
             return None
 
     def fill_master(self, deck: dict, master: dict, gpages: list, first_group: bool) -> None:
