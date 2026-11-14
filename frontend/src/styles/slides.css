@@ -5,7 +5,6 @@
 .fd-slide.is-edit .fd-layer-content { pointer-events: auto; }
 .fd-el { position: absolute; box-sizing: border-box; transform-origin: 50% 50%; }
 .fd-el.is-deco, .fd-el.is-locked { pointer-events: none; }
-.fd-slide.is-edit .fd-layer-content > .fd-el.is-locked { pointer-events: auto; }
 .fd-geom { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 .fd-tx { position: absolute; display: flex; flex-direction: column; overflow: visible; }
 .fd-flow { min-height: 0; flex: none; outline: none; overflow-wrap: break-word; word-break: normal; caret-color: var(--accent-color); cursor: inherit; user-select: none; -webkit-user-select: none; }

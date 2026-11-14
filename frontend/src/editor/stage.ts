@@ -21,8 +21,41 @@ import { aidPrefs, noteContextPoint, StageAids } from './rulers';
 import { DrawTool } from './draw-tool';
 import { PointsEdit } from './points-edit';
 import { editorMediaControlsOn, PLAYER_EVENT } from '../render/slide';
+import { toast } from '../ui/toast';
 
 const playerUnder = (e: MouseEvent): boolean => editorMediaControlsOn() && document.elementsFromPoint(e.clientX, e.clientY).some((n) => n instanceof HTMLVideoElement && n.controls);
+
+const paraText = (paras: Para[]): string[] => paras.map((p) => p.runs.map((r) => r.t).join(''));
+
+type Caret = [para: number, chars: number];
+
+function caretAt(flow: HTMLElement, node: Node, offset: number): Caret {
+  const ps = Array.from(flow.querySelectorAll<HTMLElement>(':scope > p'));
+  const p = (node instanceof HTMLElement ? node : node.parentElement)?.closest('p') ?? null;
+  const index = p && p.parentElement === flow ? ps.indexOf(p as HTMLElement) : -1;
+  if (index < 0) return [node === flow ? Math.min(offset, Math.max(0, ps.length - 1)) : 0, 0];
+  const before = document.createRange();
+  before.selectNodeContents(ps[index]);
+  before.setEnd(node, offset);
+  const part = before.cloneContents();
+  for (const b of Array.from(part.querySelectorAll('.fd-bu'))) b.remove();
+  return [index, (part.textContent ?? '').length];
+}
+
+function caretPoint(flow: HTMLElement, at: Caret): [Node, number] {
+  const ps = flow.querySelectorAll<HTMLElement>(':scope > p');
+  const p = ps[Math.min(at[0], ps.length - 1)];
+  if (!p) return [flow, 0];
+  const texts = document.createTreeWalker(p, NodeFilter.SHOW_TEXT, { acceptNode: (t) => (t.parentElement?.closest('.fd-bu') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+  let left = at[1];
+  let last: Text | null = null;
+  for (let t = texts.nextNode() as Text | null; t; t = texts.nextNode() as Text | null) {
+    if (left <= t.length) return [t, left];
+    left -= t.length;
+    last = t;
+  }
+  return last ? [last, last.length] : [p.querySelector('.fd-r') ?? p, 0];
+}
 
 type Drag =
   | { kind: 'move'; x0: number; y0: number; frames: Map<string, Frame>; moved: boolean; edit?: { id: string; x: number; y: number }; pick?: string; copy?: boolean; toggle?: string; delta?: { dx: number; dy: number } }
@@ -106,6 +139,9 @@ export class Stage {
   editing: string | null = null;
   private commitTimer = 0;
   private editOriginal: SlideElement | null = null;
+  private editSeen = '';
+  private editText: string[] = [];
+  private committing = false;
   cells: CellSel | null = null;
   private cell: { r: number; c: number } | null = null;
   private space = false;
@@ -251,6 +287,7 @@ export class Stage {
       const node = this.view.nodeFor(this.editing);
       if (!node || !this.ed.element(this.editing)) this.endEdit(false);
     }
+    if (this.editing && !this.cell && !this.committing) this.syncEdit();
     this.drawOverlay();
     this.points.sync();
   }
@@ -1259,6 +1296,7 @@ export class Stage {
       const text = ev.clipboardData?.getData('text/plain');
       if (text !== undefined) { ev.preventDefault(); document.execCommand('insertText', false, text); }
     };
+    this.noteEdit(flow);
     this.ed.onEditChange(id);
     this.drawOverlay();
   }
@@ -1284,8 +1322,80 @@ export class Stage {
     const original = this.ed.displayParas(el);
     const paras = readParas(flow, original);
     if (JSON.stringify(paras) !== JSON.stringify(original)) {
-      this.ed.apply([{ op: 'set', path: [...elPath(slide.id, id), 'text', 'paras'], value: paras }, ...this.textGrowOps(id), ...dirtyOp(slide)], 'Typing', `text:${id}`);
+      this.committing = true;
+      try {
+        this.ed.apply([{ op: 'set', path: [...elPath(slide.id, id), 'text', 'paras'], value: paras }, ...this.textGrowOps(id), ...dirtyOp(slide)], 'Typing', `text:${id}`);
+      } finally {
+        this.committing = false;
+      }
+      this.noteEdit(flow);
     }
+  }
+
+  private noteEdit(flow: HTMLElement): void {
+    const el = this.editing ? this.ed.element(this.editing) : undefined;
+    this.editSeen = el ? JSON.stringify(el) : '';
+    this.editText = el ? paraText(readParas(flow, this.ed.displayParas(el))) : [];
+  }
+
+  private syncEdit(): void {
+    const id = this.editing;
+    const el = id ? this.ed.element(id) : undefined;
+    const flow = this.editFlow();
+    const slide = this.slide();
+    if (!id || !slide || !this.view || !flow || !el || el.type !== 'shape' || JSON.stringify(el) === this.editSeen) return;
+    const doc = this.ed.displayParas(el);
+    const mine = readParas(flow, doc);
+    const mt = paraText(mine), bt = this.editText, dt = paraText(doc);
+    if (mt.length !== bt.length || mt.some((t, i) => t !== bt[i])) {
+      const aligned = mt.length === bt.length && dt.length === bt.length;
+      const keep = aligned ? doc.map((p, i) => (mt[i] !== bt[i] ? mine[i] : p)) : mine;
+      const clash = aligned ? mt.some((t, i) => t !== bt[i] && dt[i] !== bt[i] && dt[i] !== t) : dt.length !== bt.length || dt.some((t, i) => t !== bt[i]);
+      if (JSON.stringify(keep) !== JSON.stringify(doc)) {
+        this.committing = true;
+        try {
+          this.ed.apply([{ op: 'set', path: [...elPath(slide.id, id), 'text', 'paras'], value: keep }, ...dirtyOp(slide)], 'Typing', `text:${id}`);
+        } finally {
+          this.committing = false;
+        }
+      }
+      if (clash) toast('This text box was changed from outside while you were typing. Your wording was kept.', 'info');
+    }
+    const sel = window.getSelection();
+    const live = document.activeElement === flow || (!!sel && sel.rangeCount > 0 && flow.contains(sel.anchorNode));
+    const saved = this.savedRange;
+    let caret: { a: Caret; f: Caret } | null = null;
+    if (sel && sel.rangeCount > 0 && sel.anchorNode && sel.focusNode && flow.contains(sel.anchorNode) && flow.contains(sel.focusNode)) caret = { a: caretAt(flow, sel.anchorNode, sel.anchorOffset), f: caretAt(flow, sel.focusNode, sel.focusOffset) };
+    else if (saved && saved.id === id && flow.contains(saved.range.startContainer) && flow.contains(saved.range.endContainer)) caret = { a: caretAt(flow, saved.range.startContainer, saved.range.startOffset), f: caretAt(flow, saved.range.endContainer, saved.range.endOffset) };
+    this.view.editingId = null;
+    this.view.update();
+    this.view.editingId = id;
+    const node = this.view.nodeFor(id);
+    const fresh = node?.querySelector<HTMLElement>('.fd-flow') ?? null;
+    if (!node || !fresh) { this.endEdit(false); return; }
+    const prompt = node.querySelector<HTMLElement>('.fd-prompt');
+    const promptRun = prompt?.querySelector<HTMLElement>('.fd-r') ?? null;
+    prompt?.classList.remove('fd-prompt');
+    if (promptRun) promptRun.replaceChildren(document.createElement('br'));
+    fresh.contentEditable = 'true';
+    fresh.spellcheck = true;
+    fresh.oninput = () => this.onInput(fresh);
+    fresh.onkeydown = (ev) => this.editKey(ev, fresh);
+    fresh.onpaste = (ev) => {
+      const text = ev.clipboardData?.getData('text/plain');
+      if (text !== undefined) { ev.preventDefault(); document.execCommand('insertText', false, text); }
+    };
+    if (live) fresh.focus({ preventScroll: true });
+    if (caret) {
+      const [an, ao] = caretPoint(fresh, caret.a), [fn, fo] = caretPoint(fresh, caret.f);
+      if (live) sel?.setBaseAndExtent(an, ao, fn, fo);
+      const range = document.createRange();
+      const back = an === fn ? fo < ao : !!(an.compareDocumentPosition(fn) & Node.DOCUMENT_POSITION_PRECEDING);
+      range.setStart(back ? fn : an, back ? fo : ao);
+      range.setEnd(back ? an : fn, back ? ao : fo);
+      this.savedRange = { id, range };
+    }
+    this.noteEdit(fresh);
   }
 
   textGrowOps(id: string): Op[] {
@@ -1393,6 +1503,7 @@ export class Stage {
       sel.addRange(saved.range);
     }
     if (!flow.contains(sel.anchorNode)) return false;
+    if (sel.isCollapsed && (cmd === 'foreColor' || cmd === 'hiliteColor')) return false;
     const run = (): void => {
       if (cmd !== 'fontSize') { document.execCommand(cmd, false, value); return; }
       document.execCommand('fontSize', false, '7');
