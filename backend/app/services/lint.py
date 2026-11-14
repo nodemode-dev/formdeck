@@ -14,6 +14,7 @@ FIX = {
     "words": "Cut to the key points (under 70 words), move detail to notes, or split the slide with add_slides.",
     "bullets": "Keep 3 to 6 bullets; move the rest to a new slide.",
     "bullet_long": "Shorten the bullet to under 18 words; put the detail in the notes.",
+    "typed_bullet": "Make it a real bullet: set the paragraph's bullet to {type: 'char', char, color} (edit_elements text.paras or apply_ops) and delete the typed character and its spaces; a real bullet keeps wrapped lines under the first word.",
     "font": "Raise the text to at least 12 pt, or cut words so it fits.",
     "contrast": "Use a text colour with more contrast (tx1 or lt1), or change the background.",
     "offslide": "Move it inside the slide (edit_elements update x, y, w, h).",
@@ -31,6 +32,8 @@ FIX = {
     "tiny": "Make the element larger or delete it.",
 }
 _WORD = re.compile(r"[\w$%€£][\w'’.,%$-]*")
+_BULLET_CHARS = "".join(map(chr, (0x2022, 0x2023, 0x25E6, 0x25AA, 0x25AB, 0x25CF, 0x25CB, 0x25A0, 0x25A1, 0x25C6, 0x25C7, 0x25B6, 0x25BA, 0x2713, 0x2714, 0x2715, 0x2717, 0x2718)))
+_TYPED_BULLET = re.compile(rf"^[{_BULLET_CHARS}]\s+\S")
 
 
 def _kind(el: dict) -> str | None:
@@ -265,6 +268,8 @@ def _check_text(out, deck, slide, n, layout, master, el, chain, frame, below, sc
             bullets += 1
             if nw > 18:
                 _issue(out, slide, n, "bullet_long", "warn", f"bullet of {nw} words: {text[:60]}", el["id"])
+        if not listed and _TYPED_BULLET.match(text):
+            _issue(out, slide, n, "typed_bullet", "warn", f"bullet typed into the text: {text[:60]}", el["id"])
         for r in p.get("runs", []):
             if not r.get("t", "").strip():
                 continue

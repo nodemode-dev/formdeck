@@ -30,6 +30,7 @@ lint_deck merges two sources: static checks the engine runs on the deck JSON, an
 | words | warn | More than 70 words on the slide | Cut to the key points, move detail to notes (`update_slide {notes}`), or split |
 | bullets | warn | More than 7 bullets in one box | Keep 3 to 6; the rest go to a new slide |
 | bullet_long | warn | A bullet over 18 words | Shorten it; detail to the notes |
+| typed_bullet | warn | A bullet character typed into the text of a paragraph that has no bullet, so wrapped lines start under the character | Set the paragraph's `bullet` to `{type: "char", char, color}` with `edit_elements` or `apply_ops` and delete the typed character and its spaces |
 | font | warn | Text under 12 pt | Cut words so the text can stay larger |
 | title | warn | A layout with a title placeholder but no title | `set_text {element: "title"}` |
 | duplicate | info | Same title as an earlier slide | Make each title specific; continuation slides get a real title instead of `(cont.)` |

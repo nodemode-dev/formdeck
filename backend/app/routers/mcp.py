@@ -107,6 +107,7 @@ title (title, subtitle, kicker) · section (title, subtitle, number) · agenda (
 - Fix with set_text and update_slide rather than rebuilding; build_deck again only to start over.
 - The digest is enough to plan most decks; get_source only what you need.
 - One idea per slide, titles as claims, 3 to 6 bullets under 14 words each; detail goes to the notes.
+- Bullets are a paragraph property, never typed text: a coloured or custom bullet is paras[].bullet {type: "char", char: "•", color: "accent1"} (a tick or a cross works as the char). A real bullet indents wrapped lines under the first word and exports to PowerPoint as a bullet; a character typed in front of the text does neither, and lint_deck reports it as typed_bullet.
 """
 PROMPTS = [{"name": "build-deck", "title": "Build a deck", "description": "Build a deck in formdeck from an intake (or files) and a brief, in a chosen template.",
             "arguments": [{"name": "intake", "description": "An intake id from ingest, or absolute file paths separated by commas", "required": False},

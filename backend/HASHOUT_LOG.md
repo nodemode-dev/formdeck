@@ -152,6 +152,7 @@ app/services/package.py      .fdec pack and unpack (older .fsld read too)
 125. Hidden and unused masters keep their shapes; a master theme from a file is cleaned · services/odp/writer.py, odp/reader.py
 126. The deck theme and preserved masters survive an ODP round trip · services/odp/writer.py, odp/reader.py
 127. edit_elements refuses keys an element does not have · routers/mcp.py
+128. lint_deck reports a bullet typed into the text · services/lint.py, routers/mcp.py
 
 ## 1. The engine is authoritative · _v0.2.0 (services/store.py Store.step, _travel)
 
@@ -694,3 +695,11 @@ QA on 0.38.0: saving a deck as .odp and opening it again reset the deck theme to
 QA on 0.38.0: `edit_elements` stored any key it was given, so an agent that sent `{op: add, element: {frame: {x, y, w, h}}}` got an element with a stray `frame` object and the default frame from `setdefault`, and the call answered as a success. `ELEMENT_KEYS` lists every element field in docs/FORMAT.md Elements and `frontend/src/engine/model.ts` (the base fields and those of shape, image, table, chart, group and media); an `add` element or an `update` set with any other key raises `ToolError`, the same isError answer the tool gives for other bad input, naming the unknown keys and listing the known ones, before any op is applied, so nothing changes. `update` also accepts `warp` and `textEffects` (handled by `text_effects.edit_ops`), and a key set to null is always accepted, so a stray key stored by an earlier version can still be removed. One set for all element types on purpose: a per-type check would refuse keys the importers carry across types. Test: `backend/tests/test_edit_elements.py`.
 
 The wiki pages under `.docs/wiki/` linked the repository at its old owner, nodemode-ai; they now link nodemode-dev/formdeck and nodemode-dev/formpdf (`backend/tests/test_wiki_links.py`). Links outside the wiki (the add-in index default `addins.indexUrl`, the add-in manifests, docs/ADDINS.md, NOTICE.md, the skills and the formpdf mentions) were left as they are.
+
+## 128. lint_deck reports a bullet typed into the text · _v0.38.2 (services/lint.py _TYPED_BULLET, _check_text, FIX; routers/mcp.py GUIDE)
+
+Found on a deck an agent had styled by hand: to get a coloured bullet it put the character in a text run of its own (a dot and two spaces in accent1) on a paragraph with `bullet: {type: "none"}`, `marL: 0` and `indent: 0`. A wrapped line then starts under the dot instead of under the first word, and the export carries a typed character, not a bullet. The format already has the real thing: `paras[].bullet {type: "char", char, color}`, which the window draws with a hanging indent (render/text.ts `textHtml`) and the .pptx writer exports as `a:buChar` with `a:buClr` (services/pptx/write_text.py). Nothing told an agent that, and nothing caught the typed form.
+
+`_check_text` now reports `typed_bullet` (warn) for a paragraph that resolves to no bullet and whose text starts with a bullet character followed by white space and more text. `_TYPED_BULLET` lists the round, square, diamond and triangle bullets and the tick and cross marks; `_BULLET_CHARS` builds them from code points because the CI text rule refuses the dingbat range in tracked text. Dashes are left out on purpose: a quote's attribution line starts with one. The `FIX` text names the paragraph property. The guide (`GUIDE`, Token tips) gains one line saying bullets are a paragraph property and how to colour one, and the visual-qa skill's lint table gains the row (mirrored to `.agents/skills` with `./formdeck agents sync`).
+
+The window has no tab stops, so a typed bullet followed by a tab and a `tabs` list, as tried on that deck, is not a fix the renderer can honour; the lint points at the real bullet instead. No test was added: the family plan names none for this.
