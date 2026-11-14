@@ -170,6 +170,9 @@ function cssHex(v: string): string | undefined {
   return '#' + [m[1], m[2], m[3]].map((n) => Math.max(0, Math.min(255, Number(n))).toString(16).padStart(2, '0')).join('').toUpperCase();
 }
 
+type WrapKey = 'color' | 'hl' | 'b' | 'i' | 'u' | 's' | 'font' | 'sz';
+const WRAPPED: Array<[WrapKey, 'color' | 'backgroundColor' | 'fontWeight' | 'fontStyle' | 'textDecorationLine' | 'fontFamily' | 'fontSize']> = [['color', 'color'], ['hl', 'backgroundColor'], ['b', 'fontWeight'], ['i', 'fontStyle'], ['u', 'textDecorationLine'], ['s', 'textDecorationLine'], ['font', 'fontFamily'], ['sz', 'fontSize']];
+
 function inlineDelta(node: HTMLElement, base: string | undefined): Partial<Run> {
   const s = node.style;
   let ref: CSSStyleDeclaration | null = null;
@@ -208,7 +211,7 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
       return rest;
     };
     let runIndex = 0;
-    const walk = (node: Node, inherited: Omit<Run, 't'>): void => {
+    const walk = (node: Node, inherited: Omit<Run, 't'>, over: Partial<Pick<Run, WrapKey>> = {}): void => {
       if (node.nodeType === Node.TEXT_NODE) {
         const t = node.textContent ?? '';
         if (t) runs.push({ ...inherited, t });
@@ -233,6 +236,7 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
         const src = base.runs.filter((r) => r.t !== '\n' && !r.math)[runIndex++] ?? proto;
         style = strip(src);
         if (style.link && node.dataset.link === undefined) style = { ...style, link: undefined };
+        for (const [k, css] of WRAPPED) if (k in over && !node.style[css]) style = { ...style, [k]: over[k] } as Omit<Run, 't'>;
       }
       if (node.tagName === 'A') {
         const href = node.getAttribute('href') ?? '';
@@ -251,7 +255,9 @@ export function readParas(flow: HTMLElement, original: Para[]): Para[] {
         if (face) style = { ...style, font: face.split(',')[0].replace(/["']/g, '').trim() };
       }
       if (!isRun || node.dataset.s !== undefined) style = { ...style, ...inlineDelta(node, isRun ? node.dataset.s : undefined) };
-      for (const c of Array.from(node.childNodes)) walk(c, style);
+      const next: Partial<Pick<Run, WrapKey>> = isRun ? {} : { ...over };
+      if (!isRun) for (const [k, css] of WRAPPED) if (node.style[css] || style[k] !== inherited[k]) (next as Record<string, unknown>)[k] = style[k];
+      for (const c of Array.from(node.childNodes)) walk(c, style, next);
     };
     for (const c of Array.from(pEl.childNodes)) walk(c, strip(proto));
     while (runs.length && runs[runs.length - 1].t === '\n') runs.pop();

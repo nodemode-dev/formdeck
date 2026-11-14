@@ -1503,6 +1503,7 @@ export class Stage {
       sel.addRange(saved.range);
     }
     if (!flow.contains(sel.anchorNode)) return false;
+    if (sel.isCollapsed && (cmd === 'foreColor' || cmd === 'hiliteColor')) return false;
     const run = (): void => {
       if (cmd !== 'fontSize') { document.execCommand(cmd, false, value); return; }
       document.execCommand('fontSize', false, '7');
