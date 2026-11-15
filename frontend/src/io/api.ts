@@ -64,7 +64,7 @@ export const api = {
   template: (id: string, w = 960, h = 540) => get<Deck>(`/api/templates/${encodeURIComponent(id)}?w=${w}&h=${h}`),
   applyTemplate: (deckId: string, template: string, client: string) => post<{ rev: number }>(`/api/decks/${deckId}/apply-template`, { template, client }),
   build: (body: { markdown?: string; spec?: unknown; template?: string; intake?: string; title?: string; size?: string }) => post<DeckSummary>('/api/build', body),
-  export: (deckId: string, format: string, path?: string, fontScales?: unknown, embedFonts?: string) => post<{ path: string; bytes: number; warnings?: string[] }>(`/api/decks/${deckId}/export`, { format, path, fontScales, embedFonts }),
+  export: (deckId: string, format: string, path?: string, fontScales?: unknown, embedFonts?: string, clean?: boolean) => post<{ path: string; bytes: number; warnings?: string[] }>(`/api/decks/${deckId}/export`, { format, path, fontScales, embedFonts, clean }),
   save: (deckId: string, body: { path?: string; format?: string; fontScales?: unknown } = {}) => post<{ saved: string; bytes?: number }>(`/api/decks/${deckId}/save`, body),
   saveTemplate: (deckId: string, name: string) => post<{ template: string }>(`/api/decks/${deckId}/save-template`, { name }),
   versions: (deckId: string) => get<{ versions: Array<{ n: number; name: string; at: string; slides: number }> }>(`/api/decks/${deckId}/versions`),
@@ -103,7 +103,7 @@ export const api = {
     await fetch(`/api/decks/${deckId}/thumb`, { method: 'PUT', body: blob });
   },
   mediaUrl: (id: string) => `/api/media/${id}`,
-  downloadUrl: (deckId: string, format: string, embedFonts?: string) => `/api/decks/${deckId}/download?format=${format}${embedFonts ? `&embedFonts=${embedFonts}` : ''}`,
+  downloadUrl: (deckId: string, format: string, embedFonts?: string, clean?: boolean) => `/api/decks/${deckId}/download?format=${format}${embedFonts ? `&embedFonts=${embedFonts}` : ''}${clean ? '&clean=1' : ''}`,
   templateDownloadUrl: (id: string, format = 'pptx') => `/api/templates/${encodeURIComponent(id)}/download?format=${format}`,
   post,
   get,

@@ -1,3 +1,4 @@
+import copy
 import io
 import json
 import zipfile
@@ -27,6 +28,20 @@ def pack(deck: dict, media: MediaStore, thumbs: dict[str, bytes] | None = None) 
         for sid, data in (thumbs or {}).items():
             z.writestr(f"thumbs/{sid}.webp", data)
     return buf.getvalue()
+
+
+def clean_copy(deck: dict) -> dict:
+    out = copy.deepcopy(deck)
+    if isinstance(out.get("meta"), dict):
+        out["meta"].pop("file", None)
+    for s in out.get("slides", []):
+        s.pop("agent", None)
+        if isinstance(s.get("spec"), dict) and s["spec"].get("dirty"):
+            s.pop("spec")
+    if isinstance(out.get("media"), dict):
+        used = model.media_ids(out)
+        out["media"] = {mid: info for mid, info in out["media"].items() if mid in used}
+    return out
 
 
 def is_package(data: bytes) -> bool:

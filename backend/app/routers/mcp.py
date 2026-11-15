@@ -205,6 +205,7 @@ TOOLS = [
           "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
           {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fdec", "fsld", "odp", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
            "notes": {"type": "boolean"}, "width": _INT,
+           "clean": {"type": "boolean", "description": "fdec only: a copy to share, without the path the deck was saved to, agent handoff notes, slide scripts that no longer match their slide, and media no slide, layout or master uses"},
            "embedFonts": {"type": "string", "enum": ["used", "all"], "description": "pptx and potx: embed the deck's fonts like PowerPoint's Embed fonts in the file; used embeds only the characters in the deck, all embeds every character"}},
           ["deck", "format"]),
     _tool("open_file", "Opens a .pptx, .potx, .odp, .fdec or older .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
@@ -1563,9 +1564,11 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
     fmt = str(args.get("format") or "pptx").lower()
     if fmt in ("pptx", "potx", "fdec", "fsld", "odp"):
         from app.routers.decks import export_bytes
+        from app.services import package
         embed = args.get("embedFonts") if args.get("embedFonts") in ("used", "all") else None
         notes: list[str] = []
-        data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, None, embed, notes)
+        clean = bool(args.get("clean")) and fmt in package.FORMATS
+        data, name, _ = await asyncio.to_thread(export_bytes, package.clean_copy(deck) if clean else deck, fmt, None, embed, notes)
         if args.get("path"):
             p = _abs(args["path"], must_exist=False)
             if p.is_dir():

@@ -184,6 +184,7 @@ Returns: `Undo Agent: theme (11 steps) · deck now 8 slides`. Refuses when the n
 - slides: array (pdf, png and gif)
 - notes: boolean, txt and rtf include the speaker notes
 - width: integer, gif frame width in pixels
+- clean: boolean, fdec only: a copy to share, without the path the deck was saved to, agent handoff notes, slide scripts that no longer match their slide, and media no slide, layout or master uses; comments and notes stay
 Returns: `Wrote /path/file.pptx (70 KB, 9 slides).` or `Exported 9 slides as PDF: /path (0.8 MB).` Structured `{path, bytes}`. pptx, potx, fdec, txt and rtf are written by the engine; pdf, png and gif are drawn by the window (several png slides arrive as a zip; a gif uses each slide's timing or 3 s). Video export exists only in the window (File > Export > Video).
 
 ### open_file
