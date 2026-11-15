@@ -52,6 +52,7 @@ lint_deck merges two sources: static checks the engine runs on the deck JSON, an
 | --- | --- | --- | --- |
 | alt | warn | A picture without alt text | `edit_elements` update `{alt: "..."}` |
 | upscale | warn under 96 dpi, else info | The picture has too few pixels for its frame | A larger file, a smaller frame, or a non-full-bleed layout (imageRight instead of imageFull) |
+| media | warn | The picture's file is not in the deck's media table, so formdeck does not know its size; it is drawn at the file's own proportions, and exports that need the size may place it wrongly | `add_media` for the id, then `edit_elements` add `{type: "image", src}` or `apply_ops` (both list the picture when it is placed); for a file already in the library, `apply_ops` set `["media", id]` to `{name, mime, w, h}` |
 
 ## Static: deck level
 

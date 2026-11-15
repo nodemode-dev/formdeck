@@ -1,9 +1,18 @@
-:root { --fd-dock-open-h: 280px; }
+:root { --fd-dock-open-h: 280px; --fd-dock-open-w: 460px; }
 .fd-app.is-dock-open { grid-template-rows: var(--fd-titlebar-h) var(--fd-tabs-h) var(--fd-options-h) minmax(0, 1fr) var(--fd-dock-open-h) var(--fd-status-h); }
+.fd-app.is-dock-open.is-dock-right:not(.is-narrow):not(.is-view-only) { grid-template-rows: var(--fd-titlebar-h) var(--fd-tabs-h) var(--fd-options-h) minmax(0, 1fr) var(--fd-status-h); grid-template-columns: minmax(0, 1fr) min(var(--fd-dock-open-w), 60vw); }
+.fd-app.is-dock-open.is-dock-right:not(.is-narrow):not(.is-view-only) > * { grid-column: 1 / -1; }
+.fd-app.is-dock-open.is-dock-right:not(.is-narrow):not(.is-view-only) > .fd-main { grid-area: 4 / 1; }
+.fd-app.is-dock-open.is-dock-right:not(.is-narrow):not(.is-view-only) > .fd-dock { grid-area: 4 / 2; border-top: 0; border-left: 1px solid var(--line-1); }
+.fd-app.is-dock-open.is-dock-right:not(.is-narrow):not(.is-view-only) > .fd-status { grid-row: 5; }
 .fd-dock { position: relative; display: grid; grid-template-rows: 34px minmax(0, 1fr) 40px; min-width: 0; min-height: 0; background: var(--surface-0); border-top: 1px solid var(--line-1); }
 .fd-dock[hidden], .fd-app.is-view-only .fd-dock { display: none; }
 .fd-dock-rsz { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: row-resize; z-index: var(--z-raised); touch-action: none; }
 .fd-dock-rsz:hover, .fd-dock-rsz.is-dragging { background: var(--accent-line); }
+.fd-app.is-dock-right:not(.is-narrow):not(.is-view-only) .fd-dock-rsz { top: 0; bottom: 0; left: -3px; right: auto; width: 6px; height: auto; cursor: col-resize; }
+.fd-dock-side > span { display: inline-grid; place-items: center; }
+.fd-dock-side > .fd-dock-side-b, .fd-app.is-dock-right .fd-dock-side > .fd-dock-side-r { display: none; }
+.fd-app.is-dock-right .fd-dock-side > .fd-dock-side-b { display: inline-grid; }
 .fd-dock-head { display: flex; align-items: center; gap: var(--space-2); min-width: 0; padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); }
 .fd-dock-tabs { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .fd-dock-tab { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px 0 9px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-muted); font: inherit; font-size: var(--fd-12); white-space: nowrap; cursor: pointer; }

@@ -7,7 +7,7 @@ import { comboOf } from '../ui/commands';
 import { el, escapeHtml, q, setClass, setHidden, setHtml, setStyleVar, setText, setValue } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
-import { deleteSlideOps, dirtyOp, fillPlaceholderOps, moveSlidesOps, newSlideOps } from './actions';
+import { deleteSlideOps, dirtyOp, fillPlaceholderOps, moveSlidesOps, newSlideOps, sectionAt } from './actions';
 import type { Editor } from './editor';
 
 type Kind = 'sorter' | 'outline';
@@ -128,6 +128,7 @@ class Sorter extends Pane {
   private width = 220;
   private k = 0;
   private anchor: string | null = null;
+  private dropBy = 0;
 
   constructor() {
     super();
@@ -401,7 +402,7 @@ class Sorter extends Pane {
       setClass(this.root, 'is-dragging', false);
       for (const c of this.cards.values()) setClass(c.node, 'is-dragging', false);
       if (drag && at >= 0 && this.ed === ed) {
-        const ops = moveSlidesOps(ed.doc, drag, at);
+        const ops = moveSlidesOps(ed.doc, drag, at, sectionAt(ed.doc, this.dropBy));
         if (ops.length) ed.apply(ops, drag.length > 1 ? 'Move slides' : 'Move slide');
       } else if (!drag && collapse && this.ed === ed) ed.setSlideSelection([id], id);
     };
@@ -435,6 +436,7 @@ class Sorter extends Pane {
     const s = this.scroll.getBoundingClientRect();
     if (y < s.top + 40) this.scroll.scrollTop -= 14;
     else if (y > s.bottom - 40) this.scroll.scrollTop += 14;
+    this.dropBy = best.i;
     return before ? best.i : best.i + 1;
   }
 

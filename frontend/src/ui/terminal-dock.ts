@@ -2,13 +2,14 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { api, type TermInfo } from '../io/api';
-import { el, escapeHtml, isMac, q, setDisabled, setHidden, setStyleVar, setText } from './dom';
+import { el, escapeHtml, isMac, q, setClass, setDisabled, setHidden, setStyleVar, setText } from './dom';
 import { icon } from './icons';
 
 interface Tab { id: string; term: Terminal; fit: FitAddon; host: HTMLElement; tab: HTMLElement; socket: WebSocket | null; kind: string }
 
 const mod = isMac ? 'Cmd' : 'Ctrl';
 const MIN_H = 140;
+const MIN_W = 340;
 
 function token(name: string, fallback: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -31,6 +32,7 @@ export class TerminalDock {
   makeChat: ((host: HTMLElement) => void) | null = null;
   private chatPane: HTMLElement | null = null;
   private chatTab: HTMLElement | null = null;
+  private right = false;
 
   constructor(readonly root: HTMLElement, private readonly app: HTMLElement, onHide: () => void) {
     root.append(el(`<div class="fd-dock-rsz" role="separator" aria-orientation="horizontal" aria-label="Resize the terminal"></div>`),
@@ -41,6 +43,7 @@ export class TerminalDock {
 <button type="button" class="fd-tt-btn fd-dock-new" title="New Terminal" aria-label="New Terminal">${icon('plus', 15)}</button>
 <button type="button" class="fd-tt-btn fd-dock-claude" title="Claude Code" aria-label="Claude Code">${icon('agent', 15)}</button>
 <button type="button" class="fd-tt-btn fd-dock-restart" title="Restart this tab" aria-label="Restart this tab" disabled>${icon('refresh', 15)}</button>
+<button type="button" class="fd-tt-btn fd-dock-side" title="Move the terminal to the right" aria-label="Move the terminal to the right"><span class="fd-dock-side-r">${icon('dockRight', 15)}</span><span class="fd-dock-side-b">${icon('dockBottom', 15)}</span></button>
 <button type="button" class="fd-tt-btn fd-dock-hide" title="Hide Terminal (${mod}+\`); programs keep running" aria-label="Hide Terminal">${icon('close', 15)}</button>
 </div>`),
       el(`<div class="fd-dock-stage"><p class="fd-dock-empty" hidden>No terminal is open. Start a shell with the plus button or Claude Code with the agent button.</p></div>`),
@@ -57,6 +60,7 @@ export class TerminalDock {
     q(root, '.fd-dock-new').addEventListener('click', () => void this.open());
     q(root, '.fd-dock-claude').addEventListener('click', () => void this.claude());
     q(root, '.fd-dock-restart').addEventListener('click', () => void this.restart());
+    q(root, '.fd-dock-side').addEventListener('click', () => { this.setSide(this.right ? 'bottom' : 'right', true); this.focus(); });
     q(root, '.fd-dock-hide').addEventListener('click', onHide);
     q(root, '.fd-dock-ask').addEventListener('submit', (e) => { e.preventDefault(); void this.send(); });
     root.addEventListener('keydown', (e) => { if (!isDockToggle(e)) e.stopPropagation(); });
@@ -245,22 +249,36 @@ export class TerminalDock {
     setHidden(this.empty, this.tabs.size > 0 || !!this.chatTab);
   }
 
+  private setSide(side: string, save = false): void {
+    this.right = side === 'right';
+    setClass(this.app, 'is-dock-right', this.right);
+    const label = this.right ? 'Move the terminal to the bottom' : 'Move the terminal to the right';
+    const btn = q<HTMLButtonElement>(this.root, '.fd-dock-side');
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    q(this.root, '.fd-dock-rsz').setAttribute('aria-orientation', this.right ? 'vertical' : 'horizontal');
+    if (!save) return;
+    try { localStorage.setItem('formdeck_dock_side', this.right ? 'right' : 'bottom'); } catch { return; }
+  }
+
   private installResize(handle: HTMLElement): void {
     handle.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       e.preventDefault();
       handle.setPointerCapture(e.pointerId);
       handle.classList.add('is-dragging');
-      const startY = e.clientY;
-      const startH = this.root.getBoundingClientRect().height;
-      const max = Math.max(MIN_H, this.app.getBoundingClientRect().height * 0.7);
-      const move = (ev: PointerEvent): void => setStyleVar(this.app, '--fd-dock-open-h', `${Math.round(Math.min(max, Math.max(MIN_H, startH + startY - ev.clientY)))}px`);
+      const startX = e.clientX, startY = e.clientY;
+      const wide = getComputedStyle(handle).cursor === 'col-resize';
+      const box = this.root.getBoundingClientRect(), app = this.app.getBoundingClientRect();
+      const max = wide ? Math.max(MIN_W, app.width * 0.6) : Math.max(MIN_H, app.height * 0.7);
+      const move = (ev: PointerEvent): void => setStyleVar(this.app, wide ? '--fd-dock-open-w' : '--fd-dock-open-h',
+        `${Math.round(wide ? Math.min(max, Math.max(MIN_W, box.width + startX - ev.clientX)) : Math.min(max, Math.max(MIN_H, box.height + startY - ev.clientY)))}px`);
       const up = (): void => {
         handle.classList.remove('is-dragging');
         handle.removeEventListener('pointermove', move);
         handle.removeEventListener('pointerup', up);
         handle.removeEventListener('pointercancel', up);
-        try { localStorage.setItem('formdeck_dock_h', this.app.style.getPropertyValue('--fd-dock-open-h')); } catch { return; }
+        try { localStorage.setItem(wide ? 'formdeck_dock_w' : 'formdeck_dock_h', this.app.style.getPropertyValue(wide ? '--fd-dock-open-w' : '--fd-dock-open-h')); } catch { return; }
       };
       handle.addEventListener('pointermove', move);
       handle.addEventListener('pointerup', up);
@@ -269,6 +287,9 @@ export class TerminalDock {
     try {
       const saved = localStorage.getItem('formdeck_dock_h');
       if (saved && /^\d+px$/.test(saved)) setStyleVar(this.app, '--fd-dock-open-h', saved);
+      const width = localStorage.getItem('formdeck_dock_w');
+      if (width && /^\d+px$/.test(width)) setStyleVar(this.app, '--fd-dock-open-w', width);
+      this.setSide(localStorage.getItem('formdeck_dock_side') ?? 'bottom');
     } catch { return; }
   }
 }

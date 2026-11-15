@@ -136,7 +136,37 @@ export function deleteSlideOps(doc: DeckDoc, ids: string[]): Op[] {
   return ops;
 }
 
-export function moveSlidesOps(doc: DeckDoc, ids: string[], to: number): Op[] {
+export function sectionAt(doc: DeckDoc, index: number): string | null {
+  const slides = doc.deck.slides;
+  const starts = new Map((doc.deck.sections ?? []).map((s) => [s.start, s.id]));
+  let cur: string | null = null;
+  for (let i = 0; i <= Math.min(index, slides.length - 1); i++) cur = starts.get(slides[i].id) ?? cur;
+  return cur;
+}
+
+function sectionMoveOps(doc: DeckDoc, slides: string[], moving: string[], rest: string[], before: number, order: string[], into?: string | null): Op[] {
+  const secs = doc.deck.sections ?? [];
+  if (!secs.length || !moving.length) return [];
+  const starts = new Map(secs.map((s) => [s.start, s.id]));
+  const home = new Map<string, string | null>();
+  let cur: string | null = null;
+  for (const id of slides) { cur = starts.get(id) ?? cur; home.set(id, cur); }
+  const from = new Set(moving.map((id) => home.get(id) ?? null));
+  const whole = !from.has(null) && slides.every((id) => moving.includes(id) || !from.has(home.get(id) ?? null));
+  if (whole && (before === rest.length || starts.has(rest[before]))) return [];
+  const prev = before > 0 ? home.get(rest[before - 1]) ?? null : undefined;
+  const next = before < rest.length ? home.get(rest[before]) ?? null : undefined;
+  const target = into !== undefined && (into === prev || into === next) ? into : prev !== undefined ? prev : next ?? null;
+  const ops: Op[] = [];
+  for (const sec of secs) {
+    const first = order.find((id) => (moving.includes(id) ? target : home.get(id) ?? null) === sec.id);
+    if (!first) ops.push({ op: 'del', path: ['sections'], id: sec.id });
+    else if (first !== sec.start) ops.push({ op: 'set', path: ['sections', { id: sec.id }, 'start'], value: first });
+  }
+  return ops;
+}
+
+export function moveSlidesOps(doc: DeckDoc, ids: string[], to: number, into?: string | null): Op[] {
   const slides = doc.deck.slides.map((s) => s.id);
   const moving = slides.filter((id) => ids.includes(id));
   const rest = slides.filter((id) => !ids.includes(id));
@@ -152,7 +182,7 @@ export function moveSlidesOps(doc: DeckDoc, ids: string[], to: number): Op[] {
       cur.splice(i, 0, id);
     }
   });
-  return ops;
+  return [...ops, ...sectionMoveOps(doc, slides, moving, rest, before, order, into)];
 }
 
 export function textBody(text: string, extra: Partial<TextBody> = {}): TextBody {

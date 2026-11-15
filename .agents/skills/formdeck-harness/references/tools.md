@@ -120,13 +120,14 @@ Returns: `Slide 4: updated e86 (fit).` An added image takes `src` as an asset id
 
 ### apply_ops
 - deck, ops (required); label: string
-Returns: `Applied N ops · rev R · slides s1`. Structured `{rev}`. Shapes: `{op: set, path, value}` (no value deletes), `{op: ins, path, index?, value}`, `{op: del, path, id}`, `{op: move, path, id, index}`.
+Returns: `Applied N ops · rev R · slides s1`, plus `listed media img_...` when the ops placed a media id the deck's media table did not list (the entry is added in the same step). Structured `{rev}`. Shapes: `{op: set, path, value}` (no value deletes), `{op: ins, path, index?, value}`, `{op: del, path, id}`, `{op: move, path, id, index}`.
 
 ### slides [destructive]
 - deck, action, slides (required)
-- action: move | delete | duplicate | hide | show
+- action: move | delete | duplicate | hide | show | layout
 - to: integer, 1-based target for move
-Returns: what changed and the full outline. Duplicates start in draft.
+- layout: for action layout, a semantic layout name or a layout id; every listed slide gets it, and its title, text and picture go into the layout's placeholders, as one undoable step. This is the fast way to restyle several slides
+Returns: what changed and the full outline (for layout: the changed slides, any empty placeholders and build warnings). Duplicates start in draft.
 
 ### animate
 - deck, slide, action (required); action: list | add | update | remove | move | clear
@@ -183,6 +184,7 @@ Returns: `Undo Agent: theme (11 steps) · deck now 8 slides`. Refuses when the n
 - slides: array (pdf, png and gif)
 - notes: boolean, txt and rtf include the speaker notes
 - width: integer, gif frame width in pixels
+- clean: boolean, fdec only: a copy to share, without the path the deck was saved to, agent handoff notes, slide scripts that no longer match their slide, and media no slide, layout or master uses; comments and notes stay
 Returns: `Wrote /path/file.pptx (70 KB, 9 slides).` or `Exported 9 slides as PDF: /path (0.8 MB).` Structured `{path, bytes}`. pptx, potx, fdec, txt and rtf are written by the engine; pdf, png and gif are drawn by the window (several png slides arrive as a zip; a gif uses each slide's timing or 3 s). Video export exists only in the window (File > Export > Video).
 
 ### open_file

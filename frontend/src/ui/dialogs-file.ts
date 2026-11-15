@@ -939,7 +939,11 @@ class ExportDialog extends Dialog {
 <div class="fd-field"><span>Fonts</span><div class="fd-seg is-quiet" data-seg="embed"><button type="button" data-v="off">Do not embed</button><button type="button" data-v="used">Only characters used</button><button type="button" data-v="all">All characters</button></div></div>
 <div class="fd-dlg-callout">${icon('info', 14)}<div><strong>Google Slides</strong> opens .pptx files: upload to Drive, then Open with Google Slides. <span class="fd-dlg-fonts"></span></div></div>
 </div>`);
-    const fdec = el(`<div class="fd-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in formdeck. Agents can read it too.</div></div>`);
+    const fdec = el(`<div class="fd-dlg-stack">
+<div class="fd-field is-top"><span></span><div class="fd-dlg-checks fd-dlg-col"><label class="fd-check"><input type="checkbox" data-f="clean"><span>Clean copy to share</span></label></div></div>
+<div class="fd-field"><span></span><span class="fd-note">A clean copy leaves out the path this deck was saved to, agent handoff notes, and pictures and videos no slide uses. Comments and speaker notes stay.</span></div>
+<div class="fd-dlg-callout">${icon('info', 14)}<div>Open it with File &gt; Open in formdeck. Agents can read it too.</div></div>
+</div>`);
     const pdf = el(`<div class="fd-dlg-stack">
 <div class="fd-field"><span>Slides</span><div class="fd-seg is-quiet" data-seg="range"><button type="button" data-v="all">All</button><button type="button" data-v="current">Current</button><button type="button" data-v="selected">Selected</button><button type="button" data-v="custom">Custom</button></div></div>
 <label class="fd-field fd-dlg-custom" hidden><span>Numbers</span><input class="fd-input" type="text" spellcheck="false" placeholder="For example 1-3, 5, 8-" aria-label="Slide numbers"></label>
@@ -1029,6 +1033,10 @@ class ExportDialog extends Dialog {
 
   private embedArg(): string | undefined {
     return (this.fmt === 'pptx' || this.fmt === 'potx') && this.embed !== 'off' ? this.embed : undefined;
+  }
+
+  private cleanArg(): boolean {
+    return this.fmt === 'fdec' && q<HTMLInputElement>(this.groups.fdec, '[data-f="clean"]').checked;
   }
 
   private motionOpts(): { secs: number; timings: boolean; builds: boolean; fades: boolean } {
@@ -1143,13 +1151,13 @@ class ExportDialog extends Dialog {
         else { await deliver(target, r.url); toast(`Exported ${plural(slides.length, 'slide')} as ${EXPORTS[f].label}`); }
       } else if (tauri) {
         this.status.busy(f === 'fdec' ? 'Packing the deck' : f === 'odp' ? 'Writing the OpenDocument file' : 'Writing the PowerPoint file');
-        const r = await api.export(deck.id, f, path, undefined, this.embedArg());
+        const r = await api.export(deck.id, f, path, undefined, this.embedArg(), this.cleanArg());
         this.status.done();
         this.close();
         savedToast('Exported to', r.path);
         fidelityReport('export', r.path.split(/[\\/]/).pop() ?? r.path, r.warnings);
       } else {
-        await deliver(target, api.downloadUrl(deck.id, f, this.embedArg()));
+        await deliver(target, api.downloadUrl(deck.id, f, this.embedArg(), this.cleanArg()));
         this.close();
         toast(`Downloading ${safeName(deck.title)}.${EXPORTS[f].ext}`);
       }

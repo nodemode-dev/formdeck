@@ -254,10 +254,12 @@ def export_bytes(deck: dict, fmt: str, font_scales: dict | None = None, embed_fo
 
 
 @router.get("/decks/{deck_id}/download")
-async def download(deck_id: str, format: str = "fdec", embedFonts: str | None = None):
+async def download(deck_id: str, format: str = "fdec", embedFonts: str | None = None, clean: bool = False):
     s = _session_or_404(deck_id)
     async with s.lock:
         deck = copy.deepcopy(s.deck)
+    if clean and format in package.FORMATS:
+        deck = package.clean_copy(deck)
     data, name, mime = await asyncio.to_thread(export_bytes, deck, format, None, embedFonts)
     return Response(data, media_type=mime, headers={"Content-Disposition": _disposition(name)})
 
@@ -269,6 +271,8 @@ async def export(deck_id: str, body: dict = Body(default={})) -> dict:
     notes: list[str] = []
     async with s.lock:
         deck = copy.deepcopy(s.deck)
+    if body.get("clean") and fmt in package.FORMATS:
+        deck = package.clean_copy(deck)
     data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, body.get("fontScales"), body.get("embedFonts"), notes)
     path, _ = _target(name, body.get("path"))
     if not path.parent.is_dir():

@@ -54,7 +54,7 @@ GUIDE = """# formdeck authoring guide
 3. draft_spec {intake, template, slides?}: a heuristic first draft as a slide script (about 80 percent there). Edit it: order the story, turn titles into claims, cut to 3 to 6 bullets, choose layouts.
 4. build_deck {script, intake, template}: compiles, stores and opens the deck in the window.
 5. render_slides {deck, slides?} shows contact sheets; lint_deck {deck} lists overflow, contrast, empty placeholders and more, each with a fix.
-6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide), edit_elements (frames, fills, new shapes), animate (entrance, emphasis, exit and motion path animations per slide), apply_template, set_theme, masters (several slide masters: list, add a template's design beside the current one, duplicate, rename, delete, preserve), apply_ops (raw ops).
+6. Fix in place: set_text (one element, by id or slot name), update_slide (rebuild one slide from a script chunk, change its layout, set notes), add_slides, slides (move, delete, duplicate, hide, or one layout on many slides), edit_elements (frames, fills, new shapes), animate (entrance, emphasis, exit and motion path animations per slide), apply_template, set_theme, masters (several slide masters: list, add a template's design beside the current one, duplicate, rename, delete, preserve), apply_ops (raw ops).
 7. handoff {deck, state: ready, note} tells the person your slides are ready to look at (question when you need their input); it shows in their Agent tab. Human review is separate: it is for people sharing a deck, only the person turns it on, and you never approve or request changes. comments {action: list} shows what they said.
 undo {deck} reverts your whole last turn (every change you made within 90 seconds of the previous one).
 
@@ -105,6 +105,7 @@ title (title, subtitle, kicker) · section (title, subtitle, number) · agenda (
 - Never pull the whole deck as JSON: get_deck outline is one line per slide; detail text lists element ids and short text for the slides you name; json only for the slides you name.
 - render_slides only the slides you changed (slides: [3, 5]); one contact sheet holds 12 slides.
 - Fix with set_text and update_slide rather than rebuilding; build_deck again only to start over.
+- To restyle several slides, set their layout in one call: slides {action: "layout", slides: [6, 7, 8], layout: "imageRight"} puts each slide's title, text and picture into that layout's placeholders, as one undoable step. Writing every element of every slide by hand is the slow path; keep it for what no layout can do, and then send all the slides' ops in one apply_ops call rather than one call per slide.
 - The digest is enough to plan most decks; get_source only what you need.
 - One idea per slide, titles as claims, 3 to 6 bullets under 14 words each; detail goes to the notes.
 - Bullets are a paragraph property, never typed text: a coloured or custom bullet is paras[].bullet {type: "char", char: "•", color: "accent1"} (a tick or a cross works as the char). A real bullet indents wrapped lines under the first word and exports to PowerPoint as a bullet; a character typed in front of the text does neither, and lint_deck reports it as typed_bullet.
@@ -172,8 +173,10 @@ TOOLS = [
           {"deck": _DECK, "slide": _SLIDE, "changes": {"type": "array", "items": {"type": "object", "description": "{op: add, element} | {op: update, id, set} | {op: delete, id} | {op: z, id, to: front|back|forward|backward}"}}},
           ["deck", "slide", "changes"]),
     _tool("apply_ops", "Applies raw deck ops (set, ins, del, move; formdeck://guide) as one undoable step.", {"deck": _DECK, "ops": {"type": "array", "items": {"type": "object"}}, "label": _S}, ["deck", "ops"]),
-    _tool("slides", "Moves (to a 1-based position), deletes, duplicates, hides or shows slides.",
-          {"deck": _DECK, "action": {"type": "string", "enum": ["move", "delete", "duplicate", "hide", "show"]}, "slides": _SLIDES, "to": _INT}, ["deck", "action", "slides"], destructive=True),
+    _tool("slides", "Moves (to a 1-based position), deletes, duplicates, hides or shows slides, or sets one layout on all of them (action layout): each slide's title, text and picture go into the layout's "
+          "placeholders, in one undoable step.",
+          {"deck": _DECK, "action": {"type": "string", "enum": ["move", "delete", "duplicate", "hide", "show", "layout"]}, "slides": _SLIDES, "to": _INT,
+           "layout": {"type": "string", "description": "For action layout: a semantic layout name or a layout id"}}, ["deck", "action", "slides"], destructive=True),
     _tool("animate", "Lists, adds, updates, removes, reorders or clears one slide's animations (entrance, emphasis, exit, motion paths); they play in the show and export to PowerPoint.",
           {"deck": _DECK, "slide": _SLIDE, "action": {"type": "string", "enum": ["list", "add", "update", "remove", "move", "clear"]},
            "element": {"type": "string", "description": "add (or retarget on update): a top-level element id or slot (title, body...)"},
@@ -202,6 +205,7 @@ TOOLS = [
           "titles and indented bullets, notes with notes=true) to an absolute path (default the Exports folder).",
           {"deck": _DECK, "format": {"type": "string", "enum": ["pptx", "potx", "fdec", "fsld", "odp", "pdf", "png", "gif", "txt", "rtf"]}, "path": _S, "slides": _SLIDES,
            "notes": {"type": "boolean"}, "width": _INT,
+           "clean": {"type": "boolean", "description": "fdec only: a copy to share, without the path the deck was saved to, agent handoff notes, slide scripts that no longer match their slide, and media no slide, layout or master uses"},
            "embedFonts": {"type": "string", "enum": ["used", "all"], "description": "pptx and potx: embed the deck's fonts like PowerPoint's Embed fonts in the file; used embeds only the characters in the deck, all embeds every character"}},
           ["deck", "format"]),
     _tool("open_file", "Opens a .pptx, .potx, .odp, .fdec or older .fsld at an absolute path as a deck (or saves it as a template).", {"path": _S, "asTemplate": {"type": "boolean"}}, ["path"]),
@@ -561,6 +565,24 @@ def _media_ops(before: dict, after: dict) -> list:
     return [{"op": "set", "path": ["media", mid], "value": after[mid]} for mid in sorted(set(after) - set(before))]
 
 
+def _unlisted_media(deck: dict, ops: list) -> list:
+    paths = [o.get("path") if isinstance(o.get("path"), list) else [] for o in ops if isinstance(o, dict)]
+    values = [o.get("value") for o in ops if isinstance(o, dict)]
+    named = [{p[-1]: v} for p, v in zip(paths, values) if p and p[-1] in ("src", "poster")]
+    have = set(deck.get("media") or {})
+    for p, v in zip(paths, values):
+        if p == ["media"] and isinstance(v, dict):
+            have |= set(v)
+        elif len(p) == 2 and p[0] == "media":
+            have.add(p[1])
+    out = []
+    for mid in sorted(model.media_ids({"values": values, "named": named}) - have):
+        meta = media_store().info(mid)
+        if meta:
+            out.append({"op": "set", "path": ["media", mid], "value": {k: meta[k] for k in ("name", "mime", "w", "h", "bytes", "frames") if k in meta}})
+    return out
+
+
 async def t_get_context(a: Agent, args: dict) -> dict:
     s = config.read_settings()
     wins = bridge.windows()
@@ -856,6 +878,25 @@ def _relayout(deck: dict, idx: int, target: str) -> list:
     return [{"op": "set", "path": ["slides", {"id": s["id"]}], "value": new}]
 
 
+def _relayout_many(deck: dict, ids: list[str], layout: str, it: dict | None) -> tuple[list, list[str]]:
+    work = copy.deepcopy(deck)
+    ops: list = []
+    warnings: list[str] = []
+    order = [s["id"] for s in deck["slides"]]
+    for sid in sorted(set(ids), key=order.index, reverse=True):
+        idx = next(i for i, s in enumerate(work["slides"]) if s["id"] == sid)
+        s = work["slides"][idx]
+        spec = s.get("spec")
+        if isinstance(spec, dict) and not spec.get("dirty") and not layout.startswith("l_"):
+            step, notes, _ = _rebuild(work, idx, {**spec, "layout": layout, "notes": s.get("notes", "")}, it)
+            warnings += notes
+        else:
+            step = _relayout(work, idx, layout)
+        opsmod.apply_all(work, copy.deepcopy(step))
+        ops += step
+    return ops, warnings
+
+
 def _check_layout(deck: dict, layout: str) -> None:
     if layout not in model.SEMANTICS and model.find_layout(deck, layout) is None:
         raise ToolError(f"Unknown layout {layout}: use one of {', '.join(model.SEMANTICS)} or a layout id.")
@@ -1084,10 +1125,12 @@ async def t_apply_ops(a: Agent, args: dict) -> dict:
     ops = args.get("ops")
     if not isinstance(ops, list) or not ops:
         raise ToolError("Give ops: a list of {op, path, value?, index?, id?}.")
-    res = await _apply(a, deck["id"], ops, str(args.get("label") or f"{len(ops)} ops"))
+    listed = _unlisted_media(deck, ops)
+    res = await _apply(a, deck["id"], ops + listed, str(args.get("label") or f"{len(ops)} ops"))
     t = opsmod.touched(ops)
     slides_hit = [x for x in t["slides"] if x]
-    return _ok(f"Applied {len(ops)} ops · rev {res['rev']}" + (f" · slides {', '.join(slides_hit[:20])}" if slides_hit else ""), {"rev": res["rev"]})
+    return _ok(f"Applied {len(ops)} ops · rev {res['rev']}" + (f" · slides {', '.join(slides_hit[:20])}" if slides_hit else "")
+               + (f" · listed media {', '.join(o['path'][1] for o in listed)}" if listed else ""), {"rev": res["rev"]})
 
 
 async def t_slides(a: Agent, args: dict) -> dict:
@@ -1145,8 +1188,24 @@ async def t_slides(a: Agent, args: dict) -> dict:
         for sid in sel:
             ops.append({"op": "set", "path": ["slides", {"id": sid}, "hidden"], "value": True} if action == "hide" else {"op": "set", "path": ["slides", {"id": sid}, "hidden"]})
         label = f"{action} {len(sel)} slide{'s' if len(sel) > 1 else ''}"
+    elif action == "layout":
+        layout = str(args.get("layout") or "")
+        if not layout:
+            raise ToolError("layout needs layout: a semantic layout name or a layout id.")
+        _check_layout(deck, layout)
+        ops, warnings = await asyncio.to_thread(_relayout_many, deck, sel, layout, _intake(None, deck))
+        await _apply(a, deck["id"], ops, f"layout {layout} on {len(sel)} slide{'s' if len(sel) > 1 else ''}")
+        deck = _deck(deck["id"])
+        now = [i for i, s in enumerate(deck["slides"]) if s["id"] in sel]
+        lines = [f"Layout {layout} on {len(sel)} slide{'s' if len(sel) > 1 else ''} · deck now {len(deck['slides'])} slides"] + _outline(deck, now)
+        empty = [f"{i + 1}: {', '.join(e)}" for i in now if (e := _unfilled(deck, deck["slides"][i]))]
+        if empty:
+            lines.append("Empty placeholders: " + "; ".join(empty[:20]))
+        if warnings:
+            lines.append("Warnings: " + "; ".join(warnings[:8]))
+        return _ok("\n".join(lines))
     else:
-        raise ToolError("action is move, delete, duplicate, hide or show.")
+        raise ToolError("action is move, delete, duplicate, hide, show or layout.")
     if not ops:
         return _ok("Nothing to change.")
     await _apply(a, deck["id"], ops, label)
@@ -1505,9 +1564,11 @@ async def t_export_deck(a: Agent, args: dict) -> dict:
     fmt = str(args.get("format") or "pptx").lower()
     if fmt in ("pptx", "potx", "fdec", "fsld", "odp"):
         from app.routers.decks import export_bytes
+        from app.services import package
         embed = args.get("embedFonts") if args.get("embedFonts") in ("used", "all") else None
         notes: list[str] = []
-        data, name, _ = await asyncio.to_thread(export_bytes, deck, fmt, None, embed, notes)
+        clean = bool(args.get("clean")) and fmt in package.FORMATS
+        data, name, _ = await asyncio.to_thread(export_bytes, package.clean_copy(deck) if clean else deck, fmt, None, embed, notes)
         if args.get("path"):
             p = _abs(args["path"], must_exist=False)
             if p.is_dir():

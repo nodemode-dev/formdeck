@@ -122,7 +122,7 @@ function textBlock(ctx: Ctx, c: Chain, el: ShapeElement, f: Frame): string {
 function imageBlock(ctx: Ctx, el: ImageElement, f: Frame, c: Chain): string {
   const info = ctx.deck.media[el.src] ?? {};
   const iw = info.w ?? f.w, ih = info.h ?? f.h;
-  let left = 0, top = 0, dw = f.w, dh = f.h;
+  let left = 0, top = 0, dw = f.w, dh = f.h, natural = '';
   if (el.crop && (el.crop.l || el.crop.t || el.crop.r || el.crop.b)) {
     const sx = 1 - el.crop.l - el.crop.r, sy = 1 - el.crop.t - el.crop.b;
     dw = f.w / Math.max(0.01, sx);
@@ -136,6 +136,7 @@ function imageBlock(ctx: Ctx, el: ImageElement, f: Frame, c: Chain): string {
     const [fx, fy] = el.fit === 'contain' ? [0.5, 0.5] : el.focus ?? [0.5, 0.5];
     left = (f.w - dw) * fx;
     top = (f.h - dh) * fy;
+    if (!info.w || !info.h) natural = `object-fit:${el.fit === 'contain' ? 'contain' : 'cover'};object-position:${round(fx * 100)}% ${round(fy * 100)}%;`;
   }
   const mask = el.mask ?? (el.ph ? geomOf(c) : undefined);
   let clip = '';
@@ -158,7 +159,7 @@ function imageBlock(ctx: Ctx, el: ImageElement, f: Frame, c: Chain): string {
     outline = `<svg class="fd-geom" viewBox="0 0 ${round(f.w)} ${round(f.h)}" width="${round(f.w)}" height="${round(f.h)}">${line.defs ? `<defs>${line.defs}</defs>` : ''}<path d="${d}" fill="none" ${line.attrs}/></svg>`;
   }
   const m3d = el.model && modelLive(ctx.mode) ? `<canvas class="fd-m3d" data-m3d="${esc(canvasSpec(el.model.src, viewOf(el.model)))}" data-w="${round(f.w)}" data-h="${round(f.h)}"></canvas>` : '';
-  return `<div class="fd-imgbox" style="${clip}${eff ? `filter:${eff};` : ''}"><img class="fd-img" alt="${esc(el.alt ?? '')}" draggable="false" decoding="async" src="${mediaUrl(el.src)}" style="left:${round(left)}px;top:${round(top)}px;width:${round(dw)}px;height:${round(dh)}px;${filters.length ? `filter:${filters.join(' ')};` : ''}">${m3d}</div>${outline}`;
+  return `<div class="fd-imgbox" style="${clip}${eff ? `filter:${eff};` : ''}"><img class="fd-img" alt="${esc(el.alt ?? '')}" draggable="false" decoding="async" src="${mediaUrl(el.src)}" style="left:${round(left)}px;top:${round(top)}px;width:${round(dw)}px;height:${round(dh)}px;${natural}${filters.length ? `filter:${filters.join(' ')};` : ''}">${m3d}</div>${outline}`;
 }
 
 function chartBlock(ctx: Ctx, el: ChartElement, f: Frame, c: Chain): string {
