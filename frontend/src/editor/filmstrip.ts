@@ -5,7 +5,7 @@ import { icon } from '../ui/icons';
 import { el, setClass, setHidden, setStyleVar, setText, setTitle } from '../ui/dom';
 import { buzz, isTouchInput, Press } from '../ui/touch';
 import type { Editor } from './editor';
-import { moveSlidesOps } from './actions';
+import { moveSlidesOps, sectionAt } from './actions';
 import { hasAnimations } from './animation-pane';
 import { collab } from './collab-state';
 
@@ -379,7 +379,7 @@ export class Filmstrip {
       node?.classList.remove('is-lifted');
       const up = ev.type === 'pointerup';
       if (lifted && moved && up && this.dragIds && this.dropAt >= 0) {
-        const ops = moveSlidesOps(this.ed.doc, this.dragIds, this.dropAt);
+        const ops = moveSlidesOps(this.ed.doc, this.dragIds, this.dropAt, sectionAt(this.ed.doc, this.dropAt));
         if (ops.length) this.ed.apply(ops, this.dragIds.length > 1 ? 'Move slides' : 'Move slide');
       } else if (lifted && !moved && up) this.ed.contextMenu(ev.clientX, ev.clientY, 'thumb');
       else if (!lifted && !moved && up) {
@@ -449,7 +449,7 @@ export class Filmstrip {
       ac.abort();
       this.life.signal.removeEventListener('abort', kill);
       if (this.dragIds && this.dropAt >= 0) {
-        const ops = moveSlidesOps(this.ed.doc, this.dragIds, this.dropAt);
+        const ops = moveSlidesOps(this.ed.doc, this.dragIds, this.dropAt, sectionAt(this.ed.doc, this.dropAt));
         if (ops.length) this.ed.apply(ops, this.dragIds.length > 1 ? 'Move slides' : 'Move slide');
       }
       this.dragIds = null;
