@@ -120,13 +120,14 @@ Returns: `Slide 4: updated e86 (fit).` An added image takes `src` as an asset id
 
 ### apply_ops
 - deck, ops (required); label: string
-Returns: `Applied N ops · rev R · slides s1`. Structured `{rev}`. Shapes: `{op: set, path, value}` (no value deletes), `{op: ins, path, index?, value}`, `{op: del, path, id}`, `{op: move, path, id, index}`.
+Returns: `Applied N ops · rev R · slides s1`, plus `listed media img_...` when the ops placed a media id the deck's media table did not list (the entry is added in the same step). Structured `{rev}`. Shapes: `{op: set, path, value}` (no value deletes), `{op: ins, path, index?, value}`, `{op: del, path, id}`, `{op: move, path, id, index}`.
 
 ### slides [destructive]
 - deck, action, slides (required)
-- action: move | delete | duplicate | hide | show
+- action: move | delete | duplicate | hide | show | layout
 - to: integer, 1-based target for move
-Returns: what changed and the full outline. Duplicates start in draft.
+- layout: for action layout, a semantic layout name or a layout id; every listed slide gets it, and its title, text and picture go into the layout's placeholders, as one undoable step. This is the fast way to restyle several slides
+Returns: what changed and the full outline (for layout: the changed slides, any empty placeholders and build warnings). Duplicates start in draft.
 
 ### animate
 - deck, slide, action (required); action: list | add | update | remove | move | clear
