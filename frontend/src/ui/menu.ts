@@ -15,18 +15,20 @@ function track(): void {
   document.addEventListener('pointermove', (e) => { px = e.clientX; py = e.clientY; }, { capture: true, passive: true });
 }
 
-function aims(e: PointerEvent, r: DOMRect): boolean {
-  if (e.pointerType !== 'mouse' || Number.isNaN(px)) return false;
-  const x = e.clientX, y = e.clientY, pad = 8;
-  if (r.top >= Math.max(py, y)) {
-    if (y <= py) return false;
-    const hit = px + (x - px) * (r.top - py) / (y - py);
-    return hit >= r.left - pad && hit <= r.right + pad;
-  }
-  const edge = r.left >= Math.max(px, x) ? r.left : r.right <= Math.min(px, x) ? r.right : NaN;
-  if (Number.isNaN(edge) || x === px || (edge - px) / (x - px) <= 0) return false;
-  const hit = py + (y - py) * (edge - px) / (x - px);
-  return hit >= r.top - pad && hit <= r.bottom + pad;
+interface Pt { x: number; y: number }
+
+function cameFrom(e: PointerEvent): Pt | null {
+  return e.pointerType === 'mouse' && !Number.isNaN(px) ? { x: px, y: py } : null;
+}
+
+function within(a: Pt, e: PointerEvent, r: DOMRect): boolean {
+  const pad = 8;
+  const [b, c]: Pt[] = r.top >= a.y ? [{ x: r.left - pad, y: r.top }, { x: r.right + pad, y: r.top }]
+    : r.left >= a.x ? [{ x: r.left, y: r.top - pad }, { x: r.left, y: r.bottom + pad }]
+    : r.right <= a.x ? [{ x: r.right, y: r.top - pad }, { x: r.right, y: r.bottom + pad }] : [a, a];
+  const side = (p: Pt, q: Pt): number => (e.clientX - q.x) * (p.y - q.y) - (p.x - q.x) * (e.clientY - q.y);
+  const d = [side(a, b), side(b, c), side(c, a)];
+  return b !== a && !(d.some((v) => v < 0) && d.some((v) => v > 0));
 }
 
 export class PopupMenu {
@@ -38,6 +40,7 @@ export class PopupMenu {
   private openSub: PopupMenu | null = null;
   private subTop = 0;
   private aim = 0;
+  private from: Pt | null = null;
   onClose: (() => void) | null = null;
 
   constructor(private readonly commands: Commands, private readonly parent: PopupMenu | null = null, standalone = false) {
@@ -72,7 +75,8 @@ export class PopupMenu {
         node.dataset.sub = item.label.toLowerCase();
         const menu = new PopupMenu(this.commands, this);
         menu.setItems(item.items);
-        node.addEventListener('pointerenter', (e) => this.hover(e, node, () => this.showSub(menu, node)));
+        node.addEventListener('pointerenter', (e) => this.hover(e, node, () => this.showSub(menu, node), true));
+        node.addEventListener('pointermove', (e) => this.hover(e, node, () => this.showSub(menu, node), false));
         node.addEventListener('click', () => this.showSub(menu, node));
         this.subs.push({ sub: item, node, menu });
         this.panel.appendChild(node);
@@ -83,7 +87,8 @@ export class PopupMenu {
       const node = el<HTMLButtonElement>(`<button class="fd-menu-item" role="menuitem" type="button"><span class="fd-menu-check">${icon('check', 14)}</span><span class="fd-menu-label"></span><span class="fd-menu-keys"></span></button>`);
       setText(q(node, '.fd-menu-keys'), this.commands.keyLabel(cmd));
       node.dataset.cmd = item;
-      node.addEventListener('pointerenter', (e) => this.hover(e, node, () => this.closeSub()));
+      node.addEventListener('pointerenter', (e) => this.hover(e, node, () => this.closeSub(), true));
+      node.addEventListener('pointermove', (e) => this.hover(e, node, () => this.closeSub(), false));
       node.addEventListener('click', () => { this.root().close(); this.commands.run(item); });
       this.rows.push({ id: item, node });
       this.panel.appendChild(node);
@@ -92,10 +97,12 @@ export class PopupMenu {
 
   private root(): PopupMenu { let m: PopupMenu = this; while (m.parent) m = m.parent; return m; }
 
-  private hover(e: PointerEvent, row: HTMLElement, act: () => void): void {
-    window.clearTimeout(this.aim);
+  private hover(e: PointerEvent, row: HTMLElement, act: () => void, entered: boolean): void {
     const sub = this.openSub;
-    if (!sub?.isOpen || !aims(e, sub.panel.getBoundingClientRect())) { act(); return; }
+    if (!sub?.isOpen) { if (entered) act(); return; }
+    if (entered) this.from = cameFrom(e);
+    window.clearTimeout(this.aim);
+    if (!this.from || !within(this.from, e, sub.panel.getBoundingClientRect())) { act(); return; }
     this.aim = window.setTimeout(() => { if (row.matches(':hover')) act(); }, AIM_MS);
   }
 
@@ -172,6 +179,7 @@ export class MenuBar {
   private readonly menus: Array<{ btn: HTMLButtonElement; menu: PopupMenu; def: MenuDef }> = [];
   private openIndex = -1;
   private aim = 0;
+  private from: Pt | null = null;
 
   constructor(host: HTMLElement, commands: Commands, defs: MenuDef[]) {
     defs.forEach((def, i) => {
@@ -183,7 +191,8 @@ export class MenuBar {
       menu.setItems(itemsOf(def));
       menu.onClose = () => { if (this.openIndex === i) { this.openIndex = -1; setClass(btn, 'is-open', false); } };
       btn.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; e.preventDefault(); if (this.openIndex === i) this.close(); else this.open(i); });
-      btn.addEventListener('pointerenter', (e) => this.enter(i, e));
+      btn.addEventListener('pointerenter', (e) => this.over(i, e, true));
+      btn.addEventListener('pointermove', (e) => this.over(i, e, false));
       this.menus.push({ btn, menu, def });
     });
     document.addEventListener('pointerdown', (e) => {
@@ -198,10 +207,11 @@ export class MenuBar {
 
   get isOpen(): boolean { return this.openIndex >= 0; }
 
-  private enter(i: number, e: PointerEvent): void {
+  private over(i: number, e: PointerEvent, entered: boolean): void {
+    if (this.openIndex < 0 || this.openIndex === i) { if (entered) window.clearTimeout(this.aim); return; }
+    if (entered) this.from = cameFrom(e);
     window.clearTimeout(this.aim);
-    if (this.openIndex < 0 || this.openIndex === i) return;
-    if (!aims(e, this.menus[this.openIndex].menu.panel.getBoundingClientRect())) { this.open(i); return; }
+    if (!this.from || !within(this.from, e, this.menus[this.openIndex].menu.panel.getBoundingClientRect())) { this.open(i); return; }
     this.aim = window.setTimeout(() => { if (this.openIndex >= 0 && this.openIndex !== i && this.menus[i].btn.matches(':hover')) this.open(i); }, AIM_MS);
   }
 
