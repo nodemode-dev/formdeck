@@ -561,6 +561,24 @@ def _media_ops(before: dict, after: dict) -> list:
     return [{"op": "set", "path": ["media", mid], "value": after[mid]} for mid in sorted(set(after) - set(before))]
 
 
+def _unlisted_media(deck: dict, ops: list) -> list:
+    paths = [o.get("path") if isinstance(o.get("path"), list) else [] for o in ops if isinstance(o, dict)]
+    values = [o.get("value") for o in ops if isinstance(o, dict)]
+    named = [{p[-1]: v} for p, v in zip(paths, values) if p and p[-1] in ("src", "poster")]
+    have = set(deck.get("media") or {})
+    for p, v in zip(paths, values):
+        if p == ["media"] and isinstance(v, dict):
+            have |= set(v)
+        elif len(p) == 2 and p[0] == "media":
+            have.add(p[1])
+    out = []
+    for mid in sorted(model.media_ids({"values": values, "named": named}) - have):
+        meta = media_store().info(mid)
+        if meta:
+            out.append({"op": "set", "path": ["media", mid], "value": {k: meta[k] for k in ("name", "mime", "w", "h", "bytes", "frames") if k in meta}})
+    return out
+
+
 async def t_get_context(a: Agent, args: dict) -> dict:
     s = config.read_settings()
     wins = bridge.windows()
@@ -1084,10 +1102,12 @@ async def t_apply_ops(a: Agent, args: dict) -> dict:
     ops = args.get("ops")
     if not isinstance(ops, list) or not ops:
         raise ToolError("Give ops: a list of {op, path, value?, index?, id?}.")
-    res = await _apply(a, deck["id"], ops, str(args.get("label") or f"{len(ops)} ops"))
+    listed = _unlisted_media(deck, ops)
+    res = await _apply(a, deck["id"], ops + listed, str(args.get("label") or f"{len(ops)} ops"))
     t = opsmod.touched(ops)
     slides_hit = [x for x in t["slides"] if x]
-    return _ok(f"Applied {len(ops)} ops · rev {res['rev']}" + (f" · slides {', '.join(slides_hit[:20])}" if slides_hit else ""), {"rev": res["rev"]})
+    return _ok(f"Applied {len(ops)} ops · rev {res['rev']}" + (f" · slides {', '.join(slides_hit[:20])}" if slides_hit else "")
+               + (f" · listed media {', '.join(o['path'][1] for o in listed)}" if listed else ""), {"rev": res["rev"]})
 
 
 async def t_slides(a: Agent, args: dict) -> dict:

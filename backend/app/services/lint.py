@@ -21,6 +21,7 @@ FIX = {
     "zero": "Give it a size or delete it (edit_elements).",
     "alt": "Add alt text (edit_elements update {alt}).",
     "upscale": "Use a larger picture, or make its frame smaller.",
+    "media": "List it: add_media {paths} gives a media id, and edit_elements add {type: 'image', src} or apply_ops lists the picture when it is placed; for a file already in the library, apply_ops set ['media', id] to {name, mime, w, h}.",
     "fonts": "Use the theme fonts (+mj for titles, +mn for body); set_theme changes them.",
     "notes": "Add speaker notes (update_slide {notes}).",
     "duplicate": "Make the title specific to this slide.",
@@ -346,6 +347,8 @@ def _check_image(out, deck, slide, n, el, frame, scale):
         _issue(out, slide, n, "alt", "warn", "picture without alt text", el["id"])
     elif name and alt.lower() in (name.lower(), name.rsplit(".", 1)[0].lower()):
         _issue(out, slide, n, "alt", "warn", "picture whose alt text is only its file name", el["id"])
+    if el.get("src") and not meta:
+        _issue(out, slide, n, "media", "warn", f"picture {el['src']} is not in the deck's media table, so its size is unknown", el["id"])
     sw, sh = meta.get("w"), meta.get("h")
     if not sw or not sh or None in frame or meta.get("mime") == "image/svg+xml" or frame[2] <= 0 or frame[3] <= 0:
         return
