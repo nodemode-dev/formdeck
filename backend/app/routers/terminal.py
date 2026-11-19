@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisco
 from pydantic import BaseModel, Field
 
 from app.core import config, window_key
-from app.services import claude_code, terminal
+from app.services import agent_programs, claude_code, terminal
 
 router = APIRouter(prefix="/api", tags=["terminal"])
 _LOOPBACK = {"localhost", "127.0.0.1", "::1", "tauri.localhost"}
@@ -114,6 +114,31 @@ async def claude_open(body: ClaudeBody, request: Request) -> dict:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"Claude Code could not start: {exc}") from None
+
+
+class AgentBody(BaseModel):
+    cols: int = Field(100, ge=10, le=500)
+    rows: int = Field(30, ge=4, le=200)
+
+
+@router.get("/agent/status")
+def agent_status(request: Request, fresh: bool = False) -> dict:
+    require_local(request)
+    return agent_programs.status(fresh)
+
+
+@router.post("/agent/{kind}/open")
+async def agent_open(kind: str, body: AgentBody, request: Request) -> dict:
+    require_local(request)
+    if kind not in agent_programs.PROGRAMS:
+        raise HTTPException(status_code=404, detail="There is no such agent program.")
+    terminal.bind(asyncio.get_running_loop())
+    try:
+        return agent_programs.open_tab(kind, body.cols, body.rows)
+    except LookupError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"{agent_programs.PROGRAMS[kind]['title']} could not start: {exc}") from None
 
 
 @router.websocket("/terminal/{sid}/stream")

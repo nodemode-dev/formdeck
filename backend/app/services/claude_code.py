@@ -16,7 +16,8 @@ KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_U
 CANDIDATES = (".claude/local/claude", ".local/bin/claude", ".npm-global/bin/claude", ".bun/bin/claude", ".volta/bin/claude")
 SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude")
 INSTALL = "Claude Code is not installed: install it from https://claude.com/claude-code, run claude once in a terminal to sign in, then open it here again."
-TOKENS: dict[str, Path] = {}
+TOKENS: dict[str, Path | None] = {}
+TOKEN_NAMES: dict[str, str] = {}
 TOKEN_DIR = "AgentTokens"
 INAPP_HEADER = "x-formdeck-inapp"
 INAPP_NAME = "Claude Code in formdeck"
@@ -103,7 +104,15 @@ def issue() -> tuple[str, str]:
     return token, str(path)
 
 
+def issue_plain(name: str) -> str:
+    token = secrets.token_urlsafe(32)
+    TOKENS[token] = None
+    TOKEN_NAMES[token] = name
+    return token
+
+
 def revoke(token: str) -> None:
+    TOKEN_NAMES.pop(token, None)
     path = TOKENS.pop(token, None)
     if path is not None:
         try:
@@ -130,6 +139,14 @@ def is_inapp(value) -> bool:
     if not isinstance(value, str) or not value:
         return False
     return any(hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
+
+
+def inapp_name(value) -> str:
+    if isinstance(value, str) and value:
+        for token, name in list(TOKEN_NAMES.items()):
+            if hmac.compare_digest(value.encode("utf-8"), token.encode("utf-8")):
+                return name
+    return INAPP_NAME
 
 
 def workdir() -> Path:
