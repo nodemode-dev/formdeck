@@ -27,7 +27,7 @@ Other commands from `./formdeck help`:
 | `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop check` | install PyInstaller and check the toolchain, run the desktop app from source, explain toolchain problems |
 | `./formdeck freeze` | freeze the engine into the desktop sidecar |
 | `./formdeck mcp` | the MCP server over stdio, for Claude Desktop and other stdio clients |
-| `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex and Cursor; refresh the skills |
+| `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex and Cursor; refresh the skills and `agents/manifest.json` |
 | `./formdeck build-deck ...` | build a deck from files without the window (see The headless CLI) |
 | `./formdeck templates export [dir]` | write the built-in templates as .pptx files |
 | `./formdeck clean [--all]` | remove build output (`--all` also the venv and node_modules) |

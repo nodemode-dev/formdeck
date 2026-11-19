@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import ast
 import json
 import os
 import re
@@ -11,10 +12,13 @@ ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ["formdeck-harness", "formdeck-skillset"]
 LEGACY_SKILLS = ["formsld-harness", "formsld-skillset"]
 LEGACY_SERVERS = ("formsld", "formsld-stdio")
+REGISTRY_NAME = "formdeck"
+MANIFEST = ROOT / "agents" / "manifest.json"
+DOCK = {"present": True, "positions": ["right", "bottom"], "tabs": ["chat", "terminal", "claude"]}
 PORT = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 8197)
 PY = "python" if os.name == "nt" else "python3"
 USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
-       ./formdeck agents sync [--check]       copy the formdeck skills again (and mirror .claude/skills to .agents/skills)"""
+       ./formdeck agents sync [--check]       copy the formdeck skills again (mirror .claude/skills to .agents/skills) and write agents/manifest.json"""
 
 
 def home() -> Path:
@@ -141,6 +145,62 @@ def skills(dry: bool, said: list) -> int:
     return changed
 
 
+def _assigned(tree: ast.Module, name: str) -> ast.expr:
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+            return node.value
+    raise SystemExit(f"agents: {name} is not assigned at the top of the module the manifest reads")
+
+
+def _names(folder: Path) -> list:
+    return sorted(p.name for p in folder.iterdir() if p.is_dir()) if folder.is_dir() else []
+
+
+def manifest_data() -> dict:
+    tree = ast.parse((ROOT / "backend" / "app" / "routers" / "mcp.py").read_text(encoding="utf-8"))
+    tools, read_only = [], []
+    for call in _assigned(tree, "TOOLS").elts:
+        tools.append(call.args[0].value)
+        if any(k.arg == "read" and isinstance(k.value, ast.Constant) and k.value.value is True for k in call.keywords):
+            read_only.append(call.args[0].value)
+    gated = {e.value for e in _assigned(tree, "MUTATING").elts}
+    for fn in tree.body:
+        if isinstance(fn, ast.FunctionDef) and fn.name == "_mutating":
+            for cmp in ast.walk(fn):
+                if isinstance(cmp, ast.Compare) and isinstance(cmp.left, ast.Name) and cmp.left.id == "name" and isinstance(cmp.ops[0], ast.Eq):
+                    gated.add(cmp.comparators[0].value)
+    unknown = sorted(gated - set(tools))
+    if unknown:
+        raise SystemExit(f"agents: the approval gate names tools the server does not list: {', '.join(unknown)}")
+    http = any(isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute) and d.func.attr == "post" and d.args and isinstance(d.args[0], ast.Constant) and d.args[0].value == "/mcp"
+               for fn in tree.body if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)) for d in fn.decorator_list)
+    transports = (["stdio"] if (ROOT / "setup" / "mcp_stdio.py").is_file() else []) + (["http"] if http else [])
+    host = ast.parse((ROOT / "backend" / "app" / "services" / "formext_host.py").read_text(encoding="utf-8"))
+    folder = ROOT / ".claude" / "skills"
+    return {
+        "format": "form-agent-manifest",
+        "version": 1,
+        "app": REGISTRY_NAME,
+        "mcp": {"tools": tools, "read_only": read_only, "approval_gated": [t for t in tools if t in gated], "transports": transports},
+        "skills": [{"name": n, "sub_skills": _names(folder / n / "sub-skills")} for n in _names(folder) if (folder / n / "SKILL.md").is_file()],
+        "dock": DOCK,
+        "extensions": {"host_api": _assigned(host, "API").value},
+    }
+
+
+def manifest(check: bool, said: list) -> int:
+    text = json.dumps(manifest_data(), indent=2) + "\n"
+    rel = MANIFEST.relative_to(ROOT).as_posix()
+    if MANIFEST.exists() and MANIFEST.read_text(encoding="utf-8") == text:
+        said.append(f"  {rel} already current")
+        return 0
+    said.append(f"  {rel} {'is not what sync would write' if check else 'written'}")
+    if not check:
+        MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+        MANIFEST.write_text(text, encoding="utf-8")
+    return 1
+
+
 def install(dry: bool) -> int:
     said: list = []
     configure(ROOT, True, dry, said)
@@ -162,11 +222,13 @@ Next:
 def sync(check: bool) -> int:
     said: list = []
     n = skills(check, said)
+    said.append("Manifest:")
+    m = manifest(check, said)
     print("\n".join(said))
     if check:
-        print("agents: in step" if n == 0 else "agents: skills drifted (run ./formdeck agents sync)")
-        return 1 if n else 0
-    print(f"agents: {n} skill cop{'ies' if n != 1 else 'y'} updated")
+        print("agents: in step" if n == 0 and m == 0 else "agents: skills or agents/manifest.json drifted (run ./formdeck agents sync)")
+        return 1 if n or m else 0
+    print(f"agents: {n} skill cop{'ies' if n != 1 else 'y'} updated, manifest {'written' if m else 'already current'}")
     return 0
 
 
