@@ -1007,7 +1007,7 @@ export async function startApp(): Promise<void> {
     const settings = await api.settings();
     agentsAllowed = !!settings.agentsAllowed;
     live.setAgents(agentsAllowed);
-    if (settings.sealBroken === true) toast('Agent access was changed outside formdeck, so agents ask again. Choose Allow or Deny in Agents to confirm it.');
+    if (settings.sealBroken === true) dialogs.noteSealBroken();
     const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
     for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));
     setMarqueeRule(settings.marquee);

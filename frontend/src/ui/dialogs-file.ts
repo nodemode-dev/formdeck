@@ -2158,6 +2158,9 @@ const SETUP: Array<{ id: string; tab: string; title: string; note: string; text:
   { id: 'desktop', tab: 'Claude Desktop', title: 'claude_desktop_config.json', note: 'Claude Desktop starts local servers over stdio: ./formdeck mcp runs the same tools. Use the full path to your formdeck folder.', text: () => '{\n  "mcpServers": {\n    "formdeck": { "command": "/path/to/formdeck/formdeck", "args": ["mcp"] }\n  }\n}' },
 ];
 
+let sealNotice = false;
+export function noteSealBroken(): void { sealNotice = true; }
+
 class AgentsDialog extends Dialog {
   private h: (AgentHooks & { deck: () => Deck | null }) | null = null;
   private port = location.port && location.port !== '5197' ? location.port : '8197';
@@ -2166,6 +2169,7 @@ class AgentsDialog extends Dialog {
   private readonly badge: HTMLElement;
   private readonly url: HTMLElement;
   private readonly engine: HTMLElement;
+  private readonly seal: HTMLElement;
   private readonly tabs: HTMLElement;
   private readonly blocks: HTMLElement[] = [];
   private readonly promptLabel: HTMLElement;
@@ -2175,7 +2179,9 @@ class AgentsDialog extends Dialog {
     const card = el(`<div class="fd-dlg-card">
 <div class="fd-dlg-card-row"><label class="fd-check"><input type="checkbox" data-f="allow"><span>Let agents read and edit decks</span></label><span class="fd-badge fd-dlg-agent-badge"></span></div>
 <dl class="fd-kv"><dt>MCP server</dt><dd class="fd-dlg-mcp-url"></dd><dt>Engine</dt><dd class="fd-dlg-engine"></dd></dl>
+<p class="fd-note fd-dlg-seal" hidden>The saved agent permission was changed outside FormDeck, so it is back to Ask.</p>
 </div>`);
+    this.seal = q(card, '.fd-dlg-seal');
     this.tabs = el(`<div class="fd-seg is-quiet fd-dlg-tabs" role="group" aria-label="Set up">${SETUP.map((s) => `<button type="button" data-v="${s.id}">${s.tab}</button>`).join('')}</div>`);
     const blocks = SETUP.map((s) => {
       const b = el(`<div class="fd-dlg-code" hidden><div class="fd-dlg-code-head"><span class="fd-dlg-code-title"></span>${copyBtn()}</div><pre class="fd-dlg-code-text"></pre><p class="fd-note"></p></div>`);
@@ -2208,6 +2214,8 @@ class AgentsDialog extends Dialog {
   show(h: AgentHooks & { deck: () => Deck | null }): void {
     this.h = h;
     setChecked(this.allow, h.agentsAllowed());
+    setHidden(this.seal, !sealNotice);
+    sealNotice = false;
     this.syncAllow();
     this.syncPort();
     this.syncTabs();
