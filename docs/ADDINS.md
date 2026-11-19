@@ -83,7 +83,7 @@ A call runs the named function in a fresh sandbox against the current deck, so t
 
 ## Catalog
 
-The Store reads a JSON index. The address is the engine setting `addins.indexUrl` and defaults to `https://raw.githubusercontent.com/nodemode-ai/formdeck/main/addins/index.json`. If it cannot be fetched, the Store shows the copy of the index that ships with the app and says so.
+The Store reads a JSON index. The address is the engine setting `addins.indexUrl` and defaults to `https://raw.githubusercontent.com/nodemode-dev/formdeck/main/addins/index.json`. If it cannot be fetched, the Store shows the copy of the index that ships with the app and says so.
 
 ```json
 {
