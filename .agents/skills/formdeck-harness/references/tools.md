@@ -1,6 +1,6 @@
 # formdeck MCP tools
 
-The 24 tools of the formdeck MCP server (engine 0.2.0), taken from a live `tools/list` and checked call by call against a running engine and window. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
+The 33 tools of the formdeck MCP server (the TOOLS list in `backend/app/routers/mcp.py`). The first 24 were taken from a live `tools/list` and checked call by call against a running engine and window (engine 0.2.0); handoff, chat_inbox, chat_reply, layout_ideas_reply, list_commands and run_command are written from the server's own tool descriptions and were not checked call by call. Names and arguments are case sensitive. "Returns" is what comes back: text first, then `structuredContent` where the tool sends it.
 
 ## Chat panel and layout requests
 
@@ -14,7 +14,8 @@ The 24 tools of the formdeck MCP server (engine 0.2.0), taken from a live `tools
 - Build: draft_spec, build_deck, add_slides
 - Fix: update_slide, set_text, edit_elements, apply_ops, slides, animate
 - Style: apply_template, set_theme, masters
-- Hand over: review, comments, undo, export_deck, open_file
+- Hand over: review, comments, handoff, undo, export_deck, open_file
+- Chat and commands: chat_inbox, chat_reply, layout_ideas_reply, list_commands, run_command
 - Resources and prompt
 
 ## Conventions
@@ -23,7 +24,8 @@ The 24 tools of the formdeck MCP server (engine 0.2.0), taken from a live `tools
 - Paths are absolute (`~` works). Asset ids (`a1`) come from an intake, media ids (`img_...`) from add_media or an intake.
 - A tool that cannot act answers with `isError: true` and a sentence naming the next step. Read it and do that.
 - Mutating tools are recorded as agent steps labelled `Agent: ...`; calls less than 90 seconds apart join one turn, and `undo` reverts a whole turn by default.
-- render_slides, measured lint and pdf or png export need the formdeck window. Everything else works headless.
+- render_slides, measured lint and pdf or png export need the formdeck window. Everything else works headless once the person has allowed agents.
+- A tool that changes a deck needs the person's Allow: formdeck asks in its window the first time, and remembers the answer (Preferences). With no window open to ask and agents not yet allowed, the call is refused with a sentence saying so; ask the person to open formdeck. The Claude Code tab and Chat inside formdeck are exempt.
 
 ## Look
 
@@ -174,6 +176,10 @@ Returns: `Set. review: 1-9` or, without status, the groups. Structured counts `{
 - slide, element, text, id
 Returns: list gives `N open, M resolved` then `c1 · slide 4 (s3) · author (kind): text` with replies; add gives the new id. Agent comments carry kind `agent`.
 
+### handoff
+- deck (required); slides: array; state: working | ready | question; note: what you need, for question
+Tells the person where your work stands, per slide. It shows in their Agent tab and is not review. clear removes your handoff from the slides; with no state it lists the current handoff.
+
 ### undo [destructive]
 - deck (required); scope: turn (default) | step
 Returns: `Undo Agent: theme (11 steps) · deck now 8 slides`. Refuses when the newest change is the person's. There is no redo tool.
@@ -192,7 +198,7 @@ Returns: `Wrote /path/file.pptx (70 KB, 9 slides).` or `Exported 9 slides as PDF
 - asTemplate: boolean, save it as a reusable template instead
 Returns: `Opened d_... · N slides` with the outline and import notes, or `Saved template id (21 layouts: ...)`.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf); formdeck has no pdf tool. A PDF reaches a deck through `ingest`, and export_deck writes a deck as PDF.
+PDF editing lives in formpdf (github.com/nodemode-dev/formpdf); formdeck has no pdf tool. A PDF reaches a deck through `ingest`, and export_deck writes a deck as PDF.
 
 ## Extensions
 
@@ -205,6 +211,28 @@ No arguments. Returns one line per extension: `id · name version · source · s
 - id (required), command (required): from extensions_list
 - args: object passed to the extension with the command
 Runs the command as the person's click on Extensions > `Name: Title` would. The first run of a version shows the person a consent dialog and waits for it; Not Now comes back as an error. Returns `Name: Title ran in the window.` and structured `{id, command, result}` with what the extension handed back. Each command's changes are one undo step labelled by the extension. The CLI equivalents are `./formdeck cli extensions` and `./formdeck cli extension <id> <command> [key=value ...]`.
+
+## Chat and commands
+
+### chat_inbox
+- deck, wait: integer, seconds to hold the call open for a new message
+Reads messages the person typed in the chat panel (Agent tab) that nobody has answered yet. Call it in a loop to stay available and answer each with chat_reply.
+
+### chat_reply
+- text (required); deck; final: boolean, default true; to: the message id being answered
+Posts a reply in the chat panel. final false streams a partial: later calls append to the same reply until one is final.
+
+### layout_ideas_reply
+- id (required): the request id from chat_inbox; ideas (required): array of `{layout, note, place}`, best first
+Answers a layout request, only when the person turned on Agent layout ideas. The order and the placements are yours; formdeck does no scoring. Contract: `docs/LAYOUT_IDEAS.md`.
+
+### list_commands [read-only]
+- text: words that must all match; group; id: one command with its parameters; limit: integer, default 60
+The editor's command catalogue, the same commands as the ribbon, menus and shortcuts.
+
+### run_command
+- id (required), from list_commands; params: object; deck; confirm: boolean
+Runs one editor command in the open window on the deck in front (or the deck you name) as one undoable step. A command marked risky cannot be undone; pass confirm true for it.
 
 ## Resources and prompt
 

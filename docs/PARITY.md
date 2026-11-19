@@ -292,7 +292,7 @@ Not on the list and not offered by formdeck: Keynote Slide Clean Up, PowerPoint 
 | Capability | PowerPoint | Keynote | Slides | formdeck | Seen working | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | Built-in AI assistant | yes | yes | yes | Full | 0.19.0: against a fake OpenAI-compatible server, the chat sent 28 tools, a set_text call retitled slide 1 and the panel showed Done | `ui/chat-panel.ts` chat in the Agent tab that edits the deck with the MCP tools as undoable agent turns, through the person's connected agent (`chat_inbox`, `chat_reply`), an Anthropic or OpenAI-compatible key, or a local Ollama model (`services/chat/`) |
-| MCP server for outside agents (HTTP and stdio) | no | no | no | Full | not yet | `backend/app/routers/mcp.py TOOLS` (31 tools), `setup/mcp_stdio.py` |
+| MCP server for outside agents (HTTP and stdio) | no | no | no | Full | not yet | `backend/app/routers/mcp.py TOOLS` (33 tools), `setup/mcp_stdio.py` |
 | Agent edits land live in the open window, undone per turn | no | no | no | Full | not yet | `services/store.py step(turn)`, `commands.ts undo-agent` |
 | Agent sees and measures its own slides | no | no | no | Full | not yet | `agent-bridge.ts` render_slides, measure; `services/lint.py` |
 | Agent consent and on/off switch | no | no | no | Full | not yet | `agent-bridge.ts` consent, Preferences and Agent tab |

@@ -11,7 +11,7 @@ metadata:
 
 formdeck is a presentation editor running on this computer. Its MCP server (`formdeck`) builds and changes decks inside the engine while the person watches the formdeck window, and every change is an undoable step attributed to you. The tools are the hands; this pack is the method: read the material once, write the story as a slide script, build, look, fix, and hand the deck to the person for approval.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). In formdeck a PDF is material for a deck: `ingest` reads it, and in the window Insert > Slides from PDF Pages adds one slide per page.
+PDF editing lives in formpdf (github.com/nodemode-dev/formpdf). In formdeck a PDF is material for a deck: `ingest` reads it, and in the window Insert > Slides from PDF Pages adds one slide per page.
 
 ## Doctrine (applies to every route)
 
@@ -28,7 +28,7 @@ PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). In formdeck a PDF
 ```
 formdeck-harness/
   SKILL.md                      this router and the doctrine
-  references/tools.md           all 24 MCP tools: arguments and what they return
+  references/tools.md           all 33 MCP tools: arguments and what they return
   EVALS.json                    evaluation prompts and trigger tests for this pack
   sub-skills/
     deck-director/              entry route: intake questions, the full loop, completion gate
@@ -57,7 +57,7 @@ For anything that produces or reshapes a deck, start with `sub-skills/deck-direc
 | Fix overflowing or crowded slides, lint issues, check how it looks, swap a picture | `visual-qa` |
 | Hand it over, answer comments, undo the agent's changes, export to pptx or pdf, open a .pptx | `review-handoff` |
 | `chat_inbox` returned `layoutRequests`, Agent layout ideas is on, suggest or rank layouts for a slide | `layout-ideas` |
-| Merge, split, sign, redact, fill or otherwise edit a PDF | Not formdeck: point the person to formpdf (github.com/nodemode-ai/formpdf) |
+| Merge, split, sign, redact, fill or otherwise edit a PDF | Not formdeck: point the person to formpdf (github.com/nodemode-dev/formpdf) |
 
 ## Before anything
 
