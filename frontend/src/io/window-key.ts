@@ -28,11 +28,21 @@ function attach(): void {
   };
 }
 
+async function keptKeyWorks(): Promise<boolean> {
+  const kept = remembered();
+  if (!kept) return false;
+  try {
+    const res = await fetch('/api/window/ticket', { method: 'POST', headers: { [HEADER]: kept } });
+    return res.ok;
+  } catch { return false; }
+}
+
 export async function loadWindowKey(): Promise<void> {
   const holder = window as unknown as { __FORMDECK_WINDOW_KEY?: unknown };
   const given = holder.__FORMDECK_WINDOW_KEY;
   delete holder.__FORMDECK_WINDOW_KEY;
   if (typeof given === 'string' && given) key = given;
+  else if (await keptKeyWorks()) key = remembered();
   else {
     try {
       const res = await fetch('/api/window/key', { method: 'POST' });
