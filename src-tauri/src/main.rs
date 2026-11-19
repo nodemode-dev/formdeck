@@ -295,7 +295,7 @@ fn main() {
                         }
                     }
                 }
-                let grace = std::time::Instant::now() + std::time::Duration::from_secs(3);
+                let grace = std::time::Instant::now() + std::time::Duration::from_secs(10);
                 while port.is_some() && key.is_none() && std::time::Instant::now() < grace {
                     match rx.try_recv() {
                         Ok(CommandEvent::Stdout(bytes)) => {
@@ -312,7 +312,7 @@ fn main() {
                     _ => String::new(),
                 };
                 *handle.state::<KeyScript>().0.lock().unwrap() = key_script.clone();
-                match port {
+                match port.filter(|_| key.is_some()) {
                     Some(found) => {
                         let mut url: tauri::Url = format!("http://127.0.0.1:{found}")
                             .parse()
