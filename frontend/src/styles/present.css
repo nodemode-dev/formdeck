@@ -79,6 +79,7 @@ body.fd-showing #app { visibility: hidden; }
 .fd-show-split:hover::before, .fd-show-split:focus-visible::before { width: 3px; margin-left: -1px; background: var(--accent-color); }
 .fd-show-split:focus-visible { outline: none; }
 .fd-show-notes-foot { display: flex; align-items: center; gap: var(--space-1); }
+:root[data-oled] .fd-show-notes, :root[data-oled] .fd-show-qa, :root[data-oled] .fd-show-ptop { background: var(--bg-primary); }
 .fd-show-qa { min-height: 0; padding: var(--space-2) var(--space-3); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-1); border-radius: var(--radius-md); background: var(--surface-1); font-size: var(--fd-13); line-height: 1.4; }
 .fd-show-q { display: grid; gap: 2px; padding: var(--space-1) 0; border-bottom: 1px solid var(--line-1); overflow-wrap: anywhere; }
 .fd-show-q:last-child { border-bottom: 0; }

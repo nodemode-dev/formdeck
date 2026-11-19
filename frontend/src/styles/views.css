@@ -3,6 +3,7 @@
 .fd-av-pane[hidden] { display: none; }
 .fd-av-pane > .fd-empty, .fd-sort-scroll > .fd-empty, .fd-outl-scroll > .fd-empty { position: absolute; inset: 0; }
 
+:root[data-oled] .fd-sort-head { background: var(--bg-primary); }
 .fd-sort-head { display: flex; flex: none; align-items: center; gap: var(--space-3); height: 36px; padding: 0 var(--space-4); border-bottom: 1px solid var(--line-1); background: var(--surface-1); color: var(--text-secondary); font-size: var(--fd-12); }
 .fd-sort-count { color: var(--text-primary); font-weight: 500; font-variant-numeric: tabular-nums; }
 .fd-sort-sel { color: var(--text-muted); font-variant-numeric: tabular-nums; }

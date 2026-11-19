@@ -42,6 +42,7 @@ body.theme-light :is(.fd-rb-file, .fd-rb-tab.is-ctx, .fd-rb-btn.is-on, .fd-qat-b
 .fd-rb.is-collapsed .fd-rb-tool[data-tool="collapse"] .icon { transform: rotate(180deg); }
 
 .fd-rb-body { flex: none; order: 1; height: var(--rb-body-h); overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--line-0); background: var(--surface-1); }
+:root[data-oled] .fd-rb-body { background: var(--bg-primary); }
 .fd-rb.is-collapsed .fd-rb-body { position: absolute; left: 0; right: 0; top: var(--rb-tabs-h); z-index: var(--z-menu); box-shadow: var(--shadow-md); }
 .fd-rb-panel { display: flex; align-items: stretch; width: max-content; min-width: 100%; height: 100%; padding: calc((var(--rb-body-h) - var(--ctl-sm) * 3 - var(--fd-16)) / 2) var(--space-1); }
 .fd-rb-panel[hidden], .fd-rb-group[hidden] { display: none; }

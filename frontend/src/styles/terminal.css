@@ -13,6 +13,7 @@
 .fd-dock-side > span { display: inline-grid; place-items: center; }
 .fd-dock-side > .fd-dock-side-b, .fd-app.is-dock-right .fd-dock-side > .fd-dock-side-r { display: none; }
 .fd-app.is-dock-right .fd-dock-side > .fd-dock-side-b { display: inline-grid; }
+:root[data-oled] .fd-dock-head, :root[data-oled] .fd-dock-ask { background: var(--bg-primary); }
 .fd-dock-head { display: flex; align-items: center; gap: var(--space-2); min-width: 0; padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); }
 .fd-dock-tabs { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .fd-dock-tab { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px 0 9px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-muted); font: inherit; font-size: var(--fd-12); white-space: nowrap; cursor: pointer; }
