@@ -642,11 +642,11 @@ export async function startApp(): Promise<void> {
     chatPane: (host) => {
       const pane = el('<div class="fd-dock-chat-pane"></div>');
       host.appendChild(pane);
-      void new ChatPanel(pane, () => editor?.doc.id ?? null, {
+      const panel = new ChatPanel(pane, () => editor?.doc.id ?? null, {
         copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null),
         openClaude: (resume) => void dock?.claude(undefined, resume),
       });
-      return { focus: () => pane.querySelector<HTMLTextAreaElement>('textarea')?.focus() };
+      return { send: (text) => panel.ask(text), shown: () => panel.sync(), hidden: () => panel.rest(), closed: () => panel.rest(), busy: () => panel.isBusy() };
     },
     openSettings: () => commands.run('agents'),
     layerOpen: () => anyDialogOpen() || document.querySelector('.fd-show') !== null,
@@ -656,29 +656,12 @@ export async function startApp(): Promise<void> {
   }));
   const dockOpen = (): boolean => dock?.isOpen() === true;
   if (dock) {
-    const askLine = el(`<form class="fd-dock-ask" autocomplete="off">
-<span class="fd-dock-ask-mark">${icon('agent', 15)}</span>
-<input class="fd-input fd-dock-ask-input" type="text" spellcheck="false" placeholder="Ask Claude Code to work on this deck" aria-label="Ask Claude Code">
-<button type="submit" class="fd-tt-btn" title="Send to Claude Code" aria-label="Send to Claude Code">${icon('send', 14)}</button>
-</form>`);
-    const askInput = q<HTMLInputElement>(askLine, '.fd-dock-ask-input');
-    askLine.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = askInput.value.trim();
-      if (!text) return;
-      askInput.value = '';
-      void dock.claude(text).then((sent) => { if (!sent && !askInput.value) askInput.value = text; });
-    });
-    dock.root.appendChild(askLine);
     dock.onChange = () => {
       const ed = editor;
       if (ed) requestAnimationFrame(() => ed.stage.layout());
       syncChrome();
     };
-    dock.onTab = () => {
-      setClass(askLine, 'is-off', dock.activeKind() === 'chat');
-      syncChrome();
-    };
+    dock.onTab = () => syncChrome();
     dock.mount(root, q(root, '.fd-status'));
   }
   let palette: CommandPalette | null = null;

@@ -102,6 +102,21 @@ export class ChatPanel {
 
   sync(): void { this.tick(); }
 
+  rest(): void { this.close(); }
+
+  isBusy(): boolean { return this.status.busy; }
+
+  async ask(text: string): Promise<boolean> {
+    const said = text.trim();
+    if (!this.cid) this.tick();
+    if (!said || this.status.busy || !this.cid) return false;
+    this.stick = true;
+    try { await call(`/api/chat/${encodeURIComponent(this.cid)}/send`, 'POST', { text: said }); return true; } catch (err) {
+      toast((err as Error).message, 'error');
+      return false;
+    }
+  }
+
   dispose(): void {
     window.clearInterval(this.timer);
     this.close();
@@ -289,12 +304,9 @@ export class ChatPanel {
     if (!text || this.status.busy || !this.cid) return;
     this.box.value = '';
     this.syncControls();
-    this.stick = true;
-    try { await call(`/api/chat/${encodeURIComponent(this.cid)}/send`, 'POST', { text }); } catch (err) {
-      this.box.value = text;
-      this.syncControls();
-      toast((err as Error).message, 'error');
-    }
+    if (await this.ask(text)) return;
+    this.box.value = text;
+    this.syncControls();
   }
 
   private async stop(): Promise<void> {

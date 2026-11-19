@@ -1203,3 +1203,63 @@ The whole old file is `git show 033f656:frontend/src/ui/terminal-dock.ts`.
 Strings. The module's sentences show in English in every language: they are not in the tables, and `setup/i18n_tool.py` skips `dock/` so the check does not count another repository's literals (it counted 164 unkeyed strings before this entry and 169 after, the five being the adapter's and the bridge's own).
 
 Seen in headless Chrome at 1440 by 900 against the Vite dev server and the engine from source (ports 33112 and 33111), same deck, same steps before and after: dock closed, 0 pixels differ; open on a terminal with the terminal's text hidden, 1010 pixels differ, all in the head row (three more buttons: Codex, Cursor and the menu; New before Chat; the family's side mark); open on Chat, 1096 pixels, all in the head row (the same, and the Chat tab's close mark is no longer orange). The dock's box is the same, 1440 by 280 at y 592. Elements: 10210, 10317, 10487 before; 10363, 10409, 10580 after (the dock is built at start now, and its terminal code is still loaded only on first use). `tsc --noEmit` is clean.
+
+## 219. The dock is module 2.1.0 and the ask line is the module's · _v0.40.0 (src/dock/ copied from formvis 8bbdf61b; src/dock-adapter.ts; app.ts; ui/chat-panel.ts; styles/terminal.css; styles/dock-tokens.css)
+
+The folder `src/dock/` is the 2.1.0 folder byte for byte (11 of its 15 files changed, none added or removed). Module 2.0.1 hid its ask line whenever the app owned Chat, so formdeck appended a line of its own to `dock.root`. 2.1.0 has `chat.ask`, and the adapter now says `chat: { pane, ask: 'line' }`: the module's line shows on every tab, under a terminal tab it opens Claude Code with the text (the adapter still adds the window's deck, slide and selection), on Chat it goes to formdeck's Chat through the pane's `send`. The pane's object is now `{ send, shown, hidden, closed, busy }`: `shown` connects the conversation's event stream at once, `hidden` and `closed` close it at once (the 1.5 second tick did both before and still runs), `busy` and a `send` that answers false leave the text in the line. `ChatPanel` gained `ask(text)`, `isBusy()` and `rest()`, and its own send button goes through `ask`. `readOldDock` returns `seen: true` with the layout it moves, so a person who had the old dock is not shown the guide. `--dock-stage-pad: 6px 4px 0 10px` gives the terminal the inset it had before 2.0.1 (the terminal's box is 10, 633, 1426 by 199 again; it was 8, 631, 1424 by 201 on 2.0.1).
+
+Changed for the person: on Chat the ask row is no longer an empty 40 px row, it is the module's line ("Ask Claude about your deck (Enter to send)") and it sends to the Chat pane, beside the pane's own message box. Under a terminal the placeholder reads "Ask Claude Code to work on your deck" (was "this deck") and the mark is the module's glyph. `dock.focus()` on Chat now focuses that line, so the pane's `focus` was dropped.
+
+Removed from app.ts:
+
+```ts
+      return { focus: () => pane.querySelector<HTMLTextAreaElement>('textarea')?.focus() };
+```
+
+```ts
+    const askLine = el(`<form class="fd-dock-ask" autocomplete="off">
+<span class="fd-dock-ask-mark">${icon('agent', 15)}</span>
+<input class="fd-input fd-dock-ask-input" type="text" spellcheck="false" placeholder="Ask Claude Code to work on this deck" aria-label="Ask Claude Code">
+<button type="submit" class="fd-tt-btn" title="Send to Claude Code" aria-label="Send to Claude Code">${icon('send', 14)}</button>
+</form>`);
+    const askInput = q<HTMLInputElement>(askLine, '.fd-dock-ask-input');
+    askLine.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = askInput.value.trim();
+      if (!text) return;
+      askInput.value = '';
+      void dock.claude(text).then((sent) => { if (!sent && !askInput.value) askInput.value = text; });
+    });
+    dock.root.appendChild(askLine);
+```
+
+```ts
+    dock.onTab = () => {
+      setClass(askLine, 'is-off', dock.activeKind() === 'chat');
+      syncChrome();
+    };
+```
+
+Removed from styles/terminal.css:
+
+```css
+:root[data-oled] .fd-dock-ask { background: var(--bg-primary); }
+.fd-dock-ask { flex: none; display: flex; align-items: center; gap: var(--space-2); height: 40px; box-sizing: border-box; padding: 0 var(--space-2); background: var(--surface-1); border-top: 1px solid var(--line-0); }
+.fd-dock-ask.is-off { visibility: hidden; }
+.fd-dock-ask-mark { display: inline-grid; place-items: center; color: var(--accent-color); }
+.fd-dock-ask-input { flex: 1; height: 28px; }
+.fd-dock-ask .fd-tt-btn { width: 28px; height: 28px; }
+```
+
+Removed from ui/chat-panel.ts (`send`, now through `ask`):
+
+```ts
+    this.stick = true;
+    try { await call(`/api/chat/${encodeURIComponent(this.cid)}/send`, 'POST', { text }); } catch (err) {
+      this.box.value = text;
+      this.syncControls();
+      toast((err as Error).message, 'error');
+    }
+```
+
+Seen in one headless Chrome session at 1440 by 900 (Vite dev server, engine from source with an empty data folder, stand-in agent programs), against captures taken on 2.0.1 with the same steps: dock closed, 0 pixels differ; open on a terminal with its text hidden, 558 pixels, all in the ask row (the mark at x 8 to 22 and the changed word at x 220 to 281); open on Chat, 57605 pixels, of which 57600 are the ask row (1440 by 40, shown where it was hidden) and 5 are inside the Chat pane with no cause found. Under 4x CPU: five tab switches between a shell and Chat, 195 frames, one layout; the side switch with a shell running kept the same terminal element and its output, with two layouts and none between. AMOLED Black and back re-coloured the open terminal in place. The guide showed for a new person ("Step 1 of 5") and not for a person with the old three keys, whose layout was moved with `seen`. `tsc --noEmit` clean, backend 255 passed before and after, `./formdeck agents sync --check` in step.

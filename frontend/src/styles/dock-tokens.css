@@ -32,6 +32,7 @@
   --dock-tab-h: 26px;
   --dock-ibtn: 26px;
   --dock-ask-h: 40px;
+  --dock-stage-pad: 6px 4px 0 10px;
   --dock-fs-xs: var(--fd-11);
   --dock-fs-sm: var(--fd-12);
   --dock-fs-md: var(--fd-14);

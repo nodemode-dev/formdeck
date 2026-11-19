@@ -34,7 +34,7 @@ async function call<T>(path: string, method = 'GET', body?: unknown): Promise<T>
   return r.json() as Promise<T>;
 }
 
-export function readOldDock(store: DockStore): Partial<DockState> | null {
+export function readOldDock(store: DockStore): (Partial<DockState> & { seen: true }) | null {
   const px = (key: string): number | undefined => {
     const m = /^(\d+)px$/.exec(store.getItem(key) ?? '');
     return m ? Number(m[1]) : undefined;
@@ -43,7 +43,7 @@ export function readOldDock(store: DockStore): Partial<DockState> | null {
   const h = px(DOCK_OLD_KEYS[1]!);
   const w = px(DOCK_OLD_KEYS[2]!);
   if (side === null && h === undefined && w === undefined) return null;
-  return { open: false, side: side === 'right' ? 'right' : 'bottom', ...(h === undefined ? {} : { h }), ...(w === undefined ? {} : { w }) };
+  return { open: false, side: side === 'right' ? 'right' : 'bottom', ...(h === undefined ? {} : { h }), ...(w === undefined ? {} : { w }), seen: true };
 }
 
 export function reserveDock(none: boolean): void {
@@ -196,7 +196,7 @@ export function formdeckDock(host: DockHost): DockAdapter {
       }
       return out;
     },
-    chat: { pane: (node) => host.chatPane(node) },
+    chat: { pane: (node) => host.chatPane(node), ask: 'line' },
     consent: { subscribe: (add, withdraw) => outsideAgents.subscribe(add, withdraw), answer: (id, choice) => outsideAgents.answer(id, choice) },
     storedChoice: {
       get: async (): Promise<StoredChoiceState> => {
