@@ -68,19 +68,19 @@ def status(fresh: bool = False) -> dict:
 def config_text(kind: str) -> str:
     url = terminal.engine_url() + "/mcp"
     if kind == "codex":
-        return f'[mcp_servers.formdeck]\nurl = "{url}"\nenv_http_headers = {{ "{claude_code.INAPP_HEADER}" = "{TOKEN_VAR}" }}\n'
-    return json.dumps({"mcpServers": {"formdeck": {"url": url, "headers": {claude_code.INAPP_HEADER: "${env:" + TOKEN_VAR + "}"}}}}, indent=2) + "\n"
+        return f'[mcp_servers.formdeck_tab]\nurl = "{url}"\nenv_http_headers = {{ "{claude_code.INAPP_HEADER}" = "{TOKEN_VAR}" }}\n'
+    return json.dumps({"mcpServers": {"formdeck_tab": {"url": url, "headers": {claude_code.INAPP_HEADER: "${env:" + TOKEN_VAR + "}"}}}}, indent=2) + "\n"
 
 
 def ours(kind: str, text: str) -> bool:
     if kind == "codex":
         lines = [line for line in text.splitlines() if line.strip()]
-        return len(lines) == 3 and lines[0] == "[mcp_servers.formdeck]" and lines[1].startswith("url = ") and lines[2].startswith("env_http_headers = ")
+        return len(lines) == 3 and lines[0] in ("[mcp_servers.formdeck]", "[mcp_servers.formdeck_tab]") and lines[1].startswith("url = ") and lines[2].startswith("env_http_headers = ")
     try:
         data = json.loads(text)
     except ValueError:
         return False
-    return isinstance(data, dict) and list(data) == ["mcpServers"] and isinstance(data["mcpServers"], dict) and list(data["mcpServers"]) == ["formdeck"]
+    return isinstance(data, dict) and list(data) == ["mcpServers"] and isinstance(data["mcpServers"], dict) and list(data["mcpServers"]) in (["formdeck"], ["formdeck_tab"])
 
 
 def write_config(kind: str, folder: Path) -> bool:

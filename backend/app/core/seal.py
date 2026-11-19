@@ -40,7 +40,8 @@ def available() -> bool:
 def sealed(values: dict) -> dict:
     claude = values.get("claude")
     chosen = claude.get("bin") if isinstance(claude, dict) else ""
-    return {"agentsAllowed": bool(values.get("agentsAllowed")), "claudeBin": str(chosen or "").strip()}
+    blocked = {"agentsBlocked": True} if values.get("agentsBlocked") is True else {}
+    return {"agentsAllowed": bool(values.get("agentsAllowed")), "claudeBin": str(chosen or "").strip(), **blocked}
 
 
 def digest(values: dict, key: bytes) -> str:

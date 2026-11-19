@@ -136,7 +136,11 @@ def write_settings(patch: dict) -> dict:
 
     stored = stored_settings()
     patch = {k: v for k, v in patch.items() if k not in ("seal", "sealBroken")}
-    if "agentsAllowed" in patch or "claude" in patch:
+    if patch.get("agentsBlocked"):
+        patch = {**patch, "agentsBlocked": True, "agentsAllowed": False}
+    elif patch.get("agentsAllowed"):
+        patch = {**patch, "agentsBlocked": False}
+    if "agentsAllowed" in patch or "agentsBlocked" in patch or "claude" in patch:
         current = seal.effective(stored)
         merged = seal.sign({**stored, **{k: current[k] for k in ("agentsAllowed", "claude") if k in current}, **patch})
     else:

@@ -29,6 +29,7 @@ VERSIONS = ["2026-07-28", "2025-11-25"]
 LEGACY = ["2025-06-18", "2025-03-26", "2024-11-05"]
 TURN_GAP = 90.0
 CONSENT_WAIT = 120.0
+CONSENT_RETURN = 15.0
 CONSENT_ANSWERS = ("deny", "once", "always")
 CONSENT_ALWAYS = "all"
 SERVER = {"name": "formdeck", "title": "formdeck", "version": config.VERSION}
@@ -324,6 +325,8 @@ def _withdraw(request: str, reason: str) -> None:
 
 
 async def _consent(a: Agent, name: str = "", args: dict | None = None) -> str | None:
+    if config.read_settings().get("agentsBlocked"):
+        return "The person has blocked agents in formdeck. They can change it in Preferences."
     if a.inapp or config.read_settings().get("agentsAllowed") or any(c.agents for c in bridge.windows()):
         return None
     if not bridge.window_connected():
@@ -341,6 +344,12 @@ async def _consent(a: Agent, name: str = "", args: dict | None = None) -> str | 
         started, reason = time.monotonic(), "dropped"
         try:
             res = await bridge.window_call("consent", ask, None, CONSENT_WAIT)
+            back = time.monotonic() + CONSENT_RETURN
+            while res is not None and res.get("gone") and time.monotonic() < min(back, started + CONSENT_WAIT - 1):
+                await asyncio.sleep(0.25)
+                if bridge.window_connected():
+                    res = await bridge.window_call("consent", ask, None, started + CONSENT_WAIT - time.monotonic())
+                    back = time.monotonic() + CONSENT_RETURN
             if res is not None and not res.get("isError"):
                 reason = "answered"
             elif res is not None and time.monotonic() - started >= CONSENT_WAIT - 0.5:

@@ -96,7 +96,7 @@ def issue() -> tuple[str, str]:
     folder = config.data_dir() / TOKEN_DIR
     folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     path = folder / f"mcp-{secrets.token_hex(8)}.json"
-    body = json.dumps({"mcpServers": {"formdeck": {"type": "http", "url": terminal.engine_url() + "/mcp", "headers": {INAPP_HEADER: token}}}})
+    body = json.dumps({"mcpServers": {"formdeck_tab": {"type": "http", "url": terminal.engine_url() + "/mcp", "headers": {INAPP_HEADER: token}}}})
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(body)
@@ -207,7 +207,7 @@ def _wrap(cmd: list[str]) -> list[str]:
 
 
 def tab_argv(path: str, mcp_file: str, prompt: str | None, resume: str | None = None) -> list[str]:
-    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck", "--append-system-prompt", NOTE]
+    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck_tab", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:
@@ -217,7 +217,7 @@ def tab_argv(path: str, mcp_file: str, prompt: str | None, resume: str | None = 
 
 def chat_argv(path: str, mcp_file: str, text: str, session: str | None, model: str = "") -> list[str]:
     cmd = [path, "-p", text, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-           "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck", "--append-system-prompt", CHAT_NOTE]
+           "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck_tab", "--append-system-prompt", CHAT_NOTE]
     if model:
         cmd += ["--model", model]
     if session:
