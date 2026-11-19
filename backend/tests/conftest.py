@@ -49,7 +49,12 @@ def tool_catalogue():
 
 
 def inapp_token():
-    return importlib.import_module("app.services.claude_code").INAPP_TOKEN
+    return importlib.import_module("app.services.claude_code").issue()[0]
+
+
+def window_headers():
+    key = importlib.import_module("app.core.window_key")
+    return {key.HEADER: key.KEY}
 
 
 def set_agents_allowed(value):
@@ -88,8 +93,20 @@ def app():
 def client(app):
     from fastapi.testclient import TestClient
 
-    with TestClient(app, base_url=own_origin()) as c:
+    with TestClient(app, base_url=own_origin(), headers=window_headers()) as c:
         yield c
+
+
+@pytest.fixture(autouse=True, scope="module")
+def agents_allowed_by_default():
+    set_agents_allowed(True)
+
+
+@pytest.fixture(scope="session")
+def bare(client, app):
+    from fastapi.testclient import TestClient
+
+    return TestClient(app, base_url=own_origin())
 
 
 @pytest.fixture(scope="session")

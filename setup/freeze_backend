@@ -18,7 +18,7 @@ pyinstaller --noconfirm --clean --onefile --name formdeck-engine \
   --add-data "$FORMDECK_ROOT/addins${sep}addins" \
   --collect-submodules app --collect-submodules uvicorn \
   --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 \
-  --collect-all latex2mathml --add-data "$FORMDECK_ROOT/backend/app/services/odp/presets.json${sep}app/services/odp" \
+  --collect-all latex2mathml --collect-submodules keyring --add-data "$FORMDECK_ROOT/backend/app/services/odp/presets.json${sep}app/services/odp" \
   "${extra[@]}" \
   "$FORMDECK_ROOT/backend/formdeck_engine.py"
 mkdir -p "$FORMDECK_ROOT/src-tauri/binaries"

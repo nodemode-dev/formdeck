@@ -2,6 +2,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { api, type TermInfo } from '../io/api';
+import { streamTicket } from '../io/window-key';
 import { el, escapeHtml, isMac, q, setClass, setDisabled, setHidden, setStyleVar, setText } from './dom';
 import { icon } from './icons';
 
@@ -176,8 +177,12 @@ export class TerminalDock {
   }
 
   private connect(t: Tab): void {
+    void streamTicket().then((ticket) => this.attach(t, ticket));
+  }
+
+  private attach(t: Tab, ticket: string): void {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${proto}//${location.host}/api/terminal/${encodeURIComponent(t.id)}/stream`);
+    const socket = new WebSocket(`${proto}//${location.host}/api/terminal/${encodeURIComponent(t.id)}/stream?ticket=${encodeURIComponent(ticket)}`);
     socket.binaryType = 'arraybuffer';
     t.socket = socket;
     socket.addEventListener('open', () => this.sendSize(t));

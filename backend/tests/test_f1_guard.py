@@ -105,5 +105,7 @@ def test_foreign_origin_websocket_closes_4403(client, origin):
 
 @pytest.mark.parametrize("origin", [own_origin(), *WINDOW_ORIGINS])
 def test_window_origin_websocket_is_accepted(client, origin):
-    with client.websocket_connect(WS_PATH, headers={"host": LOOPBACK_HOST, "origin": origin}) as ws:
+    from app.core import window_key
+
+    with client.websocket_connect(f"{WS_PATH}?ticket={window_key.ticket()}", headers={"host": LOOPBACK_HOST, "origin": origin}) as ws:
         assert ws.receive_json()["t"] == "hello"

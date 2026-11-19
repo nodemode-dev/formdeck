@@ -284,7 +284,7 @@ def _agent(request: Request, params: dict) -> Agent:
     a = SESSIONS.get(key)
     if a is None:
         a = SESSIONS[key] = Agent(key, info.get("name") or "agent")
-    if request.headers.get(claude_code.INAPP_HEADER, "") == claude_code.INAPP_TOKEN:
+    if claude_code.is_inapp(request.headers.get(claude_code.INAPP_HEADER, "")):
         a.inapp = True
         a.name = claude_code.INAPP_NAME
     STORE.seen_agent(a.name, a.key)
@@ -303,7 +303,7 @@ async def _consent(a: Agent) -> str | None:
     if a.inapp or config.read_settings().get("agentsAllowed") or any(c.agents for c in bridge.windows()):
         return None
     if not bridge.window_connected():
-        return None
+        return "No formdeck window is open to ask the person whether you may edit decks. Ask them to open formdeck and allow agents to edit (the question in the window, or Preferences), then retry."
     if time.monotonic() < _declined[0]:
         return "The person did not allow agents to edit in formdeck just now. Ask them to allow it (the question in the formdeck window, or Preferences), then retry."
     if not _consent_lock:
@@ -313,7 +313,7 @@ async def _consent(a: Agent) -> str | None:
             return None
         res = await bridge.window_call("consent", {"agent": a.name}, None, 120)
         if res is None:
-            return None
+            return "No formdeck window answered the question whether you may edit decks. Ask the person to open formdeck, then retry."
         if res.get("isError"):
             return "formdeck is still asking the person in its window whether you may edit decks; nobody has answered yet. Tell them to choose Allow in the formdeck window, then retry."
         if (res.get("structuredContent") or {}).get("allowed"):

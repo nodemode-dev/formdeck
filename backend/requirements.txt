@@ -16,3 +16,4 @@ fonttools==4.66.1
 brotli==1.2.0
 ptyprocess==0.7.0; sys_platform != "win32"
 pywinpty==3.0.5; sys_platform == "win32"
+keyring==25.7.0

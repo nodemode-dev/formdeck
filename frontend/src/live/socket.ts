@@ -2,6 +2,7 @@ import { DeckDoc } from '../engine/doc';
 import type { Deck } from '../engine/model';
 import type { Op } from '../engine/ops';
 import { addAgents } from '../editor/mentions';
+import { streamTicket } from '../io/window-key';
 
 type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 type Notice = (text: string, kind: 'info' | 'error') => void;
@@ -41,8 +42,12 @@ export class LiveClient {
   }
 
   connect(): void {
+    void streamTicket().then((ticket) => this.dial(ticket));
+  }
+
+  private dial(ticket: string): void {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/api/live`);
+    const ws = new WebSocket(`${proto}://${location.host}/api/live${ticket ? `?ticket=${encodeURIComponent(ticket)}` : ''}`);
     this.ws = ws;
     ws.onopen = () => {
       this.retry = 0;

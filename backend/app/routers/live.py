@@ -5,7 +5,7 @@ import urllib.parse
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.core import config, ids
+from app.core import config, ids, window_key
 from app.services import ops as opsmod
 from app.services.store import STORE, Client
 
@@ -27,7 +27,7 @@ def local_origin(origin: str | None) -> bool:
 @router.websocket("/api/live")
 async def live(ws: WebSocket) -> None:
     guest = ws.scope.get("fd_share")
-    if not guest and not local_origin(ws.headers.get("origin")):
+    if not guest and (not local_origin(ws.headers.get("origin")) or not window_key.spend(ws.query_params.get("ticket", ""))):
         await ws.close(code=4403)
         return
     await ws.accept()

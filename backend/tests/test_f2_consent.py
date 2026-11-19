@@ -22,7 +22,9 @@ def consent_reset():
 
 @pytest.fixture()
 def window(client):
-    with client.websocket_connect("/api/live", headers={"host": LOOPBACK_HOST, "origin": own_origin()}) as ws:
+    from app.core import window_key
+
+    with client.websocket_connect(f"/api/live?ticket={window_key.ticket()}", headers={"host": LOOPBACK_HOST, "origin": own_origin()}) as ws:
         assert ws.receive_json()["t"] == "hello"
         ws.send_json({"t": "hello", "kind": "window", "name": "test window", "agents": False})
         ws.send_json({"t": "ping"})
@@ -69,10 +71,17 @@ def test_read_only_tool_never_asks(client, window):
     assert not result.get("isError")
 
 
-def test_changing_tool_with_no_window_proceeds_to_the_tool(client):
+def test_changing_tool_with_no_window_to_ask_is_refused(client):
+    result = call_tool(client, *CHANGING_TOOL)
+    assert result.get("isError")
+    assert "No formdeck window is open" in tool_text(result)
+    assert NO_DECK not in tool_text(result)
+
+
+def test_changing_tool_with_no_window_runs_once_the_person_allowed_agents(client):
+    set_agents_allowed(True)
     result = call_tool(client, *CHANGING_TOOL)
     assert NO_DECK in tool_text(result)
-    assert ASKED not in tool_text(result)
 
 
 def test_declined_ask_refuses_and_the_window_is_not_asked_again_during_the_cooldown(client, window):

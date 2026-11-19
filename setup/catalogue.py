@@ -12,7 +12,10 @@
   extension <id> <command> [k=v ...]  runs an extension's command in the open window (consent is asked there)
 
 A command marked risky (undo cannot reverse it) runs only with --yes. The engine's address is FORMDECK_URL, or
-http://127.0.0.1:8197. The window must be open (./formdeck boot, or the app)."""
+http://127.0.0.1:8197. The window must be open (./formdeck boot, or the app).
+
+run, batch and extension go in through the engine's agent endpoint as an outside agent named formdeck-cli: they follow
+the choice made in the window (Allow or Deny agents) and cannot change it."""
 
 import json
 import os
@@ -38,6 +41,31 @@ def call(method: str, path: str, body: dict | None = None) -> tuple[int, dict]:
     except (urllib.error.URLError, OSError):
         print(f"The formdeck engine is not answering at {URL}. Start it with ./formdeck boot, then retry.", file=sys.stderr)
         sys.exit(3)
+
+
+def tool(name: str, arguments: dict) -> tuple[bool, str]:
+    def rpc(rid: int, method: str, params: dict, session: str = "") -> tuple[dict, str]:
+        headers = {"Content-Type": "application/json", "Accept": "application/json", "MCP-Protocol-Version": "2025-11-25"}
+        if session:
+            headers["Mcp-Session-Id"] = session
+        data = json.dumps({"jsonrpc": "2.0", "id": rid, "method": method, "params": params}).encode()
+        req = urllib.request.Request(URL + "/mcp", data=data, method="POST", headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=900) as r:
+                return json.loads(r.read().decode() or "{}"), r.headers.get("Mcp-Session-Id") or ""
+        except urllib.error.HTTPError as exc:
+            return {"error": {"message": f"The engine answered {exc.code}."}}, ""
+        except (urllib.error.URLError, OSError):
+            print(f"The formdeck engine is not answering at {URL}. Start it with ./formdeck boot, then retry.", file=sys.stderr)
+            sys.exit(3)
+
+    _, sid = rpc(1, "initialize", {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "formdeck-cli", "version": "1"}})
+    body, _ = rpc(2, "tools/call", {"name": name, "arguments": arguments}, sid)
+    result = body.get("result") or {}
+    text = " ".join(c.get("text", "") for c in result.get("content", []) if isinstance(c, dict)).strip()
+    if "error" in body:
+        return False, str((body["error"] or {}).get("message") or "formdeck gave no reason.")
+    return not result.get("isError"), text or "formdeck gave no reason."
 
 
 def params_of(args: list[str]) -> dict:
@@ -70,13 +98,9 @@ def run_one(cid: str, params: dict, yes: bool) -> int:
     if status == 200 and found.get("risky") and not yes:
         print(f"{cid} cannot be undone. Run it again with --yes to go ahead.", file=sys.stderr)
         return 2
-    _, body = call("POST", f"/api/commands/{urllib.parse.quote(cid)}", {"params": params})
-    if body.get("ok"):
-        result = body.get("result")
-        print(f"{cid}: {result if isinstance(result, str) else json.dumps(result)}")
-        return 0
-    print(body.get("error") or body.get("detail") or "formdeck gave no reason.", file=sys.stderr)
-    return 1
+    ok, text = tool("run_command", {"id": cid, "params": params, "confirm": True} if found.get("risky") else {"id": cid, "params": params})
+    print(text, file=sys.stdout if ok else sys.stderr)
+    return 0 if ok else 1
 
 
 def show_extensions() -> int:
@@ -91,13 +115,9 @@ def show_extensions() -> int:
 
 
 def run_extension(ext_id: str, command: str, args: dict) -> int:
-    _, body = call("POST", f"/api/extensions/{urllib.parse.quote(ext_id)}/commands/{urllib.parse.quote(command)}", {"args": args})
-    if body.get("ok"):
-        result = body.get("result")
-        print(f"{ext_id} {command}: {result if isinstance(result, str) else json.dumps(result)}")
-        return 0
-    print(body.get("error") or body.get("detail") or "formdeck gave no reason.", file=sys.stderr)
-    return 1
+    ok, text = tool("extension_command", {"id": ext_id, "command": command, "args": args})
+    print(text, file=sys.stdout if ok else sys.stderr)
+    return 0 if ok else 1
 
 
 def main(argv: list[str]) -> int:

@@ -43,6 +43,8 @@ def sharing():
         except OSError:
             time.sleep(0.25)
     window = httpx.Client(base_url=base, headers={"origin": base}, timeout=20)
+    window.headers["x-formdeck-window-key"] = window.post("/api/window/key").json()["key"]
+    assert window.post("/api/settings", json={"agentsAllowed": True}).status_code == 200
     init = window.post("/mcp", json=MCP_INIT)
     sid = init.headers["mcp-session-id"]
     built = window.post("/mcp", headers={"mcp-session-id": sid}, json={"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "build_deck", "arguments": {"script": "# One\n\n---\n# Two\n- x"}}})

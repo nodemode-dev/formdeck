@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import json
 import os
 import secrets
@@ -15,14 +16,15 @@ KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_U
 CANDIDATES = (".claude/local/claude", ".local/bin/claude", ".npm-global/bin/claude", ".bun/bin/claude", ".volta/bin/claude")
 SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude")
 INSTALL = "Claude Code is not installed: install it from https://claude.com/claude-code, run claude once in a terminal to sign in, then open it here again."
-INAPP_TOKEN = secrets.token_urlsafe(24)
+TOKENS: dict[str, Path] = {}
+TOKEN_DIR = "AgentTokens"
 INAPP_HEADER = "x-formdeck-inapp"
 INAPP_NAME = "Claude Code in formdeck"
 NOTE = ("You are Claude Code running inside formdeck, the presentation editor open on this computer. "
         "Work on decks with the formdeck MCP server's tools: start with get_context, read formdeck://guide for the slide script, "
         "and use render_slides and lint_deck to look before and after a change. Every editor command is also reachable: "
         "list_commands finds one by words, run_command runs it in the window as one undo step. "
-        "The person sees every change happen in the window. Use the formdeck-decks skill when it is available.")
+        "The person sees every change happen in the window. Use the formdeck-harness skill when it is available.")
 CHAT_NOTE = (NOTE + " You are answering in formdeck's chat panel, which shows Markdown to people who may never have used a terminal: "
              "write short paragraphs, use **bold** for slide and setting names, say what you changed in plain words, and batch edits into few tool calls.")
 _cache: dict = {"at": 0.0, "value": None}
@@ -88,8 +90,46 @@ def info(fresh: bool = False) -> dict:
     return _cache["value"]
 
 
-def mcp_config() -> str:
-    return json.dumps({"mcpServers": {"formdeck": {"type": "http", "url": terminal.engine_url() + "/mcp", "headers": {INAPP_HEADER: INAPP_TOKEN}}}})
+def issue() -> tuple[str, str]:
+    token = secrets.token_urlsafe(32)
+    folder = config.data_dir() / TOKEN_DIR
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path = folder / f"mcp-{secrets.token_hex(8)}.json"
+    body = json.dumps({"mcpServers": {"formdeck": {"type": "http", "url": terminal.engine_url() + "/mcp", "headers": {INAPP_HEADER: token}}}})
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(body)
+    TOKENS[token] = path
+    return token, str(path)
+
+
+def revoke(token: str) -> None:
+    path = TOKENS.pop(token, None)
+    if path is not None:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def revoke_all() -> None:
+    for token in list(TOKENS):
+        revoke(token)
+
+
+def sweep() -> None:
+    folder = config.data_dir() / TOKEN_DIR
+    for stale in folder.glob("mcp-*.json") if folder.is_dir() else []:
+        try:
+            stale.unlink()
+        except OSError:
+            pass
+
+
+def is_inapp(value) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    return any(hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
 
 
 def workdir() -> Path:
@@ -149,8 +189,8 @@ def _wrap(cmd: list[str]) -> list[str]:
     return cmd if os.name == "nt" else terminal.login_shell() + ["-c", "exec " + shlex.join(cmd)]
 
 
-def tab_argv(path: str, prompt: str | None, resume: str | None = None) -> list[str]:
-    cmd = [path, "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdeck", "--append-system-prompt", NOTE]
+def tab_argv(path: str, mcp_file: str, prompt: str | None, resume: str | None = None) -> list[str]:
+    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:
@@ -158,9 +198,9 @@ def tab_argv(path: str, prompt: str | None, resume: str | None = None) -> list[s
     return _wrap(cmd)
 
 
-def chat_argv(path: str, text: str, session: str | None, model: str = "") -> list[str]:
+def chat_argv(path: str, mcp_file: str, text: str, session: str | None, model: str = "") -> list[str]:
     cmd = [path, "-p", text, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-           "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdeck", "--append-system-prompt", CHAT_NOTE]
+           "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck", "--append-system-prompt", CHAT_NOTE]
     if model:
         cmd += ["--model", model]
     if session:
@@ -190,16 +230,28 @@ def open_tab(prompt: str | None = None, cols: int = 100, rows: int = 30, fresh: 
         raise LookupError(INSTALL)
     prompt = prompt or _pref("firstMessage") or None
     title = "Claude Code (from Chat)" if resume else "Claude Code"
-    return terminal.open_session(str(workdir()), cols, rows, title, tab_argv(found["path"], prompt, resume), child_env(), "claude").describe()
+    token, mcp_file = issue()
+    try:
+        session = terminal.open_session(str(workdir()), cols, rows, title, tab_argv(found["path"], mcp_file, prompt, resume), child_env(), "claude")
+    except BaseException:
+        revoke(token)
+        raise
+    session.on_close.append(lambda: revoke(token))
+    return session.describe()
 
 
 async def stream_chat(text: str, session: str | None, model: str = ""):
     found = info(fresh=True)
     if not found["installed"]:
         raise LookupError(INSTALL)
-    proc = await asyncio.create_subprocess_exec(*chat_argv(found["path"], text, session, model), cwd=str(workdir()), env=child_env(),
-                                                stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                                                limit=16 * 1024 * 1024)
+    token, mcp_file = issue()
+    try:
+        proc = await asyncio.create_subprocess_exec(*chat_argv(found["path"], mcp_file, text, session, model), cwd=str(workdir()), env=child_env(),
+                                                    stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                                                    limit=16 * 1024 * 1024)
+    except BaseException:
+        revoke(token)
+        raise
     tail: list[str] = []
 
     async def drain() -> None:
@@ -229,3 +281,4 @@ async def stream_chat(text: str, session: str | None, model: str = ""):
             except asyncio.TimeoutError:
                 proc.kill()
         errs.cancel()
+        revoke(token)

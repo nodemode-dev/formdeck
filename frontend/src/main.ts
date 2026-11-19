@@ -1,6 +1,7 @@
 import { initLanguage } from './i18n';
 import { detectGuest, guest, guestName, setGuestName, shareRefused } from './io/guest';
 import { syncUiSettings } from './io/ui-settings';
+import { loadWindowKey } from './io/window-key';
 import { promptName } from './ui/dialogs';
 import { toast } from './ui/toast';
 
@@ -22,7 +23,7 @@ async function nameGuest(): Promise<void> {
   setGuestName(name?.trim() || 'Guest');
 }
 
-void syncUiSettings().catch(() => undefined).then(() => initLanguage()).catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => nameGuest().catch(() => undefined)).then(() => {
+void loadWindowKey().catch(() => undefined).then(() => syncUiSettings()).catch(() => undefined).then(() => initLanguage()).catch(() => undefined).then(() => detectGuest((text) => toast(text)).catch(() => null)).then(() => nameGuest().catch(() => undefined)).then(() => {
   if (shareRefused()) {
     const note = document.createElement('p');
     note.className = 'fd-share-refused';

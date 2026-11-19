@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from app.core import config
+from app.core import config, window_key
 from app.services import claude_code, terminal
 
 router = APIRouter(prefix="/api", tags=["terminal"])
@@ -28,6 +28,7 @@ def origin_ok(origin: str | None, host: str | None) -> bool:
 def require_local(request: Request) -> None:
     if not origin_ok(request.headers.get("origin"), request.headers.get("host")):
         raise HTTPException(status_code=403, detail="Only the formdeck window on this computer may use the terminals.")
+    window_key.require(request)
 
 
 class OpenBody(BaseModel):
@@ -117,7 +118,7 @@ async def claude_open(body: ClaudeBody, request: Request) -> dict:
 
 @router.websocket("/terminal/{sid}/stream")
 async def attach(ws: WebSocket, sid: str) -> None:
-    if not origin_ok(ws.headers.get("origin"), ws.headers.get("host")):
+    if not origin_ok(ws.headers.get("origin"), ws.headers.get("host")) or not window_key.spend(ws.query_params.get("ticket", "")):
         await ws.close(code=4403)
         return
     await ws.accept()
