@@ -21,7 +21,7 @@ Other commands from `./formdeck help`:
 | `./formdeck build`, `./formdeck serve` | build the frontend into `frontend/dist`, then serve it from the engine on 127.0.0.1:8197 |
 | `./build_app` (or `./formdeck desktop build`; Windows `build_app.bat`) | build the desktop app from a fresh checkout in one step: checks and installs what it needs, then bundles the app (see The desktop app) |
 | `./formdeck claude` | Claude Code in this terminal with formdeck's MCP tools attached |
-| `./formdeck cli list [text]`, `run <id> [key=value ...]`, `counts` | the editor's command catalogue from a terminal; the window must be open. Commands that need values take them as parameters, for example `./formdeck cli set-font-size size=32` or `set-fill-color color=#1D5BD8` (a hex colour or a theme slot such as accent1). `counts` lists commands per group and fails if any lacks a use-when line |
+| `./formdeck cli list [text]`, `run <id> [key=value ...]`, `counts` | the editor's command catalogue from a terminal; the window must be open. `run`, `batch` and `extension` count as an outside agent named `formdeck-cli`: they follow the agent choice made in the window (Ask, Allowed, see Agents > Consent), asking there the first time under Ask, and cannot change it. Commands that need values take them as parameters, for example `./formdeck cli set-font-size size=32` or `set-fill-color color=#1D5BD8` (a hex colour or a theme slot such as accent1). `counts` lists commands per group and fails if any lacks a use-when line |
 | `./formdeck pdf-check FILE.pdf [--flavour ua1]` | validate an exported PDF with veraPDF (install it from verapdf.org, it needs Java; or set `VERAPDF` to its launcher). formdeck's PDF export declares PDF/UA-1 and passes that profile (slides are written as live, embedded text wherever the font can be embedded, otherwise as a picture with an invisible text layer on that page); the command prints the rule and check counts and each failed rule |
 | `./formdeck i18n check`, `scan [--write]`, `export LANG FILE.csv`, `import LANG FILE.csv` | the translations: `check` fails when a string has no translation or the code has a string the keys lack; `scan --write` adds new strings as the next keys part; `export` gives a native reviewer one language as CSV (english, current, corrected, note) and `import` brings the corrected column back (kept in keys and locales `part99.json`, which wins over earlier parts) |
 | `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop check` | install PyInstaller and check the toolchain, run the desktop app from source, explain toolchain problems |
@@ -496,7 +496,13 @@ The Agents dialog (title bar, Review > Agents and MCP, or Home) shows the same s
 
 ### Consent
 
-Agents can read decks, but the first time one tries to change something formdeck asks in the window: **Allow Claude Code to edit your decks?** (the title names the agent) with Allow and Not now. The switch is **Let agents read and edit decks** in the Agents dialog, **Let Claude Code, Codex and Cursor read and edit decks** in Preferences > Plugins, and in the Agent tab; turning it off stops all agent edits. Only the formdeck window can turn it on; an agent cannot grant itself access. The server listens on 127.0.0.1 only.
+Agents can read decks, but the first time one tries to change something formdeck asks in the window: **Allow Claude Code to edit your decks?** (the title names the agent) with Allow and Not now. The same choice is a switch: **Let agents read and edit decks** in the Agents dialog, **Let Claude Code, Codex and Cursor read and edit decks** in Preferences > Plugins, and in the Agent tab. There is no separate Blocked setting; the choices are:
+
+- **Ask** (the switch is off; the Agents dialog shows Off): the first change an outside agent tries opens the question in the window and waits up to two minutes for your answer. This is the default, and it is also where the switch goes when you turn it off: the next agent edit asks again, so turning it off does not lock agents out.
+- **Allow** (the switch is on; the Agents dialog shows Allowed): agents change decks without asking, until you turn the switch off.
+- **Not now** (the answer to the question): nothing changes and the switch stays off. The agent is told you did not allow it, and for the next two minutes its edits are refused without asking again; after that the next edit asks again.
+
+Agents can always read. With no formdeck window open, an outside agent's edit is refused with a message asking you to open formdeck, because there is nobody to ask. The command line counts as an outside agent too (`./formdeck cli run` and `batch`, as `formdeck-cli`): it follows this choice and cannot change it. Claude Code started inside formdeck (its tab in the terminal dock, or the chat's Claude Code option) is not asked, because you started it there. Only the formdeck window can change the choice, and it also keeps the saved choice sealed: if the stored value is changed outside formdeck, the choice goes back to Ask and the Agents dialog says so once. An agent cannot grant itself access. The server listens on 127.0.0.1 only.
 
 ### Which window answers
 
@@ -531,7 +537,7 @@ Every edit the assistant makes is an agent turn: it follows the Allow switch, sh
 
 `./formdeck agents install` (and `./formdeck agents sync` after an update) installs two skills:
 
-- **formdeck-harness**, for building decks: the full loop from intake to handoff, with sub-skills for the deck director, intake reader, story architect, slide-script author (syntax and an example per layout), template curator, visual QA and review handoff. PDF editing is not part of these skills; it lives in formpdf.
+- **formdeck-harness**, for building decks: the full loop from intake to handoff, with sub-skills for the deck director, intake reader, story architect, slide-script author (syntax and an example per layout), template curator, visual QA, review handoff and layout ideas (answering Crafter Ideas requests from the chat). PDF editing is not part of these skills; it lives in formpdf.
 - **formdeck-skillset**, for developing formdeck itself.
 
 The MCP resource `formdeck://guide` is the short guide agents read first, and the server offers a `build-deck` prompt.

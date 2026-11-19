@@ -34,6 +34,13 @@ something outside it could get in:
 - **Add-ins**: code from an add-in escaping the macro sandbox or its task pane's
   sandbox, reaching the network, or doing more than the permissions shown at install.
 - **Provider keys** kept by the engine: anything that leaks them.
+- **Agents and the engine's settings**: an outside agent, which includes the app's
+  own command line (`./formdeck cli`), changing a deck without the person's Allow in
+  the formdeck window. Only the window can change the agent choice or the Claude Code
+  program the app runs, and the engine seals those two saved values with a key in the
+  system keychain, so a change made outside the window puts the choice back to asking.
+  Anything that lets another program do either of those things without the window
+  counts.
 - **Files**: importing or opening decks, templates, media or archives in a way that
   writes outside where it should.
 

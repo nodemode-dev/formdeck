@@ -92,7 +92,7 @@ Interface languages: English and 25 more, from Spanish and French to Japanese an
 ```sh
 ./formdeck agents install    # writes .mcp.json, .codex/config.toml and .cursor/mcp.json, installs the skills
 ./formdeck build-deck notes.md shots/ --template aurora --out update.pptx   # a deck without opening the window
-./formdeck cli list          # the editor's command catalogue, run any command by id
+./formdeck cli list          # the editor's command catalogue; run needs the window open and counts as an outside agent (it asks there)
 ./formdeck mcp               # MCP server on stdio for Claude Code, Codex and Cursor
 ```
 
