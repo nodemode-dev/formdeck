@@ -115,7 +115,9 @@
     "tabs": [
       "chat",
       "terminal",
-      "claude"
+      "claude",
+      "codex",
+      "cursor"
     ]
   },
   "extensions": {

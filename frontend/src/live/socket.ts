@@ -27,6 +27,7 @@ export class LiveClient {
   onLibrary: (() => void) | null = null;
   onShow: ((deck: string, m: Record<string, unknown>) => void) | null = null;
   onQuestion: ((q: { deck: string; id: string; name: string; text: string; at: number }) => void) | null = null;
+  onConsentGone: ((request: string) => void) | null = null;
   onDeleted: ((deck: string) => void) | null = null;
   agents = false;
 
@@ -235,6 +236,10 @@ export class LiveClient {
     }
     if (t === 'question') {
       this.onQuestion?.(m as unknown as { deck: string; id: string; name: string; text: string; at: number });
+      return;
+    }
+    if (t === 'consentGone') {
+      if (typeof m.request === 'string') this.onConsentGone?.(m.request);
       return;
     }
     if (t === 'tool') {

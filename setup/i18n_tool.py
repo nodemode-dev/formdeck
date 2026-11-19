@@ -11,7 +11,7 @@ I18N = SRC / "i18n"
 KEYS = I18N / "keys"
 LOCALES = I18N / "locales"
 REVIEW = "part99"
-SKIP = {"i18n", "data"}
+SKIP = {"i18n", "data", "dock"}
 USAGE = """usage: ./formdeck i18n check | scan [--write] | export LANG FILE.csv | import LANG FILE.csv
   check    every English string has a translation in every language, and no string in the code is missing from the keys
   scan     list strings in the code that are not in the keys yet; --write adds them as the next keys part

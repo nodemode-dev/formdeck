@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import ast
+import hashlib
 import json
 import os
 import re
@@ -14,7 +15,8 @@ LEGACY_SKILLS = ["formsld-harness", "formsld-skillset"]
 LEGACY_SERVERS = ("formsld", "formsld-stdio")
 REGISTRY_NAME = "formdeck"
 MANIFEST = ROOT / "agents" / "manifest.json"
-DOCK = {"present": True, "positions": ["right", "bottom"], "tabs": ["chat", "terminal", "claude"]}
+DOCK = {"present": True, "positions": ["right", "bottom"], "tabs": ["chat", "terminal", "claude", "codex", "cursor"]}
+DOCK_MODULE = ROOT / "frontend" / "src" / "dock"
 PORT = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 8197)
 PY = "python" if os.name == "nt" else "python3"
 USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
@@ -219,17 +221,36 @@ Next:
     return 0
 
 
+def dock_module(said: list, folder: Path = DOCK_MODULE) -> int:
+    rel = "frontend/src/dock"
+    listed = json.loads((folder / "MANIFEST.json").read_text(encoding="utf-8"))["files"]
+    have = {p.name for p in folder.iterdir() if p.name != "MANIFEST.json"}
+    bad = [f"{name} is not the family's file" for name in sorted(have & set(listed)) if hashlib.sha256((folder / name).read_bytes()).hexdigest() != listed[name]]
+    bad += [f"{name} is missing" for name in sorted(set(listed) - have)]
+    bad += [f"{name} is not in MANIFEST.json" for name in sorted(have - set(listed))]
+    for name in sorted(n for n in have if n.endswith(".ts")):
+        for spec in re.findall(r"""(?:\bfrom|\bimport)\s*\(?\s*['"]([^'"]+)['"]""", (folder / name).read_text(encoding="utf-8")):
+            if not (re.fullmatch(r"\./[\w.-]+", spec) or spec.startswith("@xterm/")):
+                bad.append(f"{name} imports {spec} from outside the folder")
+    said.extend(f"  {rel}/{line}" for line in bad)
+    if not bad:
+        said.append(f"  {rel} matches its MANIFEST.json ({len(listed)} files) and imports nothing of formdeck's")
+    return len(bad)
+
+
 def sync(check: bool) -> int:
     said: list = []
     n = skills(check, said)
     said.append("Manifest:")
     m = manifest(check, said)
+    said.append("Dock module:")
+    d = dock_module(said)
     print("\n".join(said))
     if check:
-        print("agents: in step" if n == 0 and m == 0 else "agents: skills or agents/manifest.json drifted (run ./formdeck agents sync)")
-        return 1 if n or m else 0
+        print("agents: in step" if n == 0 and m == 0 and d == 0 else "agents: skills, agents/manifest.json or frontend/src/dock drifted (run ./formdeck agents sync; the dock folder is copied from formvis, never edited here)")
+        return 1 if n or m or d else 0
     print(f"agents: {n} skill cop{'ies' if n != 1 else 'y'} updated, manifest {'written' if m else 'already current'}")
-    return 0
+    return 1 if d else 0
 
 
 def main(argv: list[str]) -> int:

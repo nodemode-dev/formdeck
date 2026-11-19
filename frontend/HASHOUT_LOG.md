@@ -1160,3 +1160,46 @@ The script in index.html is a second copy of the profile table. It gets the `amo
 ## 217. AMOLED Black, the tokens and the surfaces that mixed a tint · _v0.40.0 (styles/tokens.css, shell.css, ribbon.css, views.css, present.css, app-dialogs.css, terminal.css, dialogs.css)
 
 `:root[data-oled]` sets `--bg-hover` to white at 10 percent and `--border-soft` to white at 12 percent (6 and 8 percent give almost no contrast over black). `--surface-1` mixes 55 percent of `--bg-primary` with `--bg-tertiary` and came out `#090909`, and `--surface-1` is also the hover fill of several lists, so the token is not changed; the large surfaces that paint it get a `data-oled` rule that takes `--bg-primary`. They were found by scanning the open window for elements of at least 2500 square pixels that are painted and are not `#000000`: filmstrip column and its resizer, ribbon body, document tabs, title bar (a gradient to `--surface-1`), Home card previews, the sorter header, the presenter view's notes, questions and top bar, the Preferences pages, group boxes, rail and fold button, the terminal dock's head and ask row. The modal scrim was a violet-tinted 45 percent black and is plain 60 percent black under the flag. Not changed on purpose: the slides and their thumbnails (document content; a title slide's own artwork extends past the page onto the pasteboard), the segmented controls and inputs (a border and `#090909` or `#141414` fill is how they show), the white call-to-action buttons, accent fills. Checked in headless Chrome against the Vite dev server and engine (ports 24300 and 24302) at 1440 by 900 with 4x CPU, a 200 kB/s network with 150 ms latency and the cache off: with `amoled` saved, a cold load (204 frames) and a hard reload (196 frames) showed `#000000` at the four corners and the centre and at three more points on every frame after navigation. A live switch Studio Dark to AMOLED Black and back, made from the Preferences swatches with the deck open (10874 elements, 4x CPU): no node added or removed, no bounding box moved by more than half a pixel, `data-oled` set and removed, `--bg-hover` 10 and 6 percent. After the rules the same scan finds only the slide stage's grid dots, the outline view's current row (accent at 10 percent), white buttons and the small segmented controls. Not checked: the desktop app, a real OLED screen, Safari and Firefox.
+
+## 218. The dock is the family's shared module 2.0.1 · _v0.40.0 (src/dock/ copied from formvis 1ee307fc; src/dock-adapter.ts; styles/dock-tokens.css; styles/terminal.css; index.html; app.ts; automation/agent-bridge.ts; live/socket.ts; setup/agents.py dock_module; setup/i18n_tool.py SKIP)
+
+`src/dock/` is another repository's folder: fifteen files copied byte for byte from formvis at 1ee307fc and never edited here. `./formdeck agents sync` (and `--check`) reads `MANIFEST.json`, hashes every file and fails naming the file that differs, is missing or is extra, or that imports anything but a sibling or `@xterm/`. Everything formdeck-specific is in `src/dock-adapter.ts`, and the look is in `styles/dock-tokens.css`.
+
+What the adapter decides. Storage key `formdeck.dock` (nothing else used it); the three old keys `formdeck_dock_side`, `formdeck_dock_h` (`280px`) and `formdeck_dock_w` are read once by `readOldDock` and removed by the module. The chord is backtick as before and also J, with Cmd on macOS and Ctrl elsewhere; Ctrl+J and Cmd+J did nothing in formdeck before (only Alt+Mod+J, Chat). As before the chord does nothing while a dialog or a slide show is open, unless focus is in the dock. `passKey` hands back Shift+Mod+backtick (Claude Code) and Shift+Mod+P (Find a Command), the two the old dock let through; every other key typed in the dock stays there. Chat is formdeck's own pane (`chat: { pane }`), because it is more than the module's Chat: five providers, one conversation per deck, the connected agent with no key, settings and keys, "From Claude Code". The right side needs 900 px of window (the old `is-narrow` rule) and leaves the editor 440 px.
+
+Two things the module does not do for formdeck, absorbed here. With an app-owned Chat pane the module hides its ask line on every tab (dock.css line 65), and formdeck's ask line ("Ask Claude Code to work on this deck", which adds the window's deck, slide and selection to the request) lives under the terminal tabs. So app.ts appends its own `form.fd-dock-ask` to `dock.root` and sends through `dock.claude(text)`; the adapter adds the context in `terminal.open('claude')`. On the Chat tab it is `visibility: hidden` and keeps its 40 px row, as the old row did. And the module's head has no narrow form: with all nine buttons the tab strip gets about 26 px in a 340 px column, so the minimum width of the right column is 460 px (it was 340; 460 was already the default).
+
+The question an outside agent raises is the module's dialog now. `AgentBridge.consent` hands the engine's `consent` arguments to `outsideAgents.ask`, which keeps the request until the dialog answers (`{allowed}`, or `{allowed, once}`) or the engine says `consentGone` (live/socket.ts `onConsentGone`). The three lines of the old dialog are the request's notes. Escape is still "no". Only "Always allow" turns the stored setting on.
+
+Layout. The dock's row and column exist only while `data-ft-dock="open"` is on `<html>`; the pre-paint script in index.html sets the four attributes and two properties from `formdeck.dock` (or the old keys) with the adapter's own limits, and `reserveDock` sets them again after the settings mirror has run and before the shell is built, because the mirror can bring a newer `formdeck.dock` from the engine. A guest gets no dock and no reserved track.
+
+Removed. `src/ui/terminal-dock.ts` (300 lines: `class TerminalDock`, `isDockToggle`), the `.fd-dock*`, `.fd-term` rules of terminal.css, the lazy `import('./ui/terminal-dock')` with `getDock`, `showDock`, `setDock` in app.ts, the classes `is-dock-open` and `is-dock-right`, and the bridge's own dialog:
+
+```ts
+class Consent extends Dialog {
+  private readonly lead = el('<p class="fd-note"></p>');
+  private readonly allowBtn: HTMLButtonElement;
+  private resolve: ((v: boolean) => void) | null = null;
+  constructor() {
+    super('Allow agents to edit?', 460);
+    this.body.append(
+      this.lead,
+      el('<p class="fd-note">Agents edit live: you see every change as it happens on the slides.</p>'),
+      el('<p class="fd-note">Every agent turn can be undone at once with Edit, Undo Agent Turn.</p>'),
+      el('<p class="fd-note">You can turn this off any time in Agents.</p>'),
+    );
+    this.button('Not now', 'ghost', () => this.finish(false));
+    this.allowBtn = this.button('Allow', 'primary', () => this.finish(true));
+    this.onClose = () => this.finish(false);
+  }
+}
+export function isDockToggle(e: KeyboardEvent): boolean {
+  return (isMac ? e.metaKey : e.ctrlKey) && !e.altKey && (e.code === 'Backquote' || (e.shiftKey && e.code === 'KeyP'));
+}
+```
+
+The whole old file is `git show 033f656:frontend/src/ui/terminal-dock.ts`.
+
+Strings. The module's sentences show in English in every language: they are not in the tables, and `setup/i18n_tool.py` skips `dock/` so the check does not count another repository's literals (it counted 164 unkeyed strings before this entry and 169 after, the five being the adapter's and the bridge's own).
+
+Seen in headless Chrome at 1440 by 900 against the Vite dev server and the engine from source (ports 33112 and 33111), same deck, same steps before and after: dock closed, 0 pixels differ; open on a terminal with the terminal's text hidden, 1010 pixels differ, all in the head row (three more buttons: Codex, Cursor and the menu; New before Chat; the family's side mark); open on Chat, 1096 pixels, all in the head row (the same, and the Chat tab's close mark is no longer orange). The dock's box is the same, 1440 by 280 at y 592. Elements: 10210, 10317, 10487 before; 10363, 10409, 10580 after (the dock is built at start now, and its terminal code is still loaded only on first use). `tsc --noEmit` is clean.

@@ -77,6 +77,23 @@
       mo.observe(root, { childList: true });
     }
   }
+  try {
+    var dk = null, dv = localStorage.getItem('formdeck.dock');
+    if (dv) dk = JSON.parse(dv);
+    if (!dk || typeof dk !== 'object') {
+      var oh = /^(\d+)px$/.exec(localStorage.getItem('formdeck_dock_h') || ''), ow = /^(\d+)px$/.exec(localStorage.getItem('formdeck_dock_w') || '');
+      dk = { open: false, side: localStorage.getItem('formdeck_dock_side'), h: oh ? Number(oh[1]) : null, w: ow ? Number(ow[1]) : null };
+    }
+    var iw = window.innerWidth, ih = window.innerHeight, maxW = Math.min(iw * 0.6, iw - 440);
+    var dh = Math.round(Math.max(140, Math.min(ih * 0.7, typeof dk.h === 'number' ? dk.h : 280)));
+    var dw = Math.round(Math.max(460, Math.min(maxW, typeof dk.w === 'number' ? dk.w : 460)));
+    root.setAttribute('data-ft-dock', dk.open === true ? 'open' : 'closed');
+    root.setAttribute('data-ft-dock-side', dk.side === 'right' && iw >= 900 && maxW >= 460 ? 'right' : 'bottom');
+    root.setAttribute('data-ft-dock-h', String(dh));
+    root.setAttribute('data-ft-dock-w', String(dw));
+    root.style.setProperty('--ft-dock-size', dh + 'px');
+    root.style.setProperty('--ft-dock-wsize', dw + 'px');
+  } catch (e) {}
 })();
   </script>
   <link rel="stylesheet" href="/src/styles/fonts.css">
@@ -98,6 +115,8 @@
   <link rel="stylesheet" href="/src/styles/scrollbars.css">
   <link rel="stylesheet" href="/src/styles/ribbon.css">
   <link rel="stylesheet" href="/src/styles/ribbon-galleries.css">
+  <link rel="stylesheet" href="/src/styles/dock-tokens.css">
+  <link rel="stylesheet" href="/src/dock/dock.css">
   <link rel="stylesheet" href="/src/styles/terminal.css">
   <link rel="stylesheet" href="/src/styles/responsive.css">
 </head>
