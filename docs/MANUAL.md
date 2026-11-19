@@ -1,6 +1,6 @@
 # formdeck manual
 
-formdeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.38.1. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-ai/formpdf); in formdeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formdeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formdeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.38.1. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-dev/formpdf); in formdeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formdeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -453,7 +453,7 @@ Zoom into the slide shows a box: click the part to enlarge, drag to move around,
 
 ## PDFs in formdeck
 
-formdeck no longer edits PDFs; that moved to formpdf (github.com/nodemode-ai/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In formdeck a PDF is one of two things:
+formdeck no longer edits PDFs; that moved to formpdf (github.com/nodemode-dev/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In formdeck a PDF is one of two things:
 
 - **Material for a deck.** Open a .pdf (File > Open or Home > Open file) or drop one on the window and Start from your material opens with the PDF attached. Add a brief, pick a template and Draft: formdeck reads the PDF's headings, text, tables and pictures and drafts real, editable slides. Scanned PDFs without a text layer arrive as page pictures. The first time this happens a note says so.
 - **Slides from PDF pages.** In an open deck, Insert > Slides from PDF Pages asks for a PDF and adds one slide per page at the end of the deck (up to 300 pages; for a longer PDF the message says "the first 300 of 301 pages" and the rest are left out), leaving you on the slide you were on: each slide shows the page as a picture fitted to the slide on white, and the page's text goes into the speaker notes, so it stays searchable and an agent can read it. The new slides start in Draft and the whole import is one Undo step. Use it when the slides must look exactly like the PDF, for example last year's talk that only survives as a handout; use the material route when you want slides you can edit. A password-protected PDF is refused; unlock it in formpdf first.
@@ -574,7 +574,7 @@ Help > Preferences (Mod+,), also the gear in the title bar. The sections sit in 
 
 ## The data folder
 
-formdeck was called formsld through 0.7.0: on first start an existing `~/Formsld` is moved to `~/formdeck`, and `FORMSLD_*` settings are still read until 0.9.0.
+formdeck was called formsld through 0.7.0: on first start an existing `~/Formsld` is moved to `~/formdeck` when that folder does not exist yet, and a `FORMSLD_*` setting is still read whenever the matching `FORMDECK_*` one is not set.
 
 Everything lives in `~/formdeck` (or `FORMDECK_DATA_DIR`):
 
