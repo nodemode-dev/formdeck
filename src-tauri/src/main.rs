@@ -13,6 +13,7 @@ use tauri_plugin_updater::UpdaterExt;
 
 struct Backend(Mutex<Option<CommandChild>>);
 struct Pending(Mutex<Vec<String>>);
+struct KeyScript(Mutex<String>);
 
 const FALLBACK_LOGICAL: (f64, f64) = (1323.0, 860.0);
 const MIN_LOGICAL: (f64, f64) = (980.0, 640.0);
@@ -136,6 +137,7 @@ async fn open_window(app: tauri::AppHandle, window: tauri::WebviewWindow, url: S
         .unwrap_or(FALLBACK_LOGICAL);
     let mut builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(target))
         .title("formdeck")
+        .initialization_script(app.state::<KeyScript>().0.lock().unwrap().clone())
         .inner_size(width, height)
         .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
         .accept_first_mouse(true)
@@ -162,7 +164,9 @@ async fn open_presenter(app: tauri::AppHandle, window: tauri::WebviewWindow, url
         }
         return existing.set_focus().map_err(|e| e.to_string());
     }
-    let builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(target)).title("formdeck slide show");
+    let builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(target))
+        .title("formdeck slide show")
+        .initialization_script(app.state::<KeyScript>().0.lock().unwrap().clone());
     let builder = match &other {
         Some(m) => {
             let scale = m.scale_factor();
@@ -244,6 +248,7 @@ fn main() {
         })
         .manage(Backend(Mutex::new(None)))
         .manage(Pending(Mutex::new(Vec::new())))
+        .manage(KeyScript(Mutex::new(String::new())))
         .setup(|app| {
             let handle = app.handle().clone();
             reveal::round_splash(&handle);
@@ -253,6 +258,7 @@ fn main() {
                 .expect("sidecar binary is bundled")
                 .env("FORMDECK_PORT", "0")
                 .env("FORMDECK_PORT_PREFER", "8297")
+                .env("FORMDECK_WINDOW_KEY_STDOUT", "1")
                 .spawn()
                 .expect("the formdeck engine failed to spawn");
             app.state::<Backend>().0.lock().unwrap().replace(child);
@@ -266,12 +272,19 @@ fn main() {
 
             tauri::async_runtime::spawn(async move {
                 let pattern = regex::Regex::new(r"http://127\.0\.0\.1:(\d+)").unwrap();
+                let key_pattern = regex::Regex::new(r"formdeck-window-key: ([A-Za-z0-9_-]{32,})").unwrap();
                 let mut port: Option<u16> = None;
+                let mut key: Option<String> = None;
                 while let Some(event) = rx.recv().await {
                     let line = match event {
-                        CommandEvent::Stdout(bytes) | CommandEvent::Stderr(bytes) => {
-                            String::from_utf8_lossy(&bytes).into_owned()
+                        CommandEvent::Stdout(bytes) => {
+                            let text = String::from_utf8_lossy(&bytes).into_owned();
+                            if key.is_none() {
+                                key = key_pattern.captures(&text).map(|found| found[1].to_string());
+                            }
+                            text
                         }
+                        CommandEvent::Stderr(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
                         CommandEvent::Terminated(_) => break,
                         _ => continue,
                     };
@@ -282,6 +295,23 @@ fn main() {
                         }
                     }
                 }
+                let grace = std::time::Instant::now() + std::time::Duration::from_secs(3);
+                while port.is_some() && key.is_none() && std::time::Instant::now() < grace {
+                    match rx.try_recv() {
+                        Ok(CommandEvent::Stdout(bytes)) => {
+                            key = key_pattern.captures(&String::from_utf8_lossy(&bytes)).map(|found| found[1].to_string());
+                        }
+                        Ok(_) => {}
+                        Err(_) => {
+                            let _ = tauri::async_runtime::spawn_blocking(|| std::thread::sleep(std::time::Duration::from_millis(20))).await;
+                        }
+                    }
+                }
+                let key_script = match (&key, port) {
+                    (Some(value), Some(found)) => format!("if (window.location.origin === {:?}) {{ window.__FORMDECK_WINDOW_KEY = {:?}; }}", format!("http://127.0.0.1:{found}"), value),
+                    _ => String::new(),
+                };
+                *handle.state::<KeyScript>().0.lock().unwrap() = key_script.clone();
                 match port {
                     Some(found) => {
                         let mut url: tauri::Url = format!("http://127.0.0.1:{found}")
@@ -309,6 +339,7 @@ fn main() {
                             .unwrap_or(FALLBACK_LOGICAL);
                         if let Ok(main) = WebviewWindowBuilder::new(&handle, "main", WebviewUrl::External(url))
                             .title("formdeck")
+                            .initialization_script(key_script)
                             .inner_size(width, height)
                             .min_inner_size(MIN_LOGICAL.0, MIN_LOGICAL.1)
                             .center()
