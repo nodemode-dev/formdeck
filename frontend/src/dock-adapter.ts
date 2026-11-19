@@ -142,6 +142,7 @@ export function formdeckDock(host: DockHost): DockAdapter {
   const words = { app: 'formdeck', noun: 'deck', start: './formdeck boot' };
   return {
     words: { ...words, example: 'tighten the wording on this slide', lead: 'Chat with an assistant about this deck' },
+    strings: { chatPlaceholder: 'Ask about your {noun} (Enter to send)', askLabel: 'Ask about your {noun}', send: 'Send', tourChatBody: 'Type what you want in this line, for example "{example}", and press Enter. Your assistant does it in {app}.' },
     placement: {
       mode: 'own',
       storage: { key: DOCK_KEY, legacy: { keys: DOCK_OLD_KEYS, read: readOldDock } },

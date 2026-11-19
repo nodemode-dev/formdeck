@@ -18,7 +18,7 @@ interface Cfg {
 }
 interface Status { busy: boolean; listening: number; lastPoll: number }
 
-export interface ChatHooks { copyPrompt?: () => void; mcpCommand?: () => Promise<string>; openClaude?: (resume?: string) => void }
+export interface ChatHooks { copyPrompt?: () => void; mcpCommand?: () => Promise<string>; openClaude?: (resume?: string) => void; fill?: (text: string) => boolean }
 
 const MODES: { id: Mode; label: string }[] = [
   { id: 'connected', label: 'Connected agent (no key)' },
@@ -50,8 +50,6 @@ export class ChatPanel {
   readonly root: HTMLElement;
   private readonly list: HTMLElement;
   private readonly empty: HTMLElement;
-  private readonly box: HTMLTextAreaElement;
-  private readonly sendBtn: HTMLButtonElement;
   private readonly stopBtn: HTMLButtonElement;
   private readonly settings: HTMLElement;
   private readonly provName: HTMLElement;
@@ -73,19 +71,15 @@ export class ChatPanel {
   constructor(host: HTMLElement, private readonly deckId: () => string | null, private readonly hooks: ChatHooks = {}) {
     this.root = el(`<div class="fd-chat">
 <div class="fd-chat-head"><span class="fd-chat-dot" aria-hidden="true"></span><div class="fd-chat-prov"><span class="fd-chat-prov-name">Connected agent</span><span class="fd-chat-where"></span></div>
+<button class="fd-icon-btn fd-chat-stop" type="button" data-a="stop" title="Stop" aria-label="Stop" hidden>${icon('stop', 14)}</button>
 <button class="fd-icon-btn" type="button" data-a="clear" title="Clear conversation" aria-label="Clear conversation">${icon('delete', 14)}</button>
 <button class="fd-icon-btn" type="button" data-a="settings" title="Chat settings" aria-label="Chat settings" aria-expanded="false">${icon('settings', 14)}</button></div>
 <div class="fd-chat-main">
 <div class="fd-chat-list" role="log" aria-live="polite" aria-label="Chat"></div>
 <div class="fd-chat-empty"></div>
-<div class="fd-chat-settings" hidden></div></div>
-<div class="fd-chat-composer"><textarea class="fd-input" rows="2" placeholder="Message the assistant (Enter to send, Shift+Enter for a new line)" aria-label="Message"></textarea>
-<button class="fd-btn fd-btn-primary fd-chat-send" type="button" data-a="send" title="Send" aria-label="Send">${icon('send', 14)}</button>
-<button class="fd-btn fd-chat-stop" type="button" data-a="stop" title="Stop" aria-label="Stop" hidden>${icon('stop', 14)}</button></div></div>`);
+<div class="fd-chat-settings" hidden></div></div></div>`);
     this.list = this.root.querySelector('.fd-chat-list') as HTMLElement;
     this.empty = this.root.querySelector('.fd-chat-empty') as HTMLElement;
-    this.box = this.root.querySelector('textarea') as HTMLTextAreaElement;
-    this.sendBtn = this.root.querySelector('[data-a="send"]') as HTMLButtonElement;
     this.stopBtn = this.root.querySelector('[data-a="stop"]') as HTMLButtonElement;
     this.settings = this.root.querySelector('.fd-chat-settings') as HTMLElement;
     this.provName = this.root.querySelector('.fd-chat-prov-name') as HTMLElement;
@@ -128,8 +122,7 @@ export class ChatPanel {
     this.root.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
       const a = t.closest<HTMLElement>('[data-a]')?.dataset.a;
-      if (a === 'send') void this.send();
-      else if (a === 'stop') void this.stop();
+      if (a === 'stop') void this.stop();
       else if (a === 'clear') void this.clear();
       else if (a === 'settings') this.toggleSettings();
       else if (a === 'copy-prompt') this.hooks.copyPrompt?.();
@@ -140,13 +133,8 @@ export class ChatPanel {
       else if (a === 'remove-key') void this.removeKey(t.closest<HTMLElement>('[data-a]')?.dataset.p as 'anthropic' | 'openai');
       else if (a === 'test') void this.test();
       else if (a === 'tool') this.toggleTool(t.closest<HTMLElement>('.fd-chat-tool'));
-      else if (a === 'hint') { this.box.value = t.closest<HTMLElement>('[data-a]')?.dataset.t ?? ''; this.box.focus(); }
+      else if (a === 'hint') { const hint = t.closest<HTMLElement>('[data-a]')?.dataset.t ?? ''; if (!this.hooks.fill?.(hint)) void this.ask(hint); }
     });
-    this.box.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); void this.send(); }
-    });
-    this.box.addEventListener('input', () => this.syncControls());
-    this.box.addEventListener('focus', () => this.tick());
     this.list.addEventListener('scroll', () => {
       if (this.auto) { this.auto = false; return; }
       this.stick = this.list.scrollHeight - this.list.scrollTop - this.list.clientHeight < 48;
@@ -292,21 +280,7 @@ export class ChatPanel {
   }
 
   private syncControls(): void {
-    const busy = this.status.busy;
-    setHidden(this.sendBtn, busy);
-    setHidden(this.stopBtn, !busy);
-    this.sendBtn.disabled = !this.box.value.trim();
-  }
-
-  private async send(): Promise<void> {
-    const text = this.box.value.trim();
-    if (!this.cid) this.tick();
-    if (!text || this.status.busy || !this.cid) return;
-    this.box.value = '';
-    this.syncControls();
-    if (await this.ask(text)) return;
-    this.box.value = text;
-    this.syncControls();
+    setHidden(this.stopBtn, !this.status.busy);
   }
 
   private async stop(): Promise<void> {

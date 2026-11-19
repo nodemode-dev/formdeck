@@ -645,6 +645,13 @@ export async function startApp(): Promise<void> {
       const panel = new ChatPanel(pane, () => editor?.doc.id ?? null, {
         copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null),
         openClaude: (resume) => void dock?.claude(undefined, resume),
+        fill: (text) => {
+          const line = dock?.root.querySelector<HTMLInputElement>('.ft-dock-ask input');
+          if (!line) return false;
+          line.value = text;
+          line.focus();
+          return true;
+        },
       });
       return { send: (text) => panel.ask(text), shown: () => panel.sync(), hidden: () => panel.rest(), closed: () => panel.rest(), busy: () => panel.isBusy() };
     },

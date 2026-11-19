@@ -1265,3 +1265,71 @@ Removed from ui/chat-panel.ts (`send`, now through `ask`):
 Seen in one headless Chrome session at 1440 by 900 (Vite dev server, engine from source with an empty data folder, stand-in agent programs), against captures taken on 2.0.1 with the same steps: dock closed, 0 pixels differ; open on a terminal with its text hidden, 558 pixels, all in the ask row (the mark at x 8 to 22 and the changed word at x 220 to 281); open on Chat, 57605 pixels, of which 57600 are the ask row (1440 by 40, shown where it was hidden) and 5 are inside the Chat pane with no cause found. Under 4x CPU: five tab switches between a shell and Chat, 195 frames, one layout; the side switch with a shell running kept the same terminal element and its output, with two layouts and none between. AMOLED Black and back re-coloured the open terminal in place. The guide showed for a new person ("Step 1 of 5") and not for a person with the old three keys, whose layout was moved with `seen`. `tsc --noEmit` clean, backend 255 passed before and after, `./formdeck agents sync --check` in step.
 
 Added after commit 8c624d3, whose message says Deny is in this entry when it was not yet: in the same session, Deny in the window closed the question ("Allow an agent calling itself probe-agent to make changes in formdeck?", three notes, one element each), the caller was told "The person did not allow agents to edit decks in formdeck", and `agentsAllowed` and `agentsBlocked` were both false before and after. A second call straight after was refused without a question: the engine remembers a Deny for a while (`_declined` in backend/app/routers/mcp.py), so "the next call asks again" was not seen. The write-route sweep from outside the window, 77 write routes of the engine's own route list: with no key and no origin 74 answered 403, `POST /api/window/key` 409 (the key was already given to the window) and `/mcp` 202 and 204 (the door for outside agents, which asks the person); with no key and a foreign origin all 77 answered 403.
+
+## 220. Chat has one input: the dock's ask line · _v0.40.0 (ui/chat-panel.ts; styles/chat.css; app.ts; src/dock-adapter.ts)
+
+After entry 219 Chat showed two inputs, the pane's own message box and the dock's line. The owner's decision: the line is Chat's input everywhere. The pane's box and its Send button are removed (ChatPanel is built only in the dock, nothing else used them). The adapter still says `ask: 'line'` with the pane's `send`: on Chat the line sends to formdeck's Chat, under a terminal tab it opens Claude Code with the text and the window's deck, slide and selection. Chat has five providers, so the adapter's `strings` give formdeck's own sentences where the module's said Claude: on Chat the placeholder is "Ask about your deck (Enter to send)", the line's label is "Ask about your deck", the button's title is "Send", and the guide's step ends "Your assistant does it in formdeck." Under a terminal tab the placeholder is still "Ask Claude Code to work on your deck", which is where that text goes.
+
+What the box did, and where it is now. Stop: a button in the pane's head, before Clear, shown only while the assistant works (the head's height does not change; the provider's name gives up the width). The two starting hints ("Tighten the wording on this slide", "Suggest stronger titles") filled the box; they now fill the line through a `fill` hook that app.ts answers by finding the input inside the public `.ft-dock-ask` form, and they send at once if it is not found. The module has no call for putting text in its line. The provider switch, the keys, Test, Clear, "Open in Claude Code" and the copy buttons were never in the box and are where they were. Alt+Mod+J still opens Chat, with focus in the line. A failed send still says why in a toast and the text stays in the line. Lost: a message of several lines (Shift+Enter); the line is one line. The sentence "Message the assistant (Enter to send, Shift+Enter for a new line)" is no longer used and is still listed in `src/i18n/keys/part06.json`.
+
+Removed from ui/chat-panel.ts:
+
+```ts
+  private readonly box: HTMLTextAreaElement;
+  private readonly sendBtn: HTMLButtonElement;
+```
+
+```ts
+<div class="fd-chat-composer"><textarea class="fd-input" rows="2" placeholder="Message the assistant (Enter to send, Shift+Enter for a new line)" aria-label="Message"></textarea>
+<button class="fd-btn fd-btn-primary fd-chat-send" type="button" data-a="send" title="Send" aria-label="Send">${icon('send', 14)}</button>
+<button class="fd-btn fd-chat-stop" type="button" data-a="stop" title="Stop" aria-label="Stop" hidden>${icon('stop', 14)}</button></div>
+```
+
+```ts
+    this.box = this.root.querySelector('textarea') as HTMLTextAreaElement;
+    this.sendBtn = this.root.querySelector('[data-a="send"]') as HTMLButtonElement;
+```
+
+```ts
+      if (a === 'send') void this.send();
+```
+
+```ts
+      else if (a === 'hint') { this.box.value = t.closest<HTMLElement>('[data-a]')?.dataset.t ?? ''; this.box.focus(); }
+    });
+    this.box.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); void this.send(); }
+    });
+    this.box.addEventListener('input', () => this.syncControls());
+    this.box.addEventListener('focus', () => this.tick());
+```
+
+```ts
+    const busy = this.status.busy;
+    setHidden(this.sendBtn, busy);
+    setHidden(this.stopBtn, !busy);
+    this.sendBtn.disabled = !this.box.value.trim();
+  }
+
+  private async send(): Promise<void> {
+    const text = this.box.value.trim();
+    if (!this.cid) this.tick();
+    if (!text || this.status.busy || !this.cid) return;
+    this.box.value = '';
+    this.syncControls();
+    if (await this.ask(text)) return;
+    this.box.value = text;
+    this.syncControls();
+  }
+```
+
+Removed from styles/chat.css:
+
+```css
+.fd-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); flex: none; padding-top: var(--space-2); border-top: 1px solid var(--line-1); }
+.fd-chat-composer textarea { display: block; box-sizing: border-box; height: 54px; padding: 6px 10px; resize: none; line-height: 1.4; user-select: text; -webkit-user-select: text; }
+.fd-chat-send, .fd-chat-stop { width: var(--ctl-lg); height: var(--ctl-lg); padding: 0; }
+.fd-chat-send[hidden], .fd-chat-stop[hidden] { display: none; }
+```
+
+Seen in one headless Chrome session at 1440 by 900 (Vite dev server, engine from source, stand-in agent programs): on Chat one input is visible in the dock, the line, with formdeck's sentences and no "Claude" in them; under 4x CPU a send from Chat reached `POST /api/chat/[deck]/send` (200) and showed in the list, a send from a terminal tab opened Claude Code with the text and the window's deck and slide, and six tab switches between a shell and Chat gave 225 frames with one layout; a hint filled the line and focused it; Chat settings still lists the five providers. Stop was not seen shown: no provider was answering, so the assistant was never working. `tsc --noEmit` clean.

@@ -56,8 +56,5 @@
 .fd-chat-testrow { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .fd-chat-testmsg { min-width: 0; overflow-wrap: anywhere; }
 .fd-chat-testmsg.is-bad { color: var(--danger-text); }
-.fd-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); flex: none; padding-top: var(--space-2); border-top: 1px solid var(--line-1); }
-.fd-chat-composer textarea { display: block; box-sizing: border-box; height: 54px; padding: 6px 10px; resize: none; line-height: 1.4; user-select: text; -webkit-user-select: text; }
-.fd-chat-send, .fd-chat-stop { width: var(--ctl-lg); height: var(--ctl-lg); padding: 0; }
-.fd-chat-send[hidden], .fd-chat-stop[hidden] { display: none; }
+.fd-chat-stop[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .fd-chat-msg.is-streaming .fd-chat-text::after, .fd-chat-tool-state[data-s="running"] .icon { animation: none; } }
