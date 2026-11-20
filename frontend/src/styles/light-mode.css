@@ -1,4 +1,3 @@
-body.theme-light { --glass-shadow: 0 16px 40px rgba(96, 90, 70, 0.18), 0 2px 6px rgba(96, 90, 70, 0.12); }
 body.theme-light .fd-dialog, body.theme-light .fd-toast { box-shadow: var(--shadow-lg); }
 body.theme-light .fd-row-thumb, body.theme-light .fd-card-preview:not(.is-blank), body.theme-light .fd-asset { background: var(--bg-tertiary); }
 body.theme-light .fd-scrim { background: var(--bg-scrim); }
