@@ -137,7 +137,7 @@ def test_a_holder_that_has_ended_but_was_not_collected_counts_as_gone_where_ther
         assert replaced == engine.pid
         assert startup.alive(engine.pid) and startup.finished(engine.pid)
         assert json.loads(path.read_text())["pid"] == os.getpid()
-        monkeypatch.setattr(startup, "PROC", "/proc")
+        monkeypatch.setattr(startup, "PROC", str(tmp_path))
         assert startup.finished(engine.pid) is False
     finally:
         stop(engine, shell, mine)

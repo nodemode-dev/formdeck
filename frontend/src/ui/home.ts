@@ -83,7 +83,7 @@ export class Home {
 <div class="fd-home-open" hidden><div class="fd-home-nav-sep"></div><div class="fd-home-nav-title">Open decks</div><div class="fd-home-open-list"></div></div>
 <div class="fd-home-nav-sep"></div>
 <div class="fd-home-nav-title">Agents</div>
-<button class="fd-home-nav-item" type="button" data-a="agents">${icon('agent', 16)}<span>Claude Code, Codex, Cursor</span></button>
+<button class="fd-home-nav-item" type="button" data-a="agents">${icon('agent', 16)}<span>Claude Code, Codex, Cursor, Antigravity</span></button>
 <div class="fd-home-nav-foot">
 <button class="fd-home-nav-item" type="button" data-a="local" title="Your decks stay on this computer">${icon('cloudOff', 16)}<span>Local only</span></button>
 <button class="fd-home-nav-item" type="button" data-a="prefs">${icon('settings', 16)}<span>Preferences</span></button>

@@ -140,9 +140,9 @@ def write_settings(patch: dict) -> dict:
         patch = {**patch, "agentsBlocked": True, "agentsAllowed": False}
     elif patch.get("agentsAllowed"):
         patch = {**patch, "agentsBlocked": False}
-    if "agentsAllowed" in patch or "agentsBlocked" in patch or "claude" in patch:
+    if any(k in patch for k in ("agentsAllowed", "agentsBlocked", "claude") + seal.LATER):
         current = seal.effective(stored)
-        merged = seal.sign({**stored, **{k: current[k] for k in ("agentsAllowed", "claude") if k in current}, **patch})
+        merged = seal.sign({**stored, **{k: current[k] for k in ("agentsAllowed", "claude") + seal.LATER if k in current}, **patch})
     else:
         merged = {**stored, **patch}
     tmp = settings_path().with_suffix(".tmp")

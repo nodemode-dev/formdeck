@@ -505,7 +505,7 @@ class IntakeDialog extends Dialog {
     this.handoff = el(`<div class="fd-intake-handoff" hidden>
 <div class="fd-intake-handoff-head"><span class="fd-intake-handoff-icon">${icon('agent', 20)}</span><div><div class="fd-intake-handoff-title">Your material is ready for an agent</div><div class="fd-note fd-intake-handoff-sub"></div></div></div>
 <div class="fd-dlg-code"><div class="fd-dlg-code-head"><span class="fd-dlg-code-title">Prompt</span>${copyBtn('')}</div><pre class="fd-dlg-code-text fd-intake-prompt"></pre></div>
-<ol class="fd-dlg-steps"><li>Open Claude Code, Codex or Cursor with the formdeck MCP server connected.</li><li>Paste the prompt. The agent reads your material, writes a slide script and builds the deck in your template.</li><li>Watch the slides land here as it works. Edit &gt; Undo Agent Turn takes back a whole turn.</li></ol>
+<ol class="fd-dlg-steps"><li>Open Claude Code, Codex, Cursor or Antigravity with the formdeck MCP server connected.</li><li>Paste the prompt. The agent reads your material, writes a slide script and builds the deck in your template.</li><li>Watch the slides land here as it works. Edit &gt; Undo Agent Turn takes back a whole turn.</li></ol>
 <button class="fd-dlg-link" type="button" data-agents>${icon('link2', 14)}<span>Connect an agent to formdeck</span></button>
 </div>`);
     this.body.append(this.form, this.handoff);
@@ -1869,14 +1869,17 @@ class PreferencesDialog extends Dialog {
         + nt('On, every video added to a slide gets its second frame as its poster frame, so the picture does not jump when it starts to play (a clip\'s first frame is often black or a fade). Off, added videos keep the first frame. Poster Frame on the Video Playback tab still sets any frame.'))
         + grp('Video Player', check('data-cmdtoggle="media-controls-editor"', 'Video player in the editor')
         + nt('On, a video\'s own play, pause and seek controls work on the slide and the video cannot be moved; the Video Playback tab stays open. Double-click a video to turn the player off; Shift and double-click a video to turn it on.')),
-      Plugins: grp('Outside Agents', check('data-f="agents"', 'Let Claude Code, Codex and Cursor read and edit decks'))
+      Plugins: grp('Outside Agents', check('data-f="agents"', 'Let Claude Code, Codex, Cursor and Antigravity read and edit decks'))
         + grp('Layout Ideas', check('data-f="agentLayoutIdeas"', 'Agent layout ideas')
         + `<div class="fd-field"><span>Agent</span><span class="fd-note fd-dlg-ideas-status"></span></div>`
         + nt("On, Crafter Ideas sends this slide's content (element kinds, text and sizes) and the names of the master's layouts to the agent you have connected, and shows the placements it returns. Off, nothing leaves formdeck and Crafter Ideas lists every layout of the master in order."))
         + grp('Claude Code', `<div class="fd-field"><span>Found</span><span class="fd-note fd-dlg-claude-status" translate="no"></span></div>
 <label class="fd-field"><span>Program</span><input class="fd-input" type="text" spellcheck="false" data-c="bin" placeholder="Found automatically; or the full path to claude"></label>
 <label class="fd-field"><span>Folder</span><input class="fd-input" type="text" spellcheck="false" data-c="folder" placeholder="Where Claude Code starts; the formdeck Agent folder by default"></label>
-<label class="fd-field"><span>First message</span><input class="fd-input" type="text" spellcheck="false" data-c="firstMessage" placeholder="Sent when Claude Code opens in the terminal, if set"></label>`),
+<label class="fd-field"><span>First message</span><input class="fd-input" type="text" spellcheck="false" data-c="firstMessage" placeholder="Sent when Claude Code opens in the terminal, if set"></label>`)
+        + grp('Other Agent Programs', `<label class="fd-field"><span translate="no">Codex</span><input class="fd-input" type="text" spellcheck="false" data-p="codexBin" placeholder="Found automatically; or the full path to the program"></label>
+<label class="fd-field"><span translate="no">Cursor</span><input class="fd-input" type="text" spellcheck="false" data-p="cursorBin" placeholder="Found automatically; or the full path to the program"></label>
+<label class="fd-field"><span translate="no">Antigravity</span><input class="fd-input" type="text" spellcheck="false" data-p="antigravityBin" placeholder="Found automatically; or the full path to the program"></label>`),
     };
     const box = el('<div class="fd-prefs-pages"></div>');
     for (const name of PREF_ORDER) {
@@ -1974,6 +1977,8 @@ class PreferencesDialog extends Dialog {
     this.claudeStatus = q(box, '.fd-dlg-claude-status');
     this.claudeFields = Array.from(box.querySelectorAll<HTMLInputElement>('[data-c]'));
     for (const f of this.claudeFields) f.addEventListener('change', () => this.persistClaude());
+    this.programFields = Array.from(box.querySelectorAll<HTMLInputElement>('[data-p]'));
+    for (const f of this.programFields) f.addEventListener('change', () => { void api.setSettings({ [f.dataset.p ?? '']: f.value.trim() }).catch((e) => toast(`Could not save the preference: ${errText(e)}`, 'error')); });
     const lang = q<HTMLSelectElement>(box, '.fd-dlg-pref-lang');
     lang.value = storedLanguage();
     lang.addEventListener('change', () => setLanguage(lang.value));
@@ -1988,6 +1993,7 @@ class PreferencesDialog extends Dialog {
 
   private claudeStatus!: HTMLElement;
   private claudeFields: HTMLInputElement[] = [];
+  private programFields: HTMLInputElement[] = [];
 
   private persistClaude(): void {
     const claude = Object.fromEntries(this.claudeFields.map((f) => [f.dataset.c ?? '', f.value.trim()]));
@@ -2138,6 +2144,7 @@ class PreferencesDialog extends Dialog {
       setChecked(this.ideasPref, s.agentLayoutIdeas === true);
       const cl = (s.claude && typeof s.claude === 'object' ? s.claude : {}) as Record<string, unknown>;
       for (const f of this.claudeFields) setValue(f, str(cl[f.dataset.c ?? '']));
+      for (const f of this.programFields) setValue(f, str(s[f.dataset.p ?? '']));
     });
     this.syncClaude();
     this.syncIdeas();
@@ -2151,7 +2158,7 @@ export function preferencesDialog(h: AgentHooks, section?: string): void {
 }
 
 const SETUP: Array<{ id: string; tab: string; title: string; note: string; text: (url: string) => string }> = [
-  { id: 'install', tab: 'All at once', title: 'In the formdeck folder', note: 'Writes the Claude Code, Codex and Cursor configs and installs the formdeck skill, so agents know the deck format and tools.', text: () => './formdeck agents install' },
+  { id: 'install', tab: 'All at once', title: 'In the formdeck folder', note: 'Writes the Claude Code, Codex, Cursor and Antigravity configs and installs the formdeck skill, so agents know the deck format and tools.', text: () => './formdeck agents install' },
   { id: 'claude', tab: 'Claude Code', title: 'In a terminal', note: 'Run once. Then ask Claude Code to build or edit a deck.', text: (u) => `claude mcp add --transport http formdeck ${u}` },
   { id: 'codex', tab: 'Codex', title: '~/.codex/config.toml', note: 'Add this table, then restart Codex.', text: (u) => `[mcp_servers.formdeck]\nurl = "${u}"` },
   { id: 'cursor', tab: 'Cursor', title: '~/.cursor/mcp.json', note: 'Or .cursor/mcp.json inside a project. Cursor picks it up on the next chat.', text: (u) => `{\n  "mcpServers": {\n    "formdeck": { "url": "${u}" }\n  }\n}` },
@@ -2283,7 +2290,7 @@ class HelpDialog extends Dialog {
 <li><strong>Start from your material.</strong> Drop notes, documents, pictures or an old deck (.pptx or .odp) on Home and formdeck drafts the slides in your template.</li>
 <li><strong>Pick a template.</strong> Change it any time with Slide &gt; Apply Template. Your content follows.</li>
 <li><strong>Edit on the slide.</strong> Double-click to type, drop pictures anywhere, and use the panel on the right for layout, colours and review status.</li>
-<li><strong>Bring in your agent.</strong> Connect Claude Code, Codex or Cursor from Review &gt; Agents. It edits the same deck live and every turn undoes as one step.</li>
+<li><strong>Bring in your agent.</strong> Connect Claude Code, Codex, Cursor or Antigravity from Review &gt; Agents. It edits the same deck live and every turn undoes as one step.</li>
 <li><strong>Present and share.</strong> Present from the title bar, export .pptx for PowerPoint, Keynote and Google Slides, .odp for LibreOffice Impress, or PDF and pictures.</li>
 </ol></section>
 <section class="fd-dlg-section"><div class="fd-dlg-section-title">Learn more</div>

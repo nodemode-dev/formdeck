@@ -6,6 +6,7 @@ import secrets
 SERVICE = "FormDeck"
 ACCOUNT = "settings-seal"
 FIELD = "seal"
+LATER = ("codexBin", "cursorBin", "antigravityBin")
 _CACHE: dict = {"tried": False, "available": False, "key": None}
 
 
@@ -41,7 +42,8 @@ def sealed(values: dict) -> dict:
     claude = values.get("claude")
     chosen = claude.get("bin") if isinstance(claude, dict) else ""
     blocked = {"agentsBlocked": True} if values.get("agentsBlocked") is True else {}
-    return {"agentsAllowed": bool(values.get("agentsAllowed")), "claudeBin": str(chosen or "").strip(), **blocked}
+    later = {k: str(values.get(k) or "").strip() for k in LATER if str(values.get(k) or "").strip()}
+    return {"agentsAllowed": bool(values.get("agentsAllowed")), "claudeBin": str(chosen or "").strip(), **blocked, **later}
 
 
 def digest(values: dict, key: bytes) -> str:
@@ -51,7 +53,7 @@ def digest(values: dict, key: bytes) -> str:
 
 def loosened(values: dict) -> bool:
     now = sealed(values)
-    return now["agentsAllowed"] or bool(now["claudeBin"])
+    return now["agentsAllowed"] or bool(now["claudeBin"]) or any(now.get(k) for k in LATER)
 
 
 def effective(stored: dict) -> dict:
@@ -67,6 +69,7 @@ def effective(stored: dict) -> dict:
     out["agentsAllowed"] = False
     if isinstance(out.get("claude"), dict):
         out["claude"] = {**out["claude"], "bin": ""}
+    out.update({k: "" for k in LATER})
     return {**out, "seal": "broken", "sealBroken": True}
 
 

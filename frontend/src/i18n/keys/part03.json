@@ -256,7 +256,7 @@
 "Comment on this slide (Enter to post, @ to mention)",
 "Assign this comment",
 "Outside agents",
-"Claude Code, Codex and Cursor build and edit decks here through formdeck's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.",
+"Claude Code, Codex, Cursor and Antigravity build and edit decks here through formdeck's MCP server. Every change is an undoable step; Undo Agent Turn takes back a whole turn.",
 "{0}Copy a prompt for your agent",
 "Chat",
 "Activity",

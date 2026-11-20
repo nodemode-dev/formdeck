@@ -11,6 +11,7 @@ from app.services import agent_lookup, terminal
 
 KEEP_ENV = agent_lookup.KEEP_ENV
 OVERRIDES = {"claude": ("FORMDECK_CLAUDE_BIN",), "codex": ("FORMDECK_CODEX_BIN",), "cursor": ("FORMDECK_CURSOR_BIN",), "antigravity": ("FORMDECK_ANTIGRAVITY_BIN",)}
+SETTINGS = {"codex": "codexBin", "cursor": "cursorBin", "antigravity": "antigravityBin"}
 OTHERWISE = "give its path in Preferences"
 SHELL_WAIT = 10.0
 CHECK_WAIT = 15.0
@@ -41,7 +42,13 @@ def _pref(key: str) -> str:
 
 
 def setting(kind: str) -> str | None:
-    return _pref("bin") if kind == "claude" else None
+    if kind == "claude":
+        return _pref("bin")
+    key = SETTINGS.get(kind)
+    if key is None:
+        return None
+    value = config.read_settings().get(key)
+    return value.strip() if isinstance(value, str) else ""
 
 
 def otherwise(kind: str) -> str:

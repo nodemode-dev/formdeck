@@ -321,7 +321,7 @@ export class ChatPanel {
   private buildEmpty(): void {
     this.empty.innerHTML = `<div class="fd-chat-empty-in"><div class="fd-chat-empty-title">${icon('agent', 16)}<span>Chat with an assistant about this deck</span></div>
 <p class="fd-chat-empty-lead"></p>
-<ol class="fd-chat-steps"><li>Connect your agent once: paste the prompt below into Claude Code, Codex or Cursor, or add formdeck as an MCP server.</li><li>Ask it to check the formdeck chat. It reads your messages and answers here, and its edits are undoable.</li></ol>
+<ol class="fd-chat-steps"><li>Connect your agent once: paste the prompt below into Claude Code, Codex, Cursor or Antigravity, or add formdeck as an MCP server.</li><li>Ask it to check the formdeck chat. It reads your messages and answers here, and its edits are undoable.</li></ol>
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt for your agent</button><button class="fd-btn fd-btn-sm" type="button" data-a="copy-cmd">${icon('link', 14)}Copy MCP command</button></div>
 <div class="fd-chat-hints"><button class="fd-chat-hint" type="button" data-a="hint" data-t="Tighten the wording on this slide.">Tighten the wording on this slide</button><button class="fd-chat-hint" type="button" data-a="hint" data-t="Suggest a stronger title for every slide.">Suggest stronger titles</button></div></div>`;
   }
@@ -337,7 +337,7 @@ export class ChatPanel {
     setHidden(acts, !connected);
     setHidden(this.empty.querySelector('.fd-chat-hints') as HTMLElement, connected);
     setText(this.empty.querySelector('.fd-chat-empty-lead'), connected
-      ? 'No key needed. Your own Claude Code, Codex or Cursor session answers here over MCP; formdeck sends nothing anywhere.'
+      ? 'No key needed. Your own Claude Code, Codex, Cursor or Antigravity session answers here over MCP; formdeck sends nothing anywhere.'
       : `Using ${PROVIDER_NAME[this.cfg.provider]}. Ask for edits in plain words; each edit is an undoable agent turn and follows the Allow switch above.`);
   }
 
@@ -379,7 +379,7 @@ export class ChatPanel {
 <label class="fd-chat-lab">API key</label><div class="fd-chat-keyrow"><input class="fd-input" type="password" data-key="${p}" autocomplete="new-password" spellcheck="false" placeholder="Paste a key"><button class="fd-btn fd-btn-sm" type="button" data-a="save-key" data-p="${p}">Save</button><button class="fd-btn fd-btn-sm" type="button" data-a="remove-key" data-p="${p}">Remove</button></div>
 <div class="fd-note fd-chat-keynote" data-keynote="${p}"></div></div>`;
     this.settings.innerHTML = `<div class="fd-chat-set-in"><label class="fd-chat-lab">Assistant</label><select class="fd-input" data-f="provider" aria-label="Assistant">${MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}</select>
-<div class="fd-chat-sec" data-p="connected"><div class="fd-note">Your Claude Code, Codex or Cursor session connects over MCP and answers in this panel. No key, nothing sent by formdeck.</div>
+<div class="fd-chat-sec" data-p="connected"><div class="fd-note">Your Claude Code, Codex, Cursor or Antigravity session connects over MCP and answers in this panel. No key, nothing sent by formdeck.</div>
 <div class="fd-chat-empty-acts"><button class="fd-btn fd-btn-sm" type="button" data-a="copy-prompt">${icon('agent', 14)}Copy a prompt</button><button class="fd-btn fd-btn-sm" type="button" data-a="copy-cmd">${icon('link', 14)}Copy MCP command</button></div></div>
 <div class="fd-chat-sec" data-p="claudecode" hidden><div class="fd-note">formdeck runs your own Claude Code (claude -p) with formdeck's tools only. It uses your Claude sign-in; no key is stored here. Run claude once in a terminal to sign in.</div>
 <label class="fd-chat-lab">Model</label><select class="fd-input" data-f="claudecode.model" aria-label="Claude Code model"><option value="">Claude Code default</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option><option value="haiku">Haiku</option></select>
