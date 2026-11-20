@@ -59,7 +59,7 @@ async def test(body: dict) -> dict:
     name = str(body.get("provider") or "")
     if name == "claudecode":
         found = claude_code.info(fresh=True)
-        return {"ok": found["installed"], "message": f"Claude Code {found['version'] or ''} at {found['path']}".strip() if found["installed"] else claude_code.INSTALL, "models": ["sonnet", "opus", "haiku"]}
+        return {"ok": found["installed"], "message": f"Claude Code {found['version'] or ''} at {found['path']}".strip() if found["installed"] else found["said"], "models": ["sonnet", "opus", "haiku"]}
     try:
         prov = engine.make(name) if name in engine.PROVIDERS else None
     except ProviderError as exc:

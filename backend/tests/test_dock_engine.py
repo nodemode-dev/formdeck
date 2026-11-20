@@ -156,11 +156,11 @@ def test_an_ask_nobody_answers_is_withdrawn_when_the_engine_stops_waiting(client
 
 @pytest.fixture()
 def stand_ins(tmp_path, monkeypatch):
-    from app.services import agent_programs, claude_code
+    from app.services import agent_lookup, agent_programs, claude_code
 
     folder = tmp_path / "bin"
     folder.mkdir()
-    for name in ("claude", "codex", "cursor-agent"):
+    for name in ("claude", "codex", "cursor-agent", "agy"):
         script = folder / name
         script.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; then echo "9.8.7 (stand-in)"; exit 0; fi\nif [ "$1" = "auth" ]; then echo \'{"loggedIn": true}\'; exit 0; fi\necho started\nread line\n')
         script.chmod(0o755)
@@ -170,21 +170,23 @@ def stand_ins(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
     monkeypatch.setitem(agent_programs._cache, "value", None)
     monkeypatch.setitem(claude_code._cache, "value", None)
+    agent_lookup.forget()
     yield folder
+    agent_lookup.forget()
     agent_programs._cache["value"] = None
     claude_code._cache["value"] = None
 
 
 @pytest.fixture()
 def no_programs(monkeypatch):
-    from app.services import agent_programs, claude_code
+    from app.services import agent_lookup, agent_programs, claude_code
 
     monkeypatch.setenv("PATH", "/usr/bin:/bin")
-    monkeypatch.setattr(agent_programs.terminal, "login_shell", lambda: ["/bin/sh", "-c", "exit 1", "--"])
-    monkeypatch.setattr(claude_code, "cli", lambda: None)
     monkeypatch.setitem(agent_programs._cache, "value", None)
     monkeypatch.setitem(claude_code._cache, "value", None)
+    agent_lookup.forget()
     yield
+    agent_lookup.forget()
     agent_programs._cache["value"] = None
     claude_code._cache["value"] = None
 
@@ -193,20 +195,21 @@ posix = pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scri
 
 
 @posix
-def test_agent_status_names_the_three_programs_it_finds(client, stand_ins):
+def test_agent_status_names_the_four_programs_it_finds(client, stand_ins):
     status = client.get("/api/agent/status").json()
-    assert set(status) == {"claude", "codex", "cursor"}
-    for kind, name in (("claude", "claude"), ("codex", "codex"), ("cursor", "cursor-agent")):
+    assert set(status) == {"claude", "codex", "cursor", "antigravity"}
+    for kind, name in (("claude", "claude"), ("codex", "codex"), ("cursor", "cursor-agent"), ("antigravity", "agy")):
         assert status[kind]["installed"] is True and status[kind]["path"] == str(stand_ins / name)
-        assert status[kind]["version"] == "9.8.7" and status[kind]["install"]
+        assert status[kind]["version"] == "9.8.7" and status[kind]["install"] and status[kind]["finding"] == "runs"
     assert status["claude"]["signedIn"] is True
-    assert status["codex"]["signedIn"] is None and status["cursor"]["signedIn"] is None
+    assert status["codex"]["signedIn"] is None and status["cursor"]["signedIn"] is None and status["antigravity"]["signedIn"] is None
 
 
 def test_agent_status_gives_an_install_line_for_each_missing_program(client, no_programs):
     status = client.get("/api/agent/status").json()
-    for kind in ("claude", "codex", "cursor"):
+    for kind in ("claude", "codex", "cursor", "antigravity"):
         assert status[kind]["installed"] is False and status[kind]["version"] is None and status[kind]["signedIn"] is None
+        assert status[kind]["finding"] == "missing" and status[kind]["said"].startswith(status[kind]["title"] + " was not found. Looked in: ")
         assert status[kind]["install"] and "\n" not in status[kind]["install"]
     assert client.post("/api/agent/codex/open", json={}).status_code == 409
     assert client.post("/api/agent/vim/open", json={}).status_code == 404

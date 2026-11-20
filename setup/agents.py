@@ -17,6 +17,8 @@ REGISTRY_NAME = "formdeck"
 MANIFEST = ROOT / "agents" / "manifest.json"
 DOCK = {"present": True, "positions": ["right", "bottom"], "tabs": ["chat", "terminal", "claude", "codex", "cursor"]}
 DOCK_MODULE = ROOT / "frontend" / "src" / "dock"
+LOOKUP = ROOT / "backend" / "app" / "services" / "agent_lookup.py"
+LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
 PORT = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 8197)
 PY = "python" if os.name == "nt" else "python3"
 USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
@@ -238,6 +240,19 @@ def dock_module(said: list, folder: Path = DOCK_MODULE) -> int:
     return len(bad)
 
 
+def lookup_problems() -> list[str]:
+    rel = LOOKUP.relative_to(ROOT).as_posix()
+    try:
+        raw = LOOKUP.read_bytes()
+    except OSError:
+        return [f"{rel}: missing (the shared finder for the agent programs)"]
+    said = re.search(rb'^VERSION = "([^"\r\n]+)"\r?$', raw, re.M)
+    version = said.group(1).decode("ascii", "replace") if said else "unknown"
+    if LOOKUP_HASHES.get(version) != hashlib.sha256(raw).hexdigest():
+        return [f"{rel}: does not match the hash recorded for version {version} (the shared finder changes only as a whole new version)"]
+    return []
+
+
 def sync(check: bool) -> int:
     said: list = []
     n = skills(check, said)
@@ -245,6 +260,10 @@ def sync(check: bool) -> int:
     m = manifest(check, said)
     said.append("Dock module:")
     d = dock_module(said)
+    said.append("Agent finder:")
+    finder = lookup_problems()
+    said.extend(f"  {line}" for line in finder or [f"{LOOKUP.relative_to(ROOT).as_posix()} matches the hash recorded for its version"])
+    d += len(finder)
     print("\n".join(said))
     if check:
         print("agents: in step" if n == 0 and m == 0 and d == 0 else "agents: skills, agents/manifest.json or frontend/src/dock drifted (run ./formdeck agents sync; the dock folder is copied from formvis, never edited here)")
