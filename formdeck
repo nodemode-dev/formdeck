@@ -25,7 +25,7 @@ usage: ./formdeck [command] [options]
   i18n check|scan|export|import  the translations: check for gaps, find new strings, or a language as CSV for a native reviewer and back
   pdf-check FILE.pdf  validate an exported PDF as PDF/UA-1 with veraPDF (installed separately, needs Java)
   mcp                 formdeck over MCP's stdio transport, for Claude Desktop and other MCP clients
-  agents install|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
+  agents install|sync  set up Claude Code, Codex, Cursor and Antigravity for building decks in plain language (install), or refresh the skill (sync)
   build-deck [args]   build a deck from files headlessly, without the window
   templates export [dir]  write the built-in templates as .pptx files
   clean [--all]       remove build output (--all also venv and node_modules)

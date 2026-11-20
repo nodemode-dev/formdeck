@@ -90,10 +90,10 @@ Interface languages: English and 25 more, from Spanish and French to Japanese an
 33 MCP tools drive the same engine as the window: ingest, draft, build, render, lint and edit.
 
 ```sh
-./formdeck agents install    # writes .mcp.json, .codex/config.toml and .cursor/mcp.json, installs the skills
+./formdeck agents install    # writes .mcp.json, .codex/config.toml, .cursor/mcp.json and Antigravity's ~/.gemini/config/mcp_config.json, installs the skills
 ./formdeck build-deck notes.md shots/ --template aurora --out update.pptx   # a deck without opening the window
 ./formdeck cli list          # the editor's command catalogue; run needs the window open and counts as an outside agent (it asks there)
-./formdeck mcp               # MCP server on stdio for Claude Code, Codex and Cursor
+./formdeck mcp               # MCP server on stdio for Claude Code, Codex, Cursor and Antigravity
 ```
 
 `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).

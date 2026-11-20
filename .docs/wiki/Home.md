@@ -1,11 +1,11 @@
 # formdeck
 
-formdeck makes presentations and pitch decks. It is an open alternative to PowerPoint, Keynote and Google Slides, built so that Claude Code, Codex or Cursor can draft a whole deck from your material in your chosen template, live in the window, then hand it to you for review. It runs in the browser or as a Tauri desktop app, with a local engine that holds every deck.
+formdeck makes presentations and pitch decks. It is an open alternative to PowerPoint, Keynote and Google Slides, built so that Claude Code, Codex, Cursor or Antigravity can draft a whole deck from your material in your chosen template, live in the window, then hand it to you for review. It runs in the browser or as a Tauri desktop app, with a local engine that holds every deck.
 
 | Page | What it covers |
 | --- | --- |
 | [Getting Started](Getting-Started) | Install, boot, every dispatcher command, ports and the data folder |
-| [Building Decks with Agents](Building-Decks-with-Agents) | MCP setup for Claude Code, Codex, Cursor and Claude Desktop, consent, undo per turn, the skills |
+| [Building Decks with Agents](Building-Decks-with-Agents) | MCP setup for Claude Code, Codex, Cursor, Antigravity and Claude Desktop, consent, undo per turn, the skills |
 | [Templates](Templates) | The 67 templates, the 21 semantic layouts, importing and exporting |
 | [Editing](Editing) | The editor: menus, panels, text, shapes, pictures, tables, charts, review |
 | [Presenting](Presenting) | The show, presenter view, pen and laser, rehearsal |

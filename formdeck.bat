@@ -77,7 +77,7 @@ echo   cli list^|describe^|run^|batch  the editor's command catalogue from a ter
 echo   i18n check^|scan^|export^|import  the translations: check for gaps, find new strings, or a language as CSV for a native reviewer and back
 echo   pdf-check FILE.pdf  validate an exported PDF as PDF/UA-1 with veraPDF (installed separately, needs Java)
 echo   mcp                formdeck over MCP's stdio transport, for Claude Desktop and other MCP clients
-echo   agents install^|sync  set up Claude Code, Codex and Cursor for building decks in plain language (install), or refresh the skill (sync)
+echo   agents install^|sync  set up Claude Code, Codex, Cursor and Antigravity for building decks in plain language (install), or refresh the skill (sync)
 echo   build-deck [args]   build a deck from files headlessly, without the window
 echo   templates export [dir]  write the built-in templates as .pptx files
 echo   clean [--all]       remove build output (--all also venv and node_modules)

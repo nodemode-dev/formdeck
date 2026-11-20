@@ -27,7 +27,7 @@ Other commands from `./formdeck help`:
 | `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop check` | install PyInstaller and check the toolchain, run the desktop app from source, explain toolchain problems |
 | `./formdeck freeze` | freeze the engine into the desktop sidecar |
 | `./formdeck mcp` | the MCP server over stdio, for Claude Desktop and other stdio clients |
-| `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex and Cursor; refresh the skills and `agents/manifest.json` |
+| `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex, Cursor and Antigravity; refresh the skills and `agents/manifest.json` |
 | `./formdeck build-deck ...` | build a deck from files without the window (see The headless CLI) |
 | `./formdeck templates export [dir]` | write the built-in templates as .pptx files |
 | `./formdeck clean [--all]` | remove build output (`--all` also the venv and node_modules) |
@@ -480,13 +480,13 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
 
 ## Agents
 
-Claude Code, Codex, Cursor and Claude Desktop can build and edit decks through formdeck's MCP server. They work on the same deck you see, live.
+Claude Code, Codex, Cursor, Antigravity and Claude Desktop can build and edit decks through formdeck's MCP server. They work on the same deck you see, live.
 
 ### Setup
 
 Start formdeck first (`./formdeck`). Then pick one:
 
-- **All at once**: `./formdeck agents install` writes `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) in the formdeck folder and in the folder you ran it from, and installs the formdeck skills into `~/.claude/skills` and `~/.agents/skills`. `--dry-run` shows what it would do.
+- **All at once**: `./formdeck agents install` writes `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) in the formdeck folder and in the folder you ran it from, adds formdeck to Antigravity's `~/.gemini/config/mcp_config.json`, and installs the formdeck skills into `~/.claude/skills` and `~/.agents/skills`. `--dry-run` shows what it would do.
 - **Claude Code**: `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp`.
 - **Codex**: add `[mcp_servers.formdeck]` with `url = "http://127.0.0.1:8197/mcp"` to `~/.codex/config.toml`, then restart Codex.
 - **Cursor**: add `{"mcpServers": {"formdeck": {"url": "http://127.0.0.1:8197/mcp"}}}` to `~/.cursor/mcp.json` or a project's `.cursor/mcp.json`.

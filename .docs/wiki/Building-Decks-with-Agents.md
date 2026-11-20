@@ -6,7 +6,7 @@ formdeck's engine is an MCP server with 33 tools, over HTTP at `http://127.0.0.1
 
 | Client | How |
 | --- | --- |
-| All at once | `./formdeck agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` (here and in the folder you ran it from) and installs the skills |
+| All at once | `./formdeck agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` (here and in the folder you ran it from), adds formdeck to Antigravity's `~/.gemini/config/mcp_config.json` and installs the skills |
 | Claude Code | `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp` |
 | Codex | `[mcp_servers.formdeck]` with `url = "http://127.0.0.1:8197/mcp"` in `~/.codex/config.toml` |
 | Cursor | `{"mcpServers": {"formdeck": {"url": "http://127.0.0.1:8197/mcp"}}}` in `~/.cursor/mcp.json` |
