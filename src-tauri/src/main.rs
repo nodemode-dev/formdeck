@@ -362,11 +362,14 @@ fn main() {
                         check_for_updates(handle.clone());
                     }
                     None => {
-                        close_splash(&handle);
+                        if let Some(splash) = handle.get_webview_window("splash") {
+                            let _ = splash.hide();
+                        }
                         handle
                             .dialog()
                             .message("The formdeck engine failed to start. Please relaunch the app.")
                             .blocking_show();
+                        close_splash(&handle);
                         kill_backend(&handle);
                         std::process::exit(1);
                     }
