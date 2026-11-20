@@ -2,6 +2,7 @@ import { DeckDoc } from '../engine/doc';
 import type { Deck } from '../engine/model';
 import type { Op } from '../engine/ops';
 import { addAgents } from '../editor/mentions';
+import { streamTicket } from '../io/window-key';
 
 type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 type Notice = (text: string, kind: 'info' | 'error') => void;
@@ -26,6 +27,7 @@ export class LiveClient {
   onLibrary: (() => void) | null = null;
   onShow: ((deck: string, m: Record<string, unknown>) => void) | null = null;
   onQuestion: ((q: { deck: string; id: string; name: string; text: string; at: number }) => void) | null = null;
+  onConsentGone: ((request: string) => void) | null = null;
   onDeleted: ((deck: string) => void) | null = null;
   agents = false;
 
@@ -41,8 +43,12 @@ export class LiveClient {
   }
 
   connect(): void {
+    void streamTicket().then((ticket) => this.dial(ticket));
+  }
+
+  private dial(ticket: string): void {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/api/live`);
+    const ws = new WebSocket(`${proto}://${location.host}/api/live${ticket ? `?ticket=${encodeURIComponent(ticket)}` : ''}`);
     this.ws = ws;
     ws.onopen = () => {
       this.retry = 0;
@@ -230,6 +236,10 @@ export class LiveClient {
     }
     if (t === 'question') {
       this.onQuestion?.(m as unknown as { deck: string; id: string; name: string; text: string; at: number });
+      return;
+    }
+    if (t === 'consentGone') {
+      if (typeof m.request === 'string') this.onConsentGone?.(m.request);
       return;
     }
     if (t === 'tool') {

@@ -5,7 +5,7 @@ import urllib.parse
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.core import config, ids
+from app.core import config, ids, window_key
 from app.services import ops as opsmod
 from app.services.store import STORE, Client
 
@@ -27,7 +27,7 @@ def local_origin(origin: str | None) -> bool:
 @router.websocket("/api/live")
 async def live(ws: WebSocket) -> None:
     guest = ws.scope.get("fd_share")
-    if not guest and not local_origin(ws.headers.get("origin")):
+    if not guest and (not local_origin(ws.headers.get("origin")) or not window_key.spend(ws.query_params.get("ticket", ""))):
         await ws.close(code=4403)
         return
     await ws.accept()
@@ -70,6 +70,28 @@ def snapshot_message(deck_id: str, snap: dict) -> dict:
     return {"t": "snapshot", "deck": deck_id, "data": snap["deck"], "rev": snap["rev"], "canUndo": snap["canUndo"], "canRedo": snap["canRedo"]}
 
 
+def comment_op_ok(op, deck_id) -> bool:
+    if not isinstance(op, dict):
+        return False
+    kind, path = op.get("op"), op.get("path")
+    if not isinstance(path, list) or not path or path[0] != "comments":
+        return False
+    if path == ["comments"]:
+        if kind == "ins":
+            return True
+        if kind == "set" and op.get("value") == []:
+            try:
+                return not STORE.snapshot(deck_id)["deck"].get("comments")
+            except KeyError:
+                return False
+        return False
+    if len(path) == 3 and isinstance(path[1], dict) and path[2] == "resolved":
+        return kind == "set"
+    if len(path) == 3 and isinstance(path[1], dict) and path[2] == "replies":
+        return kind in ("ins", "set")
+    return False
+
+
 def guest_refusal(share: dict, t: str, deck_id, msg: dict) -> str:
     if t in ("hello", "ping"):
         return ""
@@ -84,7 +106,7 @@ def guest_refusal(share: dict, t: str, deck_id, msg: dict) -> str:
         if role == "edit":
             return ""
         ops = msg.get("ops") or []
-        if role == "comment" and ops and all(isinstance(o, dict) and (o.get("path") or [None])[0] == "comments" for o in ops):
+        if role == "comment" and ops and all(comment_op_ok(o, deck_id) for o in ops):
             return ""
         return "This share link can view only." if role == "view" else "This share link can add comments only."
     if t in ("undo", "redo"):

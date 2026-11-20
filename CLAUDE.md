@@ -14,7 +14,7 @@ The formdeck MCP server is configured in .mcp.json (http://127.0.0.1:8197/mcp). 
 
 Load the skill `.claude/skills/formdeck-harness` for the full loop, the slide-script syntax with an example per layout, template choice, visual QA and handoff. The MCP resource formdeck://guide is the short version; the deck format is docs/FORMAT.md. For work on the codebase itself, load `.claude/skills/formdeck-skillset`.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf).
+PDF editing lives in formpdf (github.com/nodemode-dev/formpdf).
 
 ## Developing formdeck
 

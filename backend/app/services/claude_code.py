@@ -1,28 +1,30 @@
 import asyncio
+import hmac
 import json
 import os
 import secrets
-import shlex
-import shutil
-import subprocess
 import time
 from pathlib import Path
 
 from app.core import config
-from app.services import terminal
+from app.services import agent_lookup, terminal
 
-KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CONFIG_DIR"}
-CANDIDATES = (".claude/local/claude", ".local/bin/claude", ".npm-global/bin/claude", ".bun/bin/claude", ".volta/bin/claude")
-SYSTEM_PATHS = ("/opt/homebrew/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude")
+KEEP_ENV = agent_lookup.KEEP_ENV
+OVERRIDES = {"claude": ("FORMDECK_CLAUDE_BIN",), "codex": ("FORMDECK_CODEX_BIN",), "cursor": ("FORMDECK_CURSOR_BIN",), "antigravity": ("FORMDECK_ANTIGRAVITY_BIN",)}
+OTHERWISE = "give its path in Preferences"
+SHELL_WAIT = 10.0
+CHECK_WAIT = 15.0
 INSTALL = "Claude Code is not installed: install it from https://claude.com/claude-code, run claude once in a terminal to sign in, then open it here again."
-INAPP_TOKEN = secrets.token_urlsafe(24)
+TOKENS: dict[str, Path | None] = {}
+TOKEN_NAMES: dict[str, str] = {}
+TOKEN_DIR = "AgentTokens"
 INAPP_HEADER = "x-formdeck-inapp"
 INAPP_NAME = "Claude Code in formdeck"
 NOTE = ("You are Claude Code running inside formdeck, the presentation editor open on this computer. "
         "Work on decks with the formdeck MCP server's tools: start with get_context, read formdeck://guide for the slide script, "
         "and use render_slides and lint_deck to look before and after a change. Every editor command is also reachable: "
         "list_commands finds one by words, run_command runs it in the window as one undo step. "
-        "The person sees every change happen in the window. Use the formdeck-decks skill when it is available.")
+        "The person sees every change happen in the window. Use the formdeck-harness skill when it is available.")
 CHAT_NOTE = (NOTE + " You are answering in formdeck's chat panel, which shows Markdown to people who may never have used a terminal: "
              "write short paragraphs, use **bold** for slide and setting names, say what you changed in plain words, and batch edits into few tool calls.")
 _cache: dict = {"at": 0.0, "value": None}
@@ -38,58 +40,106 @@ def _pref(key: str) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
-def child_env() -> dict:
-    env = {k: v for k, v in terminal.base_env().items() if not k.startswith("CLAUDE") or k in KEEP_ENV}
+def setting(kind: str) -> str | None:
+    return _pref("bin") if kind == "claude" else None
+
+
+def otherwise(kind: str) -> str:
+    return OTHERWISE if setting(kind) is not None else ""
+
+
+def child_env(path: str | None = None, extra: dict | None = None) -> dict:
+    env = agent_lookup.child_env(path, base=terminal.base_env(), extra=extra, shell_timeout=SHELL_WAIT)
     env.setdefault("ENABLE_TOOL_SEARCH", "false")
     return env
 
 
+def located(kind: str, fresh: bool = False) -> agent_lookup.Found:
+    found = agent_lookup.find(kind, setting=setting(kind), override_vars=OVERRIDES.get(kind, ()), shell_timeout=SHELL_WAIT, fresh=fresh)
+    return agent_lookup.check(found, child_env(found.path), CHECK_WAIT, fresh)
+
+
+def usable(kind: str) -> agent_lookup.Found:
+    found = located(kind)
+    return found if found.state == "runs" else located(kind, fresh=True)
+
+
+def said(found: agent_lookup.Found) -> str:
+    return agent_lookup.sentence(found, agent_lookup.install(found.program), otherwise(found.program))
+
+
 def _runnable(path: str) -> bool:
-    p = Path(path).expanduser()
-    return p.is_file() and os.access(p, os.X_OK)
-
-
-def _from_login_shell() -> str | None:
-    if os.name == "nt":
-        return None
-    try:
-        out = subprocess.run(terminal.login_shell() + ["-c", "command -v claude"], capture_output=True, text=True, timeout=10, env=child_env())
-    except (OSError, subprocess.SubprocessError):
-        return None
-    found = out.stdout.strip().splitlines()[-1:] if out.returncode == 0 else []
-    return found[0] if found and os.path.isabs(found[0]) else None
+    return agent_lookup.runnable(path)
 
 
 def cli() -> str | None:
-    chosen = _pref("bin")
-    if chosen and _runnable(chosen):
-        return str(Path(chosen).expanduser())
-    found = os.environ.get("FORMDECK_CLAUDE_BIN") or shutil.which("claude")
-    if found:
-        return found
-    home = Path.home()
-    for p in [home / c for c in CANDIDATES] + [Path(s) for s in SYSTEM_PATHS]:
-        if p.is_file() and os.access(p, os.X_OK):
-            return str(p)
-    return _from_login_shell()
+    return located("claude").path
 
 
 def info(fresh: bool = False) -> dict:
     if not fresh and _cache["value"] is not None and time.time() - _cache["at"] < 60:
         return _cache["value"]
-    path, version = cli(), None
-    if path:
-        try:
-            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=15, env=child_env())
-            version = (out.stdout.strip().split() or [None])[0]
-        except (OSError, subprocess.SubprocessError):
-            path = None
-    _cache["value"], _cache["at"] = {"installed": bool(path), "path": path, "version": version}, time.time()
+    found = located("claude", fresh)
+    _cache["value"], _cache["at"] = agent_lookup.answer(found, agent_lookup.install("claude"), OTHERWISE), time.time()
     return _cache["value"]
 
 
-def mcp_config() -> str:
-    return json.dumps({"mcpServers": {"formdeck": {"type": "http", "url": terminal.engine_url() + "/mcp", "headers": {INAPP_HEADER: INAPP_TOKEN}}}})
+def issue() -> tuple[str, str]:
+    token = secrets.token_urlsafe(32)
+    folder = config.data_dir() / TOKEN_DIR
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path = folder / f"mcp-{secrets.token_hex(8)}.json"
+    body = json.dumps({"mcpServers": {"formdeck_tab": {"type": "http", "url": terminal.engine_url() + "/mcp", "headers": {INAPP_HEADER: token}}}})
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(body)
+    TOKENS[token] = path
+    return token, str(path)
+
+
+def issue_plain(name: str) -> str:
+    token = secrets.token_urlsafe(32)
+    TOKENS[token] = None
+    TOKEN_NAMES[token] = name
+    return token
+
+
+def revoke(token: str) -> None:
+    TOKEN_NAMES.pop(token, None)
+    path = TOKENS.pop(token, None)
+    if path is not None:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def revoke_all() -> None:
+    for token in list(TOKENS):
+        revoke(token)
+
+
+def sweep() -> None:
+    folder = config.data_dir() / TOKEN_DIR
+    for stale in folder.glob("mcp-*.json") if folder.is_dir() else []:
+        try:
+            stale.unlink()
+        except OSError:
+            pass
+
+
+def is_inapp(value) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    return any(hmac.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
+
+
+def inapp_name(value) -> str:
+    if isinstance(value, str) and value:
+        for token, name in list(TOKEN_NAMES.items()):
+            if hmac.compare_digest(value.encode("utf-8"), token.encode("utf-8")):
+                return name
+    return INAPP_NAME
 
 
 def workdir() -> Path:
@@ -146,11 +196,11 @@ def sessions(limit: int = 20) -> list[dict]:
 
 
 def _wrap(cmd: list[str]) -> list[str]:
-    return cmd if os.name == "nt" else terminal.login_shell() + ["-c", "exec " + shlex.join(cmd)]
+    return agent_lookup.start_argv(cmd)
 
 
-def tab_argv(path: str, prompt: str | None, resume: str | None = None) -> list[str]:
-    cmd = [path, "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdeck", "--append-system-prompt", NOTE]
+def tab_argv(path: str, mcp_file: str, prompt: str | None, resume: str | None = None) -> list[str]:
+    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck_tab", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:
@@ -158,9 +208,9 @@ def tab_argv(path: str, prompt: str | None, resume: str | None = None) -> list[s
     return _wrap(cmd)
 
 
-def chat_argv(path: str, text: str, session: str | None, model: str = "") -> list[str]:
+def chat_argv(path: str, mcp_file: str, text: str, session: str | None, model: str = "") -> list[str]:
     cmd = [path, "-p", text, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-           "--mcp-config", mcp_config(), "--allowedTools", "mcp__formdeck", "--append-system-prompt", CHAT_NOTE]
+           "--mcp-config", mcp_file, "--allowedTools", "mcp__formdeck_tab", "--append-system-prompt", CHAT_NOTE]
     if model:
         cmd += ["--model", model]
     if session:
@@ -185,21 +235,33 @@ def open_tab(prompt: str | None = None, cols: int = 100, rows: int = 30, fresh: 
         if prompt:
             terminal.write(running.id, prompt + "\r")
         return running.describe()
-    found = info(fresh=True)
-    if not found["installed"]:
-        raise LookupError(INSTALL)
+    found = usable("claude")
+    if found.state != "runs":
+        raise LookupError(said(found))
     prompt = prompt or _pref("firstMessage") or None
     title = "Claude Code (from Chat)" if resume else "Claude Code"
-    return terminal.open_session(str(workdir()), cols, rows, title, tab_argv(found["path"], prompt, resume), child_env(), "claude").describe()
+    token, mcp_file = issue()
+    try:
+        session = terminal.open_session(str(workdir()), cols, rows, title, tab_argv(found.path, mcp_file, prompt, resume), child_env(found.path), "claude")
+    except BaseException:
+        revoke(token)
+        raise
+    session.on_close.append(lambda: revoke(token))
+    return session.describe()
 
 
 async def stream_chat(text: str, session: str | None, model: str = ""):
-    found = info(fresh=True)
-    if not found["installed"]:
-        raise LookupError(INSTALL)
-    proc = await asyncio.create_subprocess_exec(*chat_argv(found["path"], text, session, model), cwd=str(workdir()), env=child_env(),
-                                                stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                                                limit=16 * 1024 * 1024)
+    found = usable("claude")
+    if found.state != "runs":
+        raise LookupError(said(found))
+    token, mcp_file = issue()
+    try:
+        proc = await asyncio.create_subprocess_exec(*chat_argv(found.path, mcp_file, text, session, model), cwd=str(workdir()), env=child_env(found.path),
+                                                    stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                                                    limit=16 * 1024 * 1024)
+    except BaseException:
+        revoke(token)
+        raise
     tail: list[str] = []
 
     async def drain() -> None:
@@ -229,3 +291,4 @@ async def stream_chat(text: str, session: str | None, model: str = ""):
             except asyncio.TimeoutError:
                 proc.kill()
         errs.cancel()
+        revoke(token)

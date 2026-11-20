@@ -5,8 +5,8 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from app.core import config
-from app.services import claude_code, terminal
+from app.core import config, window_key
+from app.services import agent_programs, claude_code, terminal
 
 router = APIRouter(prefix="/api", tags=["terminal"])
 _LOOPBACK = {"localhost", "127.0.0.1", "::1", "tauri.localhost"}
@@ -28,6 +28,7 @@ def origin_ok(origin: str | None, host: str | None) -> bool:
 def require_local(request: Request) -> None:
     if not origin_ok(request.headers.get("origin"), request.headers.get("host")):
         raise HTTPException(status_code=403, detail="Only the formdeck window on this computer may use the terminals.")
+    window_key.require(request)
 
 
 class OpenBody(BaseModel):
@@ -115,9 +116,34 @@ async def claude_open(body: ClaudeBody, request: Request) -> dict:
         raise HTTPException(status_code=500, detail=f"Claude Code could not start: {exc}") from None
 
 
+class AgentBody(BaseModel):
+    cols: int = Field(100, ge=10, le=500)
+    rows: int = Field(30, ge=4, le=200)
+
+
+@router.get("/agent/status")
+def agent_status(request: Request, fresh: bool = False) -> dict:
+    require_local(request)
+    return agent_programs.status(fresh)
+
+
+@router.post("/agent/{kind}/open")
+async def agent_open(kind: str, body: AgentBody, request: Request) -> dict:
+    require_local(request)
+    if kind not in agent_programs.PROGRAMS:
+        raise HTTPException(status_code=404, detail="There is no such agent program.")
+    terminal.bind(asyncio.get_running_loop())
+    try:
+        return agent_programs.open_tab(kind, body.cols, body.rows)
+    except LookupError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"{agent_programs.PROGRAMS[kind]['title']} could not start: {exc}") from None
+
+
 @router.websocket("/terminal/{sid}/stream")
 async def attach(ws: WebSocket, sid: str) -> None:
-    if not origin_ok(ws.headers.get("origin"), ws.headers.get("host")):
+    if not origin_ok(ws.headers.get("origin"), ws.headers.get("host")) or not window_key.spend(ws.query_params.get("ticket", "")):
         await ws.close(code=4403)
         return
     await ws.accept()

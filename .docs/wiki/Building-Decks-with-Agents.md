@@ -1,12 +1,12 @@
 # Building Decks with Agents
 
-formdeck's engine is an MCP server with 31 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formdeck mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
+formdeck's engine is an MCP server with 33 tools, over HTTP at `http://127.0.0.1:8197/mcp` and over stdio with `./formdeck mcp`. An agent works on the same deck you see: its edits arrive in the open window as they happen.
 
 ## Setup
 
 | Client | How |
 | --- | --- |
-| All at once | `./formdeck agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` (here and in the folder you ran it from) and installs the skills |
+| All at once | `./formdeck agents install` writes `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` (here and in the folder you ran it from), adds formdeck to Antigravity's `~/.gemini/config/mcp_config.json` and installs the skills |
 | Claude Code | `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp` |
 | Codex | `[mcp_servers.formdeck]` with `url = "http://127.0.0.1:8197/mcp"` in `~/.codex/config.toml` |
 | Cursor | `{"mcpServers": {"formdeck": {"url": "http://127.0.0.1:8197/mcp"}}}` in `~/.cursor/mcp.json` |
@@ -26,11 +26,11 @@ The other tools: `add_slides`, `get_deck`, `apply_ops`, `slides`, `apply_templat
 
 ## Consent and undo
 
-The first agent edit asks the person once in the window: Allow agents to edit? The switch lives in Preferences, the Agents dialog and the Agent tab. A turn is every change an agent makes within 90 seconds of the one before; Edit > Undo Agent Turn takes the whole turn back in one step, and the agent's own `undo` tool does the same.
+Agents can always read. The first change an outside agent tries asks the person in the window: "Allow Claude Code to edit your decks?" (the title names the agent), with Allow and Not now. The choices are Ask (the switch is off, the default: the next edit asks), Allowed (the switch is on: no more questions) and Not now (nothing changes, and that agent's edits are refused for two minutes before the next one asks again). Turning the switch off goes back to Ask, not to a block. Only the window can change the choice, and the app's own command line (`./formdeck cli`) counts as an outside agent that follows it. The switch lives in Preferences, the Agents dialog and the Agent tab. A turn is every change an agent makes within 90 seconds of the one before; Edit > Undo Agent Turn takes the whole turn back in one step, and the agent's own `undo` tool does the same.
 
 ## Skills
 
-`formdeck-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff) and `formdeck-skillset` (developing formdeck). The MCP resource `formdeck://guide` is the short version, and the server offers a `build-deck` prompt.
+`formdeck-harness` (building decks: director, intake reader, story architect, slide-script author, template curator, visual QA, review handoff, layout ideas) and `formdeck-skillset` (developing formdeck). The MCP resource `formdeck://guide` is the short version, and the server offers a `build-deck` prompt.
 
 ## Without the window
 

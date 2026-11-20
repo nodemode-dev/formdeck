@@ -30,6 +30,7 @@
   var DEFAULT_THEME = 'studio';
   var DEFAULT_ACCENT = '#f97316';
   var LIGHT = { 'light': 1, 'sand': 1 };
+  var OLED = { 'amoled': 1 };
   var PROFILES = {
     'studio':        ['#111111', '#17151b', '#222127', '#2a2a2a', '#34333a', '#f7f7f7', '#a4a4a4', '#717072', '#1c1b1d', '#5e5e60', '#191919'],
     'nodemode-dark': ['#0a0a0a', '#121218', '#1a1a24', '#2a2a35', '#3a3a48', '#e8e8ee', '#a8a8b8', '#6a6a7a', '#0a0a0a', 'rgba(255,255,255,0.04)'],
@@ -45,7 +46,8 @@
     'ocean':         ['#06131c', '#0a1c29', '#10293c', '#1d425e', '#285578', '#e2eef7', '#96b6cc', '#5b7d94', '#06131c', 'rgba(150,210,255,0.06)'],
     'rose':          ['#170b10', '#211117', '#301a22', '#4d2b38', '#653a49', '#f5e7ec', '#cfa5b3', '#966b7b', '#170b10', 'rgba(255,190,215,0.05)'],
     'terminal':      ['#050d05', '#0a140a', '#102010', '#1f3d1f', '#2b522b', '#d8f5d8', '#8fce8f', '#568a56', '#050d05', 'rgba(120,255,120,0.06)'],
-    'contrast':      ['#000000', '#0a0a0a', '#161616', '#555555', '#777777', '#ffffff', '#d8d8d8', '#9a9a9a', '#000000', 'rgba(255,255,255,0.10)']
+    'contrast':      ['#000000', '#0a0a0a', '#161616', '#555555', '#777777', '#ffffff', '#d8d8d8', '#9a9a9a', '#000000', 'rgba(255,255,255,0.10)'],
+    'amoled':        ['#000000', '#000000', '#141414', '#262626', '#3a3a3a', '#ededed', '#a6a6a6', '#858585', '#000000', 'rgba(255,255,255,0.10)', '#000000']
   };
   var NAMES = ['--bg-primary', '--bg-secondary', '--bg-tertiary', '--border-color', '--border-light', '--text-primary', '--text-secondary', '--text-muted', '--canvas-bg', '--grid-color'];
   var theme = DEFAULT_THEME, accent = DEFAULT_ACCENT, intensity = 1, density = '';
@@ -54,6 +56,7 @@
     if (raw) { var s = JSON.parse(raw); if (s.density === 'compact' || s.density === 'comfortable') density = s.density; if (s.appearance === 3 || s.appearance === 2) { if (s.theme && PROFILES[s.theme]) theme = s.theme; if (s.accentColor && !(s.appearance === 2 && s.accentColor === '#aba0d3')) accent = s.accentColor; if (s.appearance === 3 && typeof s.intensity === 'number') intensity = Math.min(1.5, Math.max(0, s.intensity)); } }
   } catch (e) {}
   var p = PROFILES[theme], root = document.documentElement, i;
+  if (OLED[theme]) root.setAttribute('data-oled', '');
   if (density) root.classList.add('fd-density-' + density);
   try { if ('__TAURI_INTERNALS__' in window && /Mac/.test(navigator.platform) && localStorage.getItem('formdeck.menusInWindow') !== '1') root.classList.add('has-native-menus'); } catch (e) {}
   for (i = 0; i < NAMES.length; i++) root.style.setProperty(NAMES[i], p[i]);
@@ -74,6 +77,23 @@
       mo.observe(root, { childList: true });
     }
   }
+  try {
+    var dk = null, dv = localStorage.getItem('formdeck.dock');
+    if (dv) dk = JSON.parse(dv);
+    if (!dk || typeof dk !== 'object') {
+      var oh = /^(\d+)px$/.exec(localStorage.getItem('formdeck_dock_h') || ''), ow = /^(\d+)px$/.exec(localStorage.getItem('formdeck_dock_w') || '');
+      dk = { open: false, side: localStorage.getItem('formdeck_dock_side'), h: oh ? Number(oh[1]) : null, w: ow ? Number(ow[1]) : null };
+    }
+    var iw = window.innerWidth, ih = window.innerHeight, maxW = Math.min(iw * 0.6, iw - 440);
+    var dh = Math.round(Math.max(140, Math.min(ih * 0.7, typeof dk.h === 'number' ? dk.h : 280)));
+    var dw = Math.round(Math.max(460, Math.min(maxW, typeof dk.w === 'number' ? dk.w : 460)));
+    root.setAttribute('data-ft-dock', dk.open === true ? 'open' : 'closed');
+    root.setAttribute('data-ft-dock-side', dk.side === 'right' && iw >= 900 && maxW >= 460 ? 'right' : 'bottom');
+    root.setAttribute('data-ft-dock-h', String(dh));
+    root.setAttribute('data-ft-dock-w', String(dw));
+    root.style.setProperty('--ft-dock-size', dh + 'px');
+    root.style.setProperty('--ft-dock-wsize', dw + 'px');
+  } catch (e) {}
 })();
   </script>
   <link rel="stylesheet" href="/src/styles/fonts.css">
@@ -95,6 +115,8 @@
   <link rel="stylesheet" href="/src/styles/scrollbars.css">
   <link rel="stylesheet" href="/src/styles/ribbon.css">
   <link rel="stylesheet" href="/src/styles/ribbon-galleries.css">
+  <link rel="stylesheet" href="/src/styles/dock-tokens.css">
+  <link rel="stylesheet" href="/src/dock/dock.css">
   <link rel="stylesheet" href="/src/styles/terminal.css">
   <link rel="stylesheet" href="/src/styles/responsive.css">
 </head>

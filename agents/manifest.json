@@ -1,0 +1,127 @@
+{
+  "format": "form-agent-manifest",
+  "version": 1,
+  "app": "formdeck",
+  "mcp": {
+    "tools": [
+      "get_context",
+      "list_templates",
+      "ingest",
+      "get_source",
+      "draft_spec",
+      "build_deck",
+      "add_slides",
+      "get_deck",
+      "update_slide",
+      "set_text",
+      "edit_elements",
+      "apply_ops",
+      "slides",
+      "animate",
+      "apply_template",
+      "set_theme",
+      "masters",
+      "add_media",
+      "lint_deck",
+      "render_slides",
+      "export_deck",
+      "open_file",
+      "comments",
+      "handoff",
+      "review",
+      "undo",
+      "chat_inbox",
+      "chat_reply",
+      "layout_ideas_reply",
+      "list_commands",
+      "run_command",
+      "extensions_list",
+      "extension_command"
+    ],
+    "read_only": [
+      "get_context",
+      "list_templates",
+      "get_source",
+      "draft_spec",
+      "get_deck",
+      "lint_deck",
+      "render_slides",
+      "list_commands",
+      "extensions_list"
+    ],
+    "approval_gated": [
+      "build_deck",
+      "add_slides",
+      "update_slide",
+      "set_text",
+      "edit_elements",
+      "apply_ops",
+      "slides",
+      "animate",
+      "apply_template",
+      "set_theme",
+      "masters",
+      "open_file",
+      "comments",
+      "handoff",
+      "review",
+      "undo",
+      "run_command",
+      "extension_command"
+    ],
+    "transports": [
+      "stdio",
+      "http"
+    ]
+  },
+  "skills": [
+    {
+      "name": "formdeck-harness",
+      "sub_skills": [
+        "deck-director",
+        "intake-reader",
+        "layout-ideas",
+        "review-handoff",
+        "slide-script-author",
+        "story-architect",
+        "template-curator",
+        "visual-qa"
+      ]
+    },
+    {
+      "name": "formdeck-skillset",
+      "sub_skills": [
+        "compiler-and-autodraft",
+        "deck-format",
+        "desktop-shell",
+        "editor-ui",
+        "engine-core",
+        "intake",
+        "mcp-tool-author",
+        "pptx-exchange",
+        "present",
+        "renderer",
+        "templates",
+        "ui-verification"
+      ]
+    }
+  ],
+  "dock": {
+    "present": true,
+    "positions": [
+      "right",
+      "bottom"
+    ],
+    "tabs": [
+      "chat",
+      "terminal",
+      "claude",
+      "codex",
+      "cursor",
+      "antigravity"
+    ]
+  },
+  "extensions": {
+    "host_api": "1"
+  }
+}

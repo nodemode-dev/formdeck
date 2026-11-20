@@ -11,7 +11,7 @@ import { brandMark } from './ui/brand';
 import { pickColor } from './ui/colorpop';
 import { Commands, comboOf } from './ui/commands';
 import { anyDialogOpen } from './ui/dialogs';
-import { isMac, mountOnce, q, revealApp, setClass, setDisabled, setHidden, setText, setStyleVar, setValue } from './ui/dom';
+import { el, isMac, mountOnce, q, revealApp, setClass, setDisabled, setHidden, setText, setStyleVar, setValue } from './ui/dom';
 import { enhanceAllSelects } from './ui/dropdown';
 import { Home } from './ui/home';
 import { DEMOS, makeDemo, type DemoId } from './ui/demos';
@@ -63,7 +63,8 @@ import { aidPrefs } from './editor/rulers';
 import { groupChain } from './editor/actions';
 import { guest, guestName } from './io/guest';
 import { loadMe, ME_EVENT, myName } from './editor/mentions';
-import type { TerminalDock } from './ui/terminal-dock';
+import { Dock } from './dock/dock';
+import { formdeckDock, outsideAgents, reserveDock } from './dock-adapter';
 import { VERSION } from './version';
 
 const SHELL = `<div class="fd-app">
@@ -100,7 +101,6 @@ const SHELL = `<div class="fd-app">
 <button class="fd-props-tab" type="button" data-cmd="toggle-props" title="Show the Format pane" aria-label="Show the Format pane">${icon('chevronLeft', 14)}</button>
 ${EXT_PANE_HTML}
 </div>
-<section class="fd-dock" aria-label="Terminal" hidden></section>
 <footer class="fd-status">
 <div class="fd-status-left"><span class="fd-st fd-st-slide"></span><span class="fd-st fd-st-save"><span class="fd-st-dot"></span><span class="fd-st-save-text"></span></span><span class="fd-st-hint"></span><span class="fd-st fd-st-agent" hidden>${icon('agent', 12)}<span></span></span></div>
 <div class="fd-status-right">
@@ -188,7 +188,7 @@ export async function startApp(): Promise<void> {
   };
   loadViews().catch(() => undefined);
   let exts: FormdeckExtensions | null = null;
-  const bridge = new AgentBridge({ extension: (name, args) => exts ? exts.agent(name, args) : Promise.resolve({ content: [{ type: 'text', text: 'The extension host is still starting.' }], isError: true }), editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), allow: () => setAgents(true), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
+  const bridge = new AgentBridge({ extension: (name, args) => exts ? exts.agent(name, args) : Promise.resolve({ content: [{ type: 'text', text: 'The extension host is still starting.' }], isError: true }), editor: () => editor, open: (id) => openDeck(id), live, notice: (t) => toast(t), ask: (args) => outsideAgents.ask(args), activity: (label, origin) => inspector.addActivity({ id: `${Date.now()}-${Math.random()}`, at: Date.now(), label, origin }), command: async (args) => { const out = runCatalogueCommand(commands, args); syncChrome(); return out; } });
 
   const home = new Home({
     openDeck: (id) => void openDeck(id),
@@ -513,6 +513,7 @@ export async function startApp(): Promise<void> {
   };
   if (guest()) live.onShow = (deck, m) => followShow(deck, m);
   live.onTool = (name, args) => bridge.run(name, args);
+  live.onConsentGone = (request) => outsideAgents.gone(request);
   live.connect();
 
   const hooks: AppHooks = {
@@ -601,7 +602,7 @@ export async function startApp(): Promise<void> {
   inspector.hooks = {
     templates: () => hooks.templates(), background: () => hooks.background(), slideSize: () => hooks.slideSize(),
     comment: (text, assignee) => { const ed = editor; if (ed) dialogs.addComment(ed, text, assignee); },
-    agentsAllowed: () => agentsAllowed, setAgents, copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null), mcpStatus: () => (agentsAllowed ? 'On' : 'Off'), openClaude: (resume) => { if (resume) void showDock().then((d) => d.claude(undefined, resume)); else commands.run('claude-code'); },
+    agentsAllowed: () => agentsAllowed, setAgents, copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null), mcpStatus: () => (agentsAllowed ? 'On' : 'Off'), openClaude: (resume) => { if (resume) void dock?.claude(undefined, resume); else commands.run('claude-code'); },
     openChat: () => commands.run('agent-chat'),
   };
   registerCommands(commands, hooks);
@@ -630,46 +631,52 @@ export async function startApp(): Promise<void> {
   registerParamCommands(commands, () => editor);
   registerColourStyleCommands(commands, () => editor);
 
-  const dockHost = q(root, '.fd-dock');
-  let dock: TerminalDock | null = null;
-  const dockOpen = (): boolean => root.classList.contains('is-dock-open');
-  const setDock = (on: boolean): void => {
-    setClass(root, 'is-dock-open', on);
-    setHidden(dockHost, !on);
-    const ed = editor;
-    if (ed) requestAnimationFrame(() => ed.stage.layout());
-    syncChrome();
-  };
-  const getDock = async (): Promise<TerminalDock> => {
-    if (dock) return dock;
-    const m = await import('./ui/terminal-dock');
-    dock ??= new m.TerminalDock(dockHost, root, () => setDock(false));
-    dock.onFail = (err) => toast(err instanceof Error ? err.message : String(err), 'error');
-    dock.context = () => {
+  reserveDock(guest() !== null);
+  const dock: Dock<'antigravity'> | null = guest() ? null : new Dock(formdeckDock({
+    context: () => {
       const ed = editor;
       if (!ed) return 'formdeck window: no deck open';
       const sel = ed.selection;
       return `formdeck window: deck ${ed.doc.id} "${ed.doc.deck.title ?? ''}", slide ${ed.doc.slideIndex(ed.current) + 1} (${ed.current})${sel.length ? `, selected element ids ${sel.slice(0, 40).join(', ')}` : ''}`;
-    };
-    dock.makeChat = (host) => {
-      void new ChatPanel(host, () => editor?.doc.id ?? null, {
+    },
+    chatPane: (host) => {
+      const pane = el('<div class="fd-dock-chat-pane"></div>');
+      host.appendChild(pane);
+      const panel = new ChatPanel(pane, () => editor?.doc.id ?? null, {
         copyPrompt: () => dialogs.copyAgentPrompt(editor?.doc.deck ?? null),
-        openClaude: (resume) => void showDock().then((d) => d.claude(undefined, resume)),
+        openClaude: (resume) => void dock?.claude(undefined, resume),
+        fill: (text) => {
+          const line = dock?.root.querySelector<HTMLInputElement>('.ft-dock-ask input');
+          if (!line) return false;
+          line.value = text;
+          line.focus();
+          return true;
+        },
       });
+      return { send: (text) => panel.ask(text), shown: () => panel.sync(), hidden: () => panel.rest(), closed: () => panel.rest(), busy: () => panel.isBusy() };
+    },
+    openSettings: () => commands.run('agents'),
+    layerOpen: () => anyDialogOpen() || document.querySelector('.fd-show') !== null,
+    firstRun: () => !home.isOpen && !anyDialogOpen(),
+    allowed: () => agentsAllowed,
+    choose: (value) => { setAgents(value === 'allowed'); void api.setSettings({ agentsBlocked: value === 'blocked' }); },
+  }));
+  const dockOpen = (): boolean => dock?.isOpen() === true;
+  if (dock) {
+    dock.onChange = () => {
+      const ed = editor;
+      if (ed) requestAnimationFrame(() => ed.stage.layout());
+      syncChrome();
     };
-    return dock;
-  };
-  const showDock = async (): Promise<TerminalDock> => {
-    const d = await getDock();
-    if (!dockOpen()) setDock(true);
-    return d;
-  };
+    dock.onTab = () => syncChrome();
+    dock.mount(root, q(root, '.fd-status'));
+  }
   let palette: CommandPalette | null = null;
   commands.add(
-    { id: 'view-terminal', label: 'Terminal', icon: 'terminal', keys: ['Mod+`'], checked: dockOpen, run: () => { if (dockOpen()) setDock(false); else void showDock().then((d) => d.ensure()); } },
-    { id: 'new-terminal', label: 'New Terminal', icon: 'terminal', run: () => { const was = dockOpen(); void showDock().then((d) => (was ? d.open() : d.ensure())); } },
-    { id: 'claude-code', label: 'Claude Code', icon: 'agent', keys: ['Shift+Mod+`'], run: () => void showDock().then((d) => d.claude()) },
-    { id: 'agent-chat', label: 'Chat with Claude', icon: 'agentChat', keys: ['Alt+Mod+J'], run: () => void showDock().then((d) => d.showChat()) },
+    { id: 'view-terminal', label: 'Terminal', icon: 'terminal', keys: ['Mod+`'], checked: dockOpen, run: () => dock?.toggle() },
+    { id: 'new-terminal', label: 'New Terminal', icon: 'terminal', run: () => void dock?.newTerminal() },
+    { id: 'claude-code', label: 'Claude Code', icon: 'agent', keys: ['Shift+Mod+`'], run: () => void dock?.show('claude') },
+    { id: 'agent-chat', label: 'Chat with Claude', icon: 'agentChat', keys: ['Alt+Mod+J'], run: () => void dock?.show('chat') },
     { id: 'menus-in-window', label: 'Menus in Window', enabled: isMacDesktop, checked: menusInWindow, run: () => { const next = !menusInWindow(); try { localStorage.setItem(MENUS_IN_WINDOW_KEY, next ? '1' : '0'); } catch { return; } toast(next ? 'The menus stay in the window from the next start.' : 'The menus go to the menu bar from the next start.', 'info'); } },
     { id: 'save-copy', label: 'Save a Copy in Library...', enabled: () => !!editor, run: () => { if (editor) dialogs.saveCopyDialog(editor); } },
     { id: 'new-window', label: 'New Window', icon: 'newWindow', keys: ['Shift+Mod+N'], run: () => void openWindow().catch((e: unknown) => toast(`Could not open a new window: ${e instanceof Error ? e.message : e}`, 'error')) },
@@ -1007,6 +1014,7 @@ export async function startApp(): Promise<void> {
     const settings = await api.settings();
     agentsAllowed = !!settings.agentsAllowed;
     live.setAgents(agentsAllowed);
+    if (settings.sealBroken === true) dialogs.noteSealBroken();
     const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
     for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));
     setMarqueeRule(settings.marquee);

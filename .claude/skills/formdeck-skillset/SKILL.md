@@ -11,7 +11,7 @@ metadata:
 
 Route every change to formdeck's code through this file. It maps the subsystems, states the laws that hold everywhere, and names the specialist to load. formdeck is a presentation editor: a Python 3.12 FastAPI engine (`backend/`, port 8197) that owns every deck, a vanilla TypeScript 7 and Vite 8 window (`frontend/`, port 5197, no framework) that renders and edits through JSON ops over a WebSocket, and a Tauri 2 shell (`src-tauri/`) that runs the frozen engine as a sidecar.
 
-PDF editing lives in formpdf (github.com/nodemode-ai/formpdf). formdeck keeps only PDF as material (the intake reader), Insert > Slides from PDF Pages and Export > PDF of a deck.
+PDF editing lives in formpdf (github.com/nodemode-dev/formpdf). formdeck keeps only PDF as material (the intake reader), Insert > Slides from PDF Pages and Export > PDF of a deck.
 
 ## Subsystem map
 
@@ -76,7 +76,7 @@ The window reaches the engine only through `frontend/src/io/api.ts` (REST) and `
 | Panels, menus, toolbar, commands, shortcuts, dialogs, styles, themes | `editor-ui`, then `ui-verification` |
 | Transitions, animations, morph, presenter or audience window | `present`, then `ui-verification` |
 | Slides from PDF pages | `editor-ui`, then `ui-verification` |
-| PDF viewer, annotate, fill and sign, organize, redact | Not this repo: formpdf (github.com/nodemode-ai/formpdf) |
+| PDF viewer, annotate, fill and sign, organize, redact | Not this repo: formpdf (github.com/nodemode-dev/formpdf) |
 | A new MCP tool or window tool, lint checks, consent, turns | `mcp-tool-author` |
 | Desktop build, sidecar, updater, Tauri commands | `desktop-shell` |
 | Before handing back any UI change | `ui-verification` |

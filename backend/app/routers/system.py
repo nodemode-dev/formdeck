@@ -4,7 +4,7 @@ import sys
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.core import config
+from app.core import config, window_key
 from app.core.local_guard import from_window
 
 router = APIRouter()
@@ -17,6 +17,22 @@ def _available(module: str) -> bool:
         return True
     except Exception:
         return False
+
+
+@router.post("/window/key")
+def claim_window_key() -> dict:
+    if window_key.stdout_mode():
+        raise HTTPException(404, "Not Found")
+    key = window_key.claim()
+    if key is None:
+        raise HTTPException(409, "Another window already holds this engine's window key; use that window, or restart formdeck")
+    return {"key": key}
+
+
+@router.post("/window/ticket")
+def window_ticket(request: Request) -> dict:
+    window_key.require(request)
+    return {"ticket": window_key.ticket()}
 
 
 @router.get("/health")
@@ -42,19 +58,21 @@ def capabilities() -> dict:
         "desktop": config.is_desktop(),
         "dataDir": str(config.data_dir()),
         "port": int(config.env("PORT") or config.BACKEND_PORT),
+        "secondWindowClaim": window_key.STATE["secondClaim"],
     }
 
 
 @router.get("/settings")
-def get_settings() -> dict:
+def get_settings(request: Request) -> dict:
+    window_key.require(request)
     return config.read_settings()
 
 
 @router.post("/settings")
 def set_settings(patch: dict, request: Request) -> dict:
-    if "agentsAllowed" in patch and not from_window(request.headers.get("origin"), request.headers.get("host", ""), config.cors_origins()):
+    if ("agentsAllowed" in patch or "agentsBlocked" in patch) and not from_window(request.headers.get("origin"), request.headers.get("host", ""), config.cors_origins()):
         raise HTTPException(403, "only formdeck's own window changes agent access")
-    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts", "marquee", "pinned", "recentHidden", "ui", "posterSecondFrame", "agentLayoutIdeas", "crafterPlainThumbnails"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
+    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "agentsBlocked", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts", "marquee", "pinned", "recentHidden", "ui", "posterSecondFrame", "agentLayoutIdeas", "crafterPlainThumbnails"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
     for key in ("pinned", "recentHidden"):
         if key in allowed:
             allowed[key] = [str(i)[:80] for i in allowed[key] if isinstance(i, str)][:500] if isinstance(allowed[key], list) else []

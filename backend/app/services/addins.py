@@ -17,7 +17,7 @@ import httpx
 
 from app.core import config
 
-DEFAULT_INDEX_URL = "https://raw.githubusercontent.com/nodemode-ai/formdeck/main/addins/index.json"
+DEFAULT_INDEX_URL = "https://raw.githubusercontent.com/nodemode-dev/formdeck/main/addins/index.json"
 PERMISSIONS = ("read", "edit", "selection")
 ALLOWED_EXT = {".js", ".json", ".html", ".css", ".svg", ".png"}
 MIME = {".js": "application/javascript", ".json": "application/json", ".html": "text/html; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png"}

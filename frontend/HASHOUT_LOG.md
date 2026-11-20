@@ -1130,3 +1130,214 @@ At the bottom the panel takes height, which a 16:9 slide in a 16:9 window has le
 The resize handle is one element; CSS turns it into a left edge with `cursor: col-resize`, and `installResize` reads that cursor at pointerdown to know which variable to write. Asking the style keeps the drag right in a narrow window, where the class is set and the layout is not. Side and width are stored as `formdeck_dock_side` and `formdeck_dock_w`; io/ui-settings.ts mirrors them to the engine with `formdeck_dock_h`, so the desktop app keeps them across ports. The side is read in the constructor, before the panel is first shown, so it never opens at the bottom and then jumps. After a click on the button the keyboard goes back to the active terminal. Both icons are shown or hidden by CSS on the root class, so the button's content is never rewritten. No command was added: every command needs a use-when line and a place in the catalogue, and the button is enough.
 
 Checked at 1920x1080, normal speed and 4x CPU on a slow network: slide 594x334 at the bottom, 812x457 on the right; same panel and terminal nodes, no node added or removed, same session id; frames recorded during the move show two states and none with the terminal or slide missing; reopening shows the panel only on the right, frame by frame; a reload reopens it on the right at the saved width with the session running; a 700 px window shows it at the bottom.
+
+## 212. The window sends the engine's key with its writes · _v0.40.0 (io/window-key.ts, main.ts, live/socket.ts connect, ui/terminal-dock.ts connect, app.ts)
+
+The engine now needs a per-launch key for every change and for reads of private data (backend log 132). `io/window-key.ts` takes it once at boot, before the first engine call (`main.ts` runs `loadWindowKey` ahead of `syncUiSettings`): the packaged shell sets `window.__FORMDECK_WINDOW_KEY` through an initialization script, which is read and deleted; from source the page asks `POST /api/window/key`, which answers once, and keeps the key in `sessionStorage` so a reload of the tab keeps working.
+
+There are about thirty raw `fetch(` writes across dialogs, io/api.ts, the add-in and extension hosts and the share and chat panels, plus a `fetch` with `keepalive` on unload (ui-settings.ts). Editing each would leave the next new one unprotected, so `attach()` wraps `window.fetch` once: a request to this origin under `/api/` gets the header, every other request goes through untouched. The key lives in a module variable and the wrapper's closure; no other global holds it. Add-in and extension frames are sandboxed iframes without same-origin and the macro Worker has its own sealed `fetch`, so neither sees the page's wrapper; they reach the engine only through the page's bridge, as before. There is no XHR, `sendBeacon` or `WebSocket` outside the two sockets below. The one `EventSource` (chat events) is a read of a conversation the page already holds and cannot send a header, so it is unchanged.
+
+Sockets: `live/socket.ts` and `ui/terminal-dock.ts` ask `POST /api/window/ticket` first and open the socket with `?ticket=`; a ticket is spent by one connection, so every reconnect asks again. A share-link guest has no key, gets no ticket and opens its socket without one (the engine lets a guest in by its share cookie). `app.ts` shows one toast when settings report `sealBroken`.
+
+No element is added, moved or rebuilt, and the dock's look and its bottom and right placement are untouched. Checked against the Vite dev server and the engine in headless Chrome (ports 22300 and 22302): the page booted to Start, took the key from the bootstrap, and every non-GET request it made carried the header (key, ticket, catalogue mirror, settings, demo import, thumbnail PUT, terminal open); opening a demo deck and pressing Ctrl+` opened a shell with its prompt at the bottom, the side button moved it to the right, and no page error was logged. Not run: the packaged global (needs the desktop shell) and 4x throttling.
+
+## 213. A reload from source tries the kept key first · _v0.40.0 (io/window-key.ts keptKeyWorks, loadWindowKey)
+
+From source `loadWindowKey` asked `POST /api/window/key` on every boot, so every reload was refused (409) and the engine logged a second claim that never happened, then fell back to the key kept in `sessionStorage`. It now asks the kept key first: `keptKeyWorks` posts `/api/window/ticket` with the kept key in the header (the fetch wrapper is not attached yet, so the header is set by hand), and only when that is refused or the engine cannot be reached does the page ask the bootstrap route. The last line of the function still falls back to the kept key if both fail. The order is the one formpath uses. The ticket the probe obtains is never used and expires on its own. Nothing is drawn differently and no element is touched. Checked in headless Chrome against the Vite dev server and the engine (ports 24300 and 24302): load, then two reloads; the engine saw one `POST /api/window/key` and the page's write to `/api/settings` answered 200 after the load and after each reload.
+
+## 214. A broken seal is one sentence in the Agents dialog · _v0.40.0 (ui/dialogs-file.ts AgentsDialog seal, noteSealBroken; app.ts boot; i18n part41)
+
+When settings report `sealBroken` (backend entry 132), the page used to raise a toast at boot. The decision now lives where the user sees and changes it: `app.ts` calls `noteSealBroken()` once at boot, and `AgentsDialog` carries a `fd-note` paragraph, already in the dialog's markup and hidden, that `show()` reveals before the dialog is opened and then clears the flag, so the sentence is there on the first opening after boot and not on later ones. The dialog is built whole in its constructor and measured only once it opens, so nothing already on screen shifts and nothing is rebuilt. The sentence is "The saved agent permission was changed outside FormDeck, so it is back to Ask." The toast was removed so the notice is not shown twice. The string is in a new key part (keys/part41.json) with a matching locales/<code>/part41.json in all 25 locale folders, because the locale parts are complete in every language; the translations were written by hand and are not checked by a native speaker. Checked in headless Chrome (ports 24300 and 24302) with a stand-in keyring module on the engine's path: the choice was signed through a keyed write, then agentsAllowed was changed in settings.json by hand; the page's settings read `seal: broken`, no toast appeared at boot, the first opening of Agents showed the sentence in the card (English and German), and the second opening did not.
+
+## 215. AMOLED Black, the profile and the flag · _v0.40.0 (ui/themes.ts THEMES.amoled, ThemeProfile.oled, applyTheme)
+
+A true-black theme for OLED screens, id `amoled`, label "AMOLED Black", after High Contrast in THEMES, so the Preferences swatch grid (built from THEMES) lists it with no new control. Window, panels, node and canvas are `#000000`; `--bg-tertiary` is `#141414` because inputs, menus and selected rows have no other fill; borders `#262626` and `#3a3a3a`; text `#ededed`, `#a6a6a6`, `#858585` (17.9, 8.6 and 5.7 to 1 on black). FormDeck's names are the standard ones, plus its own `--grid-color` (white at 10 percent, the value High Contrast uses). The accent is the app's own and is untouched. `ThemeProfile.oled` makes `applyTheme` set `data-oled` on html and remove it for every other profile, touching the attribute only when it changes. CSS hangs on `data-oled`, never on the id.
+
+## 216. AMOLED Black in the pre-paint script · _v0.40.0 (index.html OLED, PROFILES.amoled)
+
+The script in index.html is a second copy of the profile table. It gets the `amoled` row (eleven entries: the ten names, then `--bg-node`) and an `OLED` table; it sets `data-oled` beside the other root settings before first paint, and it already sets the root background from the first entry, so the first frame is black. A theme in one table and not the other would paint Studio Dark first and then switch.
+
+## 217. AMOLED Black, the tokens and the surfaces that mixed a tint · _v0.40.0 (styles/tokens.css, shell.css, ribbon.css, views.css, present.css, app-dialogs.css, terminal.css, dialogs.css)
+
+`:root[data-oled]` sets `--bg-hover` to white at 10 percent and `--border-soft` to white at 12 percent (6 and 8 percent give almost no contrast over black). `--surface-1` mixes 55 percent of `--bg-primary` with `--bg-tertiary` and came out `#090909`, and `--surface-1` is also the hover fill of several lists, so the token is not changed; the large surfaces that paint it get a `data-oled` rule that takes `--bg-primary`. They were found by scanning the open window for elements of at least 2500 square pixels that are painted and are not `#000000`: filmstrip column and its resizer, ribbon body, document tabs, title bar (a gradient to `--surface-1`), Home card previews, the sorter header, the presenter view's notes, questions and top bar, the Preferences pages, group boxes, rail and fold button, the terminal dock's head and ask row. The modal scrim was a violet-tinted 45 percent black and is plain 60 percent black under the flag. Not changed on purpose: the slides and their thumbnails (document content; a title slide's own artwork extends past the page onto the pasteboard), the segmented controls and inputs (a border and `#090909` or `#141414` fill is how they show), the white call-to-action buttons, accent fills. Checked in headless Chrome against the Vite dev server and engine (ports 24300 and 24302) at 1440 by 900 with 4x CPU, a 200 kB/s network with 150 ms latency and the cache off: with `amoled` saved, a cold load (204 frames) and a hard reload (196 frames) showed `#000000` at the four corners and the centre and at three more points on every frame after navigation. A live switch Studio Dark to AMOLED Black and back, made from the Preferences swatches with the deck open (10874 elements, 4x CPU): no node added or removed, no bounding box moved by more than half a pixel, `data-oled` set and removed, `--bg-hover` 10 and 6 percent. After the rules the same scan finds only the slide stage's grid dots, the outline view's current row (accent at 10 percent), white buttons and the small segmented controls. Not checked: the desktop app, a real OLED screen, Safari and Firefox.
+
+## 218. The dock is the family's shared module 2.0.1 · _v0.40.0 (src/dock/ copied from formvis 1ee307fc; src/dock-adapter.ts; styles/dock-tokens.css; styles/terminal.css; index.html; app.ts; automation/agent-bridge.ts; live/socket.ts; setup/agents.py dock_module; setup/i18n_tool.py SKIP)
+
+`src/dock/` is another repository's folder: fifteen files copied byte for byte from formvis at 1ee307fc and never edited here. `./formdeck agents sync` (and `--check`) reads `MANIFEST.json`, hashes every file and fails naming the file that differs, is missing or is extra, or that imports anything but a sibling or `@xterm/`. Everything formdeck-specific is in `src/dock-adapter.ts`, and the look is in `styles/dock-tokens.css`.
+
+What the adapter decides. Storage key `formdeck.dock` (nothing else used it); the three old keys `formdeck_dock_side`, `formdeck_dock_h` (`280px`) and `formdeck_dock_w` are read once by `readOldDock` and removed by the module. The chord is backtick as before and also J, with Cmd on macOS and Ctrl elsewhere; Ctrl+J and Cmd+J did nothing in formdeck before (only Alt+Mod+J, Chat). As before the chord does nothing while a dialog or a slide show is open, unless focus is in the dock. `passKey` hands back Shift+Mod+backtick (Claude Code) and Shift+Mod+P (Find a Command), the two the old dock let through; every other key typed in the dock stays there. Chat is formdeck's own pane (`chat: { pane }`), because it is more than the module's Chat: five providers, one conversation per deck, the connected agent with no key, settings and keys, "From Claude Code". The right side needs 900 px of window (the old `is-narrow` rule) and leaves the editor 440 px.
+
+Two things the module does not do for formdeck, absorbed here. With an app-owned Chat pane the module hides its ask line on every tab (dock.css line 65), and formdeck's ask line ("Ask Claude Code to work on this deck", which adds the window's deck, slide and selection to the request) lives under the terminal tabs. So app.ts appends its own `form.fd-dock-ask` to `dock.root` and sends through `dock.claude(text)`; the adapter adds the context in `terminal.open('claude')`. On the Chat tab it is `visibility: hidden` and keeps its 40 px row, as the old row did. And the module's head has no narrow form: with all nine buttons the tab strip gets about 26 px in a 340 px column, so the minimum width of the right column is 460 px (it was 340; 460 was already the default).
+
+The question an outside agent raises is the module's dialog now. `AgentBridge.consent` hands the engine's `consent` arguments to `outsideAgents.ask`, which keeps the request until the dialog answers (`{allowed}`, or `{allowed, once}`) or the engine says `consentGone` (live/socket.ts `onConsentGone`). The three lines of the old dialog are the request's notes. Escape is still "no". Only "Always allow" turns the stored setting on.
+
+Layout. The dock's row and column exist only while `data-ft-dock="open"` is on `<html>`; the pre-paint script in index.html sets the four attributes and two properties from `formdeck.dock` (or the old keys) with the adapter's own limits, and `reserveDock` sets them again after the settings mirror has run and before the shell is built, because the mirror can bring a newer `formdeck.dock` from the engine. A guest gets no dock and no reserved track.
+
+Removed. `src/ui/terminal-dock.ts` (300 lines: `class TerminalDock`, `isDockToggle`), the `.fd-dock*`, `.fd-term` rules of terminal.css, the lazy `import('./ui/terminal-dock')` with `getDock`, `showDock`, `setDock` in app.ts, the classes `is-dock-open` and `is-dock-right`, and the bridge's own dialog:
+
+```ts
+class Consent extends Dialog {
+  private readonly lead = el('<p class="fd-note"></p>');
+  private readonly allowBtn: HTMLButtonElement;
+  private resolve: ((v: boolean) => void) | null = null;
+  constructor() {
+    super('Allow agents to edit?', 460);
+    this.body.append(
+      this.lead,
+      el('<p class="fd-note">Agents edit live: you see every change as it happens on the slides.</p>'),
+      el('<p class="fd-note">Every agent turn can be undone at once with Edit, Undo Agent Turn.</p>'),
+      el('<p class="fd-note">You can turn this off any time in Agents.</p>'),
+    );
+    this.button('Not now', 'ghost', () => this.finish(false));
+    this.allowBtn = this.button('Allow', 'primary', () => this.finish(true));
+    this.onClose = () => this.finish(false);
+  }
+}
+export function isDockToggle(e: KeyboardEvent): boolean {
+  return (isMac ? e.metaKey : e.ctrlKey) && !e.altKey && (e.code === 'Backquote' || (e.shiftKey && e.code === 'KeyP'));
+}
+```
+
+The whole old file is `git show 033f656:frontend/src/ui/terminal-dock.ts`.
+
+Strings. The module's sentences show in English in every language: they are not in the tables, and `setup/i18n_tool.py` skips `dock/` so the check does not count another repository's literals (it counted 164 unkeyed strings before this entry and 169 after, the five being the adapter's and the bridge's own).
+
+Seen in headless Chrome at 1440 by 900 against the Vite dev server and the engine from source (ports 33112 and 33111), same deck, same steps before and after: dock closed, 0 pixels differ; open on a terminal with the terminal's text hidden, 1010 pixels differ, all in the head row (three more buttons: Codex, Cursor and the menu; New before Chat; the family's side mark); open on Chat, 1096 pixels, all in the head row (the same, and the Chat tab's close mark is no longer orange). The dock's box is the same, 1440 by 280 at y 592. Elements: 10210, 10317, 10487 before; 10363, 10409, 10580 after (the dock is built at start now, and its terminal code is still loaded only on first use). `tsc --noEmit` is clean.
+
+## 219. The dock is module 2.1.0 and the ask line is the module's · _v0.40.0 (src/dock/ copied from formvis 8bbdf61b; src/dock-adapter.ts; app.ts; ui/chat-panel.ts; styles/terminal.css; styles/dock-tokens.css)
+
+The folder `src/dock/` is the 2.1.0 folder byte for byte (11 of its 15 files changed, none added or removed). Module 2.0.1 hid its ask line whenever the app owned Chat, so formdeck appended a line of its own to `dock.root`. 2.1.0 has `chat.ask`, and the adapter now says `chat: { pane, ask: 'line' }`: the module's line shows on every tab, under a terminal tab it opens Claude Code with the text (the adapter still adds the window's deck, slide and selection), on Chat it goes to formdeck's Chat through the pane's `send`. The pane's object is now `{ send, shown, hidden, closed, busy }`: `shown` connects the conversation's event stream at once, `hidden` and `closed` close it at once (the 1.5 second tick did both before and still runs), `busy` and a `send` that answers false leave the text in the line. `ChatPanel` gained `ask(text)`, `isBusy()` and `rest()`, and its own send button goes through `ask`. `readOldDock` returns `seen: true` with the layout it moves, so a person who had the old dock is not shown the guide. `--dock-stage-pad: 6px 4px 0 10px` gives the terminal the inset it had before 2.0.1 (the terminal's box is 10, 633, 1426 by 199 again; it was 8, 631, 1424 by 201 on 2.0.1).
+
+Changed for the person: on Chat the ask row is no longer an empty 40 px row, it is the module's line ("Ask Claude about your deck (Enter to send)") and it sends to the Chat pane, beside the pane's own message box. Under a terminal the placeholder reads "Ask Claude Code to work on your deck" (was "this deck") and the mark is the module's glyph. `dock.focus()` on Chat now focuses that line, so the pane's `focus` was dropped.
+
+Removed from app.ts:
+
+```ts
+      return { focus: () => pane.querySelector<HTMLTextAreaElement>('textarea')?.focus() };
+```
+
+```ts
+    const askLine = el(`<form class="fd-dock-ask" autocomplete="off">
+<span class="fd-dock-ask-mark">${icon('agent', 15)}</span>
+<input class="fd-input fd-dock-ask-input" type="text" spellcheck="false" placeholder="Ask Claude Code to work on this deck" aria-label="Ask Claude Code">
+<button type="submit" class="fd-tt-btn" title="Send to Claude Code" aria-label="Send to Claude Code">${icon('send', 14)}</button>
+</form>`);
+    const askInput = q<HTMLInputElement>(askLine, '.fd-dock-ask-input');
+    askLine.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = askInput.value.trim();
+      if (!text) return;
+      askInput.value = '';
+      void dock.claude(text).then((sent) => { if (!sent && !askInput.value) askInput.value = text; });
+    });
+    dock.root.appendChild(askLine);
+```
+
+```ts
+    dock.onTab = () => {
+      setClass(askLine, 'is-off', dock.activeKind() === 'chat');
+      syncChrome();
+    };
+```
+
+Removed from styles/terminal.css:
+
+```css
+:root[data-oled] .fd-dock-ask { background: var(--bg-primary); }
+.fd-dock-ask { flex: none; display: flex; align-items: center; gap: var(--space-2); height: 40px; box-sizing: border-box; padding: 0 var(--space-2); background: var(--surface-1); border-top: 1px solid var(--line-0); }
+.fd-dock-ask.is-off { visibility: hidden; }
+.fd-dock-ask-mark { display: inline-grid; place-items: center; color: var(--accent-color); }
+.fd-dock-ask-input { flex: 1; height: 28px; }
+.fd-dock-ask .fd-tt-btn { width: 28px; height: 28px; }
+```
+
+Removed from ui/chat-panel.ts (`send`, now through `ask`):
+
+```ts
+    this.stick = true;
+    try { await call(`/api/chat/${encodeURIComponent(this.cid)}/send`, 'POST', { text }); } catch (err) {
+      this.box.value = text;
+      this.syncControls();
+      toast((err as Error).message, 'error');
+    }
+```
+
+Seen in one headless Chrome session at 1440 by 900 (Vite dev server, engine from source with an empty data folder, stand-in agent programs), against captures taken on 2.0.1 with the same steps: dock closed, 0 pixels differ; open on a terminal with its text hidden, 558 pixels, all in the ask row (the mark at x 8 to 22 and the changed word at x 220 to 281); open on Chat, 57605 pixels, of which 57600 are the ask row (1440 by 40, shown where it was hidden) and 5 are inside the Chat pane with no cause found. Under 4x CPU: five tab switches between a shell and Chat, 195 frames, one layout; the side switch with a shell running kept the same terminal element and its output, with two layouts and none between. AMOLED Black and back re-coloured the open terminal in place. The guide showed for a new person ("Step 1 of 5") and not for a person with the old three keys, whose layout was moved with `seen`. `tsc --noEmit` clean, backend 255 passed before and after, `./formdeck agents sync --check` in step.
+
+Added after commit 8c624d3, whose message says Deny is in this entry when it was not yet: in the same session, Deny in the window closed the question ("Allow an agent calling itself probe-agent to make changes in formdeck?", three notes, one element each), the caller was told "The person did not allow agents to edit decks in formdeck", and `agentsAllowed` and `agentsBlocked` were both false before and after. A second call straight after was refused without a question: the engine remembers a Deny for a while (`_declined` in backend/app/routers/mcp.py), so "the next call asks again" was not seen. The write-route sweep from outside the window, 77 write routes of the engine's own route list: with no key and no origin 74 answered 403, `POST /api/window/key` 409 (the key was already given to the window) and `/mcp` 202 and 204 (the door for outside agents, which asks the person); with no key and a foreign origin all 77 answered 403.
+
+## 220. Chat has one input: the dock's ask line · _v0.40.0 (ui/chat-panel.ts; styles/chat.css; app.ts; src/dock-adapter.ts)
+
+After entry 219 Chat showed two inputs, the pane's own message box and the dock's line. The owner's decision: the line is Chat's input everywhere. The pane's box and its Send button are removed (ChatPanel is built only in the dock, nothing else used them). The adapter still says `ask: 'line'` with the pane's `send`: on Chat the line sends to formdeck's Chat, under a terminal tab it opens Claude Code with the text and the window's deck, slide and selection. Chat has five providers, so the adapter's `strings` give formdeck's own sentences where the module's said Claude: on Chat the placeholder is "Ask about your deck (Enter to send)", the line's label is "Ask about your deck", the button's title is "Send", and the guide's step ends "Your assistant does it in formdeck." Under a terminal tab the placeholder is still "Ask Claude Code to work on your deck", which is where that text goes.
+
+What the box did, and where it is now. Stop: a button in the pane's head, before Clear, shown only while the assistant works (the head's height does not change; the provider's name gives up the width). The two starting hints ("Tighten the wording on this slide", "Suggest stronger titles") filled the box; they now fill the line through a `fill` hook that app.ts answers by finding the input inside the public `.ft-dock-ask` form, and they send at once if it is not found. The module has no call for putting text in its line. The provider switch, the keys, Test, Clear, "Open in Claude Code" and the copy buttons were never in the box and are where they were. Alt+Mod+J still opens Chat, with focus in the line. A failed send still says why in a toast and the text stays in the line. Lost: a message of several lines (Shift+Enter); the line is one line. The sentence "Message the assistant (Enter to send, Shift+Enter for a new line)" is no longer used and is still listed in `src/i18n/keys/part06.json`.
+
+Removed from ui/chat-panel.ts:
+
+```ts
+  private readonly box: HTMLTextAreaElement;
+  private readonly sendBtn: HTMLButtonElement;
+```
+
+```ts
+<div class="fd-chat-composer"><textarea class="fd-input" rows="2" placeholder="Message the assistant (Enter to send, Shift+Enter for a new line)" aria-label="Message"></textarea>
+<button class="fd-btn fd-btn-primary fd-chat-send" type="button" data-a="send" title="Send" aria-label="Send">${icon('send', 14)}</button>
+<button class="fd-btn fd-chat-stop" type="button" data-a="stop" title="Stop" aria-label="Stop" hidden>${icon('stop', 14)}</button></div>
+```
+
+```ts
+    this.box = this.root.querySelector('textarea') as HTMLTextAreaElement;
+    this.sendBtn = this.root.querySelector('[data-a="send"]') as HTMLButtonElement;
+```
+
+```ts
+      if (a === 'send') void this.send();
+```
+
+```ts
+      else if (a === 'hint') { this.box.value = t.closest<HTMLElement>('[data-a]')?.dataset.t ?? ''; this.box.focus(); }
+    });
+    this.box.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); void this.send(); }
+    });
+    this.box.addEventListener('input', () => this.syncControls());
+    this.box.addEventListener('focus', () => this.tick());
+```
+
+```ts
+    const busy = this.status.busy;
+    setHidden(this.sendBtn, busy);
+    setHidden(this.stopBtn, !busy);
+    this.sendBtn.disabled = !this.box.value.trim();
+  }
+
+  private async send(): Promise<void> {
+    const text = this.box.value.trim();
+    if (!this.cid) this.tick();
+    if (!text || this.status.busy || !this.cid) return;
+    this.box.value = '';
+    this.syncControls();
+    if (await this.ask(text)) return;
+    this.box.value = text;
+    this.syncControls();
+  }
+```
+
+Removed from styles/chat.css:
+
+```css
+.fd-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); flex: none; padding-top: var(--space-2); border-top: 1px solid var(--line-1); }
+.fd-chat-composer textarea { display: block; box-sizing: border-box; height: 54px; padding: 6px 10px; resize: none; line-height: 1.4; user-select: text; -webkit-user-select: text; }
+.fd-chat-send, .fd-chat-stop { width: var(--ctl-lg); height: var(--ctl-lg); padding: 0; }
+.fd-chat-send[hidden], .fd-chat-stop[hidden] { display: none; }
+```
+
+Seen in one headless Chrome session at 1440 by 900 (Vite dev server, engine from source, stand-in agent programs): on Chat one input is visible in the dock, the line, with formdeck's sentences and no "Claude" in them; under 4x CPU a send from Chat reached `POST /api/chat/[deck]/send` (200) and showed in the list, a send from a terminal tab opened Claude Code with the text and the window's deck and slide, and six tab switches between a shell and Chat gave 225 frames with one layout; a hint filled the line and focused it; Chat settings still lists the five providers. Stop was not seen shown: no provider was answering, so the assistant was never working. `tsc --noEmit` clean.
+
+## 221. The dock is module 2.2.0 and Antigravity is its fourth agent tab · _v0.41.0 (src/dock/ copied from formvis ddc893ae; src/dock-adapter.ts OwnKind, KINDS, record, formdeckDock tabs and agentStatus; app.ts)
+
+`src/dock/` is the family's module 2.2.0, each of its 16 entries (15 files and MANIFEST.json; `agents.ts` is new) written from formvis at ddc893ae with `git show`, byte for byte; `./formdeck agents sync --check` finds the folder equal to its MANIFEST.json. In 2.2.0 the agent kinds are data and an adapter may name a kind of its own.
+
+The adapter. It is typed `DockAdapter<'antigravity'>` (`OwnKind`), `tabs().builtin` lists `antigravity` after `cursor`, a terminal record may carry the kind `antigravity`, and `agentStatus()` returns the engine's fourth answer. When a program does not run, the engine's own sentence (`said`: where it looked, or why the found one does not start) is passed as `note`. `terminal.open('antigravity', ...)` needed no change: every kind but `shell` and `claude` already goes to `/api/agent/[kind]/open`. app.ts holds the dock as `Dock<'antigravity'>`. Steps 2 to 4 of the module's moving notes were not taken: `keyHeaders` is in use here, and formdeck has no automation ids on the dock and no reconnecting channel.
+
+Checked: `tsc --noEmit` clean. Not looked at in a browser, with or without a stand-in `agy`: the button, the row, the banner in the tab and the pixel comparison against 2.1.0 are not seen. The engine side was seen without a window (backend entry 139).

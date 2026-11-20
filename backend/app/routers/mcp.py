@@ -28,6 +28,10 @@ router = APIRouter()
 VERSIONS = ["2026-07-28", "2025-11-25"]
 LEGACY = ["2025-06-18", "2025-03-26", "2024-11-05"]
 TURN_GAP = 90.0
+CONSENT_WAIT = 120.0
+CONSENT_RETURN = 15.0
+CONSENT_ANSWERS = ("deny", "once", "always")
+CONSENT_ALWAYS = "all"
 SERVER = {"name": "formdeck", "title": "formdeck", "version": config.VERSION}
 CAPS = {"tools": {}, "resources": {}, "prompts": {}}
 LIST_CACHE = {"ttlMs": 60_000, "cacheScope": "private"}
@@ -284,9 +288,9 @@ def _agent(request: Request, params: dict) -> Agent:
     a = SESSIONS.get(key)
     if a is None:
         a = SESSIONS[key] = Agent(key, info.get("name") or "agent")
-    if request.headers.get(claude_code.INAPP_HEADER, "") == claude_code.INAPP_TOKEN:
-        a.inapp = True
-        a.name = claude_code.INAPP_NAME
+    a.inapp = claude_code.is_inapp(request.headers.get(claude_code.INAPP_HEADER, ""))
+    if a.inapp:
+        a.name = claude_code.inapp_name(request.headers.get(claude_code.INAPP_HEADER, ""))
     STORE.seen_agent(a.name, a.key)
     return a
 
@@ -299,11 +303,34 @@ def _turn(a: Agent) -> str:
     return a.turn
 
 
-async def _consent(a: Agent) -> str | None:
+def _asked(name: str, args: dict) -> str:
+    if name == "run_command" and args.get("id"):
+        return f"run the command {_clip(str(args.get('id')), 80)}"
+    if name == "extension_command" and args.get("command"):
+        return f"run the extension command {_clip(str(args.get('command')), 80)}"
+    return f"use {name.replace('_', ' ')}" if name else "edit decks"
+
+
+def _withdraw(request: str, reason: str) -> None:
+    async def tell() -> None:
+        for client in bridge.windows():
+            try:
+                await client.send({"t": "consentGone", "request": request, "reason": reason})
+            except Exception:
+                continue
+
+    task = asyncio.get_running_loop().create_task(tell())
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
+
+
+async def _consent(a: Agent, name: str = "", args: dict | None = None) -> str | None:
+    if config.read_settings().get("agentsBlocked"):
+        return "The person has blocked agents in formdeck. They can change it in Preferences."
     if a.inapp or config.read_settings().get("agentsAllowed") or any(c.agents for c in bridge.windows()):
         return None
     if not bridge.window_connected():
-        return None
+        return "No formdeck window is open to ask the person whether you may edit decks. Ask them to open formdeck and allow agents to edit (the question in the window, or Preferences), then retry."
     if time.monotonic() < _declined[0]:
         return "The person did not allow agents to edit in formdeck just now. Ask them to allow it (the question in the formdeck window, or Preferences), then retry."
     if not _consent_lock:
@@ -311,13 +338,32 @@ async def _consent(a: Agent) -> str | None:
     async with _consent_lock[0]:
         if config.read_settings().get("agentsAllowed"):
             return None
-        res = await bridge.window_call("consent", {"agent": a.name}, None, 120)
+        request = "q" + uuid.uuid4().hex[:10]
+        ask = {"agent": a.name, "request": request, "tool": name, "what": _asked(name, args or {}), "answers": list(CONSENT_ANSWERS),
+               "alwaysScope": CONSENT_ALWAYS, "expires": int((time.time() + CONSENT_WAIT) * 1000)}
+        started, reason = time.monotonic(), "dropped"
+        try:
+            res = await bridge.window_call("consent", ask, None, CONSENT_WAIT)
+            back = time.monotonic() + CONSENT_RETURN
+            while res is not None and res.get("gone") and time.monotonic() < min(back, started + CONSENT_WAIT - 1):
+                await asyncio.sleep(0.25)
+                if bridge.window_connected():
+                    res = await bridge.window_call("consent", ask, None, started + CONSENT_WAIT - time.monotonic())
+                    back = time.monotonic() + CONSENT_RETURN
+            if res is not None and not res.get("isError"):
+                reason = "answered"
+            elif res is not None and time.monotonic() - started >= CONSENT_WAIT - 0.5:
+                reason = "expired"
+        finally:
+            _withdraw(request, reason)
         if res is None:
-            return None
+            return "No formdeck window answered the question whether you may edit decks. Ask the person to open formdeck, then retry."
         if res.get("isError"):
             return "formdeck is still asking the person in its window whether you may edit decks; nobody has answered yet. Tell them to choose Allow in the formdeck window, then retry."
-        if (res.get("structuredContent") or {}).get("allowed"):
-            config.write_settings({"agentsAllowed": True})
+        answer = res.get("structuredContent") or {}
+        if answer.get("allowed"):
+            if not answer.get("once"):
+                config.write_settings({"agentsAllowed": True})
             return None
         _declined[0] = time.monotonic() + 120
         return "The person did not allow agents to edit decks in formdeck. Ask them to allow it in the formdeck window, then retry."
@@ -1957,7 +2003,7 @@ async def _posters(a: Agent, deck_id: str) -> str:
 
 async def call_tool(a: Agent, name: str, args: dict) -> dict:
     if _mutating(name, args):
-        refused = await _consent(a)
+        refused = await _consent(a, name, args)
         if refused:
             return _fail(refused)
     try:

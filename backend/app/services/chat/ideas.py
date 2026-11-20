@@ -59,7 +59,7 @@ def status() -> dict:
         return out("mcp", _live(), NO_CLIENT, "MCP client")
     if name == "claudecode":
         found = claude_code.info()
-        return out("claudecode", bool(found["installed"]), claude_code.INSTALL)
+        return out("claudecode", bool(found["installed"]), found["said"])
     if name == "anthropic" and not keys.has("anthropic"):
         return out("provider", False, "Add your Anthropic API key in the chat panel settings.")
     if name == "openai" and "api.openai.com" in cfg["openai"]["baseUrl"] and not keys.has("openai"):

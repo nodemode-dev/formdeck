@@ -1,4 +1,4 @@
-export interface ThemeProfile { label: string; vars: Record<string, string>; light?: boolean }
+export interface ThemeProfile { label: string; vars: Record<string, string>; light?: boolean; oled?: boolean }
 
 export const THEMES: Record<string, ThemeProfile> = {
   'studio': { label: 'Studio Dark', vars: { '--bg-primary': '#111111', '--bg-secondary': '#17151b', '--bg-tertiary': '#222127', '--border-color': '#2a2a2a', '--border-light': '#34333a', '--text-primary': '#f7f7f7', '--text-secondary': '#a4a4a4', '--text-muted': '#8a8a8b', '--canvas-bg': '#1c1b1d', '--grid-color': '#5e5e60', '--bg-node': '#191919' } },
@@ -16,6 +16,7 @@ export const THEMES: Record<string, ThemeProfile> = {
   'rose': { label: 'Rose Noir', vars: { '--bg-primary': '#170b10', '--bg-secondary': '#211117', '--bg-tertiary': '#301a22', '--border-color': '#4d2b38', '--border-light': '#653a49', '--text-primary': '#f5e7ec', '--text-secondary': '#cfa5b3', '--text-muted': '#a87e8d', '--canvas-bg': '#170b10', '--grid-color': 'rgba(255,190,215,0.05)', '--node-shadow': '0 6px 18px rgba(25,0,10,0.55)' } },
   'terminal': { label: 'Terminal Green', vars: { '--bg-primary': '#050d05', '--bg-secondary': '#0a140a', '--bg-tertiary': '#102010', '--border-color': '#1f3d1f', '--border-light': '#2b522b', '--text-primary': '#d8f5d8', '--text-secondary': '#8fce8f', '--text-muted': '#5d925d', '--canvas-bg': '#050d05', '--grid-color': 'rgba(120,255,120,0.06)', '--node-shadow': '0 6px 18px rgba(0,10,0,0.6)' } },
   'contrast': { label: 'High Contrast', vars: { '--bg-primary': '#000000', '--bg-secondary': '#0a0a0a', '--bg-tertiary': '#161616', '--border-color': '#555555', '--border-light': '#777777', '--text-primary': '#ffffff', '--text-secondary': '#d8d8d8', '--text-muted': '#9a9a9a', '--canvas-bg': '#000000', '--grid-color': 'rgba(255,255,255,0.10)', '--node-shadow': '0 0 0 1px #666' } },
+  'amoled': { label: 'AMOLED Black', oled: true, vars: { '--bg-primary': '#000000', '--bg-secondary': '#000000', '--bg-tertiary': '#141414', '--bg-node': '#000000', '--border-color': '#262626', '--border-light': '#3a3a3a', '--text-primary': '#ededed', '--text-secondary': '#a6a6a6', '--text-muted': '#858585', '--canvas-bg': '#000000', '--grid-color': 'rgba(255,255,255,0.10)' } },
 };
 
 export const DEFAULT_THEME = 'studio';
@@ -81,6 +82,7 @@ export function applyTheme(choice: ThemeChoice = readChoice()): void {
   const theme = THEMES[choice.theme] || THEMES[DEFAULT_THEME];
   for (const [k, v] of Object.entries(theme.vars)) root.style.setProperty(k, v);
   document.body.classList.toggle('theme-light', !!theme.light);
+  if (theme.oled) { if (!root.hasAttribute('data-oled')) root.setAttribute('data-oled', ''); } else if (root.hasAttribute('data-oled')) root.removeAttribute('data-oled');
   root.style.setProperty('--bg-node', theme.vars['--bg-node'] || theme.vars['--bg-secondary']);
   root.style.setProperty('--shadow-lg', theme.light
     ? '0 4px 14px rgba(96, 90, 70, 0.16)'

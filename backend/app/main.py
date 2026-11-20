@@ -12,8 +12,9 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core import config
 from app.core.local_guard import LocalGuard
+from app.core.window_key import WindowKeyGuard
 from app.routers import addins, ai_images, captions, chat, commands, decks, exports, extensions, intake, live, mcp, media, share, stock, system, terminal, workbooks
-from app.services import relay
+from app.services import claude_code, relay
 from app.services import share as sharing
 from app.services import terminal as terminals
 
@@ -43,6 +44,7 @@ def _clear_discovery() -> None:
 @asynccontextmanager
 async def lifespan(this: FastAPI):
     _write_discovery()
+    claude_code.sweep()
     terminals.bind(asyncio.get_running_loop())
     try:
         await sharing.apply(this)
@@ -53,10 +55,12 @@ async def lifespan(this: FastAPI):
     await relay.stop()
     await sharing.stop()
     terminals.close_all()
+    claude_code.revoke_all()
     _clear_discovery()
 
 
 app = FastAPI(title=config.APP_NAME, version=config.VERSION, lifespan=lifespan)
+app.add_middleware(WindowKeyGuard)
 app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins(), allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(share.ShareGate)
 app.add_middleware(LocalGuard, origins=config.cors_origins(), skip=sharing.is_lan)

@@ -64,7 +64,7 @@ async def window_call(name: str, args: dict, deck: str | None = None, timeout: f
                 continue
             if out is WINDOW_GONE:
                 if not safe:
-                    return {"content": [{"type": "text", "text": "The window closed before it answered."}], "isError": True}
+                    return {"content": [{"type": "text", "text": "The window closed before it answered."}], "isError": True, "gone": True}
                 continue
             return out if isinstance(out, dict) else {"content": [{"type": "text", "text": str(out)}]}
         finally:

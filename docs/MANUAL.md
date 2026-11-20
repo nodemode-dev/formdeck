@@ -1,6 +1,6 @@
 # formdeck manual
 
-formdeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.38.1. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-ai/formpdf); in formdeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formdeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
+formdeck makes presentations and pitch decks, as an alternative to PowerPoint, Keynote and Google Slides. It runs in the browser or as a desktop app, with an engine on your computer that holds every deck, so the window, outside agents and the command line all work on the same slides. This manual covers version 0.38.1. The PDF workbench of earlier versions is now its own app, formpdf (github.com/nodemode-dev/formpdf); in formdeck a PDF is material for a deck (see Starting from your material and Slides from PDF pages). Help > formdeck Help (F1) has the short version; Help > Keyboard Shortcuts (Mod+/) lists every key.
 
 In this manual **Mod** is Cmd on macOS and Ctrl on Windows and Linux, and **Alt** is Option on macOS.
 
@@ -21,13 +21,13 @@ Other commands from `./formdeck help`:
 | `./formdeck build`, `./formdeck serve` | build the frontend into `frontend/dist`, then serve it from the engine on 127.0.0.1:8197 |
 | `./build_app` (or `./formdeck desktop build`; Windows `build_app.bat`) | build the desktop app from a fresh checkout in one step: checks and installs what it needs, then bundles the app (see The desktop app) |
 | `./formdeck claude` | Claude Code in this terminal with formdeck's MCP tools attached |
-| `./formdeck cli list [text]`, `run <id> [key=value ...]`, `counts` | the editor's command catalogue from a terminal; the window must be open. Commands that need values take them as parameters, for example `./formdeck cli set-font-size size=32` or `set-fill-color color=#1D5BD8` (a hex colour or a theme slot such as accent1). `counts` lists commands per group and fails if any lacks a use-when line |
+| `./formdeck cli list [text]`, `run <id> [key=value ...]`, `counts` | the editor's command catalogue from a terminal; the window must be open. `run`, `batch` and `extension` count as an outside agent named `formdeck-cli`: they follow the agent choice made in the window (Ask, Allowed, see Agents > Consent), asking there the first time under Ask, and cannot change it. Commands that need values take them as parameters, for example `./formdeck cli set-font-size size=32` or `set-fill-color color=#1D5BD8` (a hex colour or a theme slot such as accent1). `counts` lists commands per group and fails if any lacks a use-when line |
 | `./formdeck pdf-check FILE.pdf [--flavour ua1]` | validate an exported PDF with veraPDF (install it from verapdf.org, it needs Java; or set `VERAPDF` to its launcher). formdeck's PDF export declares PDF/UA-1 and passes that profile (slides are written as live, embedded text wherever the font can be embedded, otherwise as a picture with an invisible text layer on that page); the command prints the rule and check counts and each failed rule |
 | `./formdeck i18n check`, `scan [--write]`, `export LANG FILE.csv`, `import LANG FILE.csv` | the translations: `check` fails when a string has no translation or the code has a string the keys lack; `scan --write` adds new strings as the next keys part; `export` gives a native reviewer one language as CSV (english, current, corrected, note) and `import` brings the corrected column back (kept in keys and locales `part99.json`, which wins over earlier parts) |
 | `./formdeck install-desktop`, `./formdeck desktop dev`, `./formdeck desktop check` | install PyInstaller and check the toolchain, run the desktop app from source, explain toolchain problems |
 | `./formdeck freeze` | freeze the engine into the desktop sidecar |
 | `./formdeck mcp` | the MCP server over stdio, for Claude Desktop and other stdio clients |
-| `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex and Cursor; refresh the skills |
+| `./formdeck agents install`, `./formdeck agents sync` | set up Claude Code, Codex, Cursor and Antigravity; refresh the skills and `agents/manifest.json` |
 | `./formdeck build-deck ...` | build a deck from files without the window (see The headless CLI) |
 | `./formdeck templates export [dir]` | write the built-in templates as .pptx files |
 | `./formdeck clean [--all]` | remove build output (`--all` also the venv and node_modules) |
@@ -453,7 +453,7 @@ Zoom into the slide shows a box: click the part to enlarge, drag to move around,
 
 ## PDFs in formdeck
 
-formdeck no longer edits PDFs; that moved to formpdf (github.com/nodemode-ai/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In formdeck a PDF is one of two things:
+formdeck no longer edits PDFs; that moved to formpdf (github.com/nodemode-dev/formpdf), which views, comments, fills and signs, organizes, redacts and converts them. In formdeck a PDF is one of two things:
 
 - **Material for a deck.** Open a .pdf (File > Open or Home > Open file) or drop one on the window and Start from your material opens with the PDF attached. Add a brief, pick a template and Draft: formdeck reads the PDF's headings, text, tables and pictures and drafts real, editable slides. Scanned PDFs without a text layer arrive as page pictures. The first time this happens a note says so.
 - **Slides from PDF pages.** In an open deck, Insert > Slides from PDF Pages asks for a PDF and adds one slide per page at the end of the deck (up to 300 pages; for a longer PDF the message says "the first 300 of 301 pages" and the rest are left out), leaving you on the slide you were on: each slide shows the page as a picture fitted to the slide on white, and the page's text goes into the speaker notes, so it stays searchable and an agent can read it. The new slides start in Draft and the whole import is one Undo step. Use it when the slides must look exactly like the PDF, for example last year's talk that only survives as a handout; use the material route when you want slides you can edit. A password-protected PDF is refused; unlock it in formpdf first.
@@ -480,13 +480,13 @@ Exporting a deck as PDF and printing are unchanged (see Import, export and print
 
 ## Agents
 
-Claude Code, Codex, Cursor and Claude Desktop can build and edit decks through formdeck's MCP server. They work on the same deck you see, live.
+Claude Code, Codex, Cursor, Antigravity and Claude Desktop can build and edit decks through formdeck's MCP server. They work on the same deck you see, live.
 
 ### Setup
 
 Start formdeck first (`./formdeck`). Then pick one:
 
-- **All at once**: `./formdeck agents install` writes `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) in the formdeck folder and in the folder you ran it from, and installs the formdeck skills into `~/.claude/skills` and `~/.agents/skills`. `--dry-run` shows what it would do.
+- **All at once**: `./formdeck agents install` writes `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) in the formdeck folder and in the folder you ran it from, adds formdeck to Antigravity's `~/.gemini/config/mcp_config.json`, and installs the formdeck skills into `~/.claude/skills` and `~/.agents/skills`. `--dry-run` shows what it would do.
 - **Claude Code**: `claude mcp add --transport http formdeck http://127.0.0.1:8197/mcp`.
 - **Codex**: add `[mcp_servers.formdeck]` with `url = "http://127.0.0.1:8197/mcp"` to `~/.codex/config.toml`, then restart Codex.
 - **Cursor**: add `{"mcpServers": {"formdeck": {"url": "http://127.0.0.1:8197/mcp"}}}` to `~/.cursor/mcp.json` or a project's `.cursor/mcp.json`.
@@ -496,7 +496,13 @@ The Agents dialog (title bar, Review > Agents and MCP, or Home) shows the same s
 
 ### Consent
 
-Agents can read decks, but the first time one tries to change something formdeck asks in the window: **Allow Claude Code to edit your decks?** (the title names the agent) with Allow and Not now. The switch is **Let agents read and edit decks** in the Agents dialog, **Let Claude Code, Codex and Cursor read and edit decks** in Preferences > Plugins, and in the Agent tab; turning it off stops all agent edits. Only the formdeck window can turn it on; an agent cannot grant itself access. The server listens on 127.0.0.1 only.
+Agents can read decks, but the first time one tries to change something formdeck asks in the window: **Allow Claude Code to edit your decks?** (the title names the agent) with Allow and Not now. The same choice is a switch: **Let agents read and edit decks** in the Agents dialog, **Let Claude Code, Codex and Cursor read and edit decks** in Preferences > Plugins, and in the Agent tab. There is no separate Blocked setting; the choices are:
+
+- **Ask** (the switch is off; the Agents dialog shows Off): the first change an outside agent tries opens the question in the window and waits up to two minutes for your answer. This is the default, and it is also where the switch goes when you turn it off: the next agent edit asks again, so turning it off does not lock agents out.
+- **Allow** (the switch is on; the Agents dialog shows Allowed): agents change decks without asking, until you turn the switch off.
+- **Not now** (the answer to the question): nothing changes and the switch stays off. The agent is told you did not allow it, and for the next two minutes its edits are refused without asking again; after that the next edit asks again.
+
+Agents can always read. With no formdeck window open, an outside agent's edit is refused with a message asking you to open formdeck, because there is nobody to ask. The command line counts as an outside agent too (`./formdeck cli run` and `batch`, as `formdeck-cli`): it follows this choice and cannot change it. Claude Code started inside formdeck (its tab in the terminal dock, or the chat's Claude Code option) is not asked, because you started it there. Only the formdeck window can change the choice, and it also keeps the saved choice sealed: if the stored value is changed outside formdeck, the choice goes back to Ask and the Agents dialog says so once. An agent cannot grant itself access. The server listens on 127.0.0.1 only.
 
 ### Which window answers
 
@@ -531,7 +537,7 @@ Every edit the assistant makes is an agent turn: it follows the Allow switch, sh
 
 `./formdeck agents install` (and `./formdeck agents sync` after an update) installs two skills:
 
-- **formdeck-harness**, for building decks: the full loop from intake to handoff, with sub-skills for the deck director, intake reader, story architect, slide-script author (syntax and an example per layout), template curator, visual QA and review handoff. PDF editing is not part of these skills; it lives in formpdf.
+- **formdeck-harness**, for building decks: the full loop from intake to handoff, with sub-skills for the deck director, intake reader, story architect, slide-script author (syntax and an example per layout), template curator, visual QA, review handoff and layout ideas (answering Crafter Ideas requests from the chat). PDF editing is not part of these skills; it lives in formpdf.
 - **formdeck-skillset**, for developing formdeck itself.
 
 The MCP resource `formdeck://guide` is the short guide agents read first, and the server offers a `build-deck` prompt.
@@ -574,7 +580,7 @@ Help > Preferences (Mod+,), also the gear in the title bar. The sections sit in 
 
 ## The data folder
 
-formdeck was called formsld through 0.7.0: on first start an existing `~/Formsld` is moved to `~/formdeck`, and `FORMSLD_*` settings are still read until 0.9.0.
+formdeck was called formsld through 0.7.0: on first start an existing `~/Formsld` is moved to `~/formdeck` when that folder does not exist yet, and a `FORMSLD_*` setting is still read whenever the matching `FORMDECK_*` one is not set.
 
 Everything lives in `~/formdeck` (or `FORMDECK_DATA_DIR`):
 

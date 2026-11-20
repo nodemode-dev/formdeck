@@ -2,6 +2,13 @@ import json
 import os
 import sys
 
+if sys.stdin is None:
+    sys.stdin = open(os.devnull, encoding="utf-8")
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
 MODULES = ("PIL", "fastapi", "uvicorn", "pptx", "pypdfium2", "pdfplumber", "docx", "openpyxl", "reportlab", "pypdf", "fontTools", "brotli")
 
 
@@ -36,6 +43,7 @@ def main() -> int:
     os.environ.setdefault("FORMDECK_DESKTOP", "1")
     import uvicorn
 
+    from app.core import window_key
     from app.main import app as fastapi_app
 
     port = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 0)
@@ -51,6 +59,8 @@ def main() -> int:
                 port = probe.getsockname()[1]
                 break
     os.environ["FORMDECK_PORT"] = str(port)
+    if window_key.stdout_mode():
+        print(window_key.LINE + window_key.KEY, flush=True)
     uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
     return 0
 

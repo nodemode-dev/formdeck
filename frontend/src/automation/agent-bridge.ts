@@ -7,10 +7,8 @@ import type { LiveClient } from '../live/socket';
 import { contactSheet, rasterSlide, toBlob, withSlide, type TextItem } from '../render/raster';
 import type { PdfNode } from '../render/pdf-struct';
 import type { SlideView } from '../render/slide';
-import { Dialog } from '../ui/dialogs';
-import { el, setText } from '../ui/dom';
 
-export interface BridgeHooks { editor: () => Editor | null; open: (id: string) => Promise<void>; live: LiveClient; notice: (t: string) => void; allow: () => void; activity: (label: string, origin: 'agent' | 'user') => void; command?: (args: Args) => Promise<ToolResult>; extension?: (name: string, args: Args) => Promise<ToolResult> }
+export interface BridgeHooks { editor: () => Editor | null; open: (id: string) => Promise<void>; live: LiveClient; notice: (t: string) => void; ask: (args: Record<string, unknown>) => Promise<{ allowed: boolean; once?: boolean } | null>; activity: (label: string, origin: 'agent' | 'user') => void; command?: (args: Args) => Promise<ToolResult>; extension?: (name: string, args: Args) => Promise<ToolResult> }
 type Content = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string };
 export interface ToolResult { content: Content[]; structuredContent?: Record<string, unknown>; isError?: boolean }
 export type IssueKind = 'overflow' | 'shrunk' | 'offslide' | 'overlap' | 'tiny' | 'empty';
@@ -80,42 +78,10 @@ export function slideTitle(deck: Deck, s: Slide): string {
   return text || s.name || `Slide ${deck.slides.indexOf(s) + 1}`;
 }
 
-class Consent extends Dialog {
-  private readonly lead = el('<p class="fd-note"></p>');
-  private readonly allowBtn: HTMLButtonElement;
-  private resolve: ((v: boolean) => void) | null = null;
-  constructor() {
-    super('Allow agents to edit?', 460);
-    this.body.append(
-      this.lead,
-      el('<p class="fd-note">Agents edit live: you see every change as it happens on the slides.</p>'),
-      el('<p class="fd-note">Every agent turn can be undone at once with Edit, Undo Agent Turn.</p>'),
-      el('<p class="fd-note">You can turn this off any time in Agents.</p>'),
-    );
-    this.button('Not now', 'ghost', () => this.finish(false));
-    this.allowBtn = this.button('Allow', 'primary', () => this.finish(true));
-    this.onClose = () => this.finish(false);
-  }
-  ask(agent: string): Promise<boolean> {
-    this.setTitle(`Allow ${agent} to edit your decks?`);
-    setText(this.lead, `${agent} is connected to formdeck and asks to create and change decks for you.`);
-    this.open(this.allowBtn);
-    return new Promise((r) => { this.resolve = r; });
-  }
-  private finish(v: boolean): void {
-    const r = this.resolve;
-    this.resolve = null;
-    if (this.isOpen) this.close();
-    r?.(v);
-  }
-}
-
 export class AgentBridge {
   private jobs: Promise<unknown> = Promise.resolve();
   private readonly thumbQueued = new Set<string>();
   private readonly thumbSig = new Map<string, string>();
-  private consentAsk: Promise<boolean> | null = null;
-  private consentDlg: Consent | null = null;
   private readonly holds = new Map<string, { n: number; had: boolean }>();
 
   constructor(private readonly h: BridgeHooks) {}
@@ -362,16 +328,9 @@ export class AgentBridge {
   private async consent(args: Args): Promise<ToolResult> {
     const agent = str(args.agent) || 'An agent';
     this.h.activity(`${agent} asked to edit decks`, 'agent');
-    this.consentAsk ??= this.ask(agent).finally(() => { this.consentAsk = null; });
-    const allowed = await this.consentAsk;
-    return ok(allowed ? 'The user allowed agents to edit decks.' : 'The user did not allow agents to edit decks for now.', { allowed });
-  }
-
-  private async ask(agent: string): Promise<boolean> {
-    this.consentDlg ??= new Consent();
-    const yes = await this.consentDlg.ask(agent);
-    if (yes) this.h.allow();
-    return yes;
+    const answer = await this.h.ask(args);
+    if (!answer) return fail('The question was withdrawn before the person answered it.');
+    return ok(answer.allowed ? 'The user allowed agents to edit decks.' : 'The user did not allow agents to edit decks for now.', { ...answer });
   }
 }
 

@@ -4,6 +4,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from app.core import window_key
 from app.routers.live import local_origin
 from app.services import claude_code
 from app.services.chat import convo as cv
@@ -58,7 +59,7 @@ async def test(body: dict) -> dict:
     name = str(body.get("provider") or "")
     if name == "claudecode":
         found = claude_code.info(fresh=True)
-        return {"ok": found["installed"], "message": f"Claude Code {found['version'] or ''} at {found['path']}".strip() if found["installed"] else claude_code.INSTALL, "models": ["sonnet", "opus", "haiku"]}
+        return {"ok": found["installed"], "message": f"Claude Code {found['version'] or ''} at {found['path']}".strip() if found["installed"] else found["said"], "models": ["sonnet", "opus", "haiku"]}
     try:
         prov = engine.make(name) if name in engine.PROVIDERS else None
     except ProviderError as exc:
@@ -69,7 +70,8 @@ async def test(body: dict) -> dict:
 
 
 @router.get("/claude/sessions")
-def claude_sessions() -> dict:
+def claude_sessions(request: Request) -> dict:
+    window_key.require(request)
     return {"sessions": claude_code.sessions(), "folder": str(claude_code.workdir())}
 
 

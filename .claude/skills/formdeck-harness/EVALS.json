@@ -107,7 +107,7 @@
       "prompt": "Merge contract-a.pdf and contract-b.pdf in ~/Legal into one file, then split out pages 1-3 of the merged one as a summary",
       "files": ["~/Legal/contract-a.pdf", "~/Legal/contract-b.pdf"],
       "expected_behavior": [
-        "Says that formdeck no longer edits PDFs and that PDF editing lives in formpdf (github.com/nodemode-ai/formpdf)",
+        "Says that formdeck no longer edits PDFs and that PDF editing lives in formpdf (github.com/nodemode-dev/formpdf)",
         "Does not call ingest, build_deck or any other formdeck tool for this request",
         "Does not build a deck"
       ]
