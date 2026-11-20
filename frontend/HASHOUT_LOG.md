@@ -1341,3 +1341,9 @@ Seen in one headless Chrome session at 1440 by 900 (Vite dev server, engine from
 The adapter. It is typed `DockAdapter<'antigravity'>` (`OwnKind`), `tabs().builtin` lists `antigravity` after `cursor`, a terminal record may carry the kind `antigravity`, and `agentStatus()` returns the engine's fourth answer. When a program does not run, the engine's own sentence (`said`: where it looked, or why the found one does not start) is passed as `note`. `terminal.open('antigravity', ...)` needed no change: every kind but `shell` and `claude` already goes to `/api/agent/[kind]/open`. app.ts holds the dock as `Dock<'antigravity'>`. Steps 2 to 4 of the module's moving notes were not taken: `keyHeaders` is in use here, and formdeck has no automation ids on the dock and no reconnecting channel.
 
 Checked: `tsc --noEmit` clean. Not looked at in a browser, with or without a stand-in `agy`: the button, the row, the banner in the tab and the pixel comparison against 2.1.0 are not seen. The engine side was seen without a window (backend entry 139).
+
+## 222. The dock is module 2.2.1: its guide names all four programs · _v0.43.0 (src/dock/ copied from formvis 23b01889)
+
+Every file of `src/dock/` was copied unchanged from FormVis at 23b01889; three differ from 2.2.0: `MANIFEST.json` (the version and two hashes), `CONTRACT.md` (its version line and the 2.2.1 note) and `strings.ts`, where the guide's two sentences for a computer that has Claude Code (`tourInstalledBody`, `tourReadyBody`) now end: "Codex, Cursor and Antigravity each get a button of their own here when they are on this computer." formdeck's adapter needs no change, and formdeck carries no translations of the module's sentences, so there is nothing to translate again.
+
+Checked: the `tsc --noEmit` and `vite build` of the gate. Not looked at in a browser.

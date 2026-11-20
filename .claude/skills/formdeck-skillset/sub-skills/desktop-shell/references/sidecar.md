@@ -39,8 +39,8 @@ The updater plugin checks formcompiler's `formdeck-updates/latest.json`; updater
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| "The formdeck engine failed to start" | The sidecar crashed or printed no URL | Run the binary with `--selfcheck`; run it bare and read its log; a missing hidden import shows up as an ImportError |
-| `sidecar binary is bundled` panic | No `formdeck-engine-[triple]` in `src-tauri/binaries` | `./formdeck freeze` for the host triple, or set `FORMDECK_TARGET` |
+| "formdeck could not start: its engine stopped ..." or "... it waited 90 seconds ..." | The sidecar crashed or printed no URL within 90 seconds | Read the engine's last lines and the log path the dialog gives; run the binary with `--selfcheck`; a missing hidden import shows up as an ImportError |
+| "formdeck could not start: its engine program is missing from the install" | No `formdeck-engine-[triple]` in `src-tauri/binaries` | `./formdeck freeze` for the host triple, or set `FORMDECK_TARGET` |
 | Blank main window | `frontend_dist` missing from the bundle | Build the frontend before freezing; check `dist_bundled` in selfcheck |
 | Presenter window refused | URL not on loopback, or the permission missing | `open_presenter` accepts only loopback URLs; check `allow-open-presenter` in the capability |
 | A new command errors with "not allowed" | Manifest or capability not updated | Add it to `build.rs` and `capabilities/default.json` |
