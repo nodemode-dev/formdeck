@@ -597,6 +597,8 @@ settings.json                    preferences, your dictionary and chat settings
 chat-keys.json                   chat API keys, readable only by you
 Chat/<deck id>.json              chat conversations
 engine.json                      the running engine's port and process, removed when it stops
+engine.lock                      which engine of the desktop app has this folder, removed when it stops
+Logs/formdeck-engine.log         the desktop app's engine log, the three before it kept beside it
 ```
 
 ## When something goes wrong
