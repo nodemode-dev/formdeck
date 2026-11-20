@@ -141,3 +141,46 @@ def test_a_keychain_that_raises_never_stops_the_engine(monkeypatch, tmp_path):
         assert config.read_settings()["seal"] == "unavailable"
     finally:
         seal.reset()
+
+
+def test_a_choice_sealed_by_0_43_0_reads_whole_after_the_update(keychain):
+    import hashlib
+    import hmac
+
+    from app.core import config, seal
+    from app.services import claude_code
+
+    key = seal._load(True)
+    old = {"agentsAllowed": True, "claude": {"bin": "/opt/tools/claude", "folder": "", "firstMessage": ""}, "agentsBlocked": False}
+    body = json.dumps({"agentsAllowed": True, "claudeBin": "/opt/tools/claude"}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    config.settings_path().write_text(json.dumps({**old, "seal": hmac.new(key, body.encode("utf-8"), hashlib.sha256).hexdigest()}, indent=2), encoding="utf-8")
+    now = config.read_settings()
+    assert now["seal"] == "ok" and now["sealBroken"] is False
+    assert now["agentsAllowed"] is True and now["claude"]["bin"] == "/opt/tools/claude"
+    assert not any(now.get(k) for k in ("codexBin", "cursorBin", "antigravityBin"))
+    assert claude_code.setting("claude") == "/opt/tools/claude" and claude_code.setting("codex") == ""
+    config.write_settings({"author": "someone"})
+    assert config.read_settings()["seal"] == "ok"
+    config.write_settings({"codexBin": "/opt/tools/codex"})
+    now = config.read_settings()
+    assert now["seal"] == "ok" and now["agentsAllowed"] is True and now["claude"]["bin"] == "/opt/tools/claude" and now["codexBin"] == "/opt/tools/codex"
+
+
+@pytest.mark.parametrize("key,kind", [("codexBin", "codex"), ("cursorBin", "cursor"), ("antigravityBin", "antigravity")])
+def test_the_other_programs_places_are_sealed_and_given_to_the_finder_first(keychain, client, tmp_path, key, kind):
+    from app.core import config
+    from app.services import agent_lookup, claude_code
+
+    program = tmp_path / kind
+    program.write_text("#!/bin/sh\n")
+    program.chmod(0o755)
+    r = client.post("/api/settings", json={key: f"  {program}  "})
+    assert r.status_code == 200 and r.json()["seal"] == "ok" and r.json()[key] == str(program)
+    assert claude_code.setting(kind) == str(program)
+    found = agent_lookup.find(kind, setting=claude_code.setting(kind), fresh=True)
+    assert found.path == str(program) and found.how == "setting"
+    assert client.post("/api/settings", json={key: ["not", "a", "path"]}).json()[key] == ""
+    config.write_settings({"agentsAllowed": True, key: str(program)})
+    hand_edit(**{key: "/tmp/other-program"})
+    now = config.read_settings()
+    assert now["sealBroken"] is True and now[key] == "" and now["agentsAllowed"] is False

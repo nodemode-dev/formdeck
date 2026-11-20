@@ -72,7 +72,7 @@ def get_settings(request: Request) -> dict:
 def set_settings(patch: dict, request: Request) -> dict:
     if ("agentsAllowed" in patch or "agentsBlocked" in patch) and not from_window(request.headers.get("origin"), request.headers.get("host", ""), config.cors_origins()):
         raise HTTPException(403, "only formdeck's own window changes agent access")
-    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "agentsBlocked", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "keys", "defaultSize", "defaultFonts", "marquee", "pinned", "recentHidden", "ui", "posterSecondFrame", "agentLayoutIdeas", "crafterPlainThumbnails"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
+    allowed = {k: v for k, v in patch.items() if k in {"agentsAllowed", "agentsBlocked", "author", "defaultTemplate", "autosave", "units", "recent", "lastTemplate", "dictionary", "proofingLanguage", "chat", "captions", "stock", "aiImages", "addins", "claude", "codexBin", "cursorBin", "antigravityBin", "keys", "defaultSize", "defaultFonts", "marquee", "pinned", "recentHidden", "ui", "posterSecondFrame", "agentLayoutIdeas", "crafterPlainThumbnails"} and (k not in ("claude", "keys", "defaultFonts") or isinstance(v, dict))}
     for key in ("pinned", "recentHidden"):
         if key in allowed:
             allowed[key] = [str(i)[:80] for i in allowed[key] if isinstance(i, str)][:500] if isinstance(allowed[key], list) else []
@@ -97,4 +97,7 @@ def set_settings(patch: dict, request: Request) -> dict:
         allowed["keys"] = {str(cid)[:120]: [str(k)[:40] for k in combos][:4] for cid, combos in list(allowed["keys"].items())[:2000] if isinstance(combos, list)}
     if "claude" in allowed:
         allowed["claude"] = {f: str(allowed["claude"].get(f) or "").strip()[:4000] for f in ("bin", "folder", "firstMessage")}
+    for key in ("codexBin", "cursorBin", "antigravityBin"):
+        if key in allowed:
+            allowed[key] = str(allowed[key] or "").strip()[:4000] if isinstance(allowed[key], str) else ""
     return config.write_settings(allowed)

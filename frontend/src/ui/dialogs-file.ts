@@ -1876,7 +1876,10 @@ class PreferencesDialog extends Dialog {
         + grp('Claude Code', `<div class="fd-field"><span>Found</span><span class="fd-note fd-dlg-claude-status" translate="no"></span></div>
 <label class="fd-field"><span>Program</span><input class="fd-input" type="text" spellcheck="false" data-c="bin" placeholder="Found automatically; or the full path to claude"></label>
 <label class="fd-field"><span>Folder</span><input class="fd-input" type="text" spellcheck="false" data-c="folder" placeholder="Where Claude Code starts; the formdeck Agent folder by default"></label>
-<label class="fd-field"><span>First message</span><input class="fd-input" type="text" spellcheck="false" data-c="firstMessage" placeholder="Sent when Claude Code opens in the terminal, if set"></label>`),
+<label class="fd-field"><span>First message</span><input class="fd-input" type="text" spellcheck="false" data-c="firstMessage" placeholder="Sent when Claude Code opens in the terminal, if set"></label>`)
+        + grp('Other Agent Programs', `<label class="fd-field"><span translate="no">Codex</span><input class="fd-input" type="text" spellcheck="false" data-p="codexBin" placeholder="Found automatically; or the full path to the program"></label>
+<label class="fd-field"><span translate="no">Cursor</span><input class="fd-input" type="text" spellcheck="false" data-p="cursorBin" placeholder="Found automatically; or the full path to the program"></label>
+<label class="fd-field"><span translate="no">Antigravity</span><input class="fd-input" type="text" spellcheck="false" data-p="antigravityBin" placeholder="Found automatically; or the full path to the program"></label>`),
     };
     const box = el('<div class="fd-prefs-pages"></div>');
     for (const name of PREF_ORDER) {
@@ -1974,6 +1977,8 @@ class PreferencesDialog extends Dialog {
     this.claudeStatus = q(box, '.fd-dlg-claude-status');
     this.claudeFields = Array.from(box.querySelectorAll<HTMLInputElement>('[data-c]'));
     for (const f of this.claudeFields) f.addEventListener('change', () => this.persistClaude());
+    this.programFields = Array.from(box.querySelectorAll<HTMLInputElement>('[data-p]'));
+    for (const f of this.programFields) f.addEventListener('change', () => { void api.setSettings({ [f.dataset.p ?? '']: f.value.trim() }).catch((e) => toast(`Could not save the preference: ${errText(e)}`, 'error')); });
     const lang = q<HTMLSelectElement>(box, '.fd-dlg-pref-lang');
     lang.value = storedLanguage();
     lang.addEventListener('change', () => setLanguage(lang.value));
@@ -1988,6 +1993,7 @@ class PreferencesDialog extends Dialog {
 
   private claudeStatus!: HTMLElement;
   private claudeFields: HTMLInputElement[] = [];
+  private programFields: HTMLInputElement[] = [];
 
   private persistClaude(): void {
     const claude = Object.fromEntries(this.claudeFields.map((f) => [f.dataset.c ?? '', f.value.trim()]));
@@ -2138,6 +2144,7 @@ class PreferencesDialog extends Dialog {
       setChecked(this.ideasPref, s.agentLayoutIdeas === true);
       const cl = (s.claude && typeof s.claude === 'object' ? s.claude : {}) as Record<string, unknown>;
       for (const f of this.claudeFields) setValue(f, str(cl[f.dataset.c ?? '']));
+      for (const f of this.programFields) setValue(f, str(s[f.dataset.p ?? '']));
     });
     this.syncClaude();
     this.syncIdeas();
