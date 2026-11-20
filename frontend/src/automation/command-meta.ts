@@ -168,7 +168,7 @@ const ROWS: Record<string, Row> = {
   'review-changes': ['Use when a slide needs changes before approval.'],
   'review-draft': ['Use when a slide goes back to draft.'],
   'intake': ['Use when you want a first draft built from your own files and notes.', 'v'],
-  'agents': ['Use when you want to connect Claude, Codex or Cursor to formdeck, or allow agents to edit.', 'v'],
+  'agents': ['Use when you want to connect Claude Code, Codex, Cursor or Antigravity to formdeck, or allow agents to edit.', 'v'],
   'present-start': ['Use when you want to present from the first slide.', 'v'],
   'present-current': ['Use when you want to present from the slide you are on.', 'v'],
   'presenter-view': ['Use when you want notes, a timer and the next slide while you present.', 'v'],
