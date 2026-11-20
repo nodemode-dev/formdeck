@@ -73,6 +73,7 @@ def start_engine() -> bool:
         return False
     env = dict(os.environ)
     env.setdefault("FORMDECK_PORT", str(port()))
+    env.setdefault("FORMDECK_NO_SHELL", "1")
     dist = ROOT / "frontend" / "dist"
     if (dist / "index.html").is_file():
         env.setdefault("FORMDECK_DIST", str(dist))

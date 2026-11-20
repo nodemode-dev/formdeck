@@ -259,6 +259,7 @@ fn main() {
                 .env("FORMDECK_PORT", "0")
                 .env("FORMDECK_PORT_PREFER", "8297")
                 .env("FORMDECK_WINDOW_KEY_STDOUT", "1")
+                .env("FORMDECK_SHELL_PID", std::process::id().to_string())
                 .spawn()
                 .expect("the formdeck engine failed to spawn");
             app.state::<Backend>().0.lock().unwrap().replace(child);
