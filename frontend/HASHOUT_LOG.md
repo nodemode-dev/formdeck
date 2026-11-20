@@ -1333,3 +1333,11 @@ Removed from styles/chat.css:
 ```
 
 Seen in one headless Chrome session at 1440 by 900 (Vite dev server, engine from source, stand-in agent programs): on Chat one input is visible in the dock, the line, with formdeck's sentences and no "Claude" in them; under 4x CPU a send from Chat reached `POST /api/chat/[deck]/send` (200) and showed in the list, a send from a terminal tab opened Claude Code with the text and the window's deck and slide, and six tab switches between a shell and Chat gave 225 frames with one layout; a hint filled the line and focused it; Chat settings still lists the five providers. Stop was not seen shown: no provider was answering, so the assistant was never working. `tsc --noEmit` clean.
+
+## 221. The dock is module 2.2.0 and Antigravity is its fourth agent tab · _v0.41.0 (src/dock/ copied from formvis ddc893ae; src/dock-adapter.ts OwnKind, KINDS, record, formdeckDock tabs and agentStatus; app.ts)
+
+`src/dock/` is the family's module 2.2.0, each of its 16 entries (15 files and MANIFEST.json; `agents.ts` is new) written from formvis at ddc893ae with `git show`, byte for byte; `./formdeck agents sync --check` finds the folder equal to its MANIFEST.json. In 2.2.0 the agent kinds are data and an adapter may name a kind of its own.
+
+The adapter. It is typed `DockAdapter<'antigravity'>` (`OwnKind`), `tabs().builtin` lists `antigravity` after `cursor`, a terminal record may carry the kind `antigravity`, and `agentStatus()` returns the engine's fourth answer. When a program does not run, the engine's own sentence (`said`: where it looked, or why the found one does not start) is passed as `note`. `terminal.open('antigravity', ...)` needed no change: every kind but `shell` and `claude` already goes to `/api/agent/[kind]/open`. app.ts holds the dock as `Dock<'antigravity'>`. Steps 2 to 4 of the module's moving notes were not taken: `keyHeaders` is in use here, and formdeck has no automation ids on the dock and no reconnecting channel.
+
+Checked: `tsc --noEmit` clean. Not looked at in a browser, with or without a stand-in `agy`: the button, the row, the banner in the tab and the pixel comparison against 2.1.0 are not seen. The engine side was seen without a window (backend entry 139).

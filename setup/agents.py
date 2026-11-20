@@ -15,13 +15,13 @@ LEGACY_SKILLS = ["formsld-harness", "formsld-skillset"]
 LEGACY_SERVERS = ("formsld", "formsld-stdio")
 REGISTRY_NAME = "formdeck"
 MANIFEST = ROOT / "agents" / "manifest.json"
-DOCK = {"present": True, "positions": ["right", "bottom"], "tabs": ["chat", "terminal", "claude", "codex", "cursor"]}
+DOCK = {"present": True, "positions": ["right", "bottom"], "tabs": ["chat", "terminal", "claude", "codex", "cursor", "antigravity"]}
 DOCK_MODULE = ROOT / "frontend" / "src" / "dock"
 LOOKUP = ROOT / "backend" / "app" / "services" / "agent_lookup.py"
 LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
 PORT = int(os.environ.get("FORMDECK_PORT") or os.environ.get("FORMSLD_PORT") or 8197)
 PY = "python" if os.name == "nt" else "python3"
-USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex and Cursor here and in the folder you ran it from
+USAGE = """usage: ./formdeck agents install [--dry-run]   set up Claude Code, Codex, Cursor and Antigravity here and in the folder you ran it from
        ./formdeck agents sync [--check]       copy the formdeck skills again (mirror .claude/skills to .agents/skills) and write agents/manifest.json"""
 
 
@@ -45,7 +45,16 @@ def entries(portable: bool) -> dict:
         "claude": {"formdeck": {"type": "http", "url": f"http://127.0.0.1:{PORT}/mcp"}, "formdeck-stdio": {"type": "stdio", "command": PY, "args": [script]}},
         "codex": "[mcp_servers.formdeck]\n" + codex + "startup_timeout_sec = 30\ntool_timeout_sec = 300\n",
         "cursor": {"formdeck": {"command": PY, "args": [cursor]}},
+        "antigravity": {"formdeck": {"command": PY, "args": [str(ROOT / "setup" / "mcp_stdio.py")]}},
     }
+
+
+def antigravity(dry: bool, said: list) -> None:
+    folder = home() / ".gemini"
+    said.append("Antigravity:")
+    if (folder / "antigravity-cli" / "mcp_config.json").exists() and not (folder / "config" / "mcp_config.json").exists():
+        said.append(f"  {folder / 'antigravity-cli' / 'mcp_config.json'} is an older Antigravity file; it was seen and left alone")
+    merge_json(folder / "config" / "mcp_config.json", entries(False)["antigravity"], dry, said)
 
 
 def _backup(path: Path, dry: bool) -> None:
@@ -210,6 +219,7 @@ def install(dry: bool) -> int:
     configure(ROOT, True, dry, said)
     if caller() != ROOT:
         configure(caller(), False, dry, said)
+    antigravity(dry, said)
     skills(dry, said)
     print(("Would do (dry run):\n" if dry else "") + "\n".join(said))
     if not dry:
@@ -217,7 +227,7 @@ def install(dry: bool) -> int:
         print(f"""
 Next:
   1. Start formdeck: ./formdeck (the window at http://localhost:5197; the engine at http://127.0.0.1:{PORT}).
-  2. Open Claude Code, Codex or Cursor in {where} and approve the formdeck MCP server
+  2. Open Claude Code, Codex, Cursor or Antigravity in {where} and approve the formdeck MCP server
      (Claude Code: /mcp; the formdeck-stdio entry starts the engine itself when it is not running).
   3. Ask: "Build a 10 slide deck from ./notes in the studio template". The first edit asks you once, in the formdeck window, to allow agents.""")
     return 0

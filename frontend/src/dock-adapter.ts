@@ -7,7 +7,8 @@ export const DOCK_KEY = 'formdeck.dock';
 export const DOCK_OLD_KEYS = ['formdeck_dock_side', 'formdeck_dock_h', 'formdeck_dock_w'];
 export const DOCK_SIZES = { minHeight: 140, maxHeightShare: 0.7, defaultHeight: 280, minWidth: 460, maxWidthShare: 0.6, defaultWidth: 460, keepWidth: 440 };
 const RIGHT_FROM = 900;
-const KINDS: PtyKind[] = ['shell', 'claude', 'codex', 'cursor'];
+export type OwnKind = 'antigravity';
+const KINDS: Array<PtyKind | OwnKind> = ['shell', 'claude', 'codex', 'cursor', 'antigravity'];
 const NOTES = ['Agents edit live: you see every change as it happens on the slides.', 'Every agent turn can be undone at once with Edit, Undo Agent Turn.', 'You can turn this off any time in Agents.'];
 
 export interface ConsentAnswer { allowed: boolean; once?: boolean }
@@ -133,11 +134,11 @@ function socketChannel(socket: WebSocket): DockChannel {
 }
 
 interface EngineTerminal { id: string; title: string; kind?: string; alive?: boolean }
-const record = (x: EngineTerminal): DockTerminal => ({ id: x.id, title: x.title, alive: x.alive !== false, kind: KINDS.find((k) => k === x.kind) ?? 'shell' });
+const record = (x: EngineTerminal): DockTerminal<OwnKind> => ({ id: x.id, title: x.title, alive: x.alive !== false, kind: KINDS.find((k) => k === x.kind) ?? 'shell' });
 const mod = (e: KeyboardEvent): boolean => (isMac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey);
 const inDock = (e: KeyboardEvent): boolean => e.target instanceof Element && e.target.closest('.ft-dock') !== null;
 
-export function formdeckDock(host: DockHost): DockAdapter {
+export function formdeckDock(host: DockHost): DockAdapter<OwnKind> {
   always = () => host.choose('allowed');
   const words = { app: 'formdeck', noun: 'deck', start: './formdeck boot' };
   return {
@@ -152,7 +153,7 @@ export function formdeckDock(host: DockHost): DockAdapter {
     isDockChord: (e) => mod(e) && !e.altKey && !e.shiftKey && (e.code === 'Backquote' || e.code === 'KeyJ') && !(host.layerOpen() && !inDock(e)),
     chordLabel: () => `${isMac ? 'Cmd' : 'Ctrl'}+J`,
     passKey: (e) => mod(e) && e.shiftKey && !e.altKey && (e.code === 'Backquote' || e.code === 'KeyP'),
-    tabs: () => ({ builtin: ['chat', 'shell', 'claude', 'codex', 'cursor'] }),
+    tabs: () => ({ builtin: ['chat', 'shell', 'claude', 'codex', 'cursor', 'antigravity'] }),
     classes: { iconButton: 'fd-tt-btn', button: 'fd-btn fd-btn-sm', primaryButton: 'fd-btn-primary', input: 'fd-input', select: 'fd-input', note: 'fd-note' },
     t: (_key, english) => t(english.replace(/\{(app|noun|start)\}/g, (_m, name: 'app' | 'noun' | 'start') => words[name])),
     onTheme: (handler) => { document.addEventListener('nm:ui-settings-changed', handler); },
@@ -188,12 +189,12 @@ export function formdeckDock(host: DockHost): DockAdapter {
       },
     },
     agentStatus: async () => {
-      let said: Partial<Record<DockProgram, { installed?: unknown; version?: unknown; install?: unknown; signedIn?: unknown }>>;
+      let said: Partial<Record<DockProgram | OwnKind, { installed?: unknown; version?: unknown; install?: unknown; signedIn?: unknown; said?: unknown }>>;
       try { said = await call('/api/agent/status'); } catch { return null; }
-      const out: DockAgentStatus = {};
-      for (const kind of ['claude', 'codex', 'cursor'] as const) {
+      const out: DockAgentStatus<OwnKind> = {};
+      for (const kind of ['claude', 'codex', 'cursor', 'antigravity'] as const) {
         const s = said[kind];
-        if (s) out[kind] = { installed: s.installed === true, version: text(s.version) || null, install: text(s.install), signedIn: typeof s.signedIn === 'boolean' ? s.signedIn : null };
+        if (s) out[kind] = { installed: s.installed === true, version: text(s.version) || null, install: text(s.install), signedIn: typeof s.signedIn === 'boolean' ? s.signedIn : null, ...(s.installed !== true && text(s.said) ? { note: text(s.said) } : {}) };
       }
       return out;
     },

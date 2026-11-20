@@ -632,7 +632,7 @@ export async function startApp(): Promise<void> {
   registerColourStyleCommands(commands, () => editor);
 
   reserveDock(guest() !== null);
-  const dock: Dock | null = guest() ? null : new Dock(formdeckDock({
+  const dock: Dock<'antigravity'> | null = guest() ? null : new Dock(formdeckDock({
     context: () => {
       const ed = editor;
       if (!ed) return 'formdeck window: no deck open';

@@ -256,6 +256,33 @@ def test_an_agent_tab_holds_its_own_token_in_its_environment_until_it_closes(cli
     assert finish(thread, out)["isError"]
 
 
+@posix
+def test_an_antigravity_tab_gets_its_entry_in_its_own_folder_and_loses_only_that_at_close(client, stand_ins):
+    from app.services import agent_programs, claude_code, terminal
+
+    written = agent_programs.tab_folder("antigravity") / ".agents" / "mcp_config.json"
+    written.parent.mkdir(parents=True, exist_ok=True)
+    seeded = {"other": 1, "mcpServers": {"mine": {"command": "x"}}}
+    written.write_text(json.dumps(seeded), encoding="utf-8")
+    opened = client.post("/api/agent/antigravity/open", json={"cols": 80, "rows": 20})
+    assert opened.status_code == 200
+    tab = opened.json()
+    try:
+        assert tab["kind"] == "antigravity" and tab["title"] == "Antigravity" and tab["alive"] is True and tab["cwd"] == str(written.parent.parent)
+        session = terminal.SESSIONS[tab["id"]]
+        token = session.env[agent_programs.TOKEN_VAR]
+        assert claude_code.is_inapp(token) and claude_code.inapp_name(token) == "Antigravity in formdeck"
+        assert all(token not in part for part in session.argv) and session.argv[-1].endswith(str(stand_ins / "agy"))
+        held = json.loads(written.read_text(encoding="utf-8"))
+        assert held["other"] == 1 and held["mcpServers"]["mine"] == {"command": "x"}
+        assert held["mcpServers"]["formdeck_tab"] == {"serverUrl": terminal.engine_url() + "/mcp", "headers": {INAPP_HEADER: token}}
+        assert stat.S_IMODE(os.stat(written).st_mode) == 0o600
+    finally:
+        assert client.delete(f"/api/terminal/{tab['id']}").status_code == 200
+    assert not claude_code.is_inapp(token)
+    assert json.loads(written.read_text(encoding="utf-8")) == seeded
+
+
 def test_a_config_the_person_wrote_is_left_alone(tmp_path):
     from app.services import agent_programs
 
