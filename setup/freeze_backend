@@ -11,6 +11,7 @@ sep=":"
 ext="$(fd_exe)"
 extra=()
 if [ -d "$FORMDECK_ROOT/backend/app/fonts" ]; then extra+=(--add-data "$FORMDECK_ROOT/backend/app/fonts${sep}fonts"); fi
+if [ "$(fd_os)" = windows ] && [ "${FORMDECK_ENGINE_WINDOWED:-1}" != 0 ]; then extra+=(--noconsole); fi
 rm -rf build/pyinstaller dist-engine
 pyinstaller --noconfirm --clean --onefile --name formdeck-engine \
   --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \

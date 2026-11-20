@@ -11,10 +11,12 @@ if not defined TRIPLE ( echo [formdeck] rustc not found, install Rust or set FOR
 if not exist frontend\dist\index.html ( call setup\build_frontend.bat || exit /b 1 )
 set "FONTS="
 if exist "%ROOT%\backend\app\fonts" set FONTS=--add-data "%ROOT%\backend\app\fonts;fonts"
+set "WINDOWED=--noconsole"
+if "%FORMDECK_ENGINE_WINDOWED%"=="0" set "WINDOWED="
 cd backend
 if exist build\pyinstaller rmdir /s /q build\pyinstaller
 if exist dist-engine rmdir /s /q dist-engine
-pyinstaller --noconfirm --clean --onefile --name formdeck-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller --add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\addins;addins" --collect-submodules app --collect-submodules uvicorn --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 --collect-all latex2mathml --collect-submodules keyring --add-data "%ROOT%\backend\app\services\odp\presets.json;app\services\odp" %FONTS% "%ROOT%\backend\formdeck_engine.py" || exit /b 1
+pyinstaller --noconfirm --clean --onefile %WINDOWED% --name formdeck-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller --add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\addins;addins" --collect-submodules app --collect-submodules uvicorn --collect-all pptx --collect-all pdfplumber --hidden-import pypdfium2 --collect-all latex2mathml --collect-submodules keyring --add-data "%ROOT%\backend\app\services\odp\presets.json;app\services\odp" %FONTS% "%ROOT%\backend\formdeck_engine.py" || exit /b 1
 if not exist "%ROOT%\src-tauri\binaries" mkdir "%ROOT%\src-tauri\binaries"
 copy /y dist-engine\formdeck-engine.exe "%ROOT%\src-tauri\binaries\formdeck-engine-%TRIPLE%.exe" >nul || exit /b 1
 "%ROOT%\src-tauri\binaries\formdeck-engine-%TRIPLE%.exe" --selfcheck || exit /b 1
