@@ -47,7 +47,7 @@ Make tokens long and random (for example `python3 -c "import secrets; print(secr
 
 ## What has been tested
 
-On one computer, with the relay serving HTTPS from a test certificate authority: formdeck connected over `wss://`; guests opened view and edit links over `https://`, followed a slide show, sent questions to Presenter View and co-edited; both cookies were `Secure` and `HttpOnly`; a 20 MB file arrived intact and Range requests answered 206; two formdecks with different tokens stayed separate and one could not take over the other's address; a guest could not reach settings, other decks or the deck list. Not yet tried: a public server with Caddy or nginx, guests on other networks, the Dockerfile and the systemd unit (written to the usual conventions but not run here).
+On one computer, with the relay serving HTTPS from a test certificate authority: formdeck connected over `wss://`; guests opened view and edit links over `https://`, followed a slide show, sent questions to Presenter View and co-edited; both cookies were `Secure` and `HttpOnly`; a 20 MB file arrived intact and Range requests answered 206; two formdecks with different tokens stayed separate and one could not take over the other's address; a guest could not reach settings, other decks or the deck list. For a public server you run yourself, as the app's status says, this folder carries a Caddy and an nginx example, a Dockerfile and a systemd unit, written to the usual conventions: set the names, paths and certificate to your server's.
 
 ## Limits
 
