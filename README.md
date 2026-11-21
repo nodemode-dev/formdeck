@@ -108,6 +108,7 @@ formdeck hosts Form extensions (Form Extension Contract, API 1): FormPortal inst
 - **Window:** vanilla TypeScript and Vite, with an inline-SVG icon set and no UI framework.
 - **Desktop:** a Tauri 2 shell around the same window, with the engine frozen as a sidecar.
 - **Format:** `.fdec` is a package around `deck.json`, documented in [`docs/FORMAT.md`](docs/FORMAT.md).
+- **Size, in lines:** about 45,300 of TypeScript, 2,800 of CSS, 26,700 of Python, 800 of Rust (product code, tests excluded; `./formdeck counts --check` verifies it).
 - **Tested:** pytest suites in `backend/tests` and a browser window test in `frontend/tests`.
 
 ## Download
