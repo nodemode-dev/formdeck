@@ -3,6 +3,7 @@ import type { Color } from './engine/model';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { api, removedHere } from './io/api';
+import { loadWindowKey, windowKey } from './io/window-key';
 import { LiveClient } from './live/socket';
 import { ensureFonts, fontsOfDeck } from './render/fonts';
 import { PLAYER_EVENT } from './render/slide';
@@ -114,6 +115,8 @@ ${EXT_PANE_HTML}
 </div>
 </footer>
 </div>`;
+
+const ENGINE_GRACE_MS = 20000;
 
 export async function startApp(): Promise<void> {
   applyTheme();
@@ -1010,15 +1013,30 @@ export async function startApp(): Promise<void> {
   }
 
   enhanceAllSelects(document);
-  try {
-    const settings = await api.settings();
+  const useSettings = (settings: Record<string, unknown>): void => {
     agentsAllowed = !!settings.agentsAllowed;
     live.setAgents(agentsAllowed);
     if (settings.sealBroken === true) dialogs.noteSealBroken();
     const keys = settings.keys && typeof settings.keys === 'object' ? settings.keys as Record<string, unknown> : {};
     for (const [id, combos] of Object.entries(keys)) if (Array.isArray(combos)) commands.setKeys(id, combos.map(String));
     setMarqueeRule(settings.marquee);
-  } catch { toast('The formdeck engine is not answering yet; retrying.', 'error'); }
+  };
+  const askedAt = performance.now();
+  const settleSettings = async (): Promise<void> => {
+    let told = false;
+    for (;;) {
+      try {
+        if (!windowKey()) await loadWindowKey();
+        useSettings(await api.settings());
+        return;
+      } catch (err) {
+        if (!(err instanceof TypeError) && err instanceof Error && /formdeck window/.test(err.message)) { toast('Another window holds the formdeck engine\'s key, so this one cannot change anything. Use that window, or restart formdeck.', 'error'); return; }
+      }
+      if (!told && performance.now() - askedAt >= ENGINE_GRACE_MS) { told = true; toast('The formdeck engine is not answering yet; retrying.', 'error'); }
+      await new Promise((done) => window.setTimeout(done, told ? 2000 : 500));
+    }
+  };
+  try { useSettings(await api.settings()); } catch { void settleSettings(); }
   const params = new URLSearchParams(location.search);
   const want = params.get('deck');
   const files = params.getAll('open').filter(Boolean);

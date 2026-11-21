@@ -18,6 +18,23 @@ USAGE = """usage: ./formdeck i18n check | scan [--write] | export LANG FILE.csv 
   export   a language's strings as CSV for a native reviewer (english, current, corrected, note)
   import   the reviewer's corrected column back in, as keys/part99.json and locales/LANG/part99.json"""
 
+# Not sentences, so never keyed: two code fragments the quote matcher pairs across code,
+# Tauri's own menu item ids and accelerator key name (the system draws their words),
+# product and licence names, the brand line (translate="no" in the page) and the titles
+# of the demo decks, whose slides stay in English.
+NOT_TEXT = {
+    "), s.getPropertyValue(", ": still ? '' :",
+    "Separator", "Services", "Quit", "Minimize", "Maximize", "Fullscreen", "Plus",
+    "Antigravity", "Apache License 2.0", "Apache-2.0", "Copyright 2026 NodeAgentc, Inc. ·",
+    "Copyright 2026 NodeAgentc, Inc. Apache-2.0", "by nodemode.ai",
+    "Worlds Beyond", "Why We Keep Going Back", "Mill Street Roastery",
+}
+# Key chords (Shift+Mod+N), key codes (KeyJ), HTTP headers (X-Formdeck-Window-Key), font ranges (U+0-10FFFF).
+NOT_TEXT_RE = re.compile(r"((Shift|Mod|Alt|Ctrl|Cmd|Option)\+)+\S+|Key[A-Z]|X-[A-Za-z-]+|U\+[0-9A-Fa-f-]+")
+# A named placeholder ({noun}, {app}) marks a dock fill() template: the page shows it filled in,
+# so the filled sentence is what is keyed (keys/part44.json), as for the dock's own strings.
+FILL_TEMPLATE = re.compile(r"\{[a-z]+\}")
+
 TOKEN = re.compile(r"'((?:[^'\\\n]|\\.)*)'|\"((?:[^\"\\\n]|\\.)*)\"|`((?:[^`\\]|\\.)*)`")
 
 
@@ -41,6 +58,8 @@ def locale_of(lang: str, part: str) -> dict[str, str]:
 def keep(s: str) -> str | None:
     s = s.strip()
     if len(s) < 2 or len(s) > 400 or not re.search(r"[A-Za-z]{2}", s):
+        return None
+    if s in NOT_TEXT or NOT_TEXT_RE.fullmatch(s) or FILL_TEMPLATE.search(s):
         return None
     if re.search(r"[{};=]\s*$|^[a-z0-9_.:/-]+$|^#|^\.|^--|^\$|https?://|^[a-z]+\(|=>|\bconst\b|\breturn\b|querySelector|\bfd-|\bnm-|\.json$|\.ts$|\.css$", s):
         return None
